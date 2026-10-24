@@ -1,1 +1,11 @@
 __pycache__/
+
+# pizarrón (maqueta): lo que no es nuestro, pesa o se genera solo
+maqueta/img/
+maqueta/servidor.log
+maqueta/dibujo_respaldo_usuario.*
+# capturas con imágenes de terceros (fan art de Teto, foto de Vera): solo en local
+maqueta/documentacion/2_maqueta.png
+maqueta/documentacion/3_maqueta_con_tu_dibujo.png
+maqueta/documentacion/4_teto_con_ropa_de_vera.jpg
+maqueta/documentacion/5_maqueta_dos_mitades.png
