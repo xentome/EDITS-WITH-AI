@@ -144,5 +144,45 @@
   "referencias": {},
   "efectos": {},
   "prohibidas": []
+ },
+ "Ren city pop": {
+  "definicion_edit": "Video corto hecho de tomas breves que cambian al ritmo de una canción city pop. Cada toma muestra al protagonista de cerca en un momento distinto; juntas cuentan un arco pequeño que resalta lo que lo hace especial (su emoción, su gesto, su estilo). Cada imagen se ve bella y con intención; el texto en pantalla es mínimo.",
+  "protagonista": "El protagonista es <Subject 1>, un chico",
+  "estilo": "anime 2D ilustrado, city pop japonés, vertical",
+  "nombre": "Ren",
+  "pronombre": "he",
+  "posesivo": "his",
+  "sujeto": "<Subject 1> is the young man in {personajes}, with spiky dark brown hair and amber eyes. His name is Ren.",
+  "audio": "<Audio 1> is the beat and rhythm reference guiding the target video's pacing and audio continuity.",
+  "retencion": "<Subject 1>: fully_preserved - Ren's face, spiky dark brown hair and amber eyes from {personajes} in every shot.",
+  "retencion_audio": "<Audio 1>: reference - only its beat, rhythm and accents are used as the timing reference for every cut and word.",
+  "resumen": "A vertical city pop music edit of <Subject 1>, close shots cut on the beat of <Audio 1>",
+  "estilo_prompt": "Flat 2D anime illustration, Japanese city pop, flat painted backgrounds.",
+  "texto_estilo": "in a bold retro sans-serif font with a magenta neon outline and an amber fill",
+  "referencias": {},
+  "efectos": {
+   "G1": [
+    "garabatos y pegatinas",
+    "hand-drawn white and colored doodles drawn around <Subject 1>: little stars, hearts, swirls and sparkle marks"
+   ],
+   "G2": [
+    "marco de editor (todo en blanco y negro menos su cara, dentro de un recuadro de selección)",
+    "the image turns black and white except <Subject 1>'s face, which stays in full color inside a tilted rectangular selection box with small blue corner handles, like a photo-editing app"
+   ],
+   "G3": [
+    "recorte de pegatina con papel rasgado",
+    "<Subject 1> appears cut out with a thick rough white sticker edge, in front of a huge torn paper shape in a bold color, with a few dry-brush strokes"
+   ],
+   "G4": [
+    "foto instantánea",
+    "the image turns into a film snapshot with a white instant-photo border and slight chromatic aberration"
+   ]
+  },
+  "prohibidas": [
+   "bokeh",
+   "cinematic",
+   "photorealistic",
+   "photographic"
+  ]
  }
 }
