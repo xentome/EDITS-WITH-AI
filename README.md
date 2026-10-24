@@ -7,3 +7,9 @@ Base de una app de edits musicales con IA local: **MiniMax H3** en ComfyUI y un 
 
 **Empieza por [PLANOS.md](PLANOS.md)**: es una página, con enlaces a los planos de cada parte.
 Comprobación rápida después de cualquier cambio: `python pruebas.py`.
+
+## Licencia y avisos
+- El código de este repositorio es **Apache-2.0** (ver `LICENSE`).
+- **MiniMax H3 tiene su propia licencia: su uso comercial necesita una licencia aparte de MiniMax.**
+- Modelos usados: `MODELOS.md`. Autores de los nodos y herramientas: `CREDITOS.md`.
+- Workflow de ejemplo: `workflows/`.
