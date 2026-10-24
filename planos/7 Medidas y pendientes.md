@@ -39,4 +39,3 @@ Lectura: 2 min
 - ❓ **Si las tomas sin razonamiento salen tan bien como con el método de 3 etapas:** hay que compararlo en renders.
 - ❓ **Edits de 10 s en 2 clips:** un mismo plan para las dos mitades.
 - ❓ **Receta de Vera.**
-- ❓ **Historial con git** (plano 6).
