@@ -1,0 +1,106 @@
+{
+ "receta": "Teto city pop",
+ "entradas": {
+  "idea": "Teto normal y realista, sin dramatismo, en los lugares más bellos de una ciudad city pop, luz cálida y neones",
+  "tomas": 6,
+  "duracion": 5.167,
+  "palabras": "TO YOU @1",
+  "refs": null
+ },
+ "beats": [
+  0.755,
+  1.3,
+  1.846,
+  2.392,
+  2.949,
+  3.483,
+  4.017,
+  4.551
+ ],
+ "plan": {
+  "arco": "From playful motion in neon-lit streets to stillness under a starlit sky",
+  "look": "Night and dusk, warm neon glow, saturated warm palette",
+  "fondo": "",
+  "fijos": [],
+  "tomas": [
+   {
+    "lugar": "a neon-lit crosswalk",
+    "momento": "she waves with an arm raised high, caught mid-step",
+    "personaje": "<Picture 1>",
+    "pose": "<Picture 5>",
+    "fondo_ref": "",
+    "efecto": "G1",
+    "encuadre": "close-up",
+    "luz": "warm neon glow from the side",
+    "gesto": "raises one arm high and waves while caught mid-step",
+    "camara": "holds still",
+    "fijos": []
+   },
+   {
+    "lugar": "a night train platform",
+    "momento": "she stands with hands in her pockets, blowing a small pink bubble-gum bubble",
+    "personaje": "<Picture 2>",
+    "pose": "<Picture 6>",
+    "fondo_ref": "",
+    "efecto": "G4",
+    "encuadre": "medium close-up",
+    "luz": "cool fluorescent light from above casting a flat glow",
+    "gesto": "blows a small pink bubble-gum bubble",
+    "camara": "drifts sideways",
+    "fijos": []
+   },
+   {
+    "lugar": "a rooftop above the city",
+    "momento": "she looks down at the phone she holds at chest height",
+    "personaje": "<Picture 3>",
+    "pose": "<Picture 7>",
+    "fondo_ref": "",
+    "efecto": "U3",
+    "encuadre": "extreme close-up",
+    "luz": "cold blue glow from the phone screen illuminating her face from below",
+    "gesto": "lowers her gaze at the phone held at chest height",
+    "camara": "slowly zooms in",
+    "fijos": []
+   },
+   {
+    "lugar": "a street under neon signs",
+    "momento": "she stands with a hand on her chest and the other arm open, calmly in the rain",
+    "personaje": "<Picture 1>",
+    "pose": "<Picture 9>",
+    "fondo_ref": "",
+    "efecto": "U5",
+    "encuadre": "close-up",
+    "luz": "diffused gray-violet stormy light from above",
+    "gesto": "rests one hand on her chest and extends the other arm outward",
+    "camara": "tilts up",
+    "fijos": []
+   },
+   {
+    "lugar": "a riverside railing",
+    "momento": "she sits on the railing, leaning toward the camera, lollipop in her mouth",
+    "personaje": "<Picture 4>",
+    "pose": "<Picture 8>",
+    "fondo_ref": "",
+    "efecto": "G2",
+    "encuadre": "medium close-up",
+    "luz": "soft warm glow from the river reflection illuminating her from the side",
+    "gesto": "leans toward the camera with a lollipop in her mouth",
+    "camara": "holds still",
+    "fijos": []
+   },
+   {
+    "lugar": "a hilltop overlooking the city",
+    "momento": "she stands still, facing the city lights",
+    "personaje": "<Picture 2>",
+    "pose": "",
+    "fondo_ref": "",
+    "efecto": "U4",
+    "encuadre": "close-up",
+    "luz": "city lights glowing from below",
+    "gesto": "stands still facing the city lights",
+    "camara": "slowly zooms in",
+    "fijos": []
+   }
+  ]
+ }
+}

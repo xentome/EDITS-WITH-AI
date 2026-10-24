@@ -1,0 +1,129 @@
+{
+ "Teto city pop": {
+  "definicion_edit": "Video corto hecho de tomas breves que cambian al ritmo de una canción city pop. Cada toma muestra a la protagonista de cerca en un momento distinto; juntas cuentan un arco pequeño que resalta lo que la hace especial (su emoción, su gesto, su estilo). Cada imagen se ve bella y con intención; el texto en pantalla es mínimo.",
+  "protagonista": "La protagonista es <Subject 1>, una chica",
+  "estilo": "anime 2D ilustrado, city pop japonés, vertical",
+  "nombre": "Teto",
+  "pronombre": "she",
+  "posesivo": "her",
+  "sujeto": "<Subject 1> is the anime girl in {personajes}, with bright red hair in two big drill-shaped twin tails. Her name is Teto. In each shot she wears the outfit of the reference cited for that shot.",
+  "audio": "<Audio 1> is the music reference.",
+  "retencion": "<Subject 1>: fully_preserved - Teto's face, red drill twin tails, red eyes and black choker from {personajes} in every shot.",
+  "retencion_audio": "<Audio 1>: reference - the song plays unchanged and times every cut.",
+  "resumen": "A vertical city pop music edit of <Subject 1> in a Japanese city, close shots cut on the beat of <Audio 1>",
+  "estilo_prompt": "Flat 2D anime illustration, Japanese city pop, flat painted backgrounds.",
+  "texto_estilo": "in a bold retro sans-serif font with a magenta neon outline and an amber fill",
+  "referencias": {
+   "<Picture 1>": {
+    "papel": "personaje",
+    "nombre": "school uniform",
+    "ficha": "white short-sleeve school shirt, navy plaid skirt, school bag",
+    "ref": "personajes/teto_atuendos/teto_uniforme"
+   },
+   "<Picture 2>": {
+    "papel": "personaje",
+    "nombre": "black leather jacket and round glasses",
+    "ficha": "black leather jacket over a dark red ribbed sweater, beige trench coat, round glasses",
+    "ref": "personajes/teto_atuendos/teto_chaqueta_gafas"
+   },
+   "<Picture 3>": {
+    "papel": "personaje",
+    "nombre": "white open-collar shirt",
+    "ficha": "plain white shirt with an open collar",
+    "ref": "personajes/teto_atuendos/teto_camisa_primer_plano"
+   },
+   "<Picture 4>": {
+    "papel": "personaje",
+    "nombre": "white open-collar shirt",
+    "ficha": "plain white shirt with an open collar, sunset light",
+    "ref": "personajes/teto_atuendos/teto_atardecer"
+   },
+   "<Picture 5>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl waving with one arm raised high, caught mid-step on a night crosswalk",
+    "ref": "poses/teto_u/U1_flash_saludo"
+   },
+   "<Picture 6>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl standing on a night train platform with her hands in her pockets, blowing a small pink bubble-gum bubble",
+    "ref": "poses/teto_u/U2_anden_chicle"
+   },
+   "<Picture 7>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl in profile, looking down at the phone she holds at chest height",
+    "ref": "poses/teto_u/U3_movil_bokeh"
+   },
+   "<Picture 8>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl sitting on a railing, leaning toward the camera, with a lollipop in her mouth",
+    "ref": "poses/teto_u/U4_estrellas_piruleta"
+   },
+   "<Picture 9>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl with one hand on her chest and the other arm open, calmly enjoying the rain",
+    "ref": "poses/teto_u/U5_lluvia_brazo"
+   }
+  },
+  "efectos": {
+   "G1": [
+    "garabatos y pegatinas",
+    "hand-drawn white and colored doodles drawn around <Subject 1>: little stars, hearts, swirls and sparkle marks"
+   ],
+   "G2": [
+    "marco de editor (todo en blanco y negro menos su cara, dentro de un recuadro de selección)",
+    "the image turns black and white except <Subject 1>'s face, which stays in full color inside a tilted rectangular selection box with small blue corner handles, like a photo-editing app"
+   ],
+   "G3": [
+    "recorte de pegatina con papel rasgado",
+    "<Subject 1> appears cut out with a thick rough white sticker edge, in front of a huge torn paper shape in a bold color, with a few dry-brush strokes"
+   ],
+   "G4": [
+    "foto instantánea",
+    "the image turns into a film snapshot with a white instant-photo border and slight chromatic aberration"
+   ],
+   "U3": [
+    "luz de móvil y círculos de luz de la ciudad",
+    "her face lit only by the cold blue glow of a phone screen, the night city melting into huge flat painted golden and cyan light circles around her",
+    "phone"
+   ],
+   "U4": [
+    "estrellas y nieve",
+    "little colorful star sparkles in pink, blue, yellow and green and snowflakes floating right in front of her face, flash-photo look"
+   ],
+   "U5": [
+    "lluvia",
+    "rain streaks crossing in front of her face under a gray-violet stormy light",
+    "rain"
+   ]
+  },
+  "prohibidas": [
+   "bokeh",
+   "cinematic",
+   "photorealistic",
+   "photographic"
+  ]
+ },
+ "Ren sin efectos": {
+  "definicion_edit": "Video corto hecho de tomas breves que cambian al ritmo de una música rápida e intensa. Cada toma muestra al protagonista de cerca en un momento distinto; juntas cuentan un arco pequeño que resalta lo que lo hace especial (su emoción, su gesto, su estilo). Cada imagen se ve bella y con intención; el texto en pantalla es mínimo.",
+  "protagonista": "El protagonista es <Subject 1>, un chico",
+  "estilo": "anime 2D, vertical",
+  "nombre": "Ren",
+  "pronombre": "he",
+  "posesivo": "his",
+  "sujeto": "<Subject 1> is the young man in <Video 1>. Their name is Ren.",
+  "audio": "<Audio 1> is the beat and rhythm reference guiding the target video's pacing and audio continuity.",
+  "retencion": "<Subject 1>: fully_preserved - Ren's identity from <Video 1> stays recognizable in every shot.",
+  "retencion_audio": "<Audio 1>: reference - only its beat, rhythm and accents are used as the timing reference for every cut and word.",
+  "resumen": "A short vertical 2D anime video of quick shots cut to the beat of <Audio 1>",
+  "estilo_prompt": "2D anime, vertical. Close shots only.",
+  "texto_estilo": "in bold clean white letters",
+  "referencias": {},
+  "efectos": {},
+  "prohibidas": []
+ }
+}
