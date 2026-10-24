@@ -126,5 +126,23 @@
   "referencias": {},
   "efectos": {},
   "prohibidas": []
+ },
+ "Vera realista": {
+  "definicion_edit": "Video corto hecho de tomas breves que cambian al ritmo de una canción. Cada toma muestra a la protagonista de cerca en un momento distinto; juntas cuentan un arco pequeño que resalta lo que la hace especial (su emoción, su gesto, su estilo). Cada imagen se ve bella y con intención; el texto en pantalla es mínimo.",
+  "protagonista": "La protagonista es <Subject 1>, una mujer joven real, fotográfica",
+  "estilo": "persona real fotográfica, vertical",
+  "nombre": "Vera",
+  "pronombre": "she",
+  "posesivo": "her",
+  "sujeto": "<Subject 1> is the young woman in {personajes}, with short messy black hair and small silver hoop earrings. Her name is Vera.",
+  "audio": "<Audio 1> is the beat and rhythm reference guiding the target video's pacing and audio continuity.",
+  "retencion": "<Subject 1>: fully_preserved - Vera's identity from {personajes} stays recognizable and photographic in every shot: face, short messy black hair and hoop earrings.",
+  "retencion_audio": "<Audio 1>: reference - only its beat, rhythm and accents are used as the timing reference for every cut and word.",
+  "resumen": "A short vertical music edit of <Subject 1>, a real photographic person, close shots cut on the beat of <Audio 1>",
+  "estilo_prompt": "Photorealistic person, real photo look, vertical. Close shots only.",
+  "texto_estilo": "in bold clean white letters",
+  "referencias": {},
+  "efectos": {},
+  "prohibidas": []
  }
 }
