@@ -34,3 +34,10 @@ export function destinos(graph, node, salida) {
   return (node.outputs?.[salida]?.links || []).map((id) => enlace(graph, id)).filter(Boolean)
     .map((l) => graph.getNodeById(l.target_id)).filter(Boolean);
 }
+
+// dirección de una foto: de un RefMod (su vista previa) o de un archivo del Media Loader («minimax_h3/x.jpg [input]»)
+export const vistaRefmod = (nombre) => nombre ? `/minimax_h3/refmods/preview?name=${encodeURIComponent(nombre)}` : "";
+export function vistaMedio(file) {
+  const rel = (file || "").replace(/ \[input\]$/, ""), i = rel.lastIndexOf("/");
+  return rel ? `/view?filename=${encodeURIComponent(rel.slice(i + 1))}&subfolder=${encodeURIComponent(i > 0 ? rel.slice(0, i) : "")}&type=input` : "";
+}

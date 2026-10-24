@@ -1,19 +1,25 @@
-/* Columna 3 del editor: PROMPT FINAL (lo que recibe H3), resaltado o editado a mano.
- * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u, sin imports, para que
- * este archivo también se recargue al abrir la ventana. Planos: ../../planos/4 El editor.md. */
+/* Sección 5 del editor: PROMPT FINAL (lo que recibe H3), resaltado o editado a mano, con los botones que llaman al LLM
+ * (Escribir historia, Escribir tomas) y Guardar. Solo exporta funciones (ComfyUI importa todos los .js de web/).
+ * Las utilidades llegan en ctx.u, sin imports, para que este archivo también se recargue al abrir la ventana.
+ * Planos: ../../planos/4 El editor.md. */
 
-/* Añade ctx.pintarFinal. Usa de ctx: u, S, colFinal, resaltar, pedirMontaje. */
+/* Añade ctx.pintarFinal. Usa de ctx: u, S, secFinal, resaltar, pedirMontaje, conLLM, guardarYAvisar. */
 export function instalar(ctx) {
-  const { u, S, colFinal } = ctx;
+  const { u, S, secFinal } = ctx;
   const { el } = u;
 
   let editando = false;
   ctx.pintarFinal = function pintarFinal() {
-    const cab = el("div", { class: "epl-fila" },
-      el("h3", {}, "Prompt final"),
+    const cab = el("div", { class: "epl-tit" }, "Prompt final · lo que recibe H3",
       S.a_mano ? el("span", { class: "epl-marca" }, "editado a mano") : null,
-      el("button", { class: "epl-mini", onclick: () => { editando = !editando; pintarFinal(); } }, editando ? "Ver resaltado" : "Editar a mano"),
-      S.a_mano ? el("button", { class: "epl-mini", onclick: () => { S.a_mano = false; editando = false; ctx.pedirMontaje(); } }, "Volver a montar") : null);
+      el("span", { class: "der" },
+        el("button", { class: "epl-boton", title: "Arco, luz y, en cada toma, lugar, qué pasa, referencias y efecto (unos 2 min). Respeta lo que tiene 🔒.",
+          onclick: () => ctx.conLLM("Escribiendo la historia", "historia") }, "Escribir historia"),
+        el("button", { class: "epl-boton", title: "Encuadre, luz, gesto y cámara de todas las tomas (unos 30 s). Respeta lo que tiene 🔒.",
+          onclick: () => ctx.conLLM("Escribiendo las tomas", "tomas") }, "Escribir tomas"),
+        el("button", { class: "epl-boton fuerte", onclick: () => ctx.guardarYAvisar() }, "Guardar"),
+        el("button", { class: "epl-mini", onclick: () => { editando = !editando; pintarFinal(); } }, editando ? "Ver resaltado" : "Editar a mano"),
+        S.a_mano ? el("button", { class: "epl-mini", onclick: () => { S.a_mano = false; editando = false; ctx.pedirMontaje(); } }, "Volver a montar") : null));
     const vacio = S.plan.tomas.every((t) => !t.lugar && !t.gesto);
     const avisos = !S.avisos.length ? null : el("p", { class: "epl-aviso" }, vacio
       ? "El plan está vacío: pulsa «Escribir historia» y después «Escribir tomas», o escribe tú los campos."
@@ -28,7 +34,7 @@ export function instalar(ctx) {
           onmouseenter: () => ctx.resaltar(trozo, true), onmouseleave: () => ctx.resaltar(trozo, false) }, trozo) : trozo);
       }
     }
-    colFinal.replaceChildren(...[cab, el("p", { class: "epl-ayuda" }, "Lo que recibe H3. Pasa el ratón sobre una referencia para ver dónde se usa."),
-      avisos, cuerpoFinal].filter(Boolean));
+    secFinal.replaceChildren(...[cab, el("p", { class: "epl-ayuda" }, "El código lo vuelve a montar con cada cambio, sin llamar al LLM. " +
+      "Pasa el ratón sobre una referencia para ver dónde se usa."), avisos, cuerpoFinal].filter(Boolean));
   };
 }

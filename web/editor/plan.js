@@ -1,13 +1,16 @@
-/* Columna 2 del editor: PROMPT FUNDAMENTAL (el plan que lee y extiende el LLM). Campos con candado, frase del efecto,
- * tomas y los botones que llaman al LLM (historia, tomas, una sola toma).
- * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u, sin imports, para que
- * este archivo también se recargue al abrir la ventana. Planos: ../../planos/4 El editor.md. */
+/* Secciones 1 y 2 del editor: el PLAN (lo que lee y extiende el LLM).
+ * 1 · Historia general: idea, arco, luz y ambiente, fondo general y los campos del nodo (receta, tomas, duración…).
+ * 2 · Prompt de la toma elegida en la línea de tiempo: su línea [Shot n] y todos sus campos, con candado, la frase del
+ *     efecto (↺ vuelve a la de la receta), las referencias que usa y «rehacer esta toma».
+ * También los botones que llaman al LLM (ctx.conLLM). Solo exporta funciones (ComfyUI importa todos los .js de web/).
+ * Las utilidades llegan en ctx.u, sin imports, para que este archivo también se recargue al abrir la ventana.
+ * Planos: ../../planos/4 El editor.md. */
 
 const ENCUADRES = ["extreme close-up", "close-up", "medium close-up"];
-const HISTORIA = ["lugar", "momento", "personaje", "pose", "fondo_ref", "efecto"];
+const HISTORIA = ["lugar", "momento", "personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
 const DIRECCION = ["encuadre", "luz", "gesto", "camara"];
 
-const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), fijos: [] });
+const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), efecto_frase: "", fijos: [] });
 // deja el plan con n tomas y todos sus campos (sin tocar lo que ya tiene)
 export function ajustarPlan(plan, n) {
   const p = plan ? JSON.parse(JSON.stringify(plan)) : {};
@@ -18,14 +21,14 @@ export function ajustarPlan(plan, n) {
   return p;
 }
 
-/* Añade a ctx las funciones de la columna 2. Usa de ctx: u, S, wf, caja, colPlan, recetas, avisar, cuerpo,
- * pedirMontaje, pintarRefs. */
+/* Añade a ctx: conLLM, pintarHistoria, pintarToma, pintarLineaToma, pintarPlan. Usa de ctx: u, S, wf, caja, secHistoria,
+ * secToma, recetas, avisar, cuerpo, pedirMontaje, pintarRefs, pintarLinea, quitarToma, elegir, resaltar. */
 export function instalar(ctx) {
-  const { u, S, wf, caja, colPlan } = ctx;
+  const { u, S, wf, caja, secHistoria, secToma } = ctx;
   const { el, api } = u;
 
-  // ---- acciones con el LLM
-  async function conLLM(texto, ruta, extra) {
+  // ---- acciones con el LLM (Escribir historia, Escribir tomas, rehacer una toma)
+  ctx.conLLM = async function conLLM(texto, ruta, extra) {
     if (S.ocupado) return;
     S.ocupado = true;
     caja.classList.add("ocupada");
@@ -45,7 +48,7 @@ export function instalar(ctx) {
       S.ocupado = false;
       caja.classList.remove("ocupada");
     }
-  }
+  };
 
   // ---- campos con candado: lo que escribes queda fijo y el LLM no lo cambia
   const candado = (lista, campo, alCambiar) => el("button", {
@@ -53,10 +56,12 @@ export function instalar(ctx) {
     onclick: () => { const i = lista.indexOf(campo); if (i >= 0) lista.splice(i, 1); else lista.push(campo); alCambiar(); },
   }, lista.includes(campo) ? "🔒" : "🔓");
   const fijar = (lista, campo) => { if (!lista.includes(campo)) lista.push(campo); };
+  let refrescoRefs = null;
+  const pintarRefsSuave = () => { clearTimeout(refrescoRefs); refrescoRefs = setTimeout(() => { ctx.pintarRefs(); ctx.pintarLinea(); }, 600); };
 
   function campoTexto(obj, campo, etiqueta, lista, opciones = {}) {
     const entrada = el(opciones.largo ? "textarea" : "input", {
-      rows: opciones.largo ? 2 : undefined, placeholder: opciones.ayuda || "",
+      rows: opciones.largo ? 2 : undefined, placeholder: opciones.ayuda || "", "data-campo": campo,
       oninput: (e) => { obj[campo] = e.target.value; fijar(lista, campo); botonCandado.replaceWith(botonCandado = hacer()); ctx.pedirMontaje(); pintarRefsSuave(); },
     });
     if (opciones.largo) entrada.textContent = obj[campo] || ""; else entrada.value = obj[campo] || "";
@@ -65,17 +70,15 @@ export function instalar(ctx) {
     return el("label", { class: "epl-campo" }, el("span", {}, etiqueta), entrada, botonCandado);
   }
   function campoMenu(obj, campo, etiqueta, lista, opciones) {
-    const sel = el("select", { onchange: (e) => { obj[campo] = e.target.value; fijar(lista, campo); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
+    const sel = el("select", { "data-campo": campo, onchange: (e) => { obj[campo] = e.target.value; fijar(lista, campo); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
       opciones.map(([v, t]) => el("option", { value: v, selected: (obj[campo] || "") === v }, t)));
-    return el("label", { class: "epl-campo" }, el("span", {}, etiqueta), sel,
-      candado(lista, campo, () => ctx.pintarPlan()));
+    return el("label", { class: "epl-campo" }, el("span", {}, etiqueta), sel, candado(lista, campo, () => ctx.pintarToma()));
   }
-  let refrescoRefs = null;
-  const pintarRefsSuave = () => { clearTimeout(refrescoRefs); refrescoRefs = setTimeout(ctx.pintarRefs, 600); };
-
+  // referencias de un papel para un menú de la toma; las de personaje solo si tienen nombre (son atuendos)
   function opcionesDe(papel, vacio) {
-    const ops = wf.lista.filter((r) => S.refs[r.clave]?.papel === papel).map((r) => [r.tag, `${r.tag} ${r.nombre}`]);
-    return vacio ? [["", vacio], ...ops] : [["", "—"], ...ops];
+    const ops = wf.lista.filter((r) => S.refs[r.clave]?.papel === papel && (papel !== "personaje" || (S.refs[r.clave].nombre || "").trim()))
+      .map((r) => [r.tag, `${r.tag} ${S.refs[r.clave].nombre || r.nombre}`]);
+    return ops.length ? [["", vacio], ...ops] : null;
   }
 
   // frase del efecto: se ve la de la receta; si la escribes, queda fija y es la que va al prompt (↺ vuelve a la receta)
@@ -83,72 +86,98 @@ export function instalar(ctx) {
     const propia = t.fijos.includes("efecto_frase") && (t.efecto_frase || "").trim();
     const deReceta = ctx.recetas[S.receta]?.frases?.[t.efecto] || "";
     const marca = el("span", { class: "epl-ayuda" }, propia ? "frase propia 🔒" : deReceta ? "frase probada de la receta" : "");
-    const area = el("textarea", { rows: 2, placeholder: "frase del efecto, en inglés (o elige un efecto arriba)",
+    const area = el("textarea", { rows: 2, placeholder: "frase del efecto, en inglés (o elige un efecto arriba)", "data-campo": "efecto_frase",
       oninput: (e) => { t.efecto_frase = e.target.value; fijar(t.fijos, "efecto_frase"); marca.textContent = "frase propia 🔒"; ctx.pedirMontaje(); } },
       propia ? t.efecto_frase : deReceta);
     return el("div", {},
       el("label", { class: "epl-campo" }, el("span", {}, "Frase del efecto"), area,
         el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: "Volver a la frase de la receta",
-          onclick: () => { t.efecto_frase = ""; t.fijos = t.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarPlan(); ctx.pedirMontaje(); } }, "↺")),
+          onclick: () => { t.efecto_frase = ""; t.fijos = t.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, "↺")),
       el("div", { class: "epl-marca-frase" }, marca));
   }
 
-  // ---- columna 2: prompt fundamental (el plan)
-  ctx.pintarPlan = function pintarPlan() {
-    const p = S.plan;
-    const recetas = ctx.recetas;
-    const efectos = Object.entries(recetas[S.receta]?.efectos || {});
-    const generales = el("div", { class: "epl-bloque" },
-      el("label", { class: "epl-campo ancho" }, el("span", {}, "Idea"),
-        el("textarea", { rows: 3, oninput: (e) => { S.idea = e.target.value; } }, S.idea)),
-      el("div", { class: "epl-fila" },
-        el("label", {}, "Receta ", el("select", { onchange: (e) => { S.receta = e.target.value; ctx.pintarPlan(); ctx.pedirMontaje(); } },
-          Object.keys(recetas).map((n) => el("option", { value: n, selected: n === S.receta }, n)))),
-        el("label", {}, "Tomas ", el("input", { type: "number", min: 1, max: 12, value: S.tomas, class: "corto",
-          onchange: (e) => { S.tomas = +e.target.value; S.plan = ajustarPlan(S.plan, S.tomas); ctx.pintarPlan(); ctx.pedirMontaje(); } })),
-        el("label", {}, "Duración ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto",
-          onchange: (e) => { S.duracion = +e.target.value; ctx.pedirMontaje(); } })),
-        el("label", {}, "Semilla ", el("input", { type: "number", value: S.semilla, class: "corto",
-          onchange: (e) => { S.semilla = +e.target.value; } }))),
-      el("label", { class: "epl-campo ancho" }, el("span", {}, "Palabras"),
-        el("input", { value: S.palabras, placeholder: "TO YOU @1; PEAK @ultima", oninput: (e) => { S.palabras = e.target.value; ctx.pedirMontaje(); } })),
-      campoTexto(p, "arco", "Arco", p.fijos, { ayuda: "qué cambia de la primera a la última toma" }),
-      campoTexto(p, "look", "Luz y ambiente", p.fijos, { ayuda: "hora, luz y paleta de todo el edit" }),
-      campoTexto(p, "fondo", "Fondo general", p.fijos, { ayuda: "opcional: cómo son los fondos" }));
-    const botones = el("div", { class: "epl-fila" },
-      el("button", { class: "epl-boton", onclick: () => conLLM("Escribiendo la historia", "historia") }, "Escribir historia"),
-      el("button", { class: "epl-boton", onclick: () => conLLM("Escribiendo las tomas", "tomas") }, "Escribir tomas"),
-      el("span", { class: "epl-ayuda" }, "Rellenan lo que no tiene 🔒. Lo que escribes tú queda fijo."));
-    const tomas = p.tomas.map((t, i) => {
-      const k = i + 1;
-      return el("div", { class: "epl-toma", id: `epl-toma-${k}` },
-        el("div", { class: "epl-tomatit" }, el("b", { class: "epl-cab", "data-k": k }, `Toma ${k}`),
-          el("button", { class: "epl-mini", title: "Escribir de nuevo encuadre, luz, gesto y cámara de esta toma",
-            onclick: () => conLLM(`Escribiendo la toma ${k}`, "tomas", { solo: k }) }, "🔄 dirección")),
-        campoTexto(t, "lugar", "Lugar", t.fijos),
-        campoTexto(t, "momento", "Qué pasa", t.fijos, { largo: true }),
-        el("div", { class: "epl-dos" },
-          campoMenu(t, "personaje", "Personaje", t.fijos, opcionesDe("personaje")),
-          campoMenu(t, "pose", "Pose", t.fijos, opcionesDe("pose", "sin pose")),
-          campoMenu(t, "fondo_ref", "Fondo ref.", t.fijos, opcionesDe("fondo", "sin fondo")),
-          campoMenu(t, "efecto", "Efecto", t.fijos, [["", "sin efecto"], ...efectos.map(([c, n]) => [c, `${c} ${n}`])])),
-        campoFrase(t),
-        el("div", { class: "epl-dos" },
-          campoMenu(t, "encuadre", "Encuadre", t.fijos, [["", "—"], ...ENCUADRES.map((e) => [e, e])]),
-          campoTexto(t, "camara", "Cámara", t.fijos)),
-        campoTexto(t, "luz", "Luz", t.fijos),
-        campoTexto(t, "gesto", "Gesto", t.fijos));
-    });
-    colPlan.replaceChildren(el("h3", {}, "Prompt fundamental"),
-      el("p", { class: "epl-ayuda" }, "Lo que lee y extiende el LLM. Fija con 🔒 lo que no quieres que cambie."),
-      generales, botones, ...tomas);
-    ctx.pintarCabecerasTomas();
+  // ---- 1 · historia general
+  ctx.pintarHistoria = function pintarHistoria() {
+    const p = S.plan, recetas = ctx.recetas;
+    secHistoria.replaceChildren(
+      el("div", { class: "epl-tit" }, "Historia general · la narrativa de todo el edit",
+        el("span", { class: "der epl-ajustes" },
+          el("label", {}, "Receta ", el("select", { onchange: (e) => { S.receta = e.target.value; ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
+            Object.keys(recetas).map((n) => el("option", { value: n, selected: n === S.receta }, n)))),
+          el("label", {}, "Tomas ", el("input", { type: "number", min: 1, max: 12, value: S.tomas, class: "corto",
+            onchange: (e) => ctx.cambiarTomas(+e.target.value) })),
+          el("label", {}, "Duración (s) ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto",
+            onchange: (e) => { S.duracion = +e.target.value; ctx.pedirMontaje(); } })),
+          el("label", {}, "Semilla ", el("input", { type: "number", value: S.semilla, class: "corto",
+            onchange: (e) => { S.semilla = +e.target.value; } })),
+          el("label", {}, "Palabras ", el("input", { class: "palabras", value: S.palabras, placeholder: "opcional: TO YOU @1; PEAK @ultima",
+            oninput: (e) => { S.palabras = e.target.value; ctx.pedirMontaje(); } })))),
+      el("div", { class: "epl-historia" },
+        el("div", {},
+          el("label", { class: "epl-campo ancho" }, el("span", {}, "Idea"),
+            el("textarea", { rows: 3, "data-campo": "idea", placeholder: "qué pasa y con qué tono, en tus palabras (manda sobre todo lo demás)",
+              oninput: (e) => { S.idea = e.target.value; } }, S.idea))),
+        el("div", {},
+          campoTexto(p, "arco", "Arco", p.fijos, { ayuda: "qué cambia de la primera a la última toma" }),
+          campoTexto(p, "look", "Luz y ambiente", p.fijos, { ayuda: "hora, luz y paleta de todo el edit" }),
+          campoTexto(p, "fondo", "Fondo general", p.fijos, { ayuda: "opcional: cómo son los fondos" }))));
   };
-  // «Toma k · inicio–fin s» con los cortes del último montaje
-  ctx.pintarCabecerasTomas = function pintarCabecerasTomas() {
-    caja.querySelectorAll(".epl-cab").forEach((b) => {
-      const k = +b.dataset.k, a = S.cortes[k - 1], z = S.cortes[k] ?? S.duracion;
-      b.textContent = a === undefined ? `Toma ${k}` : `Toma ${k} · ${a.toFixed(3)}–${(+z).toFixed(3)} s`;
-    });
+
+  // ---- 2 · prompt de la toma elegida
+  const lineaDe = (k) => (S.prompt.match(new RegExp(`^\\[Shot ${k}\\].*$`, "m")) || [""])[0];
+  ctx.pintarLineaToma = function pintarLineaToma() {
+    const caja2 = secToma.querySelector(".epl-linea-toma");
+    if (!caja2 || !S.elegida) return;
+    const linea = lineaDe(S.elegida);
+    caja2.replaceChildren(...(linea ? linea.split(/(<(?:Picture|Video|Audio|Subject) \d+>)/).map((s) =>
+      /^<(Picture|Video) \d+>$/.test(s) ? el("span", { class: "epl-tag", "data-tag": s, onmouseenter: () => ctx.resaltar(s, true),
+                                                      onmouseleave: () => ctx.resaltar(s, false) }, s) : s)
+      : ["(aún sin línea: escribe la historia y las tomas, o rellena los campos)"]));
+  };
+  ctx.pintarToma = function pintarToma() {
+    const k = S.elegida, t = k ? S.plan.tomas[k - 1] : null;
+    if (!t) {
+      secToma.replaceChildren(el("div", { class: "epl-tit" }, "Prompt de la toma"),
+        el("div", { class: "epl-vacio" }, "Selecciona una toma en la línea de tiempo para ver su prompt y cambiarlo."));
+      return;
+    }
+    const a = S.cortes[k - 1], z = S.cortes[k] ?? S.duracion;
+    const efectos = Object.entries(ctx.recetas[S.receta]?.efectos || {});
+    const menu = (campo, etiqueta, papel, vacio) => {
+      const ops = opcionesDe(papel, vacio);
+      return ops ? campoMenu(t, campo, etiqueta, t.fijos, ops) : null;
+    };
+    const refs = [menu("personaje", "Atuendo", "personaje", "—"), menu("ropa", "Ropa", "ropa", "sin ropa prestada"),
+                  menu("pose", "Pose", "pose", "sin pose"), menu("objeto", "Objeto", "objeto", "sin objeto"),
+                  menu("lugar_ref", "Lugar fijo", "lugar", "sin lugar fijo"), menu("fondo_ref", "Fondo ref.", "fondo", "sin fondo")].filter(Boolean);
+    secToma.replaceChildren(
+      el("div", { class: "epl-tit" }, `Prompt de la toma ${k}` + (a === undefined ? "" : ` · ${a.toFixed(3)}–${(+z).toFixed(3)} s`),
+        el("span", { class: "der" },
+          el("button", { class: "epl-mini", title: "Escribir de nuevo encuadre, luz, gesto y cámara de esta toma (unos 7 s), mirando a sus vecinas",
+            onclick: () => ctx.conLLM(`Rehaciendo la toma ${k}`, "tomas", { solo: k }) }, "🔄 rehacer esta toma"),
+          S.tomas > 1 ? el("button", { class: "epl-mini", title: "Quitar esta toma del edit", onclick: () => ctx.quitarToma(k) }, "✕ quitar toma") : null,
+          el("button", { class: "epl-mini", onclick: () => ctx.elegir(null) }, "cerrar"))),
+      el("div", { class: "epl-linea-toma" }),
+      el("div", { class: "epl-tres" },
+        el("div", {}, el("b", {}, "Qué pasa (historia)"),
+          campoTexto(t, "lugar", "Lugar", t.fijos),
+          campoTexto(t, "momento", "Qué pasa", t.fijos, { largo: true }),
+          efectos.length ? campoMenu(t, "efecto", "Efecto", t.fijos, [["", "sin efecto"], ...efectos.map(([c, n]) => [c, `${c} ${n}`])]) : null,
+          campoFrase(t)),
+        el("div", {}, el("b", {}, "Referencias que usa"),
+          ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, "No hay referencias que elegir por toma (la identidad y el estilo valen para todas).")]),
+          el("p", { class: "epl-ayuda" }, "Lo que usa se ilumina abajo, en las dos mitades.")),
+        el("div", {}, el("b", {}, "Dirección"),
+          campoMenu(t, "encuadre", "Encuadre", t.fijos, [["", "—"], ...ENCUADRES.map((e) => [e, e])]),
+          campoTexto(t, "camara", "Cámara", t.fijos),
+          campoTexto(t, "luz", "Luz", t.fijos),
+          campoTexto(t, "gesto", "Gesto", t.fijos, { largo: true }))));
+    ctx.pintarLineaToma();
+  };
+
+  ctx.pintarPlan = function pintarPlan() {
+    ctx.pintarHistoria();
+    ctx.pintarToma();
+    ctx.pintarLinea();
   };
 }

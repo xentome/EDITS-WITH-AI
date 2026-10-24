@@ -1,12 +1,28 @@
-/* Columna 1 del editor: REFERENCIAS. Lee el RefMod Stack y el Media Loader del workflow, guarda papel/nombre/ficha
- * de cada referencia por su clave, cambia el Stack, abre la biblioteca de RefMods y pide la ficha con visión.
+/* Sección 3 del editor: REFERENCIAS, partidas en dos mitades. Izquierda roja: lo que no cambia (personaje, objeto, lugar).
+ * Derecha azul: lo que se presta (ropa, pose, fondo, estilo) y los efectos de la receta como fichas.
+ * Lee el RefMod Stack y el Media Loader del workflow, guarda papel/nombre/ficha de cada referencia por su clave, cambia el
+ * Stack, abre la biblioteca de RefMods, enseña la ficha de cada referencia (al tocarla) y pide la ficha con visión.
+ * Las cajitas (un RefMod con varias fotos) se abren y se crean en cajitas.js.
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u, sin imports, para que
  * este archivo también se recargue al abrir la ventana. Planos: ../../planos/4 El editor.md. */
 
-const PAPELES = [["personaje", "personaje / atuendo"], ["pose", "pose"], ["fondo", "fondo"], ["estilo", "estilo"],
-                 ["no", "no usar"]];
-const CONCEPTO = { identity: "personaje", clothing: "personaje", pose_motion: "pose", pose: "pose", background: "fondo",
+// papel → [texto, mitad]
+export const PAPELES = {
+  personaje: ["personaje (identidad o atuendo)", "izq"], objeto: ["objeto / producto", "izq"], lugar: ["lugar", "izq"],
+  ropa: ["ropa", "der"], pose: ["pose", "der"], fondo: ["fondo de una toma", "der"], estilo: ["estilo", "der"], no: ["no usar", "der"],
+};
+// campos de la toma que citan una referencia (los mismos que nucleo.CAMPO_PAPEL)
+export const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref"];
+const CONCEPTO = { identity: "personaje", clothing: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                    scene: "fondo", style: "estilo" };
+// al añadir desde una mitad, el papel que toca en ese lado según el concepto del RefMod
+const POR_LADO = { izq: { identity: "personaje", background: "lugar", scene: "lugar", "": "objeto" },
+                   der: { clothing: "ropa", identity: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
+                          scene: "fondo", "": "estilo" } };
+export const papelPorLado = (lado, concepto) => POR_LADO[lado][concepto] || POR_LADO[lado][""];
+const AYUDA_NOMBRE = { personaje: "solo si es un atuendo: nombre en el prompt (ej.: school uniform)",
+                       objeto: "nombre del objeto en el prompt (ej.: red soda can)", lugar: "nombre del lugar (ej.: neon arcade street)",
+                       ropa: "nombre de la ropa (ej.: red racing jacket)" };
 
 /* Numeración igual que el Text Encode: primero los medios del Media Loader, después las tarjetas activas del Stack,
  * un contador por tipo (Picture / Video). */
@@ -15,7 +31,7 @@ export function referenciasDelWorkflow(u, graph, node) {
   const pb = destinos(graph, node, 0).find((n) => n.type === "MiniMaxH3PromptBuilder");
   const stack = (pb && origen(graph, pb, "mods")) || graph._nodes.find((n) => n.type === "MiniMaxH3RefModStack");
   const loader = pb && origen(graph, pb, "references");
-  // items: todo lo que se ve en la columna (también las tarjetas apagadas, sin etiqueta); lista: solo lo que recibe H3.
+  // items: todo lo que se ve (también las tarjetas apagadas, sin etiqueta); lista: solo lo que recibe H3.
   // Cada referencia se identifica por su «clave» (nombre del RefMod o del medio), no por su número: así el papel y la
   // ficha la siguen aunque cambie el orden.
   const items = [], avisos = [];
@@ -23,7 +39,8 @@ export function referenciasDelWorkflow(u, graph, node) {
   for (const it of leerJSON(loader?.widgets?.[0]?.value, []) || []) {
     if (it.on === false) continue;
     const tag = it.kind === "picture" ? `<Picture ${++fotos}>` : it.kind === "video" ? `<Video ${++videos}>` : null;
-    if (tag) items.push({ tag, nombre: it.name, clave: "media:" + it.name, medio: true });
+    if (tag) items.push({ tag, nombre: it.name, clave: "media:" + it.name, medio: true, file: it.file,
+                          kind: it.kind === "picture" ? "image" : "video" });
   }
   (leerJSON(W(stack || {}, "stack_state")?.value, {}).picks || []).forEach((p, idx) => {
     if (!p) return;
@@ -31,19 +48,21 @@ export function referenciasDelWorkflow(u, graph, node) {
     if (activa && (p.visual?.c || 1) > 1) avisos.push(`${p.label}: tiene copias; la numeración puede no coincidir con el Text Encode`);
     const kind = p.visual?.kind || "image";
     const tag = !activa ? null : kind === "video" ? `<Video ${++videos}>` : kind === "image" ? `<Picture ${++fotos}>` : null;
-    items.push({ tag, nombre: p.label || p.name, clave: p.name, ref: p.name, preview: p.preview || p.name, idx,
+    items.push({ tag, nombre: p.label || p.name, clave: p.name, ref: p.name, preview: p.preview || p.name, idx, kind,
                  on: p.on !== false, fuerza: p.visual?.w ?? 1 });
   });
+  if (fotos > 9) avisos.push(`Hay ${fotos} fotos activas: H3 admite 9 como mucho`);
+  if (videos > 3) avisos.push(`Hay ${videos} videos (o cajitas) activos: H3 admite 3 como mucho`);
   if (!pb) avisos.push("El nodo no está conectado a un Prompt Builder: se usa el primer RefMod Stack del workflow.");
   if (!stack && !loader) avisos.push("No encontré RefMod Stack ni Media Loader: no hay referencias que enlazar.");
   const audioNodo = origen(graph, node, "audio") || (pb && origen(graph, pb, "audio_1"));
   return { items, lista: items.filter((r) => r.tag), avisos, stack, audio: W(audioNodo || {}, "audio")?.value || "" };
 }
 
-/* Añade a ctx las funciones de la columna 1. Usa de ctx: u, S, wf, graph, node, caja, colRefs, recetas, biblioteca,
- * avisar, pedirMontaje, pintarPlan. */
+/* Añade a ctx las funciones de la sección 3. Usa de ctx: u, S, wf, graph, node, caja, secRefs, recetas, biblioteca,
+ * cajitas, avisar, pedirMontaje, pintarPlan, pintarToma, abrirCajita, crearCajita. */
 export function instalar(ctx) {
-  const { u, S, wf, graph, node, caja, colRefs } = ctx;
+  const { u, S, wf, graph, node, caja, secRefs } = ctx;
   const { el, W, leerJSON, api } = u;
 
   ctx.claveDe = (tag) => wf.lista.find((r) => r.tag === tag)?.clave;
@@ -52,17 +71,24 @@ export function instalar(ctx) {
   // las tomas guardan etiquetas: si los números cambiaron, se traducen por clave (lo que ya no está queda vacío)
   ctx.remapear = function remapear(antes) {
     const ahora = Object.fromEntries(wf.lista.map((r) => [r.clave, r.tag]));
-    for (const t of S.plan.tomas) {
-      for (const c of ["personaje", "pose", "fondo_ref"]) if (t[c]) t[c] = ahora[antes[t[c]]] || "";
-    }
+    for (const t of S.plan.tomas) for (const c of CAMPOS_REF) if (t[c]) t[c] = ahora[antes[t[c]]] || "";
   };
 
-  // datos de Fantastic (ficha, concepto, vista previa) de cada RefMod de la biblioteca
+  // ---- cómo se ve cada referencia
+  ctx.vista = (r) => r.medio ? (r.kind === "image" ? u.vistaMedio(r.file) : "") : u.vistaRefmod(r.preview);
+  ctx.fotosDe = (r) => (r.ref && ctx.cajitas[r.ref]) || null;           // fotos apuntadas de una cajita
+  ctx.esCajita = (r) => !!ctx.fotosDe(r) || ctx.biblioteca[r.ref]?.visual?.source === "stack";
+  ctx.nFotos = (r) => ctx.fotosDe(r)?.length || ctx.biblioteca[r.ref]?.visual?.t || 1;
+  ctx.ladoDe = (r) => PAPELES[S.refs[r.clave]?.papel || "no"]?.[1] || "der";
+
+  // datos de Fantastic (ficha, concepto, vista previa) de cada RefMod, y las fotos de cada cajita
   ctx.cargarBiblioteca = async function cargarBiblioteca() {
     try {
-      const lib = await (await fetch("/minimax_h3/refmods")).json();
+      const lib = await (await fetch("/minimax_h3/refmods", { cache: "no-store" })).json();
+      for (const k of Object.keys(ctx.biblioteca)) delete ctx.biblioteca[k];
       for (const it of lib.items || []) ctx.biblioteca[it.name] = it;
     } catch { /* sin datos de Fantastic: las fichas quedan vacías */ }
+    try { Object.assign(ctx.cajitas, (await api("cajitas", {})).cajitas); } catch { /* sin fotos apuntadas */ }
   };
 
   // lo guardado antes de esta versión iba por número: se pasa a clave con el mapa de etiquetas de entonces (o el de ahora)
@@ -107,110 +133,219 @@ export function instalar(ctx) {
     ctx.pintarPlan();
     ctx.pedirMontaje();
   };
-  function anadirDeBiblioteca(it) {
+  // tarjeta del Stack para un RefMod de la biblioteca (igual que la escribe Fantastic)
+  ctx.tarjeta = function tarjeta(it, picks) {
+    const canal = (c) => c ? { file: c.file, kind: c.kind, tokens: c.tokens || 0, seconds: c.seconds, mode: "weight", w: 1,
+                               s: 1, c: 1, embedded_audio_ignored: !!c.embedded_audio_ignored } : undefined;
+    const p = { uid: Math.max(0, ...picks.map((x) => +x.uid || 0)) + 1, name: it.name, label: it.label || it.name, on: true,
+                preview: it.preview || null };
+    if (it.visual) p.visual = canal(it.visual);
+    if (it.audio) p.audio = canal(it.audio);
+    return p;
+  };
+  ctx.anadirDeBiblioteca = function anadirDeBiblioteca(it, lado) {
+    if (lado && !S.refs[it.name]) {
+      S.refs[it.name] = { papel: papelPorLado(lado, it.concept || ""), nombre: "",
+                          ficha: (it.appearance || it.desc || "").slice(0, 300), origen: "RefMod" };
+    }
     ctx.cambiarStack((picks) => {
       if (picks.length >= 12) throw new Error("El Stack ya tiene 12 tarjetas");
-      const canal = (c) => c ? { file: c.file, kind: c.kind, tokens: c.tokens || 0, seconds: c.seconds, mode: "weight", w: 1,
-                                 s: 1, c: 1, embedded_audio_ignored: !!c.embedded_audio_ignored } : undefined;
-      const p = { uid: Math.max(0, ...picks.map((x) => +x.uid || 0)) + 1, name: it.name, label: it.label || it.name, on: true,
-                  preview: it.preview || null };
-      if (it.visual) p.visual = canal(it.visual);
-      if (it.audio) p.audio = canal(it.audio);
-      picks.push(p);
+      picks.push(ctx.tarjeta(it, picks));
     });
-  }
-  ctx.abrirBiblioteca = function abrirBiblioteca() {
-    const capa = el("div", { class: "epl-biblio" });
-    const filtro = el("input", { placeholder: "buscar por nombre o carpeta…", oninput: () => pintar() });
+  };
+
+  // ---- ventanas sobre el editor (una a la vez)
+  ctx.capa = function capa(lado, ...hijos) {
+    caja.querySelector(".epl-capa")?.remove();
+    const modal = el("div", { class: "epl-modal " + (lado || "") }, ...hijos);
+    const c = el("div", { class: "epl-capa", onclick: (e) => { if (e.target === c) c.remove(); } }, modal);
+    caja.append(c);
+    return { capa: c, modal, cerrar: () => c.remove() };
+  };
+
+  ctx.abrirBiblioteca = function abrirBiblioteca(lado) {
+    const filtro = el("input", { placeholder: "buscar por nombre o carpeta…", oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
+    const v = ctx.capa(lado,
+      el("div", { class: "epl-tit" }, `Añadir a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}» desde la biblioteca de RefMods`,
+        el("span", { class: "der" }, filtro, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+      el("p", { class: "epl-ayuda" }, "Para juntar varias fotos en una sola referencia usa «+ Cajita». Para crear un RefMod de una " +
+        "sola imagen nueva sigue sirviendo «Create…» en el nodo RefMod Stack."), rejilla);
     const pintar = () => {
       const q = filtro.value.toLowerCase();
       rejilla.replaceChildren(...Object.values(ctx.biblioteca).filter((it) => it.visual && it.name.toLowerCase().includes(q))
         .map((it) => el("div", { class: "epl-biblio-item", title: it.name, onclick: () => {
-          try { anadirDeBiblioteca(it); capa.remove(); ctx.avisar(`Añadida ${it.label || it.name}`, "bien"); }
+          try { ctx.anadirDeBiblioteca(it, lado); v.cerrar(); ctx.avisar(`Añadida ${it.label || it.name}`, "bien"); }
           catch (e) { ctx.avisar(e.message, "mal"); } } },
-          el("img", { src: it.preview ? `/minimax_h3/refmods/preview?name=${encodeURIComponent(it.preview)}` : "", alt: "" }),
-          el("div", {}, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}`))));
+          el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
+          el("div", {}, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
+            (it.visual?.source === "stack" ? ` · cajita de ${it.visual.t}` : "")))));
     };
-    capa.append(el("div", { class: "epl-fila" }, el("b", {}, "Añadir referencia desde la biblioteca de RefMods"), filtro,
-      el("button", { class: "epl-mini", onclick: () => capa.remove() }, "cerrar")),
-      el("p", { class: "epl-ayuda" }, "Para crear un RefMod nuevo desde una imagen usa «Create…» en el nodo RefMod Stack; " +
-        "después aparece aquí."), rejilla);
-    caja.append(capa);
     pintar();
     filtro.focus();
   };
 
-  // ---- columna 1: referencias
-  function usadaEn(tag) {
+  // ---- dónde se usa cada referencia
+  ctx.usadaEn = function usadaEn(tag) {
     if (!tag) return "apagada: no se envía";
     const r = ctx.refDe(tag);
-    const tomas = S.plan.tomas.map((t, i) => [t.personaje, t.pose, t.fondo_ref].includes(tag) ? `T${i + 1}` : null).filter(Boolean);
-    if (r.papel === "personaje") tomas.unshift("definición");
+    const tomas = S.plan.tomas.map((t, i) => CAMPOS_REF.some((c) => t[c] === tag) ? `T${i + 1}` : null).filter(Boolean);
+    if (r.papel === "personaje") tomas.unshift(r.nombre ? "definición" : "definición (todas las tomas)");
+    if (r.papel === "objeto") tomas.unshift("definición");
     if (r.papel === "estilo") tomas.unshift("todo el edit");
     return tomas.length ? tomas.join(" · ") : "sin usar";
-  }
-  // marca la referencia y las tomas que la usan (también lo usa la columna 3)
+  };
+  // lo que usa la toma k: lo que cita, más la identidad (personaje sin nombre) y el estilo, que valen para todas
+  ctx.usadasEnToma = function usadasEnToma(k) {
+    const t = S.plan.tomas[k - 1], usadas = new Set(t ? CAMPOS_REF.map((c) => t[c]).filter(Boolean) : []);
+    for (const r of wf.lista) {
+      const ref = S.refs[r.clave] || {};
+      if ((ref.papel === "personaje" && !(ref.nombre || "").trim()) || ref.papel === "estilo") usadas.add(r.tag);
+    }
+    return usadas;
+  };
+  // marca la referencia y las tomas que la usan (lo usa también el prompt final al pasar el ratón)
   ctx.resaltar = function resaltar(tag, si) {
     caja.querySelectorAll(`[data-tag="${tag}"]`).forEach((e) => e.classList.toggle("epl-hl", si));
     S.plan.tomas.forEach((t, i) => {
-      if ([t.personaje, t.pose, t.fondo_ref].includes(tag)) caja.querySelector(`#epl-toma-${i + 1}`)?.classList.toggle("epl-hl", si);
+      if (CAMPOS_REF.some((c) => t[c] === tag)) caja.querySelector(`#epl-tomab-${i + 1}`)?.classList.toggle("epl-hl", si);
     });
   };
-  ctx.pintarRefs = function pintarRefs() {
-    const { cambiarStack, resaltar, pedirMontaje } = ctx;
-    colRefs.replaceChildren(el("h3", {}, "Referencias"),
-      el("p", { class: "epl-ayuda" }, "Del RefMod Stack conectado, con la numeración del Text Encode. El papel dice cómo se usa; " +
-        "la ficha le dice al LLM qué hay en la imagen."),
-      ...wf.avisos.map((a) => el("p", { class: "epl-aviso" }, "⚠ " + a)),
-      wf.stack ? el("button", { class: "epl-boton", onclick: ctx.abrirBiblioteca }, "+ Añadir referencia") : null);
-    for (const r of wf.items) {
-      const ref = S.refs[r.clave] || (S.refs[r.clave] = { papel: "no", nombre: "", ficha: "" });
-      const cambiar = (k, v) => { ref[k] = v; ref.origen = "editor"; pedirMontaje(); };
-      const esFoto = !r.tag || r.tag.startsWith("<Picture");
-      // controles del Stack: encender/apagar, fuerza (como en Fantastic: 0–10; más de 1 = copias) y quitar
-      const controles = r.idx === undefined ? null : el("div", { class: "epl-fila epl-stack" },
-        el("label", { title: "Apagada no se envía a H3 y no tiene número" },
-          el("input", { type: "checkbox", checked: r.on, onchange: (e) => cambiarStack((p) => { p[r.idx].on = e.target.checked; }) }),
-          " activa"),
-        el("label", { title: "Fuerza de la referencia: 1 = normal, 0.3 = suave (poses), más de 1 = copias" }, "fuerza ",
-          el("input", { type: "number", min: 0, max: 10, step: 0.05, value: r.fuerza, class: "corto",
-            onchange: (e) => cambiarStack((p) => {
-              const v = Math.max(0, Math.min(10, +e.target.value || 0));
-              p[r.idx].visual = { ...(p[r.idx].visual || {}), mode: "weight", w: v };
-            }) })),
-        el("button", { class: "epl-mini", title: "Quitar del Stack", onclick: () => cambiarStack((p) => { p.splice(r.idx, 1); }) }, "✕ quitar"));
-      colRefs.append(el("div", { class: "epl-ref" + (r.tag ? "" : " apagada"), "data-tag": r.tag || "",
-                                 onmouseenter: () => r.tag && resaltar(r.tag, true), onmouseleave: () => r.tag && resaltar(r.tag, false) },
-        el("img", { src: r.preview ? `/minimax_h3/refmods/preview?name=${encodeURIComponent(r.preview)}` : "", alt: "" }),
-        el("div", {},
-          el("div", { class: "epl-reftit" }, el("b", {}, r.tag || "(apagada)"), " ", r.nombre),
-          controles,
-          esFoto ? el("select", { onchange: (e) => { cambiar("papel", e.target.value); ctx.pintarRefs(); ctx.pintarPlan(); } },
-            PAPELES.map(([v, t]) => el("option", { value: v, selected: ref.papel === v }, t)))
-            : el("span", { class: "epl-ayuda" }, "video: solo informativo"),
-          esFoto && ref.papel === "personaje" ? el("input", { value: ref.nombre || "", placeholder: "nombre en el prompt (ej.: school uniform)",
-            oninput: (e) => cambiar("nombre", e.target.value) }) : null,
-          esFoto && ref.papel !== "no" ? el("textarea", { rows: 2, placeholder: "ficha: qué se ve (en inglés)",
-            oninput: (e) => cambiar("ficha", e.target.value) }, ref.ficha || "") : null,
-          esFoto && ref.papel !== "no" && r.preview ? el("div", { class: "epl-fila" },
-            el("button", { class: "epl-mini", title: "Qwen mira la imagen y propone la ficha y los riesgos; revísala",
-              onclick: () => describir(r, ref) }, "👁 describir con visión"),
-            ref.origen ? el("span", { class: "epl-ayuda" }, "ficha: " + ref.origen) : null) : null,
-          ref.propuesta ? el("div", { class: "epl-propuesta" }, "Propuesta de Qwen: «" + ref.propuesta.ficha + "»",
-            el("div", { class: "epl-fila" },
-              el("button", { class: "epl-mini", onclick: () => {
-                ref.ficha = ref.propuesta.ficha;
-                if (ref.papel === "personaje" && !ref.nombre) ref.nombre = ref.propuesta.nombre;
-                ref.origen = "visión, revisada";
-                delete ref.propuesta;
-                ctx.pintarRefs(); pedirMontaje(); } }, "usar"),
-              el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; ctx.pintarRefs(); } }, "descartar"))) : null,
-          ref.riesgos?.length ? el("div", { class: "epl-aviso" }, "⚠ riesgo: " + ref.riesgos.join(" · ")) : null,
-          el("div", { class: "epl-usada" }, "usada en: " + usadaEn(r.tag)))));
+
+  // ---- una tarjeta grande: foto entera (contain) sobre la misma foto desenfocada, y una franja con número y papel
+  function tile(r, usadas) {
+    const ref = S.refs[r.clave] || {};
+    const src = ctx.vista(r), fotos = ctx.fotosDe(r), cajita = ctx.esCajita(r);
+    const marca = !r.tag ? " apagada" : usadas ? (usadas.has(r.tag) ? " usada" : " atenuada") : "";
+    const imagen = fotos ? el("div", { class: "mosaico" }, ...fotos.slice(0, 4).map((f) => el("img", { src: u.vistaMedio(f.file), alt: "", loading: "lazy" })))
+      : src ? el("img", { src, alt: "", loading: "lazy" }) : el("div", { class: "sinfoto" }, r.kind === "video" ? "🎞 video" : "sin vista previa");
+    const fondoSrc = fotos ? u.vistaMedio(fotos[0].file) : src;
+    const papel = ref.papel && PAPELES[ref.papel] ? ref.papel : "no";
+    return el("div", { class: "epl-tile" + marca, "data-tag": r.tag || "", title: r.nombre,
+                       onclick: () => cajita ? ctx.abrirCajita(r) : ctx.abrirFicha(r),
+                       onmouseenter: () => r.tag && ctx.resaltar(r.tag, true), onmouseleave: () => r.tag && ctx.resaltar(r.tag, false) },
+      fondoSrc ? el("div", { class: "fondo", style: { backgroundImage: `url("${fondoSrc}")` } }) : null,
+      imagen,
+      cajita ? el("span", { class: "epl-insignia" }, `${ctx.nFotos(r)} fotos`) : null,
+      el("div", { class: "franja" }, el("b", {}, r.tag || "(apagada)"), " ",
+        el("span", { class: "epl-papel " + papel }, PAPELES[papel][0].split(" (")[0]),
+        ref.nombre ? ` ${ref.nombre}` : "",
+        el("small", {}, (cajita ? "cajita · tócala para abrirla · " : "") + r.nombre)));
+  }
+  // columnas que dejan las fotos más grandes (retrato 3:4) en el hueco de cada mitad
+  function ajustarRejilla(rejilla, n) {
+    const ancho = rejilla.clientWidth || 600, alto = rejilla.clientHeight || 300;
+    let mejor = 1, tam = 0;
+    for (let c = 1; c <= Math.max(1, n); c++) {
+      const filas = Math.ceil(n / c);
+      const s = Math.min((ancho - 8 * (c - 1)) / c / 3, (alto - 8 * (filas - 1)) / filas / 4);
+      if (s > tam) { tam = s; mejor = c; }
     }
+    rejilla.style.gridTemplateColumns = `repeat(${mejor}, minmax(0, 1fr))`;
+  }
+
+  ctx.pintarRefs = function pintarRefs() {
+    const usadas = S.elegida ? ctx.usadasEnToma(S.elegida) : null;
+    const izq = wf.items.filter((r) => ctx.ladoDe(r) === "izq"), der = wf.items.filter((r) => ctx.ladoDe(r) === "der");
+    // dentro de cada mitad: primero las activas con papel, después las de «no usar» y las apagadas
+    const orden = (r) => (!r.tag ? 2 : (S.refs[r.clave]?.papel || "no") === "no" ? 1 : 0);
+    der.sort((a, b) => orden(a) - orden(b));
+    const botones = (lado) => el("span", { class: "der" },
+      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.abrirBiblioteca(lado) }, "+ Añadir") : null,
+      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, "+ Cajita") : null);
+    const rejIzq = el("div", { class: "epl-rejilla" }, ...izq.map((r) => tile(r, usadas)));
+    const rejDer = el("div", { class: "epl-rejilla" }, ...der.map((r) => tile(r, usadas)));
+    const efectos = Object.entries(ctx.recetas[S.receta]?.efectos || {});
+    const t = S.elegida ? S.plan.tomas[S.elegida - 1] : null;
+    const fichas = !efectos.length ? null : el("div", { class: "epl-efectos" }, ...efectos.map(([c, n]) =>
+      el("span", { class: "epl-efecto" + (t ? (t.efecto === c ? " usada" : " atenuada") : ""), "data-efecto": c,
+                   title: (ctx.recetas[S.receta]?.frases?.[c] || "") + (t ? "\n\nTócalo para ponerlo o quitarlo en la toma elegida" : ""),
+                   onclick: () => { if (!t) return; t.efecto = t.efecto === c ? "" : c; if (!t.fijos.includes("efecto")) t.fijos.push("efecto");
+                                    ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
+        el("b", {}, c), n.split(" (")[0])));
+    secRefs.replaceChildren(el("div", { class: "epl-mitades" },
+      el("div", { class: "epl-mitad izq" },
+        el("div", { class: "epl-tit" }, "Lo que no cambia · persistente", botones("izq")),
+        ...wf.avisos.map((a) => el("p", { class: "epl-aviso" }, "⚠ " + a)),
+        izq.length ? rejIzq : el("p", { class: "epl-vacio" }, "Pon aquí lo que tiene que salir siempre igual: el personaje " +
+          "(una cajita con sus fotos), un producto o un lugar. Usa «+ Añadir» o «+ Cajita», o cambia el papel de una referencia.")),
+      el("div", { class: "epl-mitad der" },
+        el("div", { class: "epl-tit" }, "Lo que se presta · ropa, poses, fondos, estilo y efectos", botones("der")),
+        der.length ? rejDer : el("p", { class: "epl-vacio" }, "Ropa, poses, fondos y estilos que se toman solo en algunas tomas."),
+        fichas)));
+    requestAnimationFrame(() => { ajustarRejilla(rejIzq, izq.length); ajustarRejilla(rejDer, der.length); });
   };
-  async function describir(r, ref) {
+
+  // ---- la ficha de una referencia (al tocarla): foto grande y todos sus controles. `extra` (cajitas.js) cambia la
+  // parte izquierda (las fotos de la cajita) y añade botones.
+  ctx.abrirFicha = function abrirFicha(r0, extra) {
+    let r = r0;
+    const v = ctx.capa(ctx.ladoDe(r));
+    const pintar = () => {
+      r = wf.items.find((x) => x.clave === r.clave) || r;
+      const ref = S.refs[r.clave] || (S.refs[r.clave] = { papel: "no", nombre: "", ficha: "" });
+      const cambiar = (k, val) => { ref[k] = val; ref.origen = "editor"; ctx.pedirMontaje(); refrescar(); };
+      const src = ctx.vista(r);
+      const stack = r.idx === undefined ? null : el("div", { class: "epl-fila" },
+        el("label", { title: "Apagada no se envía a H3 y no tiene número", style: { margin: 0 } },
+          el("input", { type: "checkbox", checked: r.on, onchange: (e) => { ctx.cambiarStack((p) => { p[r.idx].on = e.target.checked; }); pintar(); } }),
+          " activa"),
+        el("label", { title: "Fuerza: 1 = normal, 0.3 = suave (poses), más de 1 = copias", style: { margin: 0 } }, "fuerza ",
+          el("input", { type: "number", min: 0, max: 10, step: 0.05, value: r.fuerza, class: "corto",
+            onchange: (e) => { ctx.cambiarStack((p) => {
+              const val = Math.max(0, Math.min(10, +e.target.value || 0));
+              p[r.idx].visual = { ...(p[r.idx].visual || {}), mode: "weight", w: val };
+            }); pintar(); } })),
+        el("button", { class: "epl-mini", title: "Quitar del Stack", onclick: () => { ctx.cambiarStack((p) => { p.splice(r.idx, 1); }); v.cerrar(); } }, "✕ quitar"));
+      const lleva = ["personaje", "objeto", "lugar", "ropa"].includes(ref.papel);
+      const izquierda = extra?.izquierda?.(r) || el("div", { class: "grande" },
+        src ? el("div", { class: "fondo", style: { backgroundImage: `url("${src}")` } }) : null,
+        src ? el("img", { src, alt: "" }) : el("div", { class: "epl-vacio", style: { padding: "20px" } }, "sin vista previa"));
+      v.modal.className = "epl-modal " + ctx.ladoDe(r);
+      v.modal.replaceChildren(
+        el("div", { class: "epl-tit" }, el("b", { style: { color: "#cfe0ff" } }, r.tag || "(apagada)"), r.nombre,
+          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        el("div", { class: "epl-ficha" }, izquierda,
+          el("div", {},
+            el("label", {}, "Papel"),
+            el("select", { class: "epl-papel-sel", onchange: (e) => { cambiar("papel", e.target.value); ctx.pintarRefs(); ctx.pintarPlan(); pintar(); } },
+              el("optgroup", { label: "Lo que no cambia" }, ...["personaje", "objeto", "lugar"].map((p) =>
+                el("option", { value: p, selected: ref.papel === p }, PAPELES[p][0]))),
+              el("optgroup", { label: "Lo que se presta" }, ...["ropa", "pose", "fondo", "estilo"].map((p) =>
+                el("option", { value: p, selected: ref.papel === p }, PAPELES[p][0]))),
+              el("option", { value: "no", selected: ref.papel === "no" || !PAPELES[ref.papel] }, "no usar")),
+            lleva ? el("label", {}, "Nombre en el prompt") : null,
+            lleva ? el("input", { class: "epl-nombre", value: ref.nombre || "", placeholder: AYUDA_NOMBRE[ref.papel],
+                                  oninput: (e) => cambiar("nombre", e.target.value) }) : null,
+            ref.papel === "personaje" ? el("p", { class: "epl-ayuda" }, "Sin nombre, solo da la identidad y vale para todas las tomas " +
+              "(como una cajita con las fotos del personaje). Con nombre es un atuendo y cada toma elige uno.") : null,
+            ref.papel !== "no" ? el("label", {}, "Ficha: qué se ve (en inglés; el LLM no ve la imagen)") : null,
+            ref.papel !== "no" ? el("textarea", { class: "epl-ficha-txt", rows: 3, oninput: (e) => cambiar("ficha", e.target.value) }, ref.ficha || "") : null,
+            ref.papel !== "no" && r.preview ? el("div", { class: "epl-fila" },
+              el("button", { class: "epl-mini", title: "Qwen mira la imagen y propone la ficha y los riesgos; revísala",
+                onclick: () => describir(r, ref, pintar) }, "👁 describir con visión"),
+              ref.origen ? el("span", { class: "epl-ayuda" }, "ficha: " + ref.origen) : null) : null,
+            ref.propuesta ? el("div", { class: "epl-propuesta" }, `Propuesta de Qwen: «${ref.propuesta.nombre}» · ${ref.propuesta.ficha}`,
+              el("div", { class: "epl-fila" },
+                el("button", { class: "epl-mini", onclick: () => {
+                  ref.ficha = ref.propuesta.ficha;
+                  if (lleva && ref.papel !== "personaje" && !ref.nombre) ref.nombre = ref.propuesta.nombre;
+                  ref.origen = "visión, revisada";
+                  delete ref.propuesta;
+                  ctx.pedirMontaje(); refrescar(); pintar(); } }, "usar"),
+                el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; pintar(); } }, "descartar"))) : null,
+            ref.riesgos?.length ? el("div", { class: "epl-aviso" }, "⚠ riesgo: " + ref.riesgos.join(" · ")) : null,
+            stack,
+            extra?.botones?.(r, v) || null,
+            el("div", { class: "epl-usada" }, "usada en: " + ctx.usadaEn(r.tag)))));
+    };
+    pintar();
+    return v;
+  };
+  let espera = null;
+  const refrescar = () => { clearTimeout(espera); espera = setTimeout(() => { ctx.pintarRefs(); ctx.pintarToma?.(); }, 500); };
+
+  async function describir(r, ref, repintar) {
     if (S.ocupado) return;
     S.ocupado = true;
     caja.classList.add("ocupada");
@@ -222,13 +357,13 @@ export function instalar(ctx) {
       ref.propuesta = { ficha: d.ficha, nombre: d.nombre };
       ref.riesgos = d.riesgos;
       ctx.avisar(`${r.tag}: propuesta lista en ${d.segundos} s. Úsala o descártala.`, "bien");
-      ctx.pintarRefs();
     } catch (e) {
       ctx.avisar(`${r.tag}: ${e.message}`, "mal");
     } finally {
       clearInterval(reloj);
       S.ocupado = false;
       caja.classList.remove("ocupada");
+      repintar();
     }
   }
 }
