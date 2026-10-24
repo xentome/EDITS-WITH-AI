@@ -81,5 +81,49 @@ comprobar("efecto libre sin código de la receta", "Effect: soft film grain." in
 print("6 · Palabras en pantalla")
 comprobar("lee 'TO YOU @1; PEAK @ultima'", N.leer_palabras("TO YOU @1; PEAK @ultima", 6) == {1: "TO YOU", 6: "PEAK"})
 
+print("7 · Papeles nuevos: personaje en <Video N>, ropa, objeto y lugar")
+refs7 = {"<Video 1>": {"papel": "personaje", "nombre": "", "ficha": "Teto, four pictures"},
+         "<Picture 1>": {"papel": "ropa", "nombre": "red racing jacket", "ficha": "red racing jacket with patches, black pants"},
+         "<Picture 2>": {"papel": "objeto", "nombre": "red soda can", "ficha": "a red soda can with a white logo"},
+         "<Picture 3>": {"papel": "lugar", "nombre": "night arcade street", "ficha": "a covered arcade street with lanterns"},
+         "<Picture 4>": {"papel": "fondo", "nombre": "", "ficha": "a park"}}
+e7 = {**ref["entradas"], "tomas": 3, "duracion": 5.0, "palabras": "", "refs": refs7}
+m7 = N.menu_de(receta, refs7)
+plan7 = N.ajustar_plan(None, 3)
+for k, t in enumerate(plan7["tomas"], 1):
+    t.update(lugar=f"corner {k}", momento="she smiles", encuadre="close-up", luz="neon", gesto="smiles", camara="holds still")
+plan7["tomas"][0].update(ropa="<Picture 1>", objeto="<Picture 2>", gesto="raises <Subject 2> to her lips")
+plan7["tomas"][1].update(lugar_ref="<Picture 3>")
+p7, av7, _ = N.montar_plan(ref["receta"], e7, plan7)
+comprobar("personaje como <Video 1> en la definición y la retención",
+          "the anime girl in <Video 1>, with" in p7 and "black choker from <Video 1> in every shot" in p7, p7[:400])
+comprobar("ropa: cita en la toma y retención solo de la ropa",
+          "<Subject 1>, wearing the red racing jacket from <Picture 1>," in p7 and
+          "<Picture 1>: attribute_transfer - only the clothes are transferred (red racing jacket with patches, black pants); "
+          "that person's face, hair and body are not transferred." in p7)
+comprobar("objeto: es <Subject 2>, definido y retenido",
+          "<Subject 2> is the red soda can shown in <Picture 2>" in p7 and "<Subject 2>: fully_preserved" in p7)
+comprobar("lugar: fija el lugar de su toma y se retiene",
+          "corner 2, in the night arcade street shown in <Picture 3>," in p7 and "<Picture 3>: fully_preserved - the night arcade" in p7)
+comprobar("sin cajita de atuendos no se pide OUTFIT", not N.atuendos(m7) and N.etiqueta("Video 1", m7["personaje"]) == "<Video 1>")
+plan7b = N.ajustar_plan(plan7, 3)
+plan7b["tomas"][0].update(objeto="", momento="she smiles")
+plan7b["tomas"][1].update(lugar_ref="", fondo_ref="<Picture 4>")
+plan7b["tomas"][2].update(objeto="<Picture 2>", lugar_ref="<Picture 3>", fondo_ref="<Picture 4>")
+plan7b["arco"], plan7b["look"] = "a calm walk", "night, warm neon"
+p7b = N.revisar_historia({"plan": plan7b, "formato": []}, receta, m7)
+comprobar("revisa objeto sin <Subject 2> en MOMENT y LOCATION con BACKGROUND",
+          "SHOT 3: lleva OBJECT <Picture 2>; MOMENT tiene que nombrarlo como <Subject 2>" in p7b and
+          any(x.startswith("SHOT 3: lleva LOCATION <Picture 3> y BACKGROUND") for x in p7b), p7b)
+plan7b["tomas"][2].update(objeto="", lugar_ref="")
+p7b = N.revisar_historia({"plan": plan7b, "formato": []}, receta, m7)
+comprobar("un objeto o lugar que no cambia tiene que salir en alguna toma",
+          "ninguna toma usa OBJECT <Picture 2>; ponlo al menos en una toma donde encaje" in p7b and
+          "ninguna toma usa LOCATION <Picture 3>; ponlo al menos en una toma donde encaje" in p7b, p7b)
+d7 = N.leer_toma("FRAMING: close-up\nLIGHT: neon\nACTION: drinks from the can\nCAMERA: holds still", receta, N.toma_vacia())
+plan7["tomas"][2]["objeto"] = "<Picture 2>"
+comprobar("la toma con objeto pide <Subject 2> en ACTION",
+          "ACTION tiene que incluir el objeto con su etiqueta <Subject 2>" in N.revisar_toma(d7, receta, plan7, 3, [], set(), m7))
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

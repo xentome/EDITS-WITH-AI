@@ -1,7 +1,7 @@
 """Núcleo del nodo «Prompt del edit (LLM)» y de su editor: todo el trabajo, sin ComfyUI (se puede probar desde la terminal).
 
 Un PLAN es lo que se ve en el editor: arco, look y fondo generales, y una lista de tomas con sus campos (lugar, momento,
-personaje, pose, fondo_ref, efecto, encuadre, luz, gesto, camara). Los campos que el usuario fija (candados, lista `fijos`)
+personaje, ropa, pose, objeto, lugar_ref, fondo_ref, efecto, encuadre, luz, gesto, camara). Los campos que el usuario fija (candados, lista `fijos`)
 se respetan siempre: el LLM los recibe como dados y el código los vuelve a poner encima de lo que responda.
 
 Recorrido (planos/1 Como funciona.md): reloj → historia (1 llamada, razonamiento low) → tomas (1 llamada cada una, sin razonamiento)
@@ -24,7 +24,11 @@ RECETAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recetas.json
 with open(os.path.abspath(__file__), "rb") as _f:
     CODIGO = hashlib.sha1(_f.read()).hexdigest()[:8]  # entra en la huella: si cambia este archivo, la despensa no se reutiliza
 ENCUADRES = ("extreme close-up", "close-up", "medium close-up")
-PAPELES = ("personaje", "pose", "fondo", "estilo")  # "no usar" = cualquier otro valor
+# Papeles de una referencia. Lo que no cambia (persistente): personaje, objeto, lugar. Lo que se presta: ropa, pose, fondo,
+# estilo. "no usar" = cualquier otro valor. planos/1 Como funciona.md.
+PERSISTENTES = ("personaje", "objeto", "lugar")
+PRESTADOS = ("ropa", "pose", "fondo", "estilo")
+PAPELES = PERSISTENTES + PRESTADOS
 INTENTOS_HISTORIA, INTENTOS_TOMA = 3, 4
 REGLA = "Describe solo lo que se ve: sin metáforas, sin negaciones, sin números, medidas ni tiempos."
 FISICA = "Nunca tumbado/a ni con el suelo de fondo."
@@ -35,8 +39,11 @@ ETIQUETA = re.compile(r"<(?:Subject|Picture|Video|Audio) \d+>")
 NEGACION = re.compile(r"\b(?:not|no|never|without|nor|nothing|none)\b|n't\b", re.I)
 CONTRARIO = {"she": r"\b(?:he|him|his|himself)\b", "he": r"\b(?:she|her|hers|herself)\b"}
 # campo del LLM → campo del plan
-HISTORIA = {"PLACE": "lugar", "MOMENT": "momento", "OUTFIT": "personaje", "POSE": "pose", "BACKGROUND": "fondo_ref",
-            "EFFECT": "efecto"}
+HISTORIA = {"PLACE": "lugar", "MOMENT": "momento", "OUTFIT": "personaje", "CLOTHES": "ropa", "POSE": "pose",
+            "OBJECT": "objeto", "LOCATION": "lugar_ref", "BACKGROUND": "fondo_ref", "EFFECT": "efecto"}
+# campo de la toma que guarda una referencia → papel de las referencias que admite
+CAMPO_PAPEL = {"personaje": "personaje", "ropa": "ropa", "pose": "pose", "objeto": "objeto", "lugar_ref": "lugar",
+               "fondo_ref": "fondo"}
 DIRECCION = {"FRAMING": "encuadre", "LIGHT": "luz", "ACTION": "gesto", "CAMERA": "camara"}
 ULTIMA_LLAMADA = [0.0]  # cuándo terminó la última llamada al LLM (el nodo espera a que llama suelte la VRAM)
 
@@ -74,13 +81,29 @@ def ajustar_plan(plan, n):
 
 
 def menu_de(receta, refs=None):
-    """Referencias por papel: {'personaje': {tag: {'nombre', 'ficha'}}, 'pose': …, 'fondo': …, 'estilo': …}.
+    """Referencias por papel: {'personaje': {tag: {'nombre', 'ficha'}}, 'objeto': …, 'lugar': …, 'ropa': …, 'pose': …}.
+    tag es <Picture N> o <Video N> (una cajita de varias fotos llega como <Video N>).
     Las del editor (refs) mandan; sin editor se usan las de la receta."""
     m = {p: {} for p in PAPELES}
     for tag, r in (refs if refs is not None else receta.get("referencias", {})).items():
         if r.get("papel") in m:
             m[r["papel"]][tag] = {"nombre": (r.get("nombre") or "").strip(), "ficha": (r.get("ficha") or "").strip()}
     return m
+
+
+def atuendos(menu):
+    """Referencias de personaje con nombre: son atuendos y cada toma elige uno (OUTFIT). Las que no tienen nombre solo dan la
+    identidad (por ejemplo una cajita con las fotos de Teto) y valen para todas las tomas."""
+    return {t: a for t, a in menu["personaje"].items() if a["nombre"]}
+
+
+def sujetos_objeto(menu):
+    """Cada objeto que no cambia es un sujeto más: el personaje es <Subject 1> y los objetos <Subject 2>, <Subject 3>…"""
+    return {tag: f"<Subject {i}>" for i, tag in enumerate(menu["objeto"], 2)}
+
+
+def nombre_de(r, otro):
+    return (r.get("nombre") or "").strip() or otro
 
 
 def lista(tags):
@@ -244,23 +267,31 @@ def parecido(a, b):
 
 
 def etiqueta(valor, menu):
-    """'<Picture 5>', 'Picture 5' o '5' → '<Picture 5>' si está en el menú; vacío o 'none' → ''; lo demás → None (no vale)."""
+    """'<Picture 5>', 'Picture 5' o '5' → '<Picture 5>' si está en el menú (igual con <Video N>); vacío o 'none' → '';
+    lo demás → None (no vale). Un número solo se busca primero como Picture, salvo que diga «video»."""
     if re.fullmatch(r"\s*(?:none|-|ninguna|ninguno)?\s*", valor or "", re.I):
         return ""
     m = re.search(r"\d+", valor)
-    tag = f"<Picture {m.group(0)}>" if m else ""
-    return tag if tag in menu else None
+    if not m:
+        return None
+    tipos = ("Video", "Picture") if re.search(r"video", valor, re.I) else ("Picture", "Video")
+    return next((f"<{t} {m.group(0)}>" for t in tipos if f"<{t} {m.group(0)}>" in menu), None)
 
 
-def cabecera(receta):
-    return [receta["definicion_edit"],
-            f"Estilo: {receta['estilo']}. {receta['protagonista']} (su aspecto lo dan las imágenes de referencia; no lo describas)."]
+def cabecera(receta, menu=None):
+    lin = [receta["definicion_edit"],
+           f"Estilo: {receta['estilo']}. {receta['protagonista']} (su aspecto lo dan las imágenes de referencia; no lo describas)."]
+    for tag, suj in sujetos_objeto(menu or {"objeto": {}}).items():
+        o = menu["objeto"][tag]
+        lin.append(f"{suj} es {nombre_de(o, 'un objeto')}: un objeto que no cambia en todo el edit (su aspecto lo da {tag}; "
+                   "no lo describas).")
+    return lin
 
 
 # ------------------------------------------------------------------ sala de la historia (habitación 5)
 def prompt_historia(receta, menu, plan, idea, durs, palabras):
     n = len(plan["tomas"])
-    lin = cabecera(receta) + ["", f"IDEA DEL USUARIO (manda): {idea}"]
+    lin = cabecera(receta, menu) + ["", f"IDEA DEL USUARIO (manda): {idea}"]
     if plan["fondo"]:
         lin.append(f"Fondos de todo el edit: {plan['fondo']}")
     lin.append(f"Son {n} tomas, en orden: " +
@@ -270,10 +301,27 @@ def prompt_historia(receta, menu, plan, idea, durs, palabras):
                    ", ".join(f"«{w}» en la toma {k}" for k, w in sorted(palabras.items())) + "); tú no escribas texto.")
     campos = ["PLACE: <un lugar concreto, distinto en cada toma; solo el lugar, sin la luz>",
               "MOMENT: <qué hace y siente <Subject 1>, una frase que se pueda ver de cerca>"]
-    if menu["personaje"]:
+    trajes = atuendos(menu)
+    if trajes:
         lin += ["", "Personaje y atuendo (cada toma usa una de estas referencias; cambia de atuendo entre tomas seguidas):"]
-        lin += [f"- {t}: {a['nombre']} ({a['ficha']})" for t, a in menu["personaje"].items()]
-        campos.append("OUTFIT: <Picture N>")
+        lin += [f"- {t}: {a['nombre']} ({a['ficha']})" for t, a in trajes.items()]
+        campos.append("OUTFIT: <Picture N>" + (" o none si la toma lleva CLOTHES" if menu["ropa"] else ""))
+    if menu["ropa"]:
+        lin += ["", "Ropa prestada (solo la ropa; <Subject 1> se la pone en las tomas que la usen" +
+                ("; una toma lleva OUTFIT o CLOTHES, nunca los dos" if trajes else "") + "):"]
+        lin += [f"- {t}: {nombre_de(a, 'clothes')} ({a['ficha']})" for t, a in menu["ropa"].items()]
+        campos.append("CLOTHES: <Picture N o none>")
+    if menu["objeto"]:
+        suj = sujetos_objeto(menu)
+        lin += ["", "Objetos que no cambian (aparecen en las tomas donde encajen con lo que pasa, al menos en una; en esas tomas "
+                "MOMENT dice qué hace <Subject 1> con el objeto y lo nombra con su etiqueta <Subject N>):"]
+        lin += [f"- {t} = {suj[t]}: {nombre_de(a, 'object')} ({a['ficha']})" for t, a in menu["objeto"].items()]
+        campos.append("OBJECT: <Picture N o none>")
+    if menu["lugar"]:
+        lin += ["", "Lugares que no cambian (las tomas que van en uno escriben LOCATION con su referencia, y su PLACE es un rincón "
+                "concreto de ese lugar; al menos una toma va en él; esas tomas no llevan BACKGROUND):"]
+        lin += [f"- {t}: {nombre_de(a, 'place')} ({a['ficha']})" for t, a in menu["lugar"].items()]
+        campos.append("LOCATION: <Picture N o none>")
     if menu["pose"]:
         lin += ["", "Poses de referencia (opcionales; cada una como mucho una vez; úsala solo si encaja con lo que pasa):"]
         lin += [f"- {t}: {p['ficha']}" for t, p in menu["pose"].items()]
@@ -324,13 +372,15 @@ def leer_historia(texto, plan, menu, receta):
                 t[clave] = valor.rstrip(".")
     if vistas != set(range(1, len(p["tomas"]) + 1)):
         formato.append(f"tienen que ser exactamente {len(p['tomas'])} líneas SHOT, numeradas de 1 a {len(p['tomas'])}")
+    inv = {v: c for c, v in HISTORIA.items()}
     for k, t in enumerate(p["tomas"], 1):  # normaliza etiquetas y códigos
-        for clave, papel in (("personaje", "personaje"), ("pose", "pose"), ("fondo_ref", "fondo")):
-            if menu[papel]:
-                tag = etiqueta(t[clave], menu[papel])
+        for clave, papel in CAMPO_PAPEL.items():
+            opciones = atuendos(menu) if papel == "personaje" else menu[papel]
+            if opciones:
+                tag = etiqueta(t[clave], opciones)
                 if tag is None:
-                    formato.append(f"SHOT {k}: {clave.upper()} tiene que ser una de {', '.join(menu[papel])}" +
-                                   ("" if papel == "personaje" else " o none"))
+                    formato.append(f"SHOT {k}: {inv[clave]} tiene que ser una de {', '.join(opciones)}" +
+                                   ("" if papel == "personaje" and not menu["ropa"] else " o none"))
                 t[clave] = tag or ""
             else:
                 t[clave] = ""
@@ -356,14 +406,24 @@ def revisar_historia(datos, receta, menu):
         for clave, campo in (("lugar", "PLACE"), ("momento", "MOMENT")):
             if libre(clave):
                 p += problemas_texto(t[clave], receta, f"SHOT {k} {campo}") if t[clave] else [f"SHOT {k}: falta {campo}"]
-        if libre("lugar"):
+        if libre("lugar"):  # dos tomas en el mismo lugar que no cambia sí pueden parecerse
             p += [f"SHOT {k}: el lugar se parece demasiado al de SHOT {j}; cada toma va en un lugar distinto"
-                  for j, o in enumerate(plan["tomas"][:k - 1], 1) if t["lugar"] and parecido(t["lugar"], o["lugar"]) > 0.75]
-        if menu["personaje"] and libre("personaje"):
-            if not t["personaje"]:
-                p.append(f"SHOT {k}: falta OUTFIT")
-            elif k > 1 and t["personaje"] == plan["tomas"][k - 2]["personaje"] and len(menu["personaje"]) > 1:
+                  for j, o in enumerate(plan["tomas"][:k - 1], 1) if t["lugar"] and parecido(t["lugar"], o["lugar"]) > 0.75
+                  and not (t["lugar_ref"] and t["lugar_ref"] == o["lugar_ref"])]
+        trajes = atuendos(menu)
+        if trajes and libre("personaje"):
+            if not t["personaje"] and not t["ropa"]:
+                p.append(f"SHOT {k}: falta OUTFIT" + (" o CLOTHES" if menu["ropa"] else ""))
+            elif t["personaje"] and k > 1 and t["personaje"] == plan["tomas"][k - 2]["personaje"] and len(trajes) > 1:
                 p.append(f"SHOT {k}: repite el atuendo de la toma anterior ({t['personaje']})")
+        if t["personaje"] and t["ropa"] and (libre("personaje") or libre("ropa")):
+            p.append(f"SHOT {k}: lleva OUTFIT {t['personaje']} y CLOTHES {t['ropa']}; elige solo uno de los dos")
+        if t["lugar_ref"] and t["fondo_ref"] and (libre("lugar_ref") or libre("fondo_ref")):
+            p.append(f"SHOT {k}: lleva LOCATION {t['lugar_ref']} y BACKGROUND {t['fondo_ref']}; una toma en un lugar que no "
+                     "cambia no lleva BACKGROUND")
+        suj = sujetos_objeto(menu).get(t["objeto"])
+        if suj and libre("momento") and suj not in t["momento"]:
+            p.append(f"SHOT {k}: lleva OBJECT {t['objeto']}; MOMENT tiene que nombrarlo como {suj}")
         if t["pose"] and t["pose"] in poses and libre("pose"):
             p.append(f"SHOT {k}: repite la pose {t['pose']}")
         if libre("pose"):
@@ -381,6 +441,11 @@ def revisar_historia(datos, receta, menu):
                     p.append(f"SHOT {k}: el efecto {e} necesita que en la toma haya «{pide}»; ponlo en MOMENT o elige otro efecto")
             if libre("efecto"):
                 efectos.append(e)
+    # un objeto o un lugar que no cambia tiene que salir al menos en una toma (si el LLM podía ponerlo)
+    for clave, papel, campo in (("objeto", "objeto", "OBJECT"), ("lugar_ref", "lugar", "LOCATION")):
+        for tag in menu[papel]:
+            if all(t[clave] != tag for t in plan["tomas"]) and any(clave not in t.get("fijos", []) for t in plan["tomas"]):
+                p.append(f"ninguna toma usa {campo} {tag}; ponlo al menos en una toma donde encaje")
     return p
 
 
@@ -391,7 +456,7 @@ def linea_corta(t, k):
 
 def prompt_toma(receta, menu, plan, k, dur, vecinas):
     t, n = plan["tomas"][k - 1], len(plan["tomas"])
-    lin = cabecera(receta) + ["", "Historia completa (respétala):", f"ARC: {plan['arco']}",
+    lin = cabecera(receta, menu) + ["", "Historia completa (respétala):", f"ARC: {plan['arco']}",
                               f"Hora, luz y paleta de todo el edit (respétalas): {plan['look']}"]
     if plan["fondo"]:
         lin.append(f"Fondos de todo el edit: {plan['fondo']}")
@@ -403,6 +468,18 @@ def prompt_toma(receta, menu, plan, k, dur, vecinas):
     if t["personaje"]:
         a = menu["personaje"].get(t["personaje"], {})
         lin.append(f"- Atuendo: {a.get('nombre', '')} ({a.get('ficha', '')}); no lo describas, el sistema lo cita")
+    if t["ropa"]:
+        a = menu["ropa"].get(t["ropa"], {})
+        lin.append(f"- Ropa: {nombre_de(a, 'clothes')} ({a.get('ficha', '')}); no la describas, el sistema la cita")
+    if t["lugar_ref"]:
+        a = menu["lugar"].get(t["lugar_ref"], {})
+        lin.append(f"- El lugar es {nombre_de(a, 'a place')} ({a.get('ficha', '')}), el mismo en todas las tomas que van en él; "
+                   "el sistema lo cita")
+    suj = sujetos_objeto(menu).get(t["objeto"])
+    if suj:
+        a = menu["objeto"][t["objeto"]]
+        lin.append(f"- Objeto: {suj}, {nombre_de(a, 'an object')}; ACTION lo incluye con su etiqueta {suj} (lo sostiene, lo usa "
+                   "o lo mira); no lo describas")
     if t["pose"]:
         lin.append(f"- Pose: {menu['pose'].get(t['pose'], {}).get('ficha', '')}; el gesto es esta pose")
     if t["fondo_ref"]:
@@ -446,11 +523,14 @@ def leer_toma(texto, receta, t):
     return d
 
 
-def revisar_toma(d, receta, plan, k, vecinas, fijos):
-    """plano 5 (Reglas de revisión), filas 6–13, 15, 17 y 21. Solo culpa al LLM de lo que eligió él."""
+def revisar_toma(d, receta, plan, k, vecinas, fijos, menu=None):
+    """plano 5 (Reglas de revisión), filas 6–13, 15, 17, 21 y 27. Solo culpa al LLM de lo que eligió él."""
     libre = lambda c: c not in fijos
     p = [] if d["encuadre"] in ENCUADRES or not libre("encuadre") else [
         f"FRAMING tiene que ser exactamente una de estas: {', '.join(ENCUADRES)} (escribiste «{d['encuadre']}»)"]
+    suj = sujetos_objeto(menu).get(plan["tomas"][k - 1]["objeto"]) if menu else None
+    if suj and libre("gesto") and suj not in d["gesto"]:
+        p.append(f"ACTION tiene que incluir el objeto con su etiqueta {suj}")
     for clave, campo in (("luz", "LIGHT"), ("gesto", "ACTION"), ("camara", "CAMERA")):
         if libre(clave):
             p += problemas_texto(d[clave], receta, campo) if d[clave] else [f"falta {campo}"]
@@ -485,9 +565,13 @@ def montar(receta, menu, plan, ini, palabras):
         citas = []
         if t["personaje"] and menu["personaje"].get(t["personaje"], {}).get("nombre"):
             citas.append(f"wearing {receta['posesivo']} {menu['personaje'][t['personaje']]['nombre']} from {t['personaje']}")
+        if t["ropa"] in menu["ropa"]:  # 💡 cita de la ropa prestada (probada solo en la prueba Teto + ropa de Vera)
+            citas.append(f"wearing the {nombre_de(menu['ropa'][t['ropa']], 'clothes')} from {t['ropa']}")
         if t["pose"]:
             citas.append(f"in the pose of {t['pose']}")
         lugar = re.sub(r"^(A|An|The)\b", lambda m: m.group(1).lower(), falta(t["lugar"], f"toma {k}: sin lugar"))
+        if t["lugar_ref"] in menu["lugar"]:  # 💡 lugar que no cambia: sin probar en un render
+            lugar += f", in the {nombre_de(menu['lugar'][t['lugar_ref']], 'place')} shown in {t['lugar_ref']}"
         if t["fondo_ref"]:
             lugar += f" like the place in {t['fondo_ref']}"
         encuadre = falta(t["encuadre"], f"toma {k}: sin encuadre").capitalize()
@@ -501,6 +585,17 @@ def montar(receta, menu, plan, ini, palabras):
                   f"never covering {receta['posesivo']} face.")
         lineas.append(s)
     retencion = [receta["retencion"].replace("{personajes}", lista(personajes))]
+    objetos = sujetos_objeto(menu)
+    for tag, suj in objetos.items():  # 💡 frases nuevas, sin probar en un render
+        retencion.append(f"{suj}: fully_preserved - the shape, colors, materials and markings of the "
+                         f"{nombre_de(menu['objeto'][tag], 'object')} from {tag} wherever it appears.")
+    for tag, a in menu["lugar"].items():  # 💡
+        retencion.append(f"{tag}: fully_preserved - the {nombre_de(a, 'place')}: its layout, architecture, colors and light "
+                         "fixtures stay the same in every shot set there; any person in it is not transferred.")
+    for tag, a in menu["ropa"].items():  # probada con la ropa de Vera sobre la cajita de Teto (24 oct)
+        ropa = a["ficha"] if a["ficha"] and len(a["ficha"].split()) <= 20 else nombre_de(a, "")
+        retencion.append(f"{tag}: attribute_transfer - only the clothes are transferred" + (f" ({ropa.rstrip('.')})" if ropa else "") +
+                         "; that person's face, hair and body are not transferred.")
     if menu["pose"]:
         retencion.append(f"{lista(menu['pose'])}: attribute_transfer - only the body pose; that girl's face, hair and clothes "
                          "are not transferred.")
@@ -517,7 +612,13 @@ def montar(receta, menu, plan, ini, palabras):
         estilo += f" Backgrounds: {plan['fondo'].rstrip('.')}."
     if menu["estilo"]:
         estilo += f" Visual style of {lista(menu['estilo'])}."
-    prompt = ("subject_definitions:\n" + receta["sujeto"].replace("{personajes}", lista(personajes)) + "\n" + receta["audio"] +
+    sujeto = receta["sujeto"].replace("{personajes}", lista(personajes))
+    if receta.get("sujeto_atuendo") and (atuendos(menu) or menu["ropa"]):
+        sujeto += " " + receta["sujeto_atuendo"]
+    for tag, suj in objetos.items():  # 💡
+        sujeto += (f"\n{suj} is the {nombre_de(menu['objeto'][tag], 'object')} shown in {tag}; it is the same object in every "
+                   "shot where it appears.")
+    prompt = ("subject_definitions:\n" + sujeto + "\n" + receta["audio"] +
               "\n\nsummary:\n[reference generation + audio reference] " + receta["resumen"] + ": " +
               falta(plan["arco"], "sin arco").rstrip(".") + "." +
               "\n\nretention_analysis:\n" + "\n".join(retencion) +
@@ -532,6 +633,15 @@ def montar(receta, menu, plan, ini, palabras):
 VISION = {
     "personaje": "This image is an outfit reference for the main character. Give a 2-5 word English name for the outfit "
                  "(for example 'school uniform') and one short English sentence listing only the visible clothes and accessories.",
+    "objeto": "This image is a reference of an object or product that must look the same in every shot. Give a 2-4 word "
+              "English name for it (for example 'red soda can') and one short English sentence describing only its shape, "
+              "colors, materials and markings.",
+    "lugar": "This image is a reference of a place that must stay the same in every shot set there. Give a 2-4 word English "
+             "name for the place (for example 'neon arcade street') and one short English sentence describing its main "
+             "structures, objects, light and colors.",
+    "ropa": "This image is a clothing reference: only the clothes will be used, the person wearing them does not matter. "
+            "Give a 2-5 word English name for the outfit (for example 'red racing jacket') and one short English sentence "
+            "listing only the visible clothes and accessories.",
     "pose": "This image is a pose reference. In one short English sentence describe the person's body pose, what the hands "
             "hold and the place, like: 'a girl waving with one arm raised high, caught mid-step on a night crosswalk'. "
             "The name is 2-4 words.",
@@ -614,7 +724,7 @@ def escribir_tomas(nombre_receta, entradas, plan, beats=None, semilla=0, solo=No
         fijos = set(t.get("fijos", []))
         d, it = conversar(reg, f"toma{k}", prompt_toma(receta, menu, plan, k, durs[k - 1], vecinas),
                           lambda x, t=t: leer_toma(x, receta, t),
-                          lambda x, k=k, v=vecinas, f=fijos: revisar_toma(x, receta, plan, k, v, f),
+                          lambda x, k=k, v=vecinas, f=fijos: revisar_toma(x, receta, plan, k, v, f, menu),
                           INTENTOS_TOMA, False, semilla + k, 300)
         t.update(d)
         hechas[k] = it
