@@ -34,6 +34,11 @@ Lectura: 3 min
 | 22 | La hora o la luz cambian sin motivo | «soft daylight» en una idea de noche | una sola línea LOOK para todo el edit · CÓDIGO + INSTRUCCIÓN |
 | 23 | La luz contradice el efecto | luz cálida con «cold blue glow» | la toma recibe la frase exacta del efecto · INSTRUCCIÓN |
 | 24 | Look fotográfico en Teto | la v3 quitó «bokeh» y «cinematic» | prohibidas de la receta · REVISIÓN |
+| 25 | Atuendo y ropa prestada en la misma toma | — (regla de diseño) | una toma lleva OUTFIT o CLOTHES, no los dos · REVISIÓN |
+| 26 | Lugar que no cambia con un fondo encima | — (regla de diseño) | LOCATION sin BACKGROUND · REVISIÓN |
+| 27 | Objeto que no se ve en la toma | — (regla de diseño) | si la toma lleva OBJECT, MOMENT y ACTION lo nombran con su `<Subject N>` · REVISIÓN |
+| 28 | Objeto o lugar que no sale nunca | — (regla de diseño) | cada uno sale al menos en una toma (si el LLM podía ponerlo) · REVISIÓN |
+| 29 | Frase fija de un efecto que choca con el lugar | U3 dice «the night city» en una bodega de avión al atardecer (prueba de la interfaz) | todavía ninguna: lo cambió el usuario tocando otro efecto · ❓ |
 
 ## Fallos vistos en un render y todavía sin regla
 

@@ -13,10 +13,12 @@ Lectura: 3 min
 | `__init__.py` | El nodo, el registro de las rutas y la liberación de la GPU. Es delgado: no decide nada. |
 | `web/editor.js` | El botón «Abrir editor…» del nodo. |
 | `web/editor_core.js` | La ventana: solo junta las piezas de `web/editor/`, guarda en el nodo y pinta. Se vuelve a cargar cada vez que se abre, con todas sus piezas. |
-| `web/editor/util.js` | Ayudas comunes: crear elementos, leer campos del nodo, seguir enlaces, llamar al servidor. |
-| `web/editor/referencias.js` | Columna 1: leer las referencias del workflow, papel y ficha, cambiar el Stack, biblioteca, «describir con visión» y el resaltado. |
-| `web/editor/plan.js` | Columna 2: el plan, los campos con candado, la frase del efecto y los botones del LLM. |
-| `web/editor/final.js` | Columna 3: el prompt final, resaltado o editado a mano. |
+| `web/editor/util.js` | Ayudas comunes: crear elementos, leer campos del nodo, seguir enlaces, llamar al servidor, direcciones de las fotos. |
+| `web/editor/plan.js` | Partes 1 y 2: historia general y prompt de la toma elegida (campos con candado, frase del efecto, rehacer esta toma) y los botones del LLM. |
+| `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, las dos mitades, la ficha de cada referencia (papel, nombre, ficha, visión, activa, fuerza, quitar), el Stack, la biblioteca y el resaltado. |
+| `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
+| `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
+| `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
 | `recetas.json` | Lo fijo de cada personaje (plano 3). |
 | `maqueta/` | El pizarrón donde se diseña la interfaz nueva: `servidor.py`, `index.html` (pizarra), `interfaz.html` (maqueta) y `documentacion/`. |
@@ -33,7 +35,7 @@ Las piezas de `web/editor/` comparten un objeto `ctx` (estado, referencias y fun
 - `planear(...)` → el recorrido completo sin editor. Lo usa el nodo y guarda el resultado en disco para no repetirlo.
 
 `entradas` contiene `{idea, tomas, duracion, palabras, refs}`:
-- `refs` es `{"<Picture N>": {papel, nombre, ficha}}`; con `None` se usan las referencias de la receta.
+- `refs` es `{"<Picture N>" o "<Video N>": {papel, nombre, ficha}}`; con `None` se usan las referencias de la receta. Papeles: `personaje`, `objeto`, `lugar` (no cambian) y `ropa`, `pose`, `fondo`, `estilo` (se prestan).
 - `palabras` va como `TO YOU @1; PEAK @ultima`.
 
 ## Las rutas del editor
@@ -47,6 +49,9 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 | `historia` | escribe la historia | sí |
 | `tomas` | escribe las tomas, o solo una con `solo` | sí |
 | `describir` | propone la ficha y los riesgos de una referencia, con visión | sí |
+| `medios` | las fotos de `input/minimax_h3`, para elegirlas en una cajita | no |
+| `cajitas` | las fotos de cada cajita (de los archivos `<RefMod>.cajita.json`) | no |
+| `crear_cajita` | crea un RefMod con varias fotos: manda a ComfyUI el nodo `MiniMaxH3FantasticRefModCreate` (Full Reference, 512) con un VAELoader, por `/prompt`, y apunta sus fotos | no (usa ComfyUI unos 10 s) |
 
 Para añadir una acción basta con escribir su función en `rutas.py` y ponerla en `ACCIONES`: no hace falta reiniciar ComfyUI. Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU, igual que hace `/free`.
 
@@ -58,11 +63,14 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | lo que se le pide en cada toma | `nucleo.prompt_toma` |
 | una regla de revisión | `nucleo.revisar_historia`, `revisar_toma` o la lista `GENERALES` |
 | cómo se escribe una línea `[Shot n]` | `nucleo.montar` |
-| un personaje, su definición o sus efectos | `recetas.json` |
+| un personaje, su definición o sus efectos | `recetas.json` (la frase «In each shot she wears…» es `sujeto_atuendo` y solo va si hay atuendos o ropa) |
+| cómo se cita un objeto, un lugar o una ropa | `nucleo.montar` (marcado con 💡 lo no probado) |
 | dónde caen los cortes | `nucleo.cortes` |
-| la columna de referencias, la biblioteca o el resaltado | `web/editor/referencias.js` |
-| los campos del plan, los candados o los botones del LLM | `web/editor/plan.js` |
-| la columna del prompt final | `web/editor/final.js` |
+| las dos mitades, la ficha de una referencia, la biblioteca o el resaltado | `web/editor/referencias.js` |
+| las cajitas | `web/editor/cajitas.js` y `rutas.crear_cajita` |
+| la historia general, la toma elegida, los candados | `web/editor/plan.js` |
+| la línea de tiempo | `web/editor/linea.js` |
+| el prompt final y sus botones | `web/editor/final.js` |
 | colores y tamaños de la ventana | `web/editor/estilos.js` |
 | qué se guarda en el nodo o los botones de arriba | `web/editor_core.js` |
 | los campos del nodo | `__init__.PromptDelEdit.INPUT_TYPES` |

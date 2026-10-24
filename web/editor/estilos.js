@@ -102,7 +102,7 @@ textarea.epl-final{min-height:40vh}
 .epl-ficha .grande>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .epl-ficha .grande .fondo{position:absolute;inset:-20px;background-size:cover;background-position:center;filter:blur(18px) brightness(.4)}
 .epl-ficha label{display:block;margin:6px 0 2px;color:#9aa3b2;font-size:12px}
-.epl-ficha input:not([type=checkbox]),.epl-ficha textarea,.epl-ficha select{width:100%;box-sizing:border-box}
+.epl-ficha input:not([type=checkbox]):not(.corto),.epl-ficha textarea,.epl-ficha select{width:100%;box-sizing:border-box}
 .epl-fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start}
 .epl-fotos>div{position:relative;background:#12151b;border:1px solid #2e3440;border-radius:8px;padding:6px;font-size:11px;word-break:break-all}
 .epl-fotos img{width:100%;height:200px;object-fit:contain;display:block}

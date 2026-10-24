@@ -4,7 +4,7 @@ Lectura: 2 min · Actualizado: 24 oct 2026
 
 **En resumen**
 - Es **la base de la app**: convierte una idea en el prompt de MiniMax H3 usando las referencias del workflow y el LLM local (Qwen3.8).
-- Funciona como un nodo de ComfyUI, «Prompt del edit (LLM)». También tiene un editor de 3 columnas: referencias, prompt fundamental y prompt final.
+- Funciona como un nodo de ComfyUI, «Prompt del edit (LLM)». También tiene un editor de una pantalla: historia, toma elegida, referencias en dos mitades, línea de tiempo y prompt final.
 - **Regla de la casa:** el LLM decide lo creativo; el código pone lo exacto (tiempos, frases probadas, partes fijas) y revisa todo lo que escribe el LLM.
 - Después de cualquier cambio, corre `pruebas.py` (tarda segundos). Si dice TODO BIEN, no se rompió nada.
 
@@ -32,4 +32,5 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 
 - ✅ **Núcleo v2:** referencias por papel, candados y regenerar una sola toma. Probado con `pruebas.py` y con el LLM real (104 s, 8 llamadas).
 - ✅ **Nodo en ComfyUI:** probado con un render de Teto a 480p.
-- ✅ **Editor:** las 3 columnas, candados, historia, tomas, una sola toma, visión con «usar / descartar», edición a mano y guardado en el nodo (plano 4).
+- ✅ **Editor, interfaz nueva (24 oct):** una pantalla con historia general, prompt de la toma, referencias en dos mitades (lo que no cambia / lo que se presta) con cajitas, línea de tiempo y prompt final (plano 4). Probada con un render: Teto en cajita + ropa de Vera + un lugar fijo.
+- ✅ **Papeles nuevos:** objeto, lugar y ropa; personaje como `<Video N>` (plano 1). 💡 El objeto aún no tiene render.
