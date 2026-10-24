@@ -21,7 +21,8 @@ Lectura: 2 min
 | Cambié… | Qué hacer |
 |---|---|
 | `nucleo.py`, `rutas.py` o `recetas.json`, incluida una acción nueva en `rutas.ACCIONES` | nada: el editor los recarga en cada llamada (el nodo, al ejecutarse, usa la versión que cargó el editor la última vez, o la del arranque) |
-| `web/editor_core.js` | nada: se recarga al abrir la ventana |
+| `web/editor_core.js` o `web/editor/*.js` | nada: se recargan al abrir la ventana |
+| un archivo nuevo en `web/editor/` | nada, si lo cargas desde `editor_core.js` (función `pieza`); solo debe exportar funciones |
 | `web/editor.js` | recargar la pestaña de ComfyUI |
 | `__init__.py` (campos del nodo, rutas nuevas) | reiniciar ComfyUI y recargar la pestaña |
 
@@ -31,6 +32,10 @@ Antes de reiniciar, mira que la cola esté vacía y que Krita no esté usando Co
 
 El nodo, sin editor, guarda cada prompt en disco. Si coinciden las entradas, la receta, la semilla y el propio `nucleo.py`, lo reutiliza sin llamar al LLM. Si cambias `nucleo.py`, se invalida sola. Para obtener otra versión, cambia la semilla.
 
-## Recomendación
+## Git
 
-Para trabajar sin miedo, conviene guardar el historial de esta carpeta con git, que es local. Así se puede volver a cualquier versión. ❓ Todavía no está hecho: se hace si lo pides.
+La carpeta guarda su historial con git, solo en este equipo (sin remoto). Desde la carpeta:
+- **Ver qué cambió:** `git status` (archivos) y `git diff` (líneas).
+- **Guardar un cambio:** `git add -A && git commit -m "qué cambié"`.
+- **Ver el historial:** `git log --oneline`.
+- **Deshacer lo que no guardaste en un archivo:** `git restore <archivo>`. Para volver a una versión anterior entera: `git revert <hash>` (crea un cambio nuevo que la deshace; no borra nada).

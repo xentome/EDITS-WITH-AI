@@ -47,7 +47,7 @@ Lectura: 3 min
 
 ## Por dentro
 
-- **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` es la ventana y se vuelve a cargar cada vez que se abre.
+- **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` es la ventana y junta las piezas de `web/editor/` (una por columna, más utilidades y estilos; ver plano 2). Todo se vuelve a cargar cada vez que se abre.
 - **Servidor:** la ventana habla con él por `/edit_prompt_llm/<acción>`. Las acciones son recetas, montar, historia, tomas y describir, y están en la lista `rutas.ACCIONES`. Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU.
 - ✅ **Probado el 24 oct:**
 
