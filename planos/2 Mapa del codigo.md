@@ -19,6 +19,7 @@ Lectura: 3 min
 | `web/editor/final.js` | Columna 3: el prompt final, resaltado o editado a mano. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
 | `recetas.json` | Lo fijo de cada personaje (plano 3). |
+| `maqueta/` | El pizarrón donde se diseña la interfaz nueva: `servidor.py`, `index.html` (pizarra), `interfaz.html` (maqueta) y `documentacion/`. |
 | `pruebas.py` y `pruebas/` | Las comprobaciones rápidas y su plan de referencia. |
 | corridas | `~/Escritorio/experimentos_edit/edit_prompt_llm/<fecha>_<paso>/`: cada llamada al LLM con su prompt, su respuesta y `registro.json`. |
 

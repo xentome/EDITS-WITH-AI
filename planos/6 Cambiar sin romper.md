@@ -34,8 +34,9 @@ El nodo, sin editor, guarda cada prompt en disco. Si coinciden las entradas, la 
 
 ## Git
 
-La carpeta guarda su historial con git, solo en este equipo (sin remoto). Desde la carpeta:
+La carpeta guarda su historial con git y tiene una copia en GitHub, en el repositorio privado **xentome/EDITS-WITH-AI**. Desde la carpeta:
 - **Ver qué cambió:** `git status` (archivos) y `git diff` (líneas).
 - **Guardar un cambio:** `git add -A && git commit -m "qué cambié"`.
 - **Ver el historial:** `git log --oneline`.
 - **Deshacer lo que no guardaste en un archivo:** `git restore <archivo>`. Para volver a una versión anterior entera: `git revert <hash>` (crea un cambio nuevo que la deshace; no borra nada).
+- **Subir a GitHub lo guardado:** `git push`. Lo que no es nuestro o pesa mucho (imágenes de Teto y Vera, RefMods, videos) está en `.gitignore` y no se sube.
