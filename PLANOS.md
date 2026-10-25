@@ -20,6 +20,8 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 6. [Cambiar sin romper](planos/6%20Cambiar%20sin%20romper.md): el procedimiento para modificarlo.
 7. [Medidas y pendientes](planos/7%20Medidas%20y%20pendientes.md): números medidos y lo que aún no sabemos.
 
+Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md).
+
 ## Las 5 reglas de la casa
 
 1. El LLM decide; el código pone lo exacto y revisa.
