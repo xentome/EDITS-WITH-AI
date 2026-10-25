@@ -32,11 +32,13 @@ def beats(d):
 
 def montar(d):
     b = beats(d)
-    prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], b, d.get("idioma"))
+    # con los trozos: la ventana pinta cada uno del color de quien lo escribió, y la ficha enseña los renglones de arriba
+    prompt, avisos, ini, extra = nucleo.montar_plan(d["entradas"], d["plan"], b, d.get("idioma"), con_trozos=True)
     # los beats van a la línea de tiempo: al soltar un borde arrastrado, se pega al más cercano
     # las palabras de la fila de texto (convertidas del formato viejo «TO YOU @1» si el plan aún no las tiene)
     textos = nucleo.textos_de(d["entradas"], d["plan"] or {}, ini, float(d["entradas"]["duracion"]))
-    return {"prompt": prompt, "avisos": avisos, "cortes": ini, "beats": b or [], "textos": textos, "fijos": nucleo.cortes_validos(
+    return {"prompt": prompt, "avisos": avisos, "cortes": ini, "beats": b or [], "textos": textos, **extra,
+            "frases": nucleo.FRASES, "fijos": nucleo.cortes_validos(
         (d["plan"] or {}).get("cortes"), int(d["entradas"]["tomas"]), float(d["entradas"]["duracion"]))}
 
 

@@ -8,9 +8,11 @@
  * con u.t("clave") (web/i18n/*.json); cada pintar… los vuelve a escribir en el idioma de ahora.
  * Planos: ../../planos/4 El editor.md. */
 
-// los mismos que nucleo.ENCUADRES (pruebas.py lo comprueba). Van al prompt en inglés; su letrero es toma.encuadre_op.<i>
+// los mismos que nucleo.ENCUADRES (pruebas.py lo comprueba). Van al prompt tal cual (en inglés); su letrero es
+// toma.encuadre_op.<i>. Con «✎ escribir el mío», la toma guarda el texto del usuario y se pega igual.
 export const ENCUADRES = ["extreme close-up", "close-up", "medium close-up", "low-angle close-up", "close detail shot",
-                          "extreme close-up of the eyes", "dynamic close-up"];
+                          "extreme close-up of <Subject 1>'s eyes", "dynamic close-up"];
+const ENCUADRE_VIEJO = { "extreme close-up of the eyes": "extreme close-up of <Subject 1>'s eyes" };   // planes de antes del 25 oct
 // entorno de una toma (nucleo.ENTORNOS): el LLM elige el lugar, lo escribe el usuario (candado del lugar) o no hay ninguno
 export const ENTORNOS = ["auto", "manual", "ninguno"];
 const HISTORIA = ["lugar", "momento", "personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
@@ -31,6 +33,7 @@ export function ajustarPlan(plan, n) {
   p.fijos = p.fijos || [];
   if ((p.cortes || []).length !== n) delete p.cortes;   // cortes a mano de otro número de tomas: ya no valen
   p.tomas = (p.tomas || []).slice(0, n).map((t) => conEntorno({ ...tomaVacia(), ...t, entorno: t.entorno, fijos: t.fijos || [] }));
+  for (const t of p.tomas) t.encuadre = ENCUADRE_VIEJO[t.encuadre] || t.encuadre;
   while (p.tomas.length < n) p.tomas.push(tomaVacia());
   return p;
 }

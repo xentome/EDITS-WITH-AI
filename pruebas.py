@@ -92,14 +92,14 @@ plan3 = N.ajustar_plan(ref["plan"], 6)
 plan3["tomas"][0].update(efecto_frase="pink heart confetti falling around <Subject 1>.", fijos=["efecto_frase"])
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
 comprobar("la frase propia sustituye a la ficha del efecto",
-          "At 00:00.000 Close-up, pink heart confetti falling around <Subject 1>. A neon-lit crosswalk" in p3
+          "At 00:00.000 close-up, pink heart confetti falling around <Subject 1>. a neon-lit crosswalk" in p3
           and "hand-drawn white and colored doodles" not in p3.split("[Shot 2]")[0].split("[Shot 1]")[1])
 plan3["tomas"][1].update(efecto="", efecto_frase="soft film grain")
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("efecto solo de texto escrito en la toma", "Medium close-up, soft film grain. A night train platform" in p3)
+comprobar("efecto solo de texto escrito en la toma", "medium close-up, soft film grain. a night train platform" in p3)
 plan3["tomas"][2].update(efecto="U3", efecto_frase="")
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "[Shot 3] At 00:01.846 Extreme close-up, a rooftop" in p3)
+comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "[Shot 3] At 00:01.846 extreme close-up. a rooftop" in p3)
 
 print("6 · Palabras en pantalla")
 comprobar("lee 'TO YOU @1; PEAK @ultima'", N.leer_palabras("TO YOU @1; PEAK @ultima", 6) == {1: "TO YOU", 6: "PEAK"})
@@ -128,7 +128,7 @@ comprobar("encima de la cara, en su momento y en su toma, con su letra y su fras
           "in the lettering style of <Picture 2>, glowing blue neon script." in p6.split("[Shot 2]")[1] and
           "VIEJO" not in p6 and p6.index('huge word "RISE"') > p6.index("[Shot 1]") and not av6, p6)
 comprobar("la referencia de la letra se define para su palabra y solo se pasa su estilo de letra",
-          '<Picture 1> is the typography reference for the word "RISE".' in p6 and
+          '<Picture 1> is the typography reference for "RISE".' in p6 and
           "<Picture 2>: attribute_transfer - only its lettering style is transferred; the words written in it are not "
           "reproduced." in p6, p6)
 comprobar("el nodo sin editor lee la fila de texto del estado",
@@ -157,10 +157,10 @@ comprobar("el personaje sale de su referencia: nombre y ficha en la definición,
           "<Subject 1>: fully_preserved - Teto's face, hair and features from <Video 1> stay the same in every shot." in p7, p7[:500])
 comprobar("ropa: cita en la toma y retención solo de la ropa",
           "<Subject 1>, wearing the red racing jacket from <Picture 1>," in p7 and
-          "<Picture 1>: attribute_transfer - only the clothes are transferred (red racing jacket with patches, black pants); "
+          "<Picture 1>: attribute_transfer - only the clothes are transferred (red racing jacket); "
           "that person's face, hair and body are not transferred." in p7)
 comprobar("objeto: es <Subject 2>, definido y retenido",
-          "<Subject 2> is the red soda can shown in <Picture 2>" in p7 and "<Subject 2>: fully_preserved" in p7)
+          "<Subject 2> is the red soda can object shown in <Picture 2>: a red soda can with a white logo; it is the same object" in p7 and "<Subject 2>: fully_preserved" in p7)
 comprobar("lugar: fija el lugar de su toma y se retiene",
           "corner 2, in the night arcade street shown in <Picture 3>," in p7 and "<Picture 3>: fully_preserved - the night arcade" in p7)
 comprobar("sin atuendos no se pide OUTFIT", not N.atuendos(m7) and N.etiqueta("Video 1", m7["personaje"]) == "<Video 1>")
@@ -196,7 +196,7 @@ pf10 = N.perfil_de(N.menu_de({}), e10)
 comprobar("sin estilo ni referencias: línea neutra, sujeto genérico y they",
           "detailed_description:\nnight, warm neon. No text on screen." in p10 and
           "<Subject 1> is the main character." in p10 and "Estilo" not in "\n".join(N.cabecera(pf10, N.menu_de({}))) and
-          pf10["pronombre"] == "they" and pf10["revisar_pronombre"] == "" and "A music edit of <Subject 1>, close shots" in p10,
+          pf10["pronombre"] == "they" and pf10["revisar_pronombre"] == "" and "A music edit of <Subject 1>, cut on the beat of <Audio 1>" in p10,
           p10[:300])
 refs10 = {**refs7, "<Video 2>": {"papel": "personaje", "nombre": "Ren", "pronombre": "he", "ficha": "young man, spiky dark hair"},
           "<Picture 5>": {"papel": "personaje", "nombre": "teto", "pronombre": "", "ficha": "", "atuendo": "school uniform"}}
@@ -214,9 +214,9 @@ plan11 = N.ajustar_plan(plan7, 3)
 plan11["tomas"][0]["efecto"], plan11["tomas"][1]["efecto"] = "<Picture 6>", "E1"
 p11, _, _ = N.montar_plan({**e7, "refs": refs11}, plan11)
 comprobar("efecto como referencia: su ficha tal cual, su cita y su retención; el de texto, solo la ficha",
-          "Close-up, neon light streaks cross the frame, like the effect in <Picture 6>. Corner 1, neon:" in p11 and
+          "close-up, neon light streaks cross the frame, like the effect in <Picture 6>. corner 1, neon:" in p11 and
           "<Picture 6>: attribute_transfer - only its look is transferred." in p11 and
-          "Close-up, soft film grain. Corner 2" in p11 and "E1:" not in p11, p11)
+          "close-up, soft film grain. corner 2" in p11 and "E1:" not in p11, p11)
 plan11["tomas"][2]["efecto"] = ""
 plan11["tomas"][0]["efecto"] = ""
 p11b = N.revisar_historia({"plan": {**plan11, "arco": "a", "look": "b"}, "formato": []}, pf7, N.menu_de(refs11))
@@ -247,14 +247,14 @@ plan8["arco"], plan8["look"] = "a", "b"
 p8, _, _ = N.montar_plan(e8, plan8)
 comprobar("cada efecto con imagen se define arriba con su ficha (los de texto no)",
           "<Picture 1> is the gradient silhouette effect reference: <Subject 1>'s face turned into a flat silhouette filled "
-          "with a hot-pink and cyan gradient." in p8 and "<Video 2> is a visual effect reference: a sudden full-frame white "
+          "with a hot-pink and cyan gradient." in p8 and "<Video 2> is the effect reference: a sudden full-frame white "
           "flash." in p8 and "E1 is" not in p8, p8[:700])
 comprobar("y se retiene en su propia línea: solo su aspecto",
           "<Picture 1>: attribute_transfer - only its look is transferred.\n<Video 2>: attribute_transfer - only its look is "
           "transferred." in p8, p8)
 comprobar("en la toma, el efecto va justo después del encuadre, antes del lugar, la luz y la acción",
-          "[Shot 1] At 00:00.000 Close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
-          "gradient, like the effect in <Picture 1>. A dark void, neon glow: <Subject 1> looks up; the camera holds still." in p8, p8)
+          "[Shot 1] At 00:00.000 close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
+          "gradient, like the effect in <Picture 1>. a dark void, neon glow: <Subject 1> looks up; the camera holds still." in p8, p8)
 
 print("8c · Entorno por toma: auto, manual y sin entorno (y los encuadres nuevos)")
 for t in plan8["tomas"]:
@@ -262,14 +262,13 @@ for t in plan8["tomas"]:
 plan8["tomas"][1].update(luz="hard neon streaks", fijos=["luz"], encuadre="extreme close-up of the eyes")
 p8, av8, _ = N.montar_plan(e8, plan8)
 comprobar("sin entorno: ningún lugar ni fondo, la luz que no escribió el usuario no va y no es un hueco",
-          "[Shot 1] At 00:00.000 Close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
+          "[Shot 1] At 00:00.000 close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
           "gradient, like the effect in <Picture 1>: <Subject 1> looks up; the camera holds still." in p8 and
           "dark void" not in p8 and "old light" not in p8 and not av8, (av8, p8))
-comprobar("sin entorno con luz escrita por el usuario: la luz sí va; el encuadre largo no se pasa a minúsculas",
-          "[Shot 2] At 00:01.000 Extreme close-up of <Subject 1>'s eyes, soft film grain. Hard neon streaks: <Subject 1>" in p8, p8)
-comprobar("solo primeros planos y todas sin entorno: el resumen dice de qué está hecho el edit",
-          "A music edit of <Subject 1> (anime) made only of close-ups of his face, cut on the beat of <Audio 1>: a." in p8 and
-          "close shots cut on the beat" in prompt, p8)
+comprobar("sin entorno con luz escrita por el usuario: la luz sí va, tal cual; el encuadre viejo pasa a su texto del menú",
+          "[Shot 2] At 00:01.000 extreme close-up of <Subject 1>'s eyes, soft film grain. hard neon streaks: <Subject 1>" in p8, p8)
+comprobar("el resumen no decide por su cuenta de qué está hecho el edit (ni «close-ups» ni «close shots»)",
+          "A music edit of <Subject 1> (anime), cut on the beat of <Audio 1>: a." in p8 and "close shots" not in prompt, p8)
 pf8 = N.perfil_de(N.menu_de(refs8), e8)
 pt8 = N.prompt_toma(pf8, N.menu_de(refs8), plan8, 1, 1.0, [])
 d8 = N.leer_toma("FRAMING: dynamic close-up\nLIGHT: warm glow\nACTION: raises his chin slowly\nCAMERA: pushes in", pf8, plan8["tomas"][0])
@@ -316,7 +315,7 @@ print("8d · Renglón «Sonido»")
 p8s, _, _ = N.montar_plan({**e8, "sonido": "whooshes and impact hits accent each cut and word"}, plan8)
 comprobar("lo que escribe el usuario va tal cual a overall_soundscape; vacío, el de la casa",
           "overall_soundscape:\nwhooshes and impact hits accent each cut and word\n\nnon_diegetic_music:" in p8s and
-          "overall_soundscape:\n" + N.SONIDO + "\n" in prompt and N.entradas_de_estado({"sonido": "x"})["sonido"] == "x", p8s[-300:])
+          "overall_soundscape:\n" + N.FRASES["sonido"] + "\n" in prompt and N.entradas_de_estado({"sonido": "x"})["sonido"] == "x", p8s[-300:])
 
 print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402
@@ -522,7 +521,7 @@ for ruta in CODIGO_JS + CODIGO_PY:
             patrones.append((clave, re.compile("^" + r"[\w.]+".join(map(re.escape, trozos)) + "$")))
         elif clave in ES:
             usadas.add(clave)
-        else:
+        elif clave not in N.FRASES:   # las frases de unión de la carta (frases.json) no son letreros
             faltan.append(f"{os.path.basename(ruta)}: {clave}")
 for clave, pat in patrones:
     hay = {k for k in ES if pat.match(k)}
@@ -621,6 +620,72 @@ comprobar("locales/{es,en}/ (nodeDefs, settings, main) están al día con las cl
 raros = [v for archivos in generados.values() for c in archivos.values() for v in re.findall(r'"([^"]*)"', json.dumps(c, ensure_ascii=False))
          if re.search(r"[{}|@]", v)]
 comprobar("y no llevan { } | @ (ComfyUI los lee como formato de vue-i18n)", not raros, raros)
+
+print("16 · El código solo pega (frases.json; planos/1, «El código pega»)")
+import re as _re  # noqa: E402
+# un plan con todo: personaje con atuendo y sin él, objeto, lugar, ropa, pose, fondo, estilo, efecto con imagen y de texto,
+# letras, palabras encima y al lado (con fin), una toma sin entorno con su luz. Cada campo lleva un marcador ZZn distinto.
+_n = iter(range(1, 999))
+zz = lambda: f"ZZ{next(_n)}"
+refs16 = {"<Video 1>": {"papel": "personaje", "nombre": zz(), "pronombre": "she", "ficha": zz()},
+          "<Picture 1>": {"papel": "personaje", "nombre": "", "pronombre": "", "ficha": zz(), "atuendo": zz()},
+          "<Picture 2>": {"papel": "objeto", "nombre": zz(), "ficha": zz()},
+          "<Picture 3>": {"papel": "lugar", "nombre": zz(), "ficha": zz()},
+          "<Picture 4>": {"papel": "ropa", "nombre": zz(), "ficha": zz()},
+          "<Picture 5>": {"papel": "pose", "nombre": zz(), "ficha": zz()},
+          "<Picture 6>": {"papel": "fondo", "nombre": zz(), "ficha": zz()},
+          "<Picture 7>": {"papel": "estilo", "nombre": zz(), "ficha": zz()},
+          "<Picture 8>": {"papel": "efecto", "nombre": zz(), "ficha": zz()},
+          "<Picture 9>": {"papel": "letra", "nombre": zz(), "ficha": zz()},
+          "E1": {"papel": "efecto", "nombre": zz(), "ficha": zz()}}
+plan16 = N.ajustar_plan(None, 3)
+plan16.update(arco=zz(), look=zz(), fondo=zz(), fijos=["arco"])
+for t in plan16["tomas"]:
+    t.update({c: zz() for c in ("lugar", "momento", "encuadre", "luz", "gesto", "camara")}, entorno="manual", fijos=["lugar", "gesto"])
+plan16["tomas"][0].update(personaje="<Picture 1>", ropa="<Picture 4>", pose="<Picture 5>", objeto="<Picture 2>", efecto="<Picture 8>")
+plan16["tomas"][1].update(lugar_ref="<Picture 3>", fondo_ref="<Picture 6>", efecto="E1", entorno="auto", fijos=[])
+plan16["tomas"][2].update(entorno="ninguno", fijos=["luz"], efecto_frase=zz())
+plan16["textos"] = [{"texto": zz(), "t": 0.2, "fin": 0.6, "sitio": "encima", "letra": "<Picture 9>", "frase": zz()},
+                    {"texto": zz(), "t": 1.2, "sitio": "al_lado", "frase": zz()}]
+e16 = {"idea": "x", "tomas": 3, "duracion": 3.0, "refs": refs16, "estilo": zz(), "sonido": zz()}
+MOLDE = _re.compile(r"subject_definitions:|summary:|retention_analysis:|detailed_description:|overall_soundscape:|"
+                    r"non_diegetic_music:|\[reference generation \+ audio reference\]|\[Shot \d+\] At \d\d:\d\d\.\d{3}|"
+                    r"\d\d:\d\d\.\d{3}|<(?:Subject|Picture|Video|Audio) \d+>|\bE\d+\b")
+PRONOMBRE = _re.compile(r"\b(?:she|he|they|her|his|their|Her|His|Their|wears|wear)\b")
+resto = lambda p: PRONOMBRE.sub("", MOLDE.sub("", _re.sub(r"§[\w.]+§|ZZ\d+", "", p)))
+# a) cada frase cambiada por un marcador §clave§ con sus huecos: fuera de marcadores, campos y molde no queda ninguna letra
+marcadas = {k: f"§{k}§ " + " ".join("{%s}" % h for h in N.HUECO.findall(v) for h in [h[0]]) for k, v in N.FRASES.items()}
+pm, _, _ = N.montar_plan({**e16, "frases": marcadas}, plan16)
+comprobar("a) frases marcadas: el código no escribe ninguna palabra fuera de frases.json",
+          not _re.search(r"[A-Za-z]", resto(pm)), _re.sub(r"\s+", " ", resto(pm))[:400])
+# b) carta vacía: todas las frases vacías y ningún campo → solo el molde de H3
+vacios = {"<Video 1>": {"papel": "personaje"}, "<Picture 8>": {"papel": "efecto"}}
+pv, _, _ = N.montar_plan({"idea": "x", "tomas": 2, "duracion": 2.0, "refs": vacios, "frases": {k: "" for k in N.FRASES}},
+                         N.ajustar_plan(None, 2))
+comprobar("b) carta vacía: sin frases ni campos solo queda el molde (secciones, [Shot n] y tiempos)",
+          not _re.search(r"[A-Za-z]", MOLDE.sub("", pv)), pv)
+# c) copia y pega: con las frases de siempre, cada campo que va a la carta aparece entero; y con su origen
+pc16, _, _, extra16 = N.montar_plan(e16, plan16, con_trozos=True)
+usados = set(_re.findall(r"ZZ\d+", json.dumps([refs16, plan16, e16])))
+no_van = {plan16["tomas"][k]["momento"] for k in range(3)} | {refs16["<Picture 1>"]["ficha"], refs16["<Picture 9>"]["nombre"],
+          refs16["<Picture 9>"]["ficha"], refs16["E1"]["nombre"], plan16["tomas"][2]["lugar"]}   # momento: solo para el LLM
+faltan16 = sorted(z for z in usados - no_van if not _re.search(rf"\b{z}\b", pc16))
+comprobar("c) copia y pega: cada campo del usuario y del LLM llega entero a la carta", not faltan16, (faltan16, pc16))
+origen = {x[0]: x[1] for x in extra16["trozos"]}
+comprobar("   y cada trozo dice quién lo escribió: candado = tú, sin candado = LLM, frase = código",
+          origen.get(plan16["tomas"][0]["gesto"]) == "tu" and origen.get(plan16["tomas"][1]["gesto"]) == "llm" and
+          origen.get(plan16["arco"]) == "tu" and origen.get(plan16["look"]) == "llm" and
+          texto_ok if (texto_ok := all(o in ("molde", "codigo", "tu", "llm") for _, o, _ in extra16["trozos"])) else False,
+          [x for x in extra16["trozos"] if x[0].startswith("ZZ")][:12])
+refs16b = {**refs16, "<Picture 6>": {**refs16["<Picture 6>"], "presentacion": "ZZ900 is my own line.", "copia": "ZZ901 keep all."}}
+pb16, _, _, xb16 = N.montar_plan({**e16, "refs": refs16b, "frases": {"toma.pose": "ZZ902 copying {tag}"}}, plan16, con_trozos=True)
+comprobar("   y lo que escribe el usuario en la ficha («Cómo se presenta», «Qué se copia») y en una frase va tal cual",
+          "\nZZ900 is my own line.\n" in pb16 and "\nZZ901 keep all.\n" in pb16 and "ZZ902 copying <Picture 5>" in pb16 and
+          xb16["referencias"]["<Picture 6>"] == {"presentacion": "ZZ900 is my own line.", "copia": "ZZ901 keep all."} and
+          ("ZZ902 copying ", "tu", "toma.pose") in xb16["trozos"], pb16)
+comprobar("   cada referencia con papel se presenta arriba con su ficha (también el fondo, la pose, la ropa y el estilo)",
+          all(f"{tag} is the {refs16[tag]['nombre']}" in pc16 for tag in ("<Picture 3>", "<Picture 4>", "<Picture 5>",
+              "<Picture 6>", "<Picture 7>", "<Picture 8>")) and f": {refs16['<Picture 6>']['ficha']}." in pc16, pc16[:1500])
 
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)
