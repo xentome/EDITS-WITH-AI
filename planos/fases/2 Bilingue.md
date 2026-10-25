@@ -11,7 +11,7 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 | 1 | Base: las dos trampas, `web/i18n/{es,en}.json`, `t()` en JS y en Python, ajuste de idioma y botón «ES \| EN», comprobaciones nuevas en `pruebas.py` | ✅ hecha · `fc2b5ec` |
 | 2 | La ventana: todos los textos de `web/editor_core.js`, `web/editor.js` y `web/editor/*.js` con `t()`, marcadores, `Intl`, redibujar al cambiar | ✅ hecha · `5a2ab0e` |
 | 3 | El servidor y el nodo: `ErrorUsuario(clave, **datos)`, `idioma` en cada llamada, `locales/{es,en}/nodeDefs.json`, reiniciar ComfyUI | ✅ hecha · `da887c6` |
-| 4 | Probar en los dos idiomas en el navegador real (workflow «Prueba bilingüe»), capturas y documentar en los planos 2, 4 y 6 | ✅ hecha · ver git log |
+| 4 | Probar en los dos idiomas en el navegador real (workflow «Prueba bilingüe»), capturas y documentar en los planos 2, 4 y 6 | ✅ hecha · `3b9c050` |
 
 ## A medias
 
