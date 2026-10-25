@@ -49,7 +49,7 @@ class PromptDelEdit:
         texto = lambda ayuda: ("STRING", {"multiline": True, "default": "", "placeholder": ayuda})
         return {"required": {
             "idea": texto(t("comun.idea_ayuda")),
-            "tomas": ("INT", {"default": 6, "min": 1, "max": 12}),
+            "tomas": ("INT", {"default": 6, "min": 1, "max": 24}),
             "duracion_s": ("FLOAT", {"default": 5.167, "min": 1.0, "max": 12.0, "step": 0.001,
                                      "tooltip": t("nodo.duracion_s.tooltip")}),
             "palabras": texto(t("nodo.palabras.placeholder")),

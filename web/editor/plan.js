@@ -185,7 +185,7 @@ export function instalar(ctx) {
     secHistoria.replaceChildren(
       el("div", { class: "epl-tit" }, t("historia.titulo"),
         el("span", { class: "der epl-ajustes" },
-          el("label", {}, t("historia.tomas") + " ", el("input", { type: "number", min: 1, max: 12, value: S.tomas, class: "corto",
+          el("label", {}, t("historia.tomas") + " ", el("input", { type: "number", min: 1, max: 24, value: S.tomas, class: "corto",
             onchange: (e) => ctx.cambiarTomas(+e.target.value) })),
           el("label", { title: t("historia.duracion.tooltip") },
             t("historia.duracion") + " ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto", "data-campo": "duracion",

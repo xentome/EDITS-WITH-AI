@@ -6,7 +6,7 @@
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Planos: ../../planos/4 El editor.md. */
 
 export const COLORES = ["#f4d35e", "#7bd389", "#6ec5e9", "#f28f8f", "#c39bd3", "#f5b971", "#9ad1c9", "#e6a0c4"];
-export const MIN_TOMA = 0.4, FPS = 24, IMAN = 0.15;
+export const MIN_TOMA = 0.4, FPS = 24, IMAN = 0.15, MAX_TOMAS = 24;   // MAX_TOMAS: el mismo máximo que el campo «tomas» del nodo
 export const alFotograma = (t) => Math.round(Math.round(t * FPS) / FPS * 1000) / 1000;
 
 /* El borde i (entre la toma i y la i+1) puesto en t: dentro de sus vecinos con 0,4 s a cada lado, al fotograma y, si
@@ -48,7 +48,7 @@ export function instalar(ctx) {
     ctx.pintarLinea();
   };
   ctx.cambiarTomas = function cambiarTomas(n) {
-    n = Math.max(1, Math.min(12, Math.round(n) || 1));
+    n = Math.max(1, Math.min(MAX_TOMAS, Math.round(n) || 1));
     if (n * MIN_TOMA > S.duracion) return ctx.avisar(t("errores.tomas_no_caben", { n, dur: u.num(S.duracion) }), "mal");
     S.tomas = n;
     S.plan = ctx.ajustarPlan(S.plan, n);
