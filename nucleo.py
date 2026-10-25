@@ -855,6 +855,102 @@ def describir_imagen(jpeg_b64, papel):
             "segundos": round(time.time() - t, 1)}
 
 
+# ------------------------------------------------------------------ tapar: quitar cara, pelo o texto de una referencia
+# Para que una ropa o una pose prestada no traspase la cara de su dueña (plano 5): SAM 3.1 hace la máscara de cada cosa
+# (por ComfyUI, en rutas.py) y aquí, sin IA, se tapa esa zona de la imagen. Probado en prueba_sam3/ (24 oct 2026): la ropa
+# de Vera tapada así salió en Teto igual de bien que la tapada a mano. planos/4 El editor.md, «Tapar».
+COSAS_TAPAR = {"cara": "face", "pelo": "hair", "texto": "text"}     # chip → palabra para SAM
+FORMAS_TAPAR = ("difuminar", "pixelar", "color")
+SAM_MODELO = "sam3.1_multiplex_fp16.safetensors"
+CACHE_TAPAR = os.path.join(CORRIDAS, "cache_tapar")                  # máscaras de SAM: (foto, palabra) → png
+LADO_PRUEBA = 1800      # los radios probados (crecer 12, suavizar 8, difuminado 40) eran para una foto de 1200×1800
+
+
+def palabras_tapar(cosas, libre=""):
+    """Chips («cara», «pelo», «texto») y el campo libre en inglés («hat, logo») → palabras para SAM, en minúsculas, sin
+    repetir y en orden alfabético (el orden en que se tocaron no cambia el resultado)."""
+    pal = [COSAS_TAPAR.get(c, c) for c in cosas or []] + re.split(r"[,;\n]+", libre or "")
+    return sorted({re.sub(r"[^a-z0-9 '-]+", "", p.strip().lower()).strip() for p in pal} - {""})
+
+
+def union_mascaras(mascaras):
+    """Varias máscaras (cara, pelo…) → una sola, con lo más claro de cada píxel (ImageChops.lighter)."""
+    from PIL import ImageChops
+    out = None
+    for m in mascaras:
+        m = m.convert("L")
+        out = m if out is None else ImageChops.lighter(out, m.resize(out.size))
+    return out
+
+
+def _radios(tam, crecer=12, suavizar=8, radio=40):
+    k = max(tam) / LADO_PRUEBA
+    return max(1, round(crecer * k)), max(1, round(suavizar * k)), max(2, round(radio * k))
+
+
+def agrandar_mascara(mascara, crecer=12, suavizar=8):
+    """La máscara un poco más grande (MaxFilter) y con el borde suave (GaussianBlur), para que no quede un contorno."""
+    from PIL import ImageFilter
+    return mascara.convert("L").filter(ImageFilter.MaxFilter(crecer * 2 + 1)).filter(ImageFilter.GaussianBlur(suavizar))
+
+
+def tapar_imagen(img, mascara, forma="difuminar"):
+    """Tapa la zona de la máscara: difuminado fuerte (por defecto), pixelado o un parche del color medio de la zona.
+    Los radios se escalan al tamaño de la foto. Fuera de la máscara agrandada la foto queda idéntica."""
+    from PIL import Image, ImageFilter, ImageStat
+    img = img.convert("RGB")
+    crecer, suavizar, radio = _radios(img.size)
+    m = agrandar_mascara(mascara.convert("L").resize(img.size), crecer, suavizar)
+    if forma == "pixelar":
+        lado = max(4, round(max(img.size) / 40))
+        relleno = img.resize((max(1, img.width // lado), max(1, img.height // lado)), Image.BOX).resize(img.size, Image.NEAREST)
+    elif forma == "color":
+        dentro = mascara.convert("L").resize(img.size).point(lambda v: 255 if v > 127 else 0)
+        media = ImageStat.Stat(img, dentro).mean if dentro.getbbox() else [128, 128, 128]
+        relleno = Image.new("RGB", img.size, tuple(int(c) for c in media))
+    else:
+        relleno = img.filter(ImageFilter.GaussianBlur(radio))
+    return Image.composite(relleno, img, m)
+
+
+def huella_tapado(original, datos_fuentes, palabras, forma):
+    """8 cifras que dependen del RefMod original, del contenido de sus fotos, de lo que se tapa y de cómo: las mismas
+    opciones dan siempre el mismo nombre (y se reutiliza el tapado ya creado)."""
+    h = hashlib.sha1(json.dumps({"v": 1, "original": original, "palabras": sorted(palabras), "forma": forma}).encode())
+    for d in datos_fuentes:
+        h.update(hashlib.sha1(d).digest())
+    return h.hexdigest()[:8]
+
+
+def nombre_tapado(original, huella):
+    """«ropa/vera» → «ropa/vera__tapado_<huella>» (el tapado vive en la misma carpeta que su original)."""
+    return f"{original}__tapado_{huella}"
+
+
+def grafo_sam(pares):
+    """[(foto en input/, palabra)] → grafo de ComfyUI que hace todas las máscaras con un solo modelo cargado, y la salida
+    (PreviewImage) de cada par. No se usa el nodo SAM3Segment de RMBG: descargaría otro modelo."""
+    g = {"1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": SAM_MODELO}}}
+    fotos, salidas = {}, {}
+    for foto, palabra in pares:
+        if foto not in fotos:
+            fotos[foto] = str(len(g) + 1)
+            g[fotos[foto]] = {"class_type": "LoadImage", "inputs": {"image": foto}}
+        b = len(g) + 1
+        g[str(b)] = {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": palabra}}
+        g[str(b + 1)] = {"class_type": "SAM3_Detect", "inputs": {"model": ["1", 0], "image": [fotos[foto], 0], "threshold": 0.4,
+                         "refine_iterations": 2, "individual_masks": False, "conditioning": [str(b), 0]}}
+        g[str(b + 2)] = {"class_type": "MaskToImage", "inputs": {"mask": [str(b + 1), 0]}}
+        g[str(b + 3)] = {"class_type": "PreviewImage", "inputs": {"images": [str(b + 2), 0]}}
+        salidas[(foto, palabra)] = str(b + 3)
+    return g, salidas
+
+
+def ruta_mascara(datos_foto, palabra, cache=CACHE_TAPAR):
+    """Dónde se guarda la máscara de SAM de una foto (por su contenido) y una palabra."""
+    return os.path.join(cache, f"{hashlib.sha1(datos_foto).hexdigest()[:16]}_{re.sub(r'[^a-z0-9]+', '_', palabra)}.png")
+
+
 # ------------------------------------------------------------------ acciones (las usan el nodo y el editor)
 def contexto(nombre_receta, entradas, plan, beats):
     """Lo que necesitan todas las acciones: receta, menú, plan con n tomas, cortes, duraciones y palabras."""

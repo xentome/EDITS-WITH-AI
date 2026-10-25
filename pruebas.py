@@ -183,5 +183,41 @@ try:
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
+print("9 · Tapar (cara, pelo o texto de una referencia), con máscaras sintéticas y sin GPU")
+from PIL import Image, ImageDraw  # noqa: E402
+foto = Image.fromarray(np.random.default_rng(2).integers(0, 255, (900, 600, 3), dtype=np.uint8))  # ruido: todo píxel cuenta
+cara, pelo = Image.new("L", foto.size), Image.new("L", foto.size)
+ImageDraw.Draw(cara).rectangle((200, 150, 320, 300), fill=255)
+ImageDraw.Draw(pelo).rectangle((300, 100, 420, 200), fill=255)
+union = np.array(N.union_mascaras([cara, pelo]))
+comprobar("la unión de máscaras tiene la cara y el pelo, y nada más",
+          union[200, 250] == 255 and union[120, 400] == 255 and union[600, 100] == 0 and
+          (union > 0).sum() == ((np.array(cara) > 0) | (np.array(pelo) > 0)).sum(), (union > 0).sum())
+crecer, suavizar, _ = N._radios(foto.size)
+zona = np.array(N.agrandar_mascara(Image.fromarray(union), crecer, suavizar)) > 0
+fuera_igual, dentro_cambia = True, True
+for forma in N.FORMAS_TAPAR:
+    dif = np.abs(np.array(N.tapar_imagen(foto, Image.fromarray(union), forma)).astype(int) - np.array(foto).astype(int)).max(axis=2)
+    fuera_igual &= bool((dif[~zona] == 0).all())
+    dentro_cambia &= bool((dif[union > 0] > 0).mean() > 0.9)
+comprobar("tapar solo cambia píxeles dentro de la máscara agrandada (difuminar, pixelar, color)", fuera_igual)
+comprobar("y dentro de la máscara sí los cambia", dentro_cambia)
+comprobar("las palabras para SAM no dependen del orden de los chips",
+          N.palabras_tapar(["pelo", "cara"], "Hat, logo;") == N.palabras_tapar(["cara", "pelo"], "logo, hat") ==
+          ["face", "hair", "hat", "logo"])
+datos = [b"foto de vera"]
+h1 = N.huella_tapado("ropa/vera", datos, N.palabras_tapar(["cara", "pelo"]), "difuminar")
+comprobar("el nombre del tapado es estable y cambia con las opciones o la foto",
+          h1 == N.huella_tapado("ropa/vera", datos, ["hair", "face"], "difuminar") and
+          len({h1, N.huella_tapado("ropa/vera", datos, ["face"], "difuminar"),
+               N.huella_tapado("ropa/vera", datos, ["face", "hair"], "pixelar"),
+               N.huella_tapado("ropa/vera", [b"otra foto"], ["face", "hair"], "difuminar")}) == 4 and
+          N.nombre_tapado("ropa/vera", h1) == f"ropa/vera__tapado_{h1}", h1)
+g, sal = N.grafo_sam([("minimax_h3/vera.jpg", "face"), ("minimax_h3/vera.jpg", "hair")])
+tipos = [n["class_type"] for n in g.values()]
+comprobar("el grafo de SAM carga un modelo y una foto, y no usa SAM3Segment",
+          tipos.count("CheckpointLoaderSimple") == 1 and tipos.count("LoadImage") == 1 and tipos.count("SAM3_Detect") == 2 and
+          "SAM3Segment" not in tipos and len(sal) == 2 and g["1"]["inputs"]["ckpt_name"] == N.SAM_MODELO, tipos)
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)
