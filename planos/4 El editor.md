@@ -88,6 +88,13 @@ Lectura: 4 min
 - **Escribir tomas** (13–30 s): encuadre, luz, gesto y cámara de todas las tomas, salvo lo fijado.
 - **Guardar**, **Editar a mano** (queda «editado a mano» y no se vuelve a montar solo) y **Volver a montar**.
 
+## La duración manda en todo el workflow
+- H3 solo hace videos de **17·k + 5 fotogramas** a 24 fps (5, 22, 39, 56, 73, 90, 107, 124…; `align_frame_count` de `comfy_extras/nodes_minimax_h3.py` redondea hacia arriba: por eso 120 salía como 124). Junto a «Duración» se ve en vivo cuántos hará: `H3: 124 f`; si no cuadra con tu duración, `H3: 90 f = 3,750 s ⚠`.
+- **Al guardar** (o al cambiar `duracion_s` en el nodo, con un aviso abajo a la derecha), `web/editor/duracion.js` pone el valor válido más cercano a duración·24 en:
+  - el `length` de los nodos que fijan el largo del video, buscados **por tipo**: Text Encode de Fantastic, `EmptyMiniMaxH3LatentAV`, `MiniMaxH3ImageToVideo`, `MiniMaxH3ReferenceToVideo`, `MpiH3*` y cualquier otro `MiniMaxH3*` con `length`;
+  - el `duration` (s) de otros nodos `MiniMaxH3*` que lo tengan, y el `duration` del `builder_state` del Prompt Builder (fotogramas / 24).
+- Un campo que llega enlazado desde otro nodo no se toca. El aviso de la cabecera dice qué cambió: `H3: 124 fotogramas (5,167 s) · cambié #9 … length 73 → 124`.
+
 ## Guardar
 - Arriba a la derecha: **«Guardar»** en azul opaco y **«Guardar y cerrar»**, un poco más grande, en verde opaco. Colores lisos, sin degradados.
 - «Guardar» (arriba o en el prompt final) y «Guardar y cerrar» escriben en el nodo: los campos visibles y el campo oculto `estado`. Después guarda el workflow (Ctrl+S).

@@ -123,8 +123,12 @@ export function instalar(ctx) {
         el("span", { class: "der epl-ajustes" },
           el("label", {}, "Tomas ", el("input", { type: "number", min: 1, max: 12, value: S.tomas, class: "corto",
             onchange: (e) => ctx.cambiarTomas(+e.target.value) })),
-          el("label", {}, "Duración (s) ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto",
-            onchange: (e) => ctx.cambiarDuracion(+e.target.value) })),
+          el("label", { title: "H3 solo hace 17·k + 5 fotogramas: al guardar, el workflow se pone en el valor válido más cercano" },
+            "Duración (s) ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto", "data-campo": "duracion",
+              onchange: (e) => ctx.cambiarDuracion(+e.target.value) }),
+            el("span", { class: "epl-h3-f" }, ` H3: ${ctx.duracion.fotogramasH3(S.duracion)} f` +
+              (Math.abs(ctx.duracion.segundosH3(S.duracion) - S.duracion) > 1 / 48
+                ? ` = ${ctx.duracion.segundosH3(S.duracion).toFixed(3).replace(".", ",")} s ⚠` : ""))),
           el("label", {}, "Semilla ", el("input", { type: "number", value: S.semilla, class: "corto",
             onchange: (e) => { S.semilla = +e.target.value; } })),
           el("label", {}, "Palabras ", el("input", { class: "palabras", value: S.palabras, placeholder: "opcional: TO YOU @1; PEAK @ultima",

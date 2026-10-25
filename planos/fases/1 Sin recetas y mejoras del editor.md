@@ -7,16 +7,16 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 | Fase | Qué | Estado |
 |---|---|---|
 | 1 | Quitar las recetas y los efectos G/U: personaje con nombre y ficha desde sus referencias, campo «Estilo», efectos como referencias | ✅ hecha · `5589d62` |
-| 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | ✅ hecha (commit «Línea de tiempo: …») |
-| 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | 🔄 en curso |
-| 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | ⬜ pendiente |
+| 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | ✅ hecha · `b002e9d` |
+| 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | ✅ hecha (commit «Duración: …») |
+| 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | 🔄 en curso |
 | 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | ⬜ pendiente |
 
-## Fase en curso: 3
+## Fase en curso: 4
 
-Fase 2 hecha: `pruebas.py` TODO BIEN (57); en la ventana real, arrastrar el borde 1 a 1,255 s lo pegó al beat de 1,300 s (el prompt dice `[Shot 2] At 00:01.300`), los segundos se ven mientras se arrastra y quitar la toma 2 con su ✕ (pide «¿quitar?») reparte su tiempo (corte en 1,583 s). Capturas 5–7 en `mejoras_sin_recetas/`.
+Fase 3 hecha: `pruebas.py` TODO BIEN (59). Workflow aparte «Prueba duración»: en la ventana, 5,167 s → al guardar, `length` del Text Encode 73 → 124 y duración del Prompt Builder → 5,167, con aviso; desde `duracion_s` del nodo, 3,042 s → 73 y 3,042, con aviso abajo (pestaña nueva tras cambiar `web/editor.js`).
 
-Fase 3, falta todo: pieza nueva `web/editor/duracion.js` (fotogramas H3 = 17·round((f−5)/17)+5; `length` de los nodos MiniMaxH3 y `duration` del `builder_state` del Prompt Builder, buscados por tipo), llamada al guardar con aviso de qué nodos cambió; al cambiar `duracion_s` en el nodo, lo mismo (callback en `web/editor.js`, pide pestaña nueva). Probar en un workflow aparte.
+Fase 4, falta todo: acción `audios` (lista de input/), botón «Cambiar canción» en `web/editor/audio.js` (lista con buscador y «Subir desde el PC» con `/upload/image`), al elegir: LoadAudio apunta a ella, se recalculan resumen y beats, la ventana vuelve al inicio y se marca tocado (al guardar se escribe el recorte).
 
 ## Cómo seguir
 

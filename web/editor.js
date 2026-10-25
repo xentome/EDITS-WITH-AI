@@ -31,6 +31,20 @@ app.registerExtension({
     nodeType.prototype.onNodeCreated = function () {
       const r = creado?.apply(this, arguments);
       ocultar(this, "estado");
+      // cambiar «duracion_s» en el nodo pone también el length de H3 y la duración del Prompt Builder (editor/duracion.js)
+      const wd = this.widgets?.find((w) => w.name === "duracion_s");
+      if (wd) {
+        const antes = wd.callback;
+        wd.callback = function (v) {
+          const r = antes?.apply(this, arguments);
+          import(new URL("./editor/duracion.js", import.meta.url).href + "?v=" + Date.now()).then((m) => {
+            const d = m.aplicarDuracion(app.graph, +wd.value);
+            if (d.cambios.length) app.extensionManager?.toast?.add?.({ severity: "info", summary: "Duración del edit",
+              detail: `H3: ${d.fotogramas} fotogramas (${d.segundos} s). ${d.cambios.join(" · ")}`, life: 6000 });
+          }).catch((e) => console.error("[Prompt del edit] duración:", e));
+          return r;
+        };
+      }
       this.addWidget("button", "Abrir editor…", null, () => abrirEditor(this));
       return r;
     };

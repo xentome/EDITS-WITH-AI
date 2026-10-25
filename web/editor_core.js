@@ -16,8 +16,8 @@
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [u, estilos, referencias, cajitas, plan, linea, final, audio, tapar] = await Promise.all(
-    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar"].map(pieza));
+  const [u, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion] = await Promise.all(
+    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion"].map(pieza));
   const { el, W, leerJSON, api } = u;
 
   document.getElementById("epl-css")?.remove();
@@ -48,7 +48,7 @@ export async function abrir(node, app) {
   secTiempo.append(secLinea, secAudio);
 
   const ctx = { u, node, app, graph, S, wf, guardado, biblioteca: {}, cajitas: {}, caja,
-                secHistoria, secToma, secRefs, secLinea, secAudio, secFinal, ajustarPlan: plan.ajustarPlan };
+                secHistoria, secToma, secRefs, secLinea, secAudio, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
   ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
   // (los efectos de texto, E1, E2…, van con las referencias, con papel «efecto»)
@@ -119,6 +119,8 @@ export async function abrir(node, app) {
     W(node, "idea").value = S.idea;
     W(node, "tomas").value = S.tomas;
     W(node, "duracion_s").value = S.duracion;
+    // la duración manda en todo el workflow: length del Text Encode de H3, duración del Prompt Builder… (duracion.js)
+    const dur = duracion.aplicarDuracion(graph, S.duracion);
     W(node, "palabras").value = S.palabras;
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
@@ -127,11 +129,17 @@ export async function abrir(node, app) {
     node.setDirtyCanvas?.(true, true);
     graph.setDirtyCanvas?.(true, true);
     try { app.extensionManager?.workflow?.activeWorkflow?.changeTracker?.checkState?.(); } catch { /* sin seguimiento de cambios */ }
+    return dur;
   }
+  // lo que la duración cambió en el workflow, para el aviso de la cabecera
+  const textoDuracion = (d) => !d ? "" : ` · H3: ${d.fotogramas} fotogramas (${d.segundos.toFixed(3).replace(".", ",")} s)` +
+    (d.cambios.length ? ` · cambié ${d.cambios.join(" · ")}` : " · los nodos ya tenían esa duración");
   ctx.guardarYAvisar = async () => {
-    try { await guardar(); } catch (e) { return ctx.avisar("No se pudo guardar: " + e.message, "mal"); }
-    ctx.avisar(S.avisos.length ? "Guardado, con huecos en el prompt" : "Guardado en el nodo (guarda el workflow con Ctrl+S)",
+    let d;
+    try { d = await guardar(); } catch (e) { return ctx.avisar("No se pudo guardar: " + e.message, "mal"); }
+    ctx.avisar((S.avisos.length ? "Guardado, con huecos en el prompt" : "Guardado en el nodo (guarda el workflow con Ctrl+S)") + textoDuracion(d),
                S.avisos.length ? "mal" : "bien");
+    return d;
   };
   const cerrar = () => { fondo.remove(); document.removeEventListener("keydown", tecla, true); };
   // Escape cierra la ventana de encima (ficha, cajita, biblioteca); no cierra el editor, para no perder cambios

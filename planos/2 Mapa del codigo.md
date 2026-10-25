@@ -20,6 +20,7 @@ Lectura: 3 min
 | `web/editor/tapar.js` | «Tapar con SAM 3.1» en la ficha: interruptor, chips de qué tapar, forma, vista previa y el cambio de tarjeta entre original y tapado (`ctx.cambiarTarjeta`). |
 | `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre) y la línea de la canción entera; al guardar, el recorte. |
+| `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
 | `maqueta/` | El pizarrón donde se diseña la interfaz nueva: `servidor.py`, `index.html` (pizarra), `interfaz.html` (maqueta) y `documentacion/`. |
@@ -81,10 +82,12 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | tapar: de qué foto se parte | `rutas._fuentes_tapar` |
 | tapar: cómo se tapa (radios, pixelado, color) o el grafo de SAM | `nucleo.py`, sección tapar (`tapar_imagen`, `grafo_sam`, `COSAS_TAPAR`) |
 | la historia general, la toma elegida, los candados | `web/editor/plan.js` |
-| la línea de tiempo | `web/editor/linea.js` |
+| la línea de tiempo (quitar tomas, arrastrar bordes, imán de beats) | `web/editor/linea.js` |
+| qué nodos sigue la duración | `web/editor/duracion.js` (`LONGITUD`) |
 | la ventana de audio (arrastre, aceleración, reproducir) | `web/editor/audio.js` (constantes `K` y `GANANCIA_MAX`) |
 | el recorte, los picos o los beats del tramo | `nucleo.py`, sección audio (`decodificar`, `info_audio`, `beats_cancion`, `beats_de_tramo`) |
-| el prompt final y sus botones | `web/editor/final.js` |
+| el prompt final y sus botones | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
+| `web/editor/final.js` |
 | colores y tamaños de la ventana | `web/editor/estilos.js` |
 | qué se guarda en el nodo o los botones de arriba | `web/editor_core.js` |
 | los campos del nodo | `__init__.PromptDelEdit.INPUT_TYPES` |

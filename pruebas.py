@@ -314,5 +314,25 @@ comprobar("arrastrar un borde: al fotograma, mínimo 0,4 s a cada lado, imán a 
           r.get("d") == [0, 1.583, 2] and r.get("e") == [0, 0.417, 2], r)
 comprobar("quitar una toma con cortes a mano: las demás se reparten su tiempo", r.get("f") == [0, 1.5], r)
 
+print("12 · La duración manda en todo el workflow (web/editor/duracion.js, con node)")
+js = ("import('" + os.path.join(AQUI, "web", "editor", "duracion.js") + "').then(m => {"
+      "const w = (name, value) => ({name, value});"
+      "const g = {_nodes: ["
+      "{id: 9, type: 'MiniMaxH3FantasticRefModTextEncode', widgets: [w('length', 124)], inputs: []},"
+      "{id: 8, type: 'MiniMaxH3PromptBuilder', widgets: [w('prompt', ''), w('builder_state', JSON.stringify({duration: 5.1666, mode: 'REF'}))], inputs: []},"
+      "{id: 5, type: 'EmptyMiniMaxH3LatentAV', widgets: [w('length', 124)], inputs: [{name: 'length', widget: {name: 'length'}, link: 3}]},"
+      "{id: 4, type: 'KSampler', widgets: [w('length', 50)], inputs: []}]};"
+      "const d = m.aplicarDuracion(g, 3.042);"
+      "console.log(JSON.stringify({f: [1, 3.042, 4, 5.167].map(m.fotogramasH3), d, enc: g._nodes[0].widgets[0].value,"
+      "pb: JSON.parse(g._nodes[1].widgets[1].value).duration, enlazado: g._nodes[2].widgets[0].value, otro: g._nodes[3].widgets[0].value}))})")
+try:
+    r = json.loads(_sp.run(["node", "--input-type=module", "-e", js], capture_output=True, text=True, timeout=20).stdout)
+except Exception as exc:
+    r = {"error": str(exc)}
+comprobar("fotogramas de H3: el 17·k + 5 más cercano a duración·24", r.get("f") == [22, 73, 90, 124], r)
+comprobar("cambia el length del Text Encode y la duración del Prompt Builder, buscados por tipo; no toca lo enlazado ni otros nodos",
+          r.get("enc") == 73 and r.get("pb") == 3.042 and r.get("enlazado") == 124 and r.get("otro") == 50 and
+          len(r.get("d", {}).get("cambios", [])) == 2, r)
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

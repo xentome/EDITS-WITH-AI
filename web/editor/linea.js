@@ -98,6 +98,7 @@ export function instalar(ctx) {
       if (caben) S.plan.cortes = nuevos; else delete S.plan.cortes;
     }
     S.cortes = [];
+    ctx.pintarHistoria?.();
     ctx.pintarLinea();
     ctx.pedirMontaje();
   };
