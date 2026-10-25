@@ -288,5 +288,31 @@ comprobar("el grafo de SAM carga un modelo y una foto, y no usa SAM3Segment",
           tipos.count("CheckpointLoaderSimple") == 1 and tipos.count("LoadImage") == 1 and tipos.count("SAM3_Detect") == 2 and
           "SAM3Segment" not in tipos and len(sal) == 2 and g["1"]["inputs"]["ckpt_name"] == N.SAM_MODELO, tipos)
 
+print("11 · Línea de tiempo: cortes elegidos a mano (plan.cortes)")
+planc = N.ajustar_plan(ref["plan"], 6)
+planc["cortes"] = [0, 1.0, 1.846, 2.392, 3.483, 4.551]
+pc, avc, inic = N.montar_plan(ref["entradas"], planc, ref["beats"])
+comprobar("el montaje usa los cortes fijos en vez de calcularlos",
+          inic == planc["cortes"] and "[Shot 2] At 00:01.000" in pc and not avc, (inic, avc))
+planc["cortes"] = [0, 0.2, 1.846, 2.392, 3.483, 4.551]
+pc, avc, inic = N.montar_plan(ref["entradas"], planc, ref["beats"])
+comprobar("si no caben (una toma de menos de 0,4 s), vuelven los automáticos con un aviso",
+          inic == [0.0, 0.755, 1.846, 2.392, 3.483, 4.551] and any("cortes elegidos a mano" in x for x in avc), (inic, avc))
+comprobar("los cortes de otro número de tomas se olvidan", "cortes" not in N.ajustar_plan({**planc, "cortes": [0, 1]}, 6) and
+          N.cortes_validos([0, 1, 2], 3, 3.0) and not N.cortes_validos([0, 2.8], 2, 3.0) and N.al_fotograma(1.01) == 1.0)
+import subprocess as _sp  # noqa: E402
+js = ("import('" + os.path.join(AQUI, "web", "editor", "linea.js") + "').then(m => console.log(JSON.stringify({"
+      "a: m.moverBorde([0, 1, 2], 3, 1, 1.52), b: m.moverBorde([0, 1, 2], 3, 1, 1.52, [1.6], true),"
+      "c: m.moverBorde([0, 1, 2], 3, 1, 1.52, [1.8], true), d: m.moverBorde([0, 1, 2], 3, 1, 1.9),"
+      "e: m.moverBorde([0, 1, 2], 3, 1, 0.1), f: m.quitarDeCortes([0, 1, 2], 3, 2)})))")
+try:
+    r = json.loads(_sp.run(["node", "--input-type=module", "-e", js], capture_output=True, text=True, timeout=20).stdout)
+except Exception as exc:  # sin node no se prueba la parte de la ventana
+    r = {"error": str(exc)}
+comprobar("arrastrar un borde: al fotograma, mínimo 0,4 s a cada lado, imán a ±0,15 s del beat",
+          r.get("a") == [0, 1.5, 2] and r.get("b") == [0, 1.6, 2] and r.get("c") == [0, 1.5, 2] and
+          r.get("d") == [0, 1.583, 2] and r.get("e") == [0, 0.417, 2], r)
+comprobar("quitar una toma con cortes a mano: las demás se reparten su tiempo", r.get("f") == [0, 1.5], r)
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

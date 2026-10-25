@@ -26,8 +26,11 @@ def beats(d):
 
 
 def montar(d):
-    prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], beats(d))
-    return {"prompt": prompt, "avisos": avisos, "cortes": ini}
+    b = beats(d)
+    prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], b)
+    # los beats van a la línea de tiempo: al soltar un borde arrastrado, se pega al más cercano
+    return {"prompt": prompt, "avisos": avisos, "cortes": ini, "beats": b or [], "fijos": nucleo.cortes_validos(
+        (d["plan"] or {}).get("cortes"), int(d["entradas"]["tomas"]), float(d["entradas"]["duracion"]))}
 
 
 # ------------------------------------------------------------------ ventana de audio (planos/4 El editor.md)

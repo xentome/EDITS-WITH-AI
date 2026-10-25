@@ -68,6 +68,7 @@ export async function abrir(node, app) {
       try {
         const r = await api("montar", ctx.cuerpo());
         S.cortes = r.cortes;
+        S.beats = r.beats || [];
         S.avisos = r.avisos;
         if (!S.a_mano) S.prompt = r.prompt;
         ctx.pintarFinal();
@@ -122,7 +123,7 @@ export async function abrir(node, app) {
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
                                                estilo: S.estilo, estilo_palabras: S.estilo_palabras, plan: S.plan, prompt: S.prompt,
-                                               a_mano: S.a_mano, audio: S.audio, guardado: new Date().toISOString() });
+                                               a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);
     graph.setDirtyCanvas?.(true, true);
     try { app.extensionManager?.workflow?.activeWorkflow?.changeTracker?.checkState?.(); } catch { /* sin seguimiento de cambios */ }

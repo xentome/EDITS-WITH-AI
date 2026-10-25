@@ -80,6 +80,8 @@ def ajustar_plan(plan, n):
     for c in ("arco", "look", "fondo"):
         p.setdefault(c, "")
     p.setdefault("fijos", [])
+    if len(p.get("cortes") or []) != n:  # cortes a mano de otro número de tomas: ya no valen
+        p.pop("cortes", None)
     p["tomas"] = [{**toma_vacia(), **t} for t in p.get("tomas", [])][:n]
     p["tomas"] += [toma_vacia() for _ in range(n - len(p["tomas"]))]
     return p
@@ -189,9 +191,25 @@ def cortes(n, dur, beats=None):
     return ini
 
 
-def duraciones(n, dur, beats=None):
-    ini = cortes(n, dur, beats)
+def duraciones(n, dur, beats=None, fijos=None):
+    ini = fijos if cortes_validos(fijos, n, dur) else cortes(n, dur, beats)
     return ini, [b - a for a, b in zip(ini, ini[1:] + [dur])]
+
+
+MIN_TOMA, FPS = 0.4, 24
+
+
+def cortes_validos(c, n, dur):
+    """Cortes elegidos a mano en la línea de tiempo (plan.cortes): n inicios, el primero en 0, cada toma de al menos 0,4 s."""
+    try:
+        c = [float(x) for x in c or []]
+    except (TypeError, ValueError):
+        return False
+    return len(c) == n and n > 0 and abs(c[0]) < 1e-6 and all(b - a >= MIN_TOMA - 1e-3 for a, b in zip(c, c[1:] + [dur]))
+
+
+def al_fotograma(t):
+    return round(round(t * FPS) / FPS, 3)
 
 
 # ------------------------------------------------------------------ audio: la canción entera y el tramo elegido
@@ -1034,9 +1052,11 @@ def contexto(entradas, plan, beats):
     n, dur = int(entradas["tomas"]), float(entradas["duracion"])
     if n * 0.4 > dur:
         raise ValueError(f"{n} tomas no caben en {dur} s (cada toma necesita al menos 0,4 s).")
-    ini, durs = duraciones(n, dur, beats)
+    plan = ajustar_plan(plan, n)
+    # los cortes elegidos a mano en la línea de tiempo (plan.cortes) mandan sobre los calculados, si caben
+    ini, durs = duraciones(n, dur, beats, [round(float(x), 3) for x in plan["cortes"]] if plan.get("cortes") else None)
     menu = menu_de(entradas.get("refs"))
-    return perfil_de(menu, entradas), menu, ajustar_plan(plan, n), ini, durs, leer_palabras(entradas.get("palabras"), n)
+    return perfil_de(menu, entradas), menu, plan, ini, durs, leer_palabras(entradas.get("palabras"), n)
 
 
 def escribir_historia(entradas, plan, beats=None, semilla=0, reg=None):
@@ -1086,6 +1106,8 @@ def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, a
 def montar_plan(entradas, plan, beats=None):
     perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
     prompt, avisos = montar(perfil, menu, plan, ini, palabras)
+    if plan.get("cortes") and not cortes_validos(plan["cortes"], len(plan["tomas"]), float(entradas["duracion"])):
+        avisos.append("los cortes elegidos a mano no caben en la duración: uso los automáticos")
     return prompt, avisos, ini
 
 

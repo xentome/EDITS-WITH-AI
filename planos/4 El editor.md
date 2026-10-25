@@ -66,6 +66,10 @@ Lectura: 4 min
 ### 4 · Línea de tiempo
 - Una cajita de color por toma. **Su ancho es lo que dura**, con los cortes puestos en los beats del audio. Dice su número, su lugar, sus segundos y su efecto.
 - Tocar una toma la elige (o la suelta). **+** añade una toma; no deja si ya no caben (0,4 s cada una).
+- **✕ pequeña** arriba a la derecha de cada toma: el primer toque pregunta «¿quitar? sí / no». Al quitarla, las demás se reparten su tiempo (con cortes a mano, cada una en proporción a lo que dura; si no, se vuelven a poner en los beats).
+- **Arrastrar el borde** entre dos tomas alarga una y acorta la otra: mínimo 0,4 s por toma, al fotograma, y mientras arrastras se ven los segundos de las dos («1,25 s | 0,60 s»). Con **☑ pegar a los beats** (encendido por defecto), al soltar el borde se va al beat más cercano si hay uno a ±0,15 s.
+- Desde que mueves un borde, los cortes son **«a mano»** (marca dorada en el título): se guardan en el plan (`plan.cortes`) y el montaje los usa en lugar de calcularlos. **↺ cortes automáticos** los olvida. Si cambias la duración, se estiran en proporción; si ya no caben, vuelven los automáticos (con un aviso en el prompt final).
+- Con cortes a mano, **+** parte en dos la última toma (si dura al menos 0,8 s).
 
 ### 4b · Ventana de audio (debajo de las tomas)
 - **Para qué:** elegir con exactitud qué tramo de una canción larga usa el edit, sin recortar audios a mano. Lo eliges tú; la app no lo decide. Los cortes de las tomas caen en los beats **de ese tramo**.

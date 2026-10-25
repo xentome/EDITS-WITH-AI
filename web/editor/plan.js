@@ -17,6 +17,7 @@ export function ajustarPlan(plan, n) {
   const p = plan ? JSON.parse(JSON.stringify(plan)) : {};
   for (const c of ["arco", "look", "fondo"]) p[c] = p[c] || "";
   p.fijos = p.fijos || [];
+  if ((p.cortes || []).length !== n) delete p.cortes;   // cortes a mano de otro número de tomas: ya no valen
   p.tomas = (p.tomas || []).slice(0, n).map((t) => ({ ...tomaVacia(), ...t, fijos: t.fijos || [] }));
   while (p.tomas.length < n) p.tomas.push(tomaVacia());
   return p;
@@ -123,7 +124,7 @@ export function instalar(ctx) {
           el("label", {}, "Tomas ", el("input", { type: "number", min: 1, max: 12, value: S.tomas, class: "corto",
             onchange: (e) => ctx.cambiarTomas(+e.target.value) })),
           el("label", {}, "Duración (s) ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto",
-            onchange: (e) => { S.duracion = +e.target.value; ctx.pedirMontaje(); } })),
+            onchange: (e) => ctx.cambiarDuracion(+e.target.value) })),
           el("label", {}, "Semilla ", el("input", { type: "number", value: S.semilla, class: "corto",
             onchange: (e) => { S.semilla = +e.target.value; } })),
           el("label", {}, "Palabras ", el("input", { class: "palabras", value: S.palabras, placeholder: "opcional: TO YOU @1; PEAK @ultima",
