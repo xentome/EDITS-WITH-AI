@@ -12,15 +12,19 @@ Lectura: 2 min
    - la luz y el ambiente de todo el edit (LOOK);
    - por cada toma: lugar, qué pasa, atuendo o ropa, pose, objeto, lugar que no cambia, fondo y efecto.
 3. **Tomas** (LLM: 1 llamada por toma, sin razonamiento). Escribe el encuadre, la luz, el gesto y la cámara de cada toma. Cada toma ve la historia completa, las tomas ya escritas y qué usaron sus vecinas.
-4. **Montaje** (código). Arma las 6 secciones de H3 con los tiempos, la definición de cada personaje (de su referencia), el estilo que escribiste, la ficha de cada efecto tal cual y las partes fijas de la casa (plano 3).
+4. **Montaje** (código). Arma las 6 secciones de H3 con los tiempos, la definición de cada personaje (de su referencia), la de cada efecto con imagen y cada letra, el estilo que escribiste, la ficha de cada efecto tal cual, las palabras en su momento, el sonido y las partes fijas de la casa (plano 3).
+
+**Orden de cada toma en la carta** (25 oct, como el edit de Ren que funcionó): `[Shot n] At t <encuadre>, <efecto>, like the effect in <Picture N>. <Lugar>, <luz>: <Subject 1>, <citas>, <gesto>; the camera <cámara>.` y después sus palabras («At 00:02.016 the huge word "RISE" slams over…»). Sin efecto, `<encuadre>, <lugar>, <luz>: …`; sin entorno, sin lugar ni fondo (y la luz solo si la escribiste).
 
 Después de cada llamada, el código revisa la respuesta. Si algo falla, se la devuelve al LLM con la causa y le pide que la escriba de nuevo: hasta 3 veces la historia y hasta 4 cada toma. Si aun así no pasa, se detiene con el error en lugar de mandar a H3 un prompt malo.
 
 ## El plan
 
-- **General:** `arco`, `look` (luz y ambiente) y `fondo`. El **estilo** y el estilo de las palabras no son del plan: los escribe el usuario y van en las entradas (plano 3).
+- **General:** `arco`, `look` (luz y ambiente) y `fondo`. El **estilo** y el **sonido** no son del plan: los escribe el usuario y van en las entradas (plano 3).
+- **`textos`:** las palabras en pantalla de la fila de texto: `{id, texto, t, fin, sitio, letra, frase}`. `t` en segundos; `fin` vacío = hasta el fin de su toma; `sitio` es `encima` o `al_lado` de la cara; `letra`, la etiqueta de su referencia de tipografía (papel «letra»); `frase`, cómo se ve, en inglés. Sustituye a «Palabras» (`TO YOU @1`), que se convierte la primera vez.
 - **Por toma:**
   - lo que decide la historia: `lugar`, `momento`, `personaje` (atuendo), `ropa`, `pose`, `objeto`, `lugar_ref`, `fondo_ref` y `efecto`;
+  - `entorno`: `auto` (el LLM escribe el lugar), `manual` (lo escribiste tú: va con el candado del lugar) o `ninguno` (sin lugar ni fondo; la luz no es obligatoria). Un estado viejo pasa a `manual` si tenía el lugar fijado y a `auto` si no;
   - `efecto`: una referencia de papel efecto (`<Picture N>`) o un efecto de texto (`E1`, `E2`…);
   - `efecto_frase`: la frase del efecto si la escribiste tú (si está vacía, va la ficha del efecto);
   - lo que decide la dirección: `encuadre`, `luz`, `gesto` y `camara`.
@@ -47,7 +51,8 @@ Cada referencia del workflow (`<Picture N>` o `<Video N>`) tiene un **papel**. L
 | pose | solo la postura | «in the pose of `<Picture 5>`» ✅ |
 | fondo | solo el fondo de una toma | «like the place in `<Picture 10>`» 💡 |
 | estilo | solo el estilo visual | en la línea de estilo 💡 |
-| efecto | un efecto de ejemplo; su ficha es la frase | «Effect: …, like the effect in `<Picture 7>`» 💡 |
+| efecto | un efecto de ejemplo; su ficha es la frase | definido arriba («`<Picture 1>` is the gradient silhouette effect reference: …»), retenido aparte («only its look is transferred») y en la toma justo tras el encuadre: «Close-up, …, like the effect in `<Picture 1>`.» (render de Ren, plano 7) |
+| letra | la tipografía de una palabra de la fila de texto (fuerza 0,5) | «`<Picture 5>` is the typography reference for the word "RISE"», «only its lettering style is transferred; the words written in it are not reproduced» y «in the lettering style of `<Picture 5>`» |
 
 Además hay **efectos de texto** (`E1`, `E2`…), sin imagen: solo su frase (plano 3).
 

@@ -19,6 +19,7 @@ Lectura: 3 min
 | `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
 | `web/editor/tapar.js` | «Tapar con SAM 3.1» en la ficha: interruptor, chips de qué tapar, forma, vista previa y el cambio de tarjeta entre original y tapado (`ctx.cambiarTarjeta`). |
 | `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
+| `web/editor/textos.js` | Parte 4, entre las tomas y la onda: la fila de texto (palabras en pantalla), su arrastre al beat y su tarjetita (texto, encima / al lado, letra, frase). |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre), la línea de la canción entera y «Cambiar canción» (elegir o subir); al guardar, el recorte. |
 | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
@@ -40,10 +41,11 @@ Las piezas de `web/editor/` comparten un objeto `ctx` (estado, referencias y fun
 - `montar_plan(entradas, plan, beats)` → prompt final, avisos (campos vacíos) y cortes.
 - `planear(idea, n, dur, …, extra=None)` → el recorrido completo sin editor. Lo usa el nodo (con `extra = entradas_de_estado(estado)`) y guarda el resultado en disco para no repetirlo.
 
-`entradas` contiene `{idea, tomas, duracion, palabras, refs, estilo, estilo_palabras}`:
+`entradas` contiene `{idea, tomas, duracion, palabras, refs, estilo, estilo_palabras, sonido}` (y, desde el nodo sin editor, `textos`):
 - `refs` es `{"<Picture N>", "<Video N>" o "E1": {papel, nombre, ficha, pronombre, atuendo}}` (`pronombre` y `atuendo` solo en personaje; `E1`… son los efectos de texto). Papeles: `personaje`, `objeto`, `lugar` (no cambian) y `ropa`, `pose`, `fondo`, `estilo`, `efecto` (se prestan).
 - `perfil_de(menu, entradas)` saca de ahí lo que antes daba la receta: los personajes, el pronombre del protagonista, el estilo y el de las palabras.
-- `palabras` va como `TO YOU @1; PEAK @ultima`.
+- `palabras` y `estilo_palabras` son el formato viejo (`TO YOU @1; PEAK @ultima`): si el plan no tiene `textos`, `textos_de` los convierte. Lo vigente es `plan.textos` (plano 1).
+- Papel nuevo `letra` (la tipografía de una palabra), en la mitad azul.
 
 ## Las rutas del editor
 
@@ -51,7 +53,7 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 
 | Acción | Para qué | ¿LLM? |
 |---|---|---|
-| `montar` | plan → prompt final | no |
+| `montar` | plan → prompt final, cortes, beats y la fila de texto (`textos`, convertida del formato viejo si hace falta) | no |
 | `historia` | escribe la historia | sí |
 | `tomas` | escribe las tomas, o solo una con `solo` | sí |
 | `describir` | propone la ficha y los riesgos de una referencia, con visión | sí |
@@ -93,8 +95,12 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | qué nodos sigue la duración | `web/editor/duracion.js` (`LONGITUD`) |
 | la ventana de audio (arrastre, aceleración, reproducir) | `web/editor/audio.js` (constantes `K` y `GANANCIA_MAX`) |
 | el recorte, los picos o los beats del tramo | `nucleo.py`, sección audio (`decodificar`, `info_audio`, `beats_cancion`, `beats_de_tramo`) |
-| el prompt final y sus botones | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
-| `web/editor/final.js` |
+| el prompt final y sus botones | `web/editor/final.js` |
+| la fila de texto (añadir, arrastrar, la tarjetita) | `web/editor/textos.js` |
+| cómo se escribe una palabra en la carta, o la conversión de «TO YOU @1» | `nucleo.frase_texto` y `nucleo.textos_de` |
+| el entorno de una toma (auto, manual, sin entorno) | `nucleo.con_entorno`, `sin_entorno`, `pide_luz`; en la ventana, `campoLugar` de `web/editor/plan.js` |
+| el menú de encuadres | `nucleo.ENCUADRES` y `ENCUADRE_PROMPT`, y el mismo `ENCUADRES` en `web/editor/plan.js` (letreros `toma.encuadre_op.<i>`) |
+| el sonido por defecto | `nucleo.SONIDO` |
 | colores y tamaños de la ventana | `web/editor/estilos.js` |
 | un texto que ve el usuario (en los dos idiomas) | `web/i18n/es.json` y `en.json` (ver «Dos idiomas») |
 | qué se guarda en el nodo o los botones de arriba | `web/editor_core.js` |
@@ -104,7 +110,7 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 
 - **Campos visibles:** idea, tomas, duración, palabras y semilla (ya no hay receta; plano 3).
 - **`texto_bloqueado`:** si tiene texto, sale tal cual.
-- **`estado` (oculto, `v: 4`):** JSON con lo que guarda el editor: `refs` (por nombre de RefMod), `etiquetas`, `efectos` (de texto), `estilo`, `estilo_palabras`, `plan`, `prompt`, `a_mano` y `audio` (`original`, `inicio_s`, `recorte`, `tocado`).
+- **`estado` (oculto, `v: 4`):** JSON con lo que guarda el editor: `refs` (por nombre de RefMod), `etiquetas`, `efectos` (de texto), `estilo`, `estilo_palabras` (viejo), `sonido`, `plan` (con `textos` y el `entorno` de cada toma), `prompt`, `a_mano` y `audio` (`original`, `inicio_s`, `recorte`, `tocado`).
 
 Al ejecutar, el nodo decide así:
 1. si hay `texto_bloqueado`, sale ese texto;

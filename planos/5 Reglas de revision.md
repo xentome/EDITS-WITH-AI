@@ -22,7 +22,7 @@ Lectura: 3 min
 | 10 | Líquidos en la cara | líquido rojo | prohibidas: wet, liquid, blood, drip, tears · REVISIÓN |
 | 11 | Números en el texto | varias | sin dígitos, salvo en `<Picture N>` · REVISIÓN |
 | 12 | Negaciones y metáforas | «a stillness that is not indifference» | negaciones prohibidas; las metáforas solo por instrucción · REVISIÓN + INSTRUCCIÓN |
-| 13 | Texto en pantalla no pedido | referencias con texto | sin comillas ni «text/words/letters» · REVISIÓN |
+| 13 | Texto en pantalla no pedido | referencias con texto | sin comillas ni «text/words/letters» en lo que escribe el LLM · REVISIÓN; y en la carta, «No other text appears on screen.» al final (o «No text on screen.» sin palabras) · CÓDIGO |
 | 14 | Describir al personaje | regla del método mínimo | «no describas su cara, su pelo ni su ropa» · INSTRUCCIÓN |
 | 15 | Pronombre equivocado | Teto | se rechaza el pronombre contrario (con un solo personaje she o he) · REVISIÓN |
 | 16 | Efecto que no encaja con la escena | luz de móvil sin móvil | se quitó con las recetas: el LLM elige los efectos «donde encajen» · INSTRUCCIÓN |
@@ -38,6 +38,8 @@ Lectura: 3 min
 | 26 | Lugar que no cambia con un fondo encima | — (regla de diseño) | LOCATION sin BACKGROUND · REVISIÓN |
 | 27 | Objeto que no se ve en la toma | — (regla de diseño) | si la toma lleva OBJECT, MOMENT y ACTION lo nombran con su `<Subject N>` · REVISIÓN |
 | 28 | Objeto o lugar que no sale nunca | — (regla de diseño) | cada uno sale al menos en una toma (si el LLM podía ponerlo) · REVISIÓN |
+| 30 | Palabra en el segundo 0 en vez de en su beat | réplica de Ren: «The only text on screen is "RISE" in shot 3…» al principio y la palabra 0,15 s tras el corte | cada palabra tiene su momento en la fila de texto y solo se escribe en su toma; al final, «No other text appears on screen.» · CÓDIGO |
+| 31 | Los efectos no transforman al personaje (3 mundos de 5) | réplica de Ren: efectos sin definir arriba y «Effect:» al final de la toma, detrás del lugar y la luz | cada efecto se define arriba con su ficha y en su toma va justo después del encuadre; con «Sin entorno» no hay lugar ni luz que compita · CÓDIGO |
 | 29 | Frase fija de un efecto que choca con el lugar | U3 dice «the night city» en una bodega de avión al atardecer (prueba de la interfaz) | ya no hay frases fijas: cada efecto es del usuario y el LLM lo pone donde encaje · INSTRUCCIÓN |
 
 **Traspaso de identidad.** La retención ya dice que de una ropa o una pose no se pasan «face, hair and body», pero eso es texto: si la foto enseña la cara, H3 puede copiarla igual. La protección de verdad es **tapar** la cara y el pelo de la foto (ficha de la referencia, «tapar con SAM 3.1», plano 4). Recomendado en toda ropa, pose o fondo con una persona real distinta del personaje; probado con la ropa de Vera en Teto (plano 7).

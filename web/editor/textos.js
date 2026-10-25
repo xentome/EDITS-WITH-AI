@@ -47,7 +47,7 @@ export function instalar(ctx) {
   ctx.textosDeToma = (k) => textos().filter((x) => tomaDe(x.t, cortes()) === k);
 
   function anadir(t0) {
-    const x = { id: nuevoId(), texto: "", t: moverTexto(pegarAlBeat(t0, S.beats || []), +S.duracion), fin: null,
+    const x = { id: nuevoId(), texto: "", t: moverTexto(pegarAlBeat(t0, S.beats || []), +S.duracion, S.beats || [], true), fin: null,
                 sitio: "al_lado", letra: "", frase: "" };
     S.plan.textos = [...textos(), x];
     cambio();

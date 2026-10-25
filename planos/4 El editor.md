@@ -10,15 +10,16 @@ Lectura: 4 min
 - **Idea**, con tus palabras. Manda sobre todo lo demás.
 - **Arco, luz y ambiente, y fondo general**, con candado.
 - **Estilo**, debajo de la idea, en inglés: cómo se dibuja todo (plano 3). Vacío, no se inventa ninguno.
-- Arriba a la derecha, los campos del nodo: tomas, duración, semilla y palabras (opcionales: `TO YOU @1`), y el **estilo de las palabras** (opcional).
+- **Sonido**, debajo del estilo, en inglés: va tal cual a `overall_soundscape`. Vacío: solo la música, sin efectos de sonido.
+- Arriba a la derecha, los campos del nodo: tomas, duración y semilla. Las palabras en pantalla están en la fila de texto (4c).
 - La caja va en **rojo oscuro opaco con letras blancas**, para que resalte; los campos de dentro, en un rojo más oscuro.
 
 ### 2 · Prompt de la toma
 - Al principio dice «Selecciona una toma…». Cuando eliges una en la línea de tiempo, aparece:
   - su línea `[Shot n]`, tal como va al prompt final;
-  - **qué pasa:** lugar, qué pasa, efecto (referencias de papel efecto y efectos de texto) y frase del efecto (↺ vuelve a la ficha del efecto; escrita sin efecto, es un efecto solo de esa toma, y «＋ guardar como efecto» la convierte en un efecto de texto);
+  - **qué pasa:** lugar con su **selector de entorno** (en lugar del candado): «Entorno auto» (el LLM lo elige; si lo escribes, pasa a manual), «Entorno manual» (fijo) y «Sin entorno» (no se escribe ningún lugar ni fondo: para resaltar solo a la persona o el objeto; la luz pasa a «Luz (opcional)» y solo va si la escribes; los menús de lugar fijo y fondo se esconden). Después, qué pasa, efecto (referencias de papel efecto y efectos de texto) y frase del efecto (↺ vuelve a la ficha del efecto; escrita sin efecto, es un efecto solo de esa toma, y «＋ guardar como efecto» la convierte en un efecto de texto);
   - **referencias que usa:** atuendo, ropa, pose, objeto, lugar fijo y fondo. Solo salen los menús de los papeles que tienen referencias;
-  - **dirección:** encuadre, cámara, luz y gesto.
+  - **dirección:** encuadre (7: primerísimo primer plano, primer plano, plano medio corto, primer plano en contrapicado, plano detalle, primerísimo plano de los ojos y primer plano dinámico; al prompt van en inglés), cámara, luz y gesto.
 - Todo con 🔒 / 🔓: lo que escribes o eliges queda fijo. Pulsa el candado para soltarlo.
 - **🔄 rehacer esta toma** (unos 7 s): escribe de nuevo su dirección, mirando a sus dos vecinas. **✕ quitar toma** la saca del edit.
 
@@ -38,7 +39,7 @@ Lectura: 4 min
   - **tapar con SAM 3.1** (ver «Tapar», abajo);
   - **usada en** (definición, T1 · T3).
 - **✕ en la esquina de arriba a la izquierda** de cada tarjeta del Stack (también en las cajitas): siempre visible. El primer toque pregunta «¿quitar? sí / no»; «sí» hace lo mismo que «✕ quitar» de la ficha (`ctx.quitarDelStack`). Tocar la ✕ no abre la ficha. Los medios del Media Loader no la tienen, porque no están en el Stack.
-- **+ Añadir** abre la biblioteca de RefMods, con recuadros grandes (unas 4 columnas) y fotos enteras. Con **− / deslizador / +** los haces más grandes o más pequeños; se recuerda el último tamaño en el navegador. Lo que añades toma el papel que toca en esa mitad (por ejemplo, un RefMod de fondo añadido a la izquierda es un lugar).
+- **+ Añadir** abre la biblioteca de RefMods, con recuadros grandes (unas 4 columnas) y fotos enteras. Con **− / deslizador / +** los haces más grandes o más pequeños; se recuerda el último tamaño en el navegador. Abajo, el menú **Papel**: por defecto «el que tenga» (el que ya tenía esa referencia en el editor o, si es nueva, el que toca en esa mitad según su concepto: un RefMod de fondo añadido a la izquierda es un lugar); o uno elegido (por ejemplo «efecto»), para todas las marcadas.
 - **La biblioteca es de selección múltiple:** tocar una foto la marca o la desmarca (✓ y borde azul); no la añade ni cierra. Abajo a la derecha, **«Añadir (N)»** (azul, apagado si no hay ninguna) mete todas las marcadas en el Stack, en el orden en que las marcaste, y cierra (`ctx.anadirVariosDeBiblioteca`). Si con ellas el Stack pasa de 12 tarjetas, avisa dentro de la ventana y no añade ninguna. Buscar no borra lo marcado.
 - **⬆ Subir foto** (arriba en la biblioteca de «+ Añadir»): crea referencias nuevas con fotos de tu PC. Eliges una o varias imágenes (toca el recuadro o suéltalas encima de la ventana), el **papel** (los de esa mitad), un **nombre corto** (en un personaje, su nombre) y si quieres **tapar al subir** (cara y pelo con SAM 3.1; encendido por defecto en la mitad azul). Con varias fotos, **juntar en una sola cajita** (el mismo personaje u objeto; encendido por defecto) o una referencia por foto.
   - Las fotos se suben a `input/minimax_h3/` con `/upload/image` de ComfyUI (si ya hay una igual, se reutiliza); `rutas.subir_refmods` crea el RefMod en `subidas/<nombre>` (Full Reference, 512, VAE de H3; si el nombre existe, `_2`, `_3`…) con el concept_type del papel: personaje→identity, ropa→clothing, pose→pose_motion, lugar y fondo→background, objeto→generic, estilo y efecto→style. Una cajita apunta sus fotos (`.cajita.json`).
@@ -73,6 +74,14 @@ Lectura: 4 min
 - **Arrastrar el borde** entre dos tomas alarga una y acorta la otra: mínimo 0,4 s por toma, al fotograma, y mientras arrastras se ven los segundos de las dos («1,25 s | 0,60 s»). Con **☑ pegar a los beats** (encendido por defecto), al soltar el borde se va al beat más cercano si hay uno a ±0,15 s.
 - Desde que mueves un borde, los cortes son **«a mano»** (marca dorada en el título): se guardan en el plan (`plan.cortes`) y el montaje los usa en lugar de calcularlos. **↺ cortes automáticos** los olvida. Si cambias la duración, se estiran en proporción; si ya no caben, vuelven los automáticos (con un aviso en el prompt final).
 - Con cortes a mano, **+** parte en dos la última toma (si dura al menos 0,8 s).
+
+### 4c · Fila de texto (entre las tomas y la onda)
+- **Para qué:** las palabras en pantalla, cada una en su momento. Sustituye a «Palabras» (`TO YOU @1`) y «Estilo de las palabras»: un estado viejo se convierte solo la primera vez (0,15 s tras el corte, al lado, el estilo viejo como frase).
+- **Rótulo «Texto»** y **+ Texto** al principio de la fila (la palabra va al beat más cercano al inicio de la toma elegida, o al 0); **doble clic** en un hueco la pone en el beat más cercano a ese punto.
+- **Mover:** arrastrar la etiqueta. Al fotograma y, con «pegar a los beats», al beat a ±0,15 s; mientras arrastras se ven los segundos. **Durar:** arrastrar su borde derecho (por defecto dura hasta el fin de su toma).
+- **Tocarla** abre su tarjetita: el texto; **encima / al lado** de la cara (por defecto al lado, como Teto; encima es como Ren: enorme, con la cara visible detrás); la **referencia de la letra** («Elegir de la biblioteca» o «⬆ Subir»; entra con papel «letra» y **fuerza 0,5**, que se cambia ahí); la **frase de la letra** (opcional, en inglés); «↺ hasta el fin de su toma» si le cambiaste el fin; **✕ quitar** con confirmación.
+- La letra de las palabras de la toma elegida se ilumina en dorado y se renumera con el Stack, como las demás referencias.
+- En la carta, cada palabra va en su toma y en su momento; arriba no se anuncia ninguna. Al final, «No other text appears on screen.».
 
 ### 4b · Ventana de audio (debajo de las tomas)
 - **Para qué:** elegir con exactitud qué tramo de una canción larga usa el edit, sin recortar audios a mano. Lo eliges tú; la app no lo decide. Los cortes de las tomas caen en los beats **de ese tramo**.

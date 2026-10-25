@@ -1009,7 +1009,8 @@ def montar(perfil, menu, plan, ini, textos, idioma="es"):
     # una línea protege contra texto no pedido
     texto = "" if textos else " No text on screen."
     # la línea de estilo: el estilo del usuario (si lo hay) y el look del LLM; sin estilo no se inventa ninguno
-    estilo = (perfil["estilo"] + ". " if perfil["estilo"] else "") + falta(plan["look"], "final.hueco.sin_look") + "."
+    look = falta(plan["look"], "final.hueco.sin_look")
+    estilo = (perfil["estilo"] + ". " + look[:1].upper() + look[1:] if perfil["estilo"] else look) + "."
     if plan["fondo"]:
         estilo += f" Backgrounds: {plan['fondo'].rstrip('.')}."
     if menu["estilo"]:
