@@ -56,7 +56,7 @@ export function referenciasDelWorkflow(u, graph, node) {
   if (!pb) avisos.push("El nodo no está conectado a un Prompt Builder: se usa el primer RefMod Stack del workflow.");
   if (!stack && !loader) avisos.push("No encontré RefMod Stack ni Media Loader: no hay referencias que enlazar.");
   const audioNodo = origen(graph, node, "audio") || (pb && origen(graph, pb, "audio_1"));
-  return { items, lista: items.filter((r) => r.tag), avisos, stack, audio: W(audioNodo || {}, "audio")?.value || "" };
+  return { items, lista: items.filter((r) => r.tag), avisos, stack, audioNodo, audio: W(audioNodo || {}, "audio")?.value || "" };
 }
 
 /* Añade a ctx las funciones de la sección 3. Usa de ctx: u, S, wf, graph, node, caja, secRefs, recetas, biblioteca,

@@ -84,13 +84,28 @@ input.corto{width:70px}
 .epl-efecto b{color:#8fb6f0;margin-right:4px}
 .epl-efecto.usada{outline:2px solid #e0a94c}.epl-efecto.atenuada{opacity:.35}
 /* 4 · línea de tiempo */
-.epl-linea{display:flex;gap:4px;height:96px}
+.epl-linea{display:flex;gap:4px;height:78px}
 .epl-tomab{border-radius:calc(var(--radio) * 6px);padding:5px 7px;cursor:pointer;overflow:hidden;color:#111;font-size:11px;line-height:1.25;border:2px solid transparent;
   min-width:34px;display:flex;flex-direction:column;justify-content:space-between}
 .epl-tomab.elegida{border-color:#fff;box-shadow:0 0 0 2px #e0a94c}
 .epl-tomab b{font-size:12px}.epl-tomab span{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.epl-mas{min-width:44px;border:1px dashed #3d4a5c;border-radius:calc(var(--radio) * 6px);color:#8a93a3;background:none;cursor:pointer;font-size:18px}
+.epl-mas{min-width:44px;width:44px;flex:none;border:1px dashed #3d4a5c;border-radius:calc(var(--radio) * 6px);color:#8a93a3;background:none;cursor:pointer;font-size:18px}
 .epl-regla{display:flex;justify-content:space-between;color:#8a93a3;font-size:10px;margin-top:3px}
+/* 4 · ventana de audio: el tramo (mismo largo que las tomas; el ▶ va debajo del +) y la canción entera en una línea */
+.epl-audio{margin-top:6px}
+.epl-audio-fila{display:flex;gap:4px;align-items:stretch}
+.epl-onda{position:relative;flex:1;min-width:0;height:72px;border:1px solid #2e3440;border-radius:calc(var(--radio) * 6px);overflow:hidden}
+.epl-onda-cv{display:block;width:100%;height:100%;cursor:grab;touch-action:none;outline:none}
+.epl-onda-cv:active{cursor:grabbing}.epl-onda-cv:focus-visible{box-shadow:inset 0 0 0 1px #8fb6f0}
+.epl-onda-et{position:absolute;top:3px;font:10px ui-monospace,monospace;color:#cfe0ff;background:rgba(15,18,23,.75);padding:0 4px;pointer-events:none}
+.epl-onda-et.izq{left:4px}.epl-onda-et.der{right:4px}
+.epl-play{width:44px;flex:none;background:#2f4a78;color:#fff;border:1px solid #3a5f9a;border-radius:calc(var(--radio) * 6px);cursor:pointer;font-size:18px}
+.epl-play:hover{background:#3a5a90}
+.epl-barra-fila{margin-top:5px;height:10px}
+.epl-barra-cv{display:block;flex:1;min-width:0;height:10px;cursor:pointer;touch-action:none}
+.epl-hueco{width:44px;flex:none}
+.epl-audio-info{display:flex;gap:12px;justify-content:space-between;align-items:baseline;font:11px ui-monospace,monospace;color:#9aa3b2;margin-top:4px}
+.epl-audio-info .epl-ayuda{font-family:inherit;margin:0;text-align:center;flex:1}
 /* 5 · prompt final */
 .epl-final{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45;
   background:#12151b;border:1px solid #2e3440;border-radius:calc(var(--radio) * 7px);padding:10px;margin:0;width:100%;box-sizing:border-box;

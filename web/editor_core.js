@@ -5,6 +5,7 @@
  *   3 · Referencias en dos mitades: lo que no cambia (rojo) y lo que se presta (azul), con cajitas
  *                                                                     → editor/referencias.js y editor/cajitas.js
  *   4 · Línea de tiempo (una cajita por toma, ancho = duración)      → editor/linea.js
+ *       y debajo la ventana de audio (el tramo de la canción, y la canción entera en una línea delgada) → editor/audio.js
  *   5 · Prompt final (lo que recibe H3)                              → editor/final.js
  * El trabajo lo hace el servidor (rutas /edit_prompt_llm/*, nucleo.py); aquí solo se muestra, se edita y se guarda.
  * Este archivo solo junta las piezas de editor/. Todas comparten un objeto «ctx» con el estado (S), las referencias del
@@ -14,8 +15,8 @@
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [u, estilos, referencias, cajitas, plan, linea, final] = await Promise.all(
-    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final"].map(pieza));
+  const [u, estilos, referencias, cajitas, plan, linea, final, audio] = await Promise.all(
+    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio"].map(pieza));
   const { el, W, leerJSON, api } = u;
 
   document.getElementById("epl-css")?.remove();
@@ -38,17 +39,21 @@ export async function abrir(node, app) {
   const estado = el("span", { class: "epl-estado" });
   const sec = (clase) => el("section", { class: "epl-sec " + clase });
   const secHistoria = sec("epl-s-historia"), secToma = sec("epl-s-toma"), secRefs = sec("epl-refs"),
-        secLinea = sec("epl-s-linea"), secFinal = sec("epl-s-final");
+        secTiempo = sec("epl-s-linea"), secFinal = sec("epl-s-final");
+  // la parte 4 tiene dos filas: las tomas (linea.js) y, debajo, la ventana de audio (audio.js)
+  const secLinea = el("div", { class: "epl-zona-tomas" }), secAudio = el("div", { class: "epl-audio" });
+  secTiempo.append(secLinea, secAudio);
 
-  const ctx = { u, node, app, graph, S, wf, recetas: {}, biblioteca: {}, cajitas: {}, caja,
-                secHistoria, secToma, secRefs, secLinea, secFinal, ajustarPlan: plan.ajustarPlan };
+  const ctx = { u, node, app, graph, S, wf, guardado, recetas: {}, biblioteca: {}, cajitas: {}, caja,
+                secHistoria, secToma, secRefs, secLinea, secAudio, secFinal, ajustarPlan: plan.ajustarPlan };
   ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
   const entradas = () => ({
     idea: S.idea, tomas: S.tomas, duracion: S.duracion, palabras: S.palabras,
     refs: Object.fromEntries(wf.lista.map((r) => [r.tag, S.refs[r.clave]]).filter(([, x]) => x && x.papel && x.papel !== "no")),
   });
-  ctx.cuerpo = (extra = {}) => ({ receta: S.receta, entradas: entradas(), plan: S.plan, audio: wf.audio, semilla: S.semilla, ...extra });
+  // el audio: la canción original y, si se eligió un tramo, su inicio (audio.js)
+  ctx.cuerpo = (extra = {}) => ({ receta: S.receta, entradas: entradas(), plan: S.plan, ...ctx.audioCuerpo(), semilla: S.semilla, ...extra });
 
   // ---- montar (sin LLM) cada vez que cambia algo, salvo si el prompt final se editó a mano
   let espera = null;
@@ -71,6 +76,7 @@ export async function abrir(node, app) {
   cajitas.instalar(ctx);
   plan.instalar(ctx);
   linea.instalar(ctx);
+  audio.instalar(ctx);
   final.instalar(ctx);
 
   try { ctx.recetas = await api("recetas"); } catch (e) { wf.avisos.push("No pude leer las recetas: " + e.message); }
@@ -78,8 +84,9 @@ export async function abrir(node, app) {
   ctx.prepararRefs(guardado);
   document.body.append(fondo);
 
-  // ---- guardar en el nodo
-  function guardar() {
+  // ---- guardar en el nodo (si se eligió un tramo del audio, antes se escribe su recorte y el LoadAudio apunta a él)
+  async function guardar() {
+    await ctx.prepararAudioParaGuardar();
     W(node, "idea").value = S.idea;
     W(node, "tomas").value = S.tomas;
     W(node, "duracion_s").value = S.duracion;
@@ -87,13 +94,13 @@ export async function abrir(node, app) {
     W(node, "semilla_llm").value = S.semilla;
     W(node, "receta").value = S.receta;
     W(node, "estado").value = JSON.stringify({ v: 3, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), plan: S.plan, prompt: S.prompt,
-                                               a_mano: S.a_mano, guardado: new Date().toISOString() });
+                                               a_mano: S.a_mano, audio: S.audio, guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);
     graph.setDirtyCanvas?.(true, true);
     try { app.extensionManager?.workflow?.activeWorkflow?.changeTracker?.checkState?.(); } catch { /* sin seguimiento de cambios */ }
   }
-  ctx.guardarYAvisar = () => {
-    guardar();
+  ctx.guardarYAvisar = async () => {
+    try { await guardar(); } catch (e) { return ctx.avisar("No se pudo guardar: " + e.message, "mal"); }
     ctx.avisar(S.avisos.length ? "Guardado, con huecos en el prompt" : "Guardado en el nodo (guarda el workflow con Ctrl+S)",
                S.avisos.length ? "mal" : "bien");
   };
@@ -105,12 +112,14 @@ export async function abrir(node, app) {
   caja.append(
     el("div", { class: "epl-cabecera" }, el("b", {}, "Editor del edit"), estado,
       el("button", { class: "epl-boton epl-azul", onclick: () => ctx.guardarYAvisar() }, "Guardar"),
-      el("button", { class: "epl-boton epl-verde epl-grande", onclick: () => { guardar(); cerrar(); } }, "Guardar y cerrar"),
+      el("button", { class: "epl-boton epl-verde epl-grande", onclick: async () => {
+        try { await guardar(); cerrar(); } catch (e) { ctx.avisar("No se pudo guardar: " + e.message, "mal"); } } }, "Guardar y cerrar"),
       el("button", { class: "epl-x", title: "Cerrar sin guardar", onclick: cerrar }, "✕")),
-    el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secLinea, secFinal));
+    el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secTiempo, secFinal));
   ctx.pintarPlan();
   ctx.pintarRefs();
   ctx.pintarFinal();
+  ctx.pintarAudio();
   ctx.pedirMontaje();
   ctx.avisar(wf.audio ? `Audio: ${wf.audio}` : "Sin audio conectado: cortes parejos");
   return ctx;
