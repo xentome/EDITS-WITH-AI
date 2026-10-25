@@ -213,7 +213,7 @@ refs8 = {"<Video 1>": {"papel": "personaje", "nombre": "Ren", "pronombre": "he",
 e8 = {"idea": "x", "tomas": 2, "duracion": 2.0, "palabras": "", "refs": refs8, "estilo": "anime"}
 plan8 = N.ajustar_plan(None, 2)
 for t in plan8["tomas"]:
-    t.update(encuadre="close-up", luz="neon glow", gesto="looks up", camara="holds still", lugar="")
+    t.update(encuadre="close-up", luz="neon glow", gesto="looks up", camara="holds still", lugar="a dark void")
 plan8["tomas"][0]["efecto"], plan8["tomas"][1]["efecto"] = "<Picture 1>", "E1"
 plan8["arco"], plan8["look"] = "a", "b"
 p8, _, _ = N.montar_plan(e8, plan8)
@@ -226,10 +226,50 @@ comprobar("y se retiene en su propia línea: solo su aspecto",
           "transferred." in p8, p8)
 comprobar("en la toma, el efecto va justo después del encuadre, antes del lugar, la luz y la acción",
           "[Shot 1] At 00:00.000 Close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
-          "gradient, like the effect in <Picture 1>. […], neon glow: <Subject 1> looks up; the camera holds still." in p8, p8)
-comprobar("solo primeros planos y sin lugares: el resumen dice de qué está hecho el edit",
+          "gradient, like the effect in <Picture 1>. A dark void, neon glow: <Subject 1> looks up; the camera holds still." in p8, p8)
+
+print("8c · Entorno por toma: auto, manual y sin entorno (y los encuadres nuevos)")
+for t in plan8["tomas"]:
+    t.update(entorno="ninguno", luz="old light from the LLM", lugar="a dark void")
+plan8["tomas"][1].update(luz="hard neon streaks", fijos=["luz"], encuadre="extreme close-up of the eyes")
+p8, av8, _ = N.montar_plan(e8, plan8)
+comprobar("sin entorno: ningún lugar ni fondo, la luz que no escribió el usuario no va y no es un hueco",
+          "[Shot 1] At 00:00.000 Close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
+          "gradient, like the effect in <Picture 1>: <Subject 1> looks up; the camera holds still." in p8 and
+          "dark void" not in p8 and "old light" not in p8 and not av8, (av8, p8))
+comprobar("sin entorno con luz escrita por el usuario: la luz sí va; el encuadre largo no se pasa a minúsculas",
+          "[Shot 2] At 00:01.000 Extreme close-up of <Subject 1>'s eyes, soft film grain. Hard neon streaks: <Subject 1>" in p8, p8)
+comprobar("solo primeros planos y todas sin entorno: el resumen dice de qué está hecho el edit",
           "A music edit of <Subject 1> (anime) made only of close-ups of his face, cut on the beat of <Audio 1>: a." in p8 and
           "close shots cut on the beat" in prompt, p8)
+pf8 = N.perfil_de(N.menu_de(refs8), e8)
+pt8 = N.prompt_toma(pf8, N.menu_de(refs8), plan8, 1, 1.0, [])
+d8 = N.leer_toma("FRAMING: dynamic close-up\nLIGHT: warm glow\nACTION: raises his chin slowly\nCAMERA: pushes in", pf8, plan8["tomas"][0])
+comprobar("sin entorno el LLM no recibe lugar ni se le pide la luz, y la revisión no la exige",
+          "LIGHT:" not in pt8 and "Sin entorno" in pt8 and "dynamic close-up" in pt8 and d8["luz"] == "" and
+          not N.revisar_toma(d8, pf8, plan8, 1, [], set(), N.menu_de(refs8)), (d8, pt8[-600:]))
+plan8h = N.ajustar_plan(plan8, 2)
+for t in plan8h["tomas"]:
+    t.update(lugar="", momento="he looks up")
+r8 = "ARC: a\nLOOK: b\nSHOT 1 | PLACE: a rooftop | MOMENT: he looks up | EFFECT: <Picture 1>\nSHOT 2 | PLACE: a rooftop | " \
+     "MOMENT: he smiles | EFFECT: E1"
+h8 = N.leer_historia(r8, plan8h, N.menu_de(refs8))
+comprobar("sin entorno: el lugar que escriba el LLM no cuenta y no se exige lugar distinto (plano 5, fila 4)",
+          h8["plan"]["tomas"][0]["lugar"] == "" and not N.revisar_historia(h8, pf8, N.menu_de(refs8)) and
+          "Tomas sin entorno (1, 2)" in N.prompt_historia(pf8, N.menu_de(refs8), plan8h, "idea", [1, 1], {}),
+          N.revisar_historia(h8, pf8, N.menu_de(refs8)))
+viejo = N.ajustar_plan({"tomas": [{"lugar": "a bridge", "fijos": ["lugar"]}, {"lugar": "a park", "fijos": []}]}, 2)["tomas"]
+comprobar("compatibilidad: con el lugar fijado pasa a «manual»; sin fijar, a «auto»",
+          [t["entorno"] for t in viejo] == ["manual", "auto"] and "lugar" in viejo[0]["fijos"], viejo)
+js = ("import('" + os.path.join(AQUI, "web", "editor", "plan.js") + "').then(m => console.log(JSON.stringify({e: m.ENCUADRES,"
+      "p: m.ajustarPlan({tomas: [{lugar: 'x', fijos: ['lugar']}, {lugar: 'y', fijos: []}]}, 3).tomas.map((t) => t.entorno)})))")
+import subprocess as _sp  # noqa: E402
+try:
+    r = json.loads(_sp.run(["node", "--input-type=module", "-e", js], capture_output=True, text=True, timeout=20).stdout)
+except Exception as exc:
+    r = {"error": str(exc)}
+comprobar("la ventana tiene los mismos encuadres que el núcleo y la misma compatibilidad del entorno",
+          r.get("e") == list(N.ENCUADRES) and r.get("p") == ["manual", "auto", "auto"], r)
 
 print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402
@@ -337,7 +377,6 @@ comprobar("si no caben (una toma de menos de 0,4 s), vuelven los automáticos co
           inic == [0.0, 0.755, 1.846, 2.392, 3.483, 4.551] and any("cortes elegidos a mano" in x for x in avc), (inic, avc))
 comprobar("los cortes de otro número de tomas se olvidan", "cortes" not in N.ajustar_plan({**planc, "cortes": [0, 1]}, 6) and
           N.cortes_validos([0, 1, 2], 3, 3.0) and not N.cortes_validos([0, 2.8], 2, 3.0) and N.al_fotograma(1.01) == 1.0)
-import subprocess as _sp  # noqa: E402
 js = ("import('" + os.path.join(AQUI, "web", "editor", "linea.js") + "').then(m => console.log(JSON.stringify({"
       "a: m.moverBorde([0, 1, 2], 3, 1, 1.52), b: m.moverBorde([0, 1, 2], 3, 1, 1.52, [1.6], true),"
       "c: m.moverBorde([0, 1, 2], 3, 1, 1.52, [1.8], true), d: m.moverBorde([0, 1, 2], 3, 1, 1.9),"

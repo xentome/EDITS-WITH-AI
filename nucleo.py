@@ -28,7 +28,13 @@ MODELO = "qwen3.8-27b"
 CORRIDAS = os.path.expanduser("~/Escritorio/experimentos_edit/edit_prompt_llm")
 with open(os.path.abspath(__file__), "rb") as _f:
     CODIGO = hashlib.sha1(_f.read()).hexdigest()[:8]  # entra en la huella: si cambia este archivo, la despensa no se reutiliza
-ENCUADRES = ("extreme close-up", "close-up", "medium close-up")
+# encuadres cercanos (plano 5, fila 7): el menú del editor y del LLM. En el prompt van en inglés; alguno se escribe más largo
+ENCUADRES = ("extreme close-up", "close-up", "medium close-up", "low-angle close-up", "close detail shot",
+             "extreme close-up of the eyes", "dynamic close-up")
+ENCUADRE_PROMPT = {"extreme close-up of the eyes": "extreme close-up of <Subject 1>'s eyes"}
+# entorno de una toma: «auto» (el LLM escribe el lugar), «manual» (lo escribió el usuario: candado del lugar) o «ninguno»
+# (no se escribe ningún lugar ni fondo: solo se resalta a la persona o al objeto; la luz deja de ser obligatoria)
+ENTORNOS = ("auto", "manual", "ninguno")
 # Papeles de una referencia. Lo que no cambia (persistente): personaje, objeto, lugar. Lo que se presta: ropa, pose, fondo,
 # estilo y efecto. "no usar" = cualquier otro valor. planos/1 Como funciona.md y planos/3 Personaje, estilo y efectos.md.
 PERSISTENTES = ("personaje", "objeto", "lugar")
@@ -65,7 +71,20 @@ ULTIMA_LLAMADA = [0.0]  # cuándo terminó la última llamada al LLM (el nodo es
 
 # ------------------------------------------------------------------ plan y referencias
 def toma_vacia():
-    return {**{c: "" for c in list(HISTORIA.values()) + list(DIRECCION.values())}, "efecto_frase": "", "fijos": []}
+    return {**{c: "" for c in list(HISTORIA.values()) + list(DIRECCION.values())}, "efecto_frase": "", "entorno": "auto",
+            "fijos": []}
+
+
+def con_entorno(t):
+    """Compatibilidad: una toma de antes del selector de entorno pasa a «manual» si tenía el lugar fijado y a «auto» si no.
+    «manual» y el candado del lugar van siempre juntos."""
+    e = t.get("entorno") if t.get("entorno") in ENTORNOS else ("manual" if "lugar" in t.get("fijos", []) else "auto")
+    fijos = [f for f in t.get("fijos", []) if f != "lugar"] + (["lugar"] if e == "manual" else [])
+    return {**t, "entorno": e, "fijos": fijos}
+
+
+def sin_entorno(t):
+    return t.get("entorno") == "ninguno"
 
 
 def frase_efecto(menu, t):
@@ -88,7 +107,7 @@ def ajustar_plan(plan, n):
     p.setdefault("fijos", [])
     if len(p.get("cortes") or []) != n:  # cortes a mano de otro número de tomas: ya no valen
         p.pop("cortes", None)
-    p["tomas"] = [{**toma_vacia(), **t} for t in p.get("tomas", [])][:n]
+    p["tomas"] = [con_entorno({**toma_vacia(), **t, "entorno": t.get("entorno")}) for t in p.get("tomas", [])][:n]
     p["tomas"] += [toma_vacia() for _ in range(n - len(p["tomas"]))]
     return p
 
@@ -599,6 +618,11 @@ def prompt_historia(perfil, menu, plan, idea, durs, palabras):
         lin += [f"- {t}: {nombre_de(e, 'effect')} ({e['ficha']})" for t, e in menu["efecto"].items()]
         campos.append("EFFECT: <" + " o ".join(sorted({'Picture N' if t.startswith('<') else 'E N' for t in menu['efecto']})) +
                       " o none>")
+    sin = [k for k, t in enumerate(plan["tomas"], 1) if sin_entorno(t)]
+    if sin:
+        lin += ["", "Tomas sin entorno (" + ", ".join(map(str, sin)) + "): no tienen lugar ni fondo, solo importa <Subject 1>; "
+                "en ellas escribe PLACE: none" + (", LOCATION: none" if menu["lugar"] else "") +
+                (", BACKGROUND: none" if menu["fondo"] else "") + "."]
     dados = [f"LOOK: {plan['look']}"] if "look" in plan["fijos"] else []
     dados += [f"ARC: {plan['arco']}"] if "arco" in plan["fijos"] else []
     inv = {v: k for k, v in HISTORIA.items()}
@@ -632,12 +656,16 @@ def leer_historia(texto, plan, menu):
                 continue
             campo, valor = (s.strip() for s in trozo.split(":", 1))
             clave = HISTORIA.get(campo.upper())
+            if clave in ("lugar", "lugar_ref", "fondo_ref") and sin_entorno(t):
+                continue                     # una toma sin entorno no tiene lugar ni fondo (lo que escriba el LLM no cuenta)
             if clave and clave not in t.get("fijos", []):
                 t[clave] = valor.rstrip(".")
     if vistas != set(range(1, len(p["tomas"]) + 1)):
         formato.append(f"tienen que ser exactamente {len(p['tomas'])} líneas SHOT, numeradas de 1 a {len(p['tomas'])}")
     inv = {v: c for c, v in HISTORIA.items()}
     for k, t in enumerate(p["tomas"], 1):  # normaliza las etiquetas (también la del efecto)
+        if sin_entorno(t):
+            t["lugar_ref"] = t["fondo_ref"] = ""
         for clave, papel in CAMPO_PAPEL.items():
             opciones = atuendos(menu) if papel == "personaje" else menu[papel]
             if opciones:
@@ -660,7 +688,7 @@ def revisar_historia(datos, perfil, menu):
     # lo que el usuario fijó en cualquier toma cuenta como ya usado, también para las tomas anteriores a ella
     poses = [o["pose"] for o in plan["tomas"] if "pose" in o.get("fijos", []) and o["pose"]]
     for k, t in enumerate(plan["tomas"], 1):
-        libre = lambda c: c not in t.get("fijos", [])
+        libre = lambda c: c not in t.get("fijos", []) and not (c == "lugar" and sin_entorno(t))
         for clave, campo in (("lugar", "PLACE"), ("momento", "MOMENT")):
             if libre(clave):
                 p += problemas_texto(t[clave], perfil, f"SHOT {k} {campo}") if t[clave] else [f"SHOT {k}: falta {campo}"]
@@ -695,14 +723,16 @@ def revisar_historia(datos, perfil, menu):
         if papel == "efecto" and len(menu["efecto"]) > len(plan["tomas"]):
             continue
         for tag in menu[papel]:
-            if all(t[clave] != tag for t in plan["tomas"]) and any(clave not in t.get("fijos", []) for t in plan["tomas"]):
+            podia = [t for t in plan["tomas"] if clave not in t.get("fijos", []) and not (clave == "lugar_ref" and sin_entorno(t))]
+            if all(t[clave] != tag for t in plan["tomas"]) and podia:
                 p.append(f"ninguna toma usa {campo} {tag}; ponlo al menos en una toma donde encaje")
     return p
 
 
 # ------------------------------------------------------------------ taller de tomas (habitación 6)
 def linea_corta(t, k):
-    return f"[Shot {k}] {t['encuadre']}, {t['lugar']}, {t['luz']}: {t['gesto']}; the camera {t['camara']}"
+    entorno = ", ".join(x for x in ([] if sin_entorno(t) else [t["lugar"]]) + [t["luz"]] if x)
+    return f"[Shot {k}] {t['encuadre']}" + (f", {entorno}" if entorno else "") + f": {t['gesto']}; the camera {t['camara']}"
 
 
 def prompt_toma(perfil, menu, plan, k, dur, vecinas):
@@ -711,11 +741,12 @@ def prompt_toma(perfil, menu, plan, k, dur, vecinas):
                                     f"Hora, luz y paleta de todo el edit (respétalas): {plan['look']}"]
     if plan["fondo"]:
         lin.append(f"Fondos de todo el edit: {plan['fondo']}")
-    lin += [f"SHOT {j}: {o['lugar']} — {o['momento']}" for j, o in enumerate(plan["tomas"], 1)]
+    lin += [f"SHOT {j}: {'(sin entorno)' if sin_entorno(o) else o['lugar']} — {o['momento']}" for j, o in enumerate(plan["tomas"], 1)]
     escritas = [linea_corta(o, j) for j, o in enumerate(plan["tomas"], 1) if j != k and o["gesto"]]
     lin += ["", "Tomas ya escritas (no repitas sus gestos, luces ni movimientos de cámara):"] + (escritas or ["(ninguna)"])
-    lin += ["", f"Ahora escribe la toma {k} de {n}. Duración: {en_palabras(dur)}.", f"- Lugar: {t['lugar']}",
-            f"- Qué pasa: {t['momento']}"]
+    lin += ["", f"Ahora escribe la toma {k} de {n}. Duración: {en_palabras(dur)}.",
+            "- Sin entorno: la toma no tiene lugar ni fondo; solo se ve de cerca a <Subject 1>" if sin_entorno(t)
+            else f"- Lugar: {t['lugar']}", f"- Qué pasa: {t['momento']}"]
     if t["personaje"]:
         a = menu["personaje"].get(t["personaje"], {})
         lin.append(f"- Atuendo: {a.get('atuendo', '')} ({a.get('ficha', '')}); no lo describas, el sistema lo cita")
@@ -745,15 +776,21 @@ def prompt_toma(perfil, menu, plan, k, dur, vecinas):
     dados = [f"{inv[c]}: {t[c]}" for c in DIRECCION.values() if c in t.get("fijos", [])]
     if dados:
         lin += ["", "Ya lo decidió el usuario (respétalo tal cual y escribe tú el resto):"] + [f"- {d}" for d in dados]
-    lin += ["", "Responde en inglés, solo estas cuatro líneas:",
-            "FRAMING: <elige UNA sola: extreme close-up, close-up o medium close-up>",
-            "LIGHT: <de dónde viene la luz en esta toma y cómo cae sobre ella, en pocas palabras; la paleta general ya está dicha>",
+    sin_luz = not pide_luz(t)        # sin entorno, la luz no es obligatoria: no se pide (si la fijó el usuario, va igual)
+    lin += ["", f"Responde en inglés, solo estas {'tres' if sin_luz else 'cuatro'} líneas:",
+            f"FRAMING: <elige UNA sola: {', '.join(ENCUADRES[:-1])} o {ENCUADRES[-1]}>"] + ([] if sin_luz else [
+            "LIGHT: <de dónde viene la luz en esta toma y cómo cae sobre ella, en pocas palabras; la paleta general ya está dicha>"]) + [
             f"ACTION: <empieza con un verbo en presente: un gesto de <Subject 1> ({perfil['pronombre']}) con una parte del cuerpo "
             "o un objeto>",
             "CAMERA: <qué hace la cámara, empezando con un verbo; por ejemplo pushes in, holds still, drifts sideways, tilts up, "
             "slowly zooms in>",
             f"Reglas: {REGLA} {FISICA} No describas su cara, su pelo ni su ropa."]
     return "\n".join(lin)
+
+
+def pide_luz(t):
+    """La luz se pide al LLM salvo en una toma sin entorno (ahí solo va si la escribió el usuario)."""
+    return not sin_entorno(t) or "luz" in t.get("fijos", [])
 
 
 def leer_toma(texto, perfil, t):
@@ -769,6 +806,8 @@ def leer_toma(texto, perfil, t):
     d["gesto"] = a[:1].lower() + a[1:] if not a.startswith("<") else a
     c = re.sub(r"^(?:the\s+)?camera\s+", "", d["camara"], flags=re.I)
     d["camara"] = c[:1].lower() + c[1:]
+    if not pide_luz(t):
+        d["luz"] = ""
     for clave in DIRECCION.values():
         if clave in t.get("fijos", []):
             d[clave] = t[clave]
@@ -777,7 +816,7 @@ def leer_toma(texto, perfil, t):
 
 def revisar_toma(d, perfil, plan, k, vecinas, fijos, menu=None):
     """plano 5 (Reglas de revisión), filas 6–13, 15, 17, 21 y 27. Solo culpa al LLM de lo que eligió él."""
-    libre = lambda c: c not in fijos
+    libre = lambda c: c not in fijos and not (c == "luz" and not pide_luz({**plan["tomas"][k - 1], "fijos": list(fijos)}))
     p = [] if d["encuadre"] in ENCUADRES or not libre("encuadre") else [
         f"FRAMING tiene que ser exactamente una de estas: {', '.join(ENCUADRES)} (escribiste «{d['encuadre']}»)"]
     suj = sujetos_objeto(menu).get(plan["tomas"][k - 1]["objeto"]) if menu else None
@@ -843,8 +882,8 @@ def solo_primeros_planos(plan):
 
 
 def lugar_escrito(t):
-    """Si la toma escribe un lugar o un fondo en la carta."""
-    return bool(t["lugar"] or t["lugar_ref"] or t["fondo_ref"])
+    """Si la toma escribe un lugar o un fondo en la carta: todas salvo las «sin entorno»."""
+    return not sin_entorno(t)
 
 
 def montar(perfil, menu, plan, ini, palabras, idioma="es"):
@@ -861,20 +900,24 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
             citas.append(f"wearing the {nombre_de(menu['ropa'][t['ropa']], 'clothes')} from {t['ropa']}")
         if t["pose"]:
             citas.append(f"in the pose of {t['pose']}")
-        lugar = re.sub(r"^(A|An|The)\b", lambda m: m.group(1).lower(), falta(t["lugar"], "final.hueco.sin_lugar", k=k))
-        if t["lugar_ref"] in menu["lugar"]:
-            lugar += f", in the {nombre_de(menu['lugar'][t['lugar_ref']], 'place')} shown in {t['lugar_ref']}"
-        if t["fondo_ref"]:
-            lugar += f" like the place in {t['fondo_ref']}"
-        encuadre = falta(t["encuadre"], "final.hueco.sin_encuadre", k=k).capitalize()
-        entorno = f"{lugar}, {falta(t['luz'], 'final.hueco.sin_luz', k=k)}"
+        if sin_entorno(t):   # ningún lugar ni fondo; la luz, solo si la escribió el usuario (la que dejó el LLM antes no)
+            entorno = t["luz"] if "luz" in t.get("fijos", []) else ""
+        else:
+            lugar = re.sub(r"^(A|An|The)\b", lambda m: m.group(1).lower(), falta(t["lugar"], "final.hueco.sin_lugar", k=k))
+            if t["lugar_ref"] in menu["lugar"]:
+                lugar += f", in the {nombre_de(menu['lugar'][t['lugar_ref']], 'place')} shown in {t['lugar_ref']}"
+            if t["fondo_ref"]:
+                lugar += f" like the place in {t['fondo_ref']}"
+            entorno = f"{lugar}, {falta(t['luz'], 'final.hueco.sin_luz', k=k)}"
+        encuadre = ENCUADRE_PROMPT.get(t["encuadre"], t["encuadre"]) or falta("", "final.hueco.sin_encuadre", k=k)
+        encuadre = encuadre[:1].upper() + encuadre[1:]   # solo la primera letra: «<Subject 1>» y los nombres no se tocan
         # el efecto (la transformación) va justo después del encuadre, antes del lugar, la luz, la acción y la cámara: así
         # lo leía H3 en el edit de Ren que funcionó. Un efecto con imagen se cita además por su etiqueta.
         efecto = frase_efecto(menu, t)
         if efecto:
             efecto += f", like the effect in {t['efecto']}" if t["efecto"] in efectos_con_imagen(menu) else ""
-            entorno = f"{efecto}. {entorno[:1].upper()}{entorno[1:]}"
-        s = (f"[Shot {k}] At {mmss(t0)} {encuadre}, {entorno}: <Subject 1>" +
+            entorno = f"{efecto}. {entorno[:1].upper()}{entorno[1:]}" if entorno else efecto
+        s = (f"[Shot {k}] At {mmss(t0)} {encuadre}" + (f", {entorno}" if entorno else "") + ": <Subject 1>" +
              (", " + " and ".join(citas) + "," if citas else "") +
              f" {falta(t['gesto'], 'final.hueco.sin_gesto', k=k)}; the camera {falta(t['camara'], 'final.hueco.sin_camara', k=k)}.")
         if k in palabras:
@@ -1107,7 +1150,7 @@ def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, a
     """Encuadre, luz, gesto y cámara (1 llamada por toma, sin razonamiento). `solo`: regenera solo esa toma, mirando a
     sus dos vecinas. Respeta lo fijado. Devuelve (plan, intentos por toma)."""
     perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
-    faltan = [k for k, t in enumerate(plan["tomas"], 1) if not t["lugar"] or not t["momento"]]
+    faltan = [k for k, t in enumerate(plan["tomas"], 1) if (not t["lugar"] and not sin_entorno(t)) or not t["momento"]]
     if faltan:
         raise ErrorUsuario("errores.falta_historia", faltan=faltan)
     reg = reg or registro_nuevo("tomas" if solo is None else f"toma{solo}")

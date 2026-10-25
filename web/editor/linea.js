@@ -138,7 +138,7 @@ export function instalar(ctx) {
         title: [toma.lugar, toma.momento].filter(Boolean).join(" — ") || t("linea.toma_sin_historia"),
         onclick: () => ctx.elegir(S.elegida === i + 1 ? null : i + 1) },
         n > 1 ? cruz : null,
-        el("b", {}, t("linea.toma", { k: i + 1 })), el("span", {}, toma.lugar || t("linea.sin_lugar")), tiempo);
+        el("b", {}, t("linea.toma", { k: i + 1 })), el("span", {}, toma.entorno === "ninguno" ? t("toma.entorno.ninguno") : toma.lugar || t("linea.sin_lugar")), tiempo);
     });
     // cada toma va donde empieza y dura lo que dura (posición absoluta: los bordes caen justo en los cortes)
     const colocar = (c) => bloques.forEach((b, i) => {

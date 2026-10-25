@@ -16,6 +16,8 @@ export const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "
 export const PRONOMBRES = ["they", "she", "he"];       // van al prompt en inglés; solo «they» lleva letrero (por defecto)
 const CONCEPTO = { identity: "personaje", clothing: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                    scene: "fondo", style: "estilo" };
+// los papeles de cada mitad (para elegir al subir o al añadir desde la biblioteca)
+const PAPELES_LADO = { izq: ["personaje", "objeto", "lugar"], der: ["ropa", "pose", "fondo", "estilo", "efecto"] };
 // al añadir desde una mitad, el papel que toca en ese lado según el concepto del RefMod
 const POR_LADO = { izq: { identity: "personaje", background: "lugar", scene: "lugar", "": "objeto" },
                    der: { clothing: "ropa", identity: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
@@ -193,10 +195,11 @@ export function instalar(ctx) {
     ctx.cambiarStack((p) => { p.splice(r.idx, 1); });
     ctx.avisar(t("referencias.quitada", { nombre: r.nombre }), "bien");
   };
-  ctx.anadirDeBiblioteca = (it, lado) => ctx.anadirVariosDeBiblioteca([it], lado);
+  ctx.anadirDeBiblioteca = (it, lado, papel) => ctx.anadirVariosDeBiblioteca([it], lado, papel);
   /* añade varios RefMods de la biblioteca de una vez, en ese orden. Si no caben en las 12 tarjetas del Stack, no añade
-   * ninguno y lanza un error (la biblioteca lo enseña dentro de su ventana). */
-  ctx.anadirVariosDeBiblioteca = function anadirVariosDeBiblioteca(its, lado) {
+   * ninguno y lanza un error (la biblioteca lo enseña dentro de su ventana). El papel: el elegido en la biblioteca; si no,
+   * el que ya tenía esa referencia en el editor y, si es nueva, el que toca en esa mitad según el concepto del RefMod. */
+  ctx.anadirVariosDeBiblioteca = function anadirVariosDeBiblioteca(its, lado, papel = "") {
     const hay = (leerJSON(W(wf.stack || {}, "stack_state")?.value, {}).picks || []).length;
     if (hay + its.length > 12) {
       throw new Error(t("referencias.no_caben", { hay, n: its.length, sobran: hay + its.length - 12 }));
@@ -206,6 +209,7 @@ export function instalar(ctx) {
         S.refs[it.name] = { papel: papelPorLado(lado, it.concept || ""), nombre: "",
                             ficha: (it.appearance || it.desc || "").slice(0, 300), origen: "RefMod" };
       }
+      if (papel && S.refs[it.name]) S.refs[it.name].papel = papel;
     }
     ctx.cambiarStack((picks) => { for (const it of its) picks.push(ctx.tarjeta(it, picks)); });
   };
@@ -244,13 +248,14 @@ export function instalar(ctx) {
    * marcadas en el Stack, en el orden en que se marcaron, y cierra. Buscar no borra lo marcado. */
   ctx.abrirBiblioteca = function abrirBiblioteca(lado) {
     const marcadas = [];                                   // nombres, en el orden en que se marcaron
+    let papel = "";                                        // "" = el que ya tenía o el de su concepto
     const filtro = el("input", { oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
     const aviso = el("p", { class: "epl-aviso epl-biblio-aviso" });
     const anadir = el("button", { class: "epl-boton epl-azul epl-grande epl-biblio-anadir", onclick: () => {
       const its = marcadas.map((n) => ctx.biblioteca[n]).filter(Boolean);
       try {
-        ctx.anadirVariosDeBiblioteca(its, lado);
+        ctx.anadirVariosDeBiblioteca(its, lado, papel);
         v.cerrar();
         ctx.avisar(its.length === 1 ? t("referencias.biblioteca.anadida", { nombre: its[0].label || its[0].name })
                                     : t("referencias.biblioteca.anadidas", { n: its.length }), "bien");
@@ -267,7 +272,12 @@ export function instalar(ctx) {
             el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
         el("p", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda")),
         rejilla,
-        el("div", { class: "epl-biblio-pie" }, aviso, anadir));
+        el("div", { class: "epl-biblio-pie" }, aviso,
+          el("label", { title: t("referencias.biblioteca.papel.tooltip") }, t("referencias.ficha.papel") + " ",
+            el("select", { class: "epl-biblio-papel", onchange: (e) => { papel = e.target.value; } },
+              el("option", { value: "", selected: !papel }, t("referencias.biblioteca.papel.auto")),
+              ...PAPELES_LADO[lado].map((p) => el("option", { value: p, selected: papel === p }, papelLargo(p))))),
+          anadir));
       pintar();
       contar();
     };
@@ -302,7 +312,6 @@ export function instalar(ctx) {
    * ComfyUI) → RefMod nuevo en subidas/ (rutas.subir_refmods: Full Reference, 512, concept_type según el papel) → al Stack,
    * con el papel y el nombre elegidos. Varias fotos de un mismo personaje pueden ir juntas en una cajita. Con «tapar al
    * subir», cada referencia nueva se tapa (cara y pelo, SAM 3.1) en cuanto entra en el Stack. */
-  const PAPELES_LADO = { izq: ["personaje", "objeto", "lugar"], der: ["ropa", "pose", "fondo", "estilo", "efecto"] };
   ctx.subirFoto = async function subirFoto(archivo) {
     const fd = new FormData();
     fd.append("image", archivo, archivo.name);

@@ -8,18 +8,29 @@
  * con u.t("clave") (web/i18n/*.json); cada pintar… los vuelve a escribir en el idioma de ahora.
  * Planos: ../../planos/4 El editor.md. */
 
-const ENCUADRES = ["extreme close-up", "close-up", "medium close-up"];
+// los mismos que nucleo.ENCUADRES (pruebas.py lo comprueba). Van al prompt en inglés; su letrero es toma.encuadre_op.<i>
+export const ENCUADRES = ["extreme close-up", "close-up", "medium close-up", "low-angle close-up", "close detail shot",
+                          "extreme close-up of the eyes", "dynamic close-up"];
+// entorno de una toma (nucleo.ENTORNOS): el LLM elige el lugar, lo escribe el usuario (candado del lugar) o no hay ninguno
+export const ENTORNOS = ["auto", "manual", "ninguno"];
 const HISTORIA = ["lugar", "momento", "personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
 const DIRECCION = ["encuadre", "luz", "gesto", "camara"];
 
-const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), efecto_frase: "", fijos: [] });
+const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), efecto_frase: "", entorno: "auto",
+                           fijos: [] });
+// compatibilidad (como nucleo.con_entorno): sin entorno guardado, con el lugar fijado es «manual» y si no, «auto».
+// «manual» y el candado del lugar van siempre juntos.
+function conEntorno(t) {
+  const e = ENTORNOS.includes(t.entorno) ? t.entorno : (t.fijos || []).includes("lugar") ? "manual" : "auto";
+  return { ...t, entorno: e, fijos: [...(t.fijos || []).filter((f) => f !== "lugar"), ...(e === "manual" ? ["lugar"] : [])] };
+}
 // deja el plan con n tomas y todos sus campos (sin tocar lo que ya tiene)
 export function ajustarPlan(plan, n) {
   const p = plan ? JSON.parse(JSON.stringify(plan)) : {};
   for (const c of ["arco", "look", "fondo"]) p[c] = p[c] || "";
   p.fijos = p.fijos || [];
   if ((p.cortes || []).length !== n) delete p.cortes;   // cortes a mano de otro número de tomas: ya no valen
-  p.tomas = (p.tomas || []).slice(0, n).map((t) => ({ ...tomaVacia(), ...t, fijos: t.fijos || [] }));
+  p.tomas = (p.tomas || []).slice(0, n).map((t) => conEntorno({ ...tomaVacia(), ...t, entorno: t.entorno, fijos: t.fijos || [] }));
   while (p.tomas.length < n) p.tomas.push(tomaVacia());
   return p;
 }
@@ -118,6 +129,32 @@ export function instalar(ctx) {
       el("div", { class: "epl-marca-frase" }, marca, propia && !/^E\d+$/.test(toma.efecto) ? guardarComo : null));
   }
 
+  /* el lugar de la toma con su selector de entorno (en lugar del candado): «Entorno auto» (lo escribe el LLM; si lo
+   * escribes tú, pasa a manual), «Entorno manual» (fijo) o «Sin entorno» (no se escribe ningún lugar ni fondo, y la luz
+   * solo va si la escribes) */
+  function campoLugar(toma) {
+    const poner = (e) => {
+      toma.entorno = e;
+      if (e === "ninguno" && !toma.fijos.includes("luz")) toma.luz = "";   // la luz del LLM no va sin entorno; la tuya sí
+      toma.fijos = [...toma.fijos.filter((f) => f !== "lugar"), ...(e === "manual" ? ["lugar"] : [])];
+      ctx.pintarToma(); ctx.pintarRefs(); ctx.pintarLinea(); ctx.pedirMontaje();
+    };
+    const ninguno = toma.entorno === "ninguno";
+    const entrada = el("input", { "data-campo": "lugar", value: toma.lugar || "", disabled: ninguno,
+      placeholder: ninguno ? t("toma.entorno.ninguno.ayuda") : "",
+      oninput: (e) => {
+        toma.lugar = e.target.value;
+        if (toma.entorno !== "manual") { toma.entorno = "manual"; fijar(toma.fijos, "lugar"); botones.replaceWith(botones = selector()); }
+        ctx.pedirMontaje(); pintarRefsSuave();
+      } });
+    const selector = () => el("span", { class: "epl-entorno" }, ...ENTORNOS.map((e) =>
+      el("button", { class: "epl-mini" + (toma.entorno === e ? " fijo" : ""), "data-entorno": e, title: t(`toma.entorno.${e}.tooltip`),
+                     onclick: () => poner(e) }, t(`toma.entorno.${e}`))));
+    let botones = selector();
+    return el("div", { class: "epl-campo-lugar" },
+      el("label", { class: "epl-campo" }, el("span", {}, t("toma.lugar")), entrada), botones);
+  }
+
   // ---- 1 · historia general
   ctx.pintarHistoria = function pintarHistoria() {
     const p = S.plan;
@@ -178,10 +215,11 @@ export function instalar(ctx) {
       const ops = opcionesDe(papel, vacio);
       return ops ? campoMenu(toma, campo, t(etiqueta), toma.fijos, ops) : null;
     };
+    const ninguno = toma.entorno === "ninguno";     // sin entorno no hay lugar fijo ni fondo que elegir
     const refs = [menu("personaje", "toma.atuendo", "personaje", "—"), menu("ropa", "toma.ropa", "ropa", t("toma.sin_ropa")),
                   menu("pose", "toma.pose", "pose", t("toma.sin_pose")), menu("objeto", "toma.objeto", "objeto", t("toma.sin_objeto")),
-                  menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
-                  menu("fondo_ref", "toma.fondo", "fondo", t("toma.sin_fondo"))].filter(Boolean);
+                  ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
+                  ninguno ? null : menu("fondo_ref", "toma.fondo", "fondo", t("toma.sin_fondo"))].filter(Boolean);
     const efectos = opcionesDe("efecto", t("toma.sin_efecto"));
     secToma.replaceChildren(
       el("div", { class: "epl-tit" }, a === undefined ? t("toma.titulo", { k })
@@ -194,7 +232,7 @@ export function instalar(ctx) {
       el("div", { class: "epl-linea-toma" }),
       el("div", { class: "epl-tres" },
         el("div", {}, el("b", {}, t("toma.que_pasa")),
-          campoTexto(toma, "lugar", t("toma.lugar"), toma.fijos),
+          campoLugar(toma),
           campoTexto(toma, "momento", t("toma.momento"), toma.fijos, { largo: true }),
           efectos ? campoMenu(toma, "efecto", t("toma.efecto"), toma.fijos, efectos) : null,
           campoFrase(toma)),
@@ -202,9 +240,9 @@ export function instalar(ctx) {
           ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))]),
           el("p", { class: "epl-ayuda" }, t("toma.refs.ayuda"))),
         el("div", {}, el("b", {}, t("toma.direccion")),
-          campoMenu(toma, "encuadre", t("toma.encuadre"), toma.fijos, [["", "—"], ...ENCUADRES.map((e) => [e, e])]),
+          campoMenu(toma, "encuadre", t("toma.encuadre"), toma.fijos, [["", "—"], ...ENCUADRES.map((e, i) => [e, t(`toma.encuadre_op.${i}`)])]),
           campoTexto(toma, "camara", t("toma.camara"), toma.fijos),
-          campoTexto(toma, "luz", t("toma.luz"), toma.fijos),
+          campoTexto(toma, "luz", t(ninguno ? "toma.luz_opcional" : "toma.luz"), toma.fijos),
           campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true }))));
     ctx.pintarLineaToma();
   };

@@ -38,6 +38,8 @@ input.corto{width:70px}
 .epl-campo>span{color:#9aa3b2;padding-top:5px;font-size:12px}
 .epl-campo.ancho{grid-template-columns:86px minmax(0,1fr)}
 .epl-campo select,.epl-campo input,.epl-campo textarea{min-width:0;width:100%;box-sizing:border-box}
+.epl-campo-lugar .epl-entorno{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 4px 92px}
+.epl-campo-lugar input:disabled{opacity:.45}
 .epl-candado{background:none;border:0;cursor:pointer;font-size:13px;padding:1px 3px;opacity:.3;filter:grayscale(1)}
 .epl-candado.fijo{opacity:1;filter:none;background:#5a4515;border-radius:calc(var(--radio) * 5px)}
 .epl-marca-frase{margin:-2px 0 4px 92px}
