@@ -11,14 +11,22 @@
  * El trabajo lo hace el servidor (rutas /edit_prompt_llm/*, nucleo.py); aquí solo se muestra, se edita y se guarda.
  * Este archivo solo junta las piezas de editor/. Todas comparten un objeto «ctx» con el estado (S), las referencias del
  * workflow (wf) y las funciones de cada pieza. Se vuelve a cargar cada vez que se abre la ventana: editor.js lo importa
- * con «?v=…» y aquí se pasa el mismo «?v=…» a cada pieza, así un cambio en cualquiera se ve al reabrir sin recargar. */
+ * con «?v=…» y aquí se pasa el mismo «?v=…» a cada pieza, así un cambio en cualquiera se ve al reabrir sin recargar.
+ * Dos idiomas (editor/i18n.js): todas las piezas escriben sus textos con ctx.u.t("clave", {datos}) y los números con
+ * ctx.u.num. El botón «ES | EN» de la cabecera cambia el ajuste de ComfyUI y la ventana se vuelve a pintar entera (también
+ * la ventanita de encima, con su `repintar`) sin perder lo escrito: todo vive en S y en el plan, no en el DOM. */
 
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [u, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion] = await Promise.all(
-    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion"].map(pieza));
-  const { el, W, leerJSON, api } = u;
+  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n] = await Promise.all(
+    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion", "i18n"].map(pieza));
+  // el idioma: los textos de los dos idiomas y el traductor del elegido; las piezas usan u.t, u.num, u.lista y u.api
+  const textos = await i18n.cargarTextos();
+  let tr = i18n.traductor(textos, i18n.idiomaElegido(app));
+  const u = { ...util, t: (clave, datos) => tr.t(clave, datos), num: (x, dec) => tr.num(x, dec), lista: (xs) => tr.lista(xs),
+              idioma: () => tr.idioma, api: (ruta, cuerpo) => util.api(ruta, cuerpo, tr) };
+  const { el, W, leerJSON, api, t } = u;
 
   document.getElementById("epl-css")?.remove();
   document.head.append(el("style", { id: "epl-css" }, estilos.CSS));
@@ -74,7 +82,7 @@ export async function abrir(node, app) {
         ctx.pintarFinal();
         ctx.pintarLinea();
         ctx.pintarLineaToma();
-      } catch (e) { ctx.avisar("No se pudo montar: " + e.message, "mal"); }
+      } catch (e) { ctx.avisar(t("errores.montar", { error: e.message }), "mal"); }
     }, 350);
   };
 
@@ -96,21 +104,19 @@ export async function abrir(node, app) {
   function migrarSinRecetas() {
     const viejo = (guardado.v || 0) < 4 && Object.keys(guardado).length > 0;
     const receta = node._eplRecetaVieja || W(node, "receta")?.value || guardado.receta;
-    if (viejo && receta) wf.avisos.push(`Este workflow usaba la receta «${receta}», que ya no existe: escribe el nombre y la ficha ` +
-      "del personaje (en su referencia) y el Estilo (en la historia general).");
+    if (viejo && receta) wf.avisos.push(["comun.migracion.receta", { receta }]);
     if (viejo) for (const r of Object.values(S.refs)) {
       if (r?.papel === "personaje" && (r.nombre || "").trim() && !r.atuendo) { r.atuendo = r.nombre; r.nombre = ""; }
     }
     const vaciadas = [];
     S.plan.tomas.forEach((t, i) => {
       if (/^[GU]\d$/.test(t.efecto || "")) {
-        vaciadas.push(`T${i + 1} (${t.efecto})`);
+        vaciadas.push(`${u.t("comun.toma_corta", { k: i + 1 })} (${t.efecto})`);
         t.efecto = "";
         if (!(t.efecto_frase || "").trim()) t.fijos = t.fijos.filter((f) => f !== "efecto" && f !== "efecto_frase");
       }
     });
-    if (vaciadas.length) wf.avisos.push(`Los efectos de la receta ya no existen; los quité de ${vaciadas.join(", ")}. ` +
-      "Crea los tuyos con «+ Efecto» (en la mitad azul) o escribe la frase del efecto en la toma.");
+    if (vaciadas.length) wf.avisos.push(["comun.migracion.efectos", { tomas: u.lista(vaciadas) }]);
   }
 
   // ---- guardar en el nodo (si se eligió un tramo del audio, antes se escribe su recorte y el LoadAudio apunta a él)
@@ -125,39 +131,74 @@ export async function abrir(node, app) {
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
                                                estilo: S.estilo, estilo_palabras: S.estilo_palabras, plan: S.plan, prompt: S.prompt,
-                                               a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, guardado: new Date().toISOString() });
+                                               a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, idioma: tr.idioma,
+                                               guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);
     graph.setDirtyCanvas?.(true, true);
     try { app.extensionManager?.workflow?.activeWorkflow?.changeTracker?.checkState?.(); } catch { /* sin seguimiento de cambios */ }
     return dur;
   }
   // lo que la duración cambió en el workflow, para el aviso de la cabecera
-  const textoDuracion = (d) => !d ? "" : ` · H3: ${d.fotogramas} fotogramas (${d.segundos.toFixed(3).replace(".", ",")} s)` +
-    (d.cambios.length ? ` · cambié ${d.cambios.join(" · ")}` : " · los nodos ya tenían esa duración");
+  const textoDuracion = (d) => !d ? "" : " · " + t("comun.ventana.duracion", { f: d.fotogramas, s: u.num(d.segundos, 3) }) + " · " +
+    (d.cambios.length ? t("comun.ventana.duracion_cambios", { cambios: d.cambios.map((c) => duracion.textoCambio(c, tr)).join(" · ") })
+                      : t("comun.ventana.duracion_igual"));
   ctx.guardarYAvisar = async () => {
     let d;
-    try { d = await guardar(); } catch (e) { return ctx.avisar("No se pudo guardar: " + e.message, "mal"); }
-    ctx.avisar((S.avisos.length ? "Guardado, con huecos en el prompt" : "Guardado en el nodo (guarda el workflow con Ctrl+S)") + textoDuracion(d),
+    try { d = await guardar(); } catch (e) { return ctx.avisar(t("errores.guardar", { error: e.message }), "mal"); }
+    ctx.avisar(t(S.avisos.length ? "comun.ventana.guardado_huecos" : "comun.ventana.guardado") + textoDuracion(d),
                S.avisos.length ? "mal" : "bien");
     return d;
   };
-  const cerrar = () => { fondo.remove(); document.removeEventListener("keydown", tecla, true); };
+  const cerrar = () => {
+    fondo.remove();
+    document.removeEventListener("keydown", tecla, true);
+    window.removeEventListener(i18n.EVENTO, alAjuste);
+  };
   // Escape cierra la ventana de encima (ficha, cajita, biblioteca); no cierra el editor, para no perder cambios
   const tecla = (e) => { if (e.key === "Escape" && caja.querySelector(".epl-capa")) { e.stopPropagation(); caja.querySelector(".epl-capa").remove(); } };
   document.addEventListener("keydown", tecla, true);
 
-  caja.append(
-    el("div", { class: "epl-cabecera" }, el("b", {}, "Editor del edit"), estado,
-      el("button", { class: "epl-boton epl-azul", onclick: () => ctx.guardarYAvisar() }, "Guardar"),
+  // ---- idioma: el botón «ES | EN» cambia el ajuste de ComfyUI (que lo recuerda); editor.js avisa con un evento y aquí
+  // se vuelve a pintar todo con el idioma nuevo. Si el ajuste no se puede guardar, cambia igual en esta ventana.
+  function aplicarIdioma(idioma) {
+    if (idioma === tr.idioma) return;
+    tr = i18n.traductor(textos, idioma);
+    pintarCabecera();
+    ctx.pintarPlan();
+    ctx.pintarRefs();
+    ctx.pintarFinal();
+    ctx.pintarAudio();
+    caja.querySelector(".epl-capa")?.epl?.repintar?.();
+    ctx.pedirMontaje();                                    // los huecos del prompt final llegan del servidor, traducidos
+    ctx.avisar(t("comun.idioma.listo"), "bien");
+  }
+  const alAjuste = () => aplicarIdioma(i18n.idiomaElegido(app));
+  window.addEventListener(i18n.EVENTO, alAjuste);
+  async function cambiarIdioma(idioma) {
+    try { await app.extensionManager?.setting?.set?.(i18n.AJUSTE, idioma); } catch (e) { console.warn("[Prompt del edit] ajuste del idioma:", e); }
+    aplicarIdioma(idioma);
+  }
+
+  const cabecera = el("div", { class: "epl-cabecera" });
+  function pintarCabecera() {
+    const boton = (i, texto) => el("button", { class: "epl-mini" + (tr.idioma === i ? " fijo" : ""), "data-idioma": i,
+                                               onclick: () => cambiarIdioma(i) }, texto);
+    cabecera.replaceChildren(el("b", {}, t("comun.ventana.titulo")), estado,
+      el("span", { class: "epl-idioma", title: t("comun.idioma.tooltip") }, boton("es", "ES"), " | ", boton("en", "EN")),
+      el("button", { class: "epl-boton epl-azul", onclick: () => ctx.guardarYAvisar() }, t("comun.guardar")),
       el("button", { class: "epl-boton epl-verde epl-grande", onclick: async () => {
-        try { await guardar(); cerrar(); } catch (e) { ctx.avisar("No se pudo guardar: " + e.message, "mal"); } } }, "Guardar y cerrar"),
-      el("button", { class: "epl-x", title: "Cerrar sin guardar", onclick: cerrar }, "✕")),
-    el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secTiempo, secFinal));
+        try { await guardar(); cerrar(); } catch (e) { ctx.avisar(t("errores.guardar", { error: e.message }), "mal"); } } },
+        t("comun.ventana.guardar_cerrar")),
+      el("button", { class: "epl-x", title: t("comun.ventana.cerrar_sin_guardar"), onclick: cerrar }, "✕"));
+  }
+  pintarCabecera();
+  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secTiempo, secFinal));
   ctx.pintarPlan();
   ctx.pintarRefs();
   ctx.pintarFinal();
   ctx.pintarAudio();
   ctx.pedirMontaje();
-  ctx.avisar(wf.audio ? `Audio: ${wf.audio}` : "Sin audio conectado: cortes parejos");
+  ctx.avisar(wf.audio ? t("comun.ventana.audio", { audio: wf.audio }) : t("comun.ventana.sin_audio"));
+  ctx.idioma = { aplicar: aplicarIdioma, cambiar: cambiarIdioma, actual: () => tr.idioma };   // para probar desde la consola
   return ctx;
 }

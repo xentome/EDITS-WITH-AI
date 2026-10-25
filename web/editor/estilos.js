@@ -11,6 +11,8 @@ export const CSS = `
   border:1px solid #303642;border-radius:calc(var(--radio) * 10px);box-shadow:0 24px 64px rgba(0,0,0,.55);overflow:hidden}
 .epl-caja.ocupada .epl-boton,.epl-caja.ocupada .epl-mini,.epl-caja.ocupada .epl-mas{opacity:.45;pointer-events:none}
 .epl-cabecera{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid #2a2f3a;background:#1e222a}
+.epl-idioma{display:inline-flex;align-items:center;gap:3px;color:#6b7280;font-size:11px}
+.epl-idioma .epl-mini{min-width:30px}
 .epl-estado{flex:1;color:#8a93a3}.epl-estado.bien{color:#5fbf7f}.epl-estado.mal{color:#f07070}.epl-estado.trabajando{color:#e0a94c}
 .epl-cuerpo{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:10px 2.5%}
 .epl-sec{background:#15181e;border:1px solid #2e3440;border-radius:calc(var(--radio) * 8px);padding:8px 10px;flex:none}

@@ -1,0 +1,44 @@
+{
+ "PromptDelEdit": {
+  "display_name": "Edit prompt (LLM)",
+  "description": "Idea → H3 prompt. With “Open editor…” you see and link the references, the prompt the LLM reads and the final prompt. Without the editor, Qwen3.8 writes the story and every shot from the node's fields. Docs: custom_nodes/edit_prompt_llm/PLANOS.md",
+  "inputs": {
+   "idea": {
+    "name": "idea"
+   },
+   "tomas": {
+    "name": "shots"
+   },
+   "duracion_s": {
+    "name": "duration (s)",
+    "tooltip": "Frames / 24; same as the Prompt Builder's duration"
+   },
+   "palabras": {
+    "name": "words"
+   },
+   "semilla_llm": {
+    "name": "LLM seed",
+    "tooltip": "New seed = new version; same seed = same prompt, without calling the LLM"
+   },
+   "audio": {
+    "name": "audio",
+    "tooltip": "The workflow's LoadAudio: cuts land on its beats. Without audio, cuts are evenly spaced."
+   },
+   "texto_bloqueado": {
+    "name": "locked text"
+   },
+   "estado": {
+    "name": "state",
+    "tooltip": "Saved by the editor (hidden)"
+   }
+  },
+  "outputs": {
+   "0": {
+    "name": "prompt"
+   },
+   "1": {
+    "name": "report"
+   }
+  }
+ }
+}

@@ -166,8 +166,10 @@ def _ejecutar(grafo, que, cliente="edit_prompt_llm", max_s=600):
     raise RuntimeError(f"Tarda demasiado ({max_s // 60} min) en {que}; mira la consola de ComfyUI.")
 
 
-def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", apariencia="", que="RefMod"):
-    """RefMod con las fotos `items` (nodo MiniMaxH3FantasticRefModCreate: Full Reference, 512, VAE de H3), por /prompt."""
+def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", apariencia="", que="RefMod",
+                  cliente="edit_prompt_llm_RefMod"):
+    """RefMod con las fotos `items` (nodo MiniMaxH3FantasticRefModCreate: Full Reference, 512, VAE de H3), por /prompt.
+    `cliente` es el client_id de ComfyUI: va aparte de los textos, que cambian con el idioma."""
     import json
     grafo = {
         "1": {"class_type": "VAELoader", "inputs": {"vae_name": VAE_H3}},
@@ -177,7 +179,7 @@ def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", a
             "concept_type": concepto, "description": descripcion, "write_preview": True,
             "source": json.dumps(items, ensure_ascii=False), "subject_name": sujeto, "appearance": apariencia,
             "vae": ["1", 0]}}}
-    _ejecutar(grafo, f"crear la {que}", "edit_prompt_llm_" + que.split()[0])
+    _ejecutar(grafo, f"crear la {que}", cliente)
 
 
 def medios(d=None):
@@ -260,7 +262,7 @@ def crear_cajita(d):
     items = [_item_media(r) for r in rels]
     _cola_libre("crear la cajita")
     _crear_refmod(nombre, carpeta, items, d.get("concepto") or "identity", d.get("descripcion") or "",
-                  d.get("sujeto") or "", d.get("apariencia") or "", "cajita")
+                  d.get("sujeto") or "", d.get("apariencia") or "", "cajita", "edit_prompt_llm_cajita")
     with open(os.path.join(raiz, destino + ".cajita.json"), "w") as fh:
         json.dump({"fotos": items, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}, fh, ensure_ascii=False, indent=1)
     return {"name": destino, "fotos": items, "segundos": round(time.time() - t0, 1)}
@@ -306,7 +308,8 @@ def subir_refmods(d):
         destino = _libre(raiz, f"{carpeta}/{base}" + ("" if len(grupos) == 1 else f"_{i}"))
         items = [_item_media(r) for r in fotos]
         _crear_refmod(os.path.basename(destino), os.path.dirname(destino), items, concepto,
-                      f"Subida desde el editor del edit ({d.get('papel') or 'sin papel'})", "", "", "referencia subida")
+                      f"Subida desde el editor del edit ({d.get('papel') or 'sin papel'})", "", "", "referencia subida",
+                      "edit_prompt_llm_referencia")
         if len(items) > 1:       # una cajita apunta sus fotos, como las de «+ Cajita»
             with open(os.path.join(raiz, destino + ".cajita.json"), "w") as fh:
                 json.dump({"fotos": items, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}, fh, ensure_ascii=False, indent=1)
@@ -498,7 +501,7 @@ def tapar(d):
     carpeta, tronco = os.path.dirname(p["nombre"]), os.path.basename(p["nombre"])
     desc = " · ".join(x for x in (d.get("descripcion") or "", f"tapado con SAM 3.1: {', '.join(p['palabras'])} ({p['forma']})") if x)
     _crear_refmod(tronco, carpeta, items, d.get("concepto") or "clothing", desc, "", d.get("apariencia") or "",
-                  "referencia tapada")
+                  "referencia tapada", "edit_prompt_llm_referencia")
     info = {"original": p["original"], "cosas": d.get("cosas") or [], "libre": d.get("libre") or "", "palabras": p["palabras"],
             "forma": p["forma"], "fuentes": p["rels"], "origen": p["origen"], "aviso": p["aviso"], "imagenes": imagenes,
             "encontrado": encontrado, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}

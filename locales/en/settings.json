@@ -1,0 +1,11 @@
+{
+ "EditPromptLLM_Idioma": {
+  "name": "Window and node language",
+  "tooltip": "Automatic follows the ComfyUI language (Comfy.Locale). The ES/EN button in the window changes this same setting.",
+  "options": {
+   "auto": "Automatic (follows ComfyUI)",
+   "es": "Español",
+   "en": "English"
+  }
+ }
+}

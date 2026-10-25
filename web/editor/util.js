@@ -16,10 +16,13 @@ export const W = (node, nombre) => node.widgets?.find((w) => w.name === nombre);
 export const enlace = (graph, id) => (graph.links?.get ? graph.links.get(id) : graph.links?.[id]);
 export const leerJSON = (t, otro) => { try { return t ? JSON.parse(t) : otro; } catch { return otro; } };
 
-export async function api(ruta, cuerpo) {
-  const r = await fetch("/edit_prompt_llm/" + ruta, cuerpo === undefined ? undefined :
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
-  const j = await r.json().catch(() => ({ error: `respuesta no válida (${r.status})` }));
+/* llama a una acción del servidor. `tr` (el traductor de la ventana, i18n.js) manda el idioma en cada llamada: el servidor
+ * responde sus errores y avisos en ese idioma. */
+export async function api(ruta, cuerpo, tr = null) {
+  const idioma = tr?.idioma || "es";
+  const r = await fetch("/edit_prompt_llm/" + ruta + (cuerpo === undefined ? "?idioma=" + idioma : ""), cuerpo === undefined ? undefined :
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...cuerpo, idioma }) });
+  const j = await r.json().catch(() => ({ error: tr ? tr.t("errores.respuesta_no_valida", { estado: r.status }) : String(r.status) }));
   if (!r.ok || j.error) throw new Error(j.error || r.statusText);
   return j;
 }

@@ -384,5 +384,122 @@ try:
 finally:
     shutil.rmtree(tmp5, ignore_errors=True)
 
+print("15 · Dos idiomas: web/i18n/{es,en}.json, t() en el código y locales/ de ComfyUI (planos/2, «Dos idiomas»)")
+import glob  # noqa: E402
+import re  # noqa: E402
+import i18n as I  # noqa: E402
+ES, EN = (json.load(open(os.path.join(AQUI, "web", "i18n", f"{x}.json"), encoding="utf-8")) for x in ("es", "en"))
+marcas = lambda x: sorted(set(re.findall(r"\{(\w+)\}", x)))
+comprobar("las dos lenguas tienen las mismas claves, ninguna vacía", set(ES) == set(EN) and all(ES.values()) and all(EN.values()),
+          sorted(set(ES) ^ set(EN)) or [k for k in ES if not ES[k] or not EN.get(k)])
+comprobar("y los mismos {marcadores} en cada clave", all(marcas(ES[k]) == marcas(EN.get(k, "")) for k in ES),
+          [k for k in ES if marcas(ES[k]) != marcas(EN.get(k, ""))])
+
+# las claves que usa el código: literales que empiezan por una zona conocida; con ${x} o {x}, un patrón
+ZONAS = sorted({k.split(".")[0] for k in ES})
+CODIGO_JS = sorted(glob.glob(os.path.join(AQUI, "web", "**", "*.js"), recursive=True))
+CODIGO_PY = [os.path.join(AQUI, x) for x in ("__init__.py", "rutas.py", "nucleo.py", "i18n.py")]
+literal = re.compile(r"""(?<![\w.])f?(["'`])((?:%s)\.[\w.${}]+?)\1""" % "|".join(ZONAS))
+usadas, patrones, faltan = set(), [], []
+for ruta in CODIGO_JS + CODIGO_PY:
+    for _, clave in literal.findall(open(ruta, encoding="utf-8").read()):
+        if "{" in clave:
+            trozos = re.split(r"\$?\{[^}]*\}", clave)
+            patrones.append((clave, re.compile("^" + r"[\w.]+".join(map(re.escape, trozos)) + "$")))
+        elif clave in ES:
+            usadas.add(clave)
+        else:
+            faltan.append(f"{os.path.basename(ruta)}: {clave}")
+for clave, pat in patrones:
+    hay = {k for k in ES if pat.match(k)}
+    if not hay:
+        faltan.append(f"patrón sin claves: {clave}")
+    usadas |= hay
+comprobar("cada t(\"…\") del código existe en es.json", not faltan, faltan)
+sobran = sorted(set(ES) - usadas)
+
+
+# letreros escritos directamente en el código: un literal con letras donde va un texto para el usuario
+LETRAS = re.compile(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ¿¡]")
+SIN_LETRERO = {"bien", "mal", "trabajando", "izq", "der", "px", "%", "es", "en"}   # clases de avisar(), CSS e idiomas
+TROZO_URL = re.compile(r"^[?&/#][\w=/.&?%-]*$")                                   # «?v=», «&t=», «/view?filename=»…
+CLASES = set(re.findall(r"\.([a-z][\w-]*)", open(os.path.join(AQUI, "web", "editor", "estilos.js"), encoding="utf-8").read()))
+es_clase = lambda x: all(p in CLASES for p in x.split())                         # « fijo», « usada»: clases de CSS
+JS_LETRERO = [r"""\b(?:title|placeholder|label|alt|"aria-label")\s*:\s*(["'`])((?:(?!\1).)*)\1""",
+              r"""\.textContent\s*=\s*(["'`])((?:(?!\1).)*)\1""",
+              r"""\bavisar\(\s*(["'`])((?:(?!\1).)*)\1""",
+              r"""\bnew Error\(\s*(["'`])((?:(?!\1).)*)\1""",
+              r"""[)}]\s*,\s*(["'`])((?:(?!\1).)*)\1(?!\s*:)""",             # un hijo de el(...) después de sus props
+              r"""\?\s*(["'`])((?:(?!\1).)*)\1\s*:""",                        # x ? "texto" : …
+              r"""\+\s*(["'`])((?:(?!\1).)*)\1"""]                            # … + "texto"
+PY_LETRERO = [r"""raise\s+(?!ErrorUsuario)\w+\(\s*f?(["'])((?:(?!\1).)*)\1""",
+              r"""["'](?:tooltip|placeholder)["']\s*:\s*f?(["'])((?:(?!\1).)*)\1""",
+              r"""DESCRIPTION\s*=\s*\(?\s*f?(["'])((?:(?!\1).)*)\1""",
+              r"""avisos\.append\(\s*f?(["'])((?:(?!\1).)*)\1""",
+              r"""["']error["']\s*:\s*f?(["'])((?:(?!\1).)*)\1""",
+              r"""return\s*\([^\n]*,\s*f?(["'])((?:(?!\1).)*)\1\)"""]
+# excepciones justificadas: (archivo, el literal tal cual)
+EXCEPCIONES = {
+    ("editor.js", "Idioma / Language"),     # nombre de reserva del ajuste; ComfyUI lo traduce con locales/*/settings.json
+    ("editor.js", "auto = Comfy.Locale"),   # su ayuda de reserva, igual
+    ("editor_core.js", "ES"), ("editor_core.js", "EN"),   # el botón de idioma: los nombres de los idiomas no se traducen
+}
+# piezas que aún no pasaron a t(): se vacía al terminar las fases 2 (ventana) y 3 (servidor y nodo)
+PENDIENTES = {"plan.js", "referencias.js", "cajitas.js", "tapar.js", "linea.js", "audio.js",
+              "final.js", "__init__.py", "rutas.py", "nucleo.py"}
+letreros = []
+for ruta, pats in [(r, JS_LETRERO) for r in CODIGO_JS] + [(r, PY_LETRERO) for r in CODIGO_PY]:
+    nombre = os.path.basename(ruta)
+    if nombre in PENDIENTES:
+        continue
+    for n_lin, lin in enumerate(open(ruta, encoding="utf-8"), 1):
+        if lin.lstrip().startswith(("//", "*", "/*", "#")) or re.search(r"console\.(?:warn|error|log)\(|print\(", lin):
+            continue                         # comentarios y mensajes de consola (son para quien programa)
+        for pat in pats:
+            for _, txt in re.findall(pat, lin):
+                limpio = re.sub(r"\$\{[^}]*\}|\{\w*\}", "", txt).strip()
+                if LETRAS.search(limpio) and limpio not in SIN_LETRERO and not TROZO_URL.match(limpio) and not es_clase(limpio) \
+                        and (nombre, txt) not in EXCEPCIONES \
+                        and not literal.fullmatch(f'"{txt}"'):
+                    letreros.append(f"{nombre}:{n_lin}: {txt[:60]}")
+comprobar("no quedan letreros escritos en el código (todo pasa por t())", not letreros, letreros[:20])
+if PENDIENTES:
+    print(f"  (falta pasar a t(): {', '.join(sorted(PENDIENTES))}; hasta entonces no se miran sus letreros ni las claves que sobran)")
+else:
+    comprobar("no sobran claves (cada texto se usa en algún sitio)", not sobran, sobran)
+
+comprobar("Python: t() pone los marcadores, la coma decimal y, sin clave, el español o la propia clave",
+          I.t("errores.tomas_no_caben", "es", n=6, dur=2.0) == "6 tomas no caben en 2 s (cada toma necesita al menos 0,4 s)."
+          and I.t("errores.tomas_no_caben", "en", n=6, dur=1.5).startswith("6 shots don't fit in 1.5 s")
+          and I.t("no.existe", "en") == "no.existe" and I.num(5.1667, "es", 3) == "5,167" and I.idioma_de("en-US") == "en",
+          I.t("errores.tomas_no_caben", "es", n=6, dur=2.0))
+e = I.ErrorUsuario("errores.falta_idea")
+comprobar("ErrorUsuario: str() en español y texto() en el idioma pedido",
+          str(e) == ES["errores.falta_idea"] and e.texto("en") == EN["errores.falta_idea"])
+js = ("import('" + os.path.join(AQUI, "web", "editor", "i18n.js") + "').then(m => {"
+      "const tx = {es: {a: 'Hola {n}', b: 'solo es'}, en: {a: 'Hi {n}'}};"
+      "const es = m.traductor(tx, 'es'), en = m.traductor(tx, 'en');"
+      "const w = console.warn; let avisos = 0; console.warn = () => { avisos++; };"
+      "const r = {a: en.t('a', {n: 2}), b: en.t('b'), c: en.t('nada'), d: es.num(5.1667, 3), e: en.num(5.1667, 3),"
+      "f: es.lista(['la cara', 'el pelo', 'el texto']), g: en.lista(['face', 'hair'])};"
+      "en.t('b'); console.warn = w; r.avisos = avisos; console.log(JSON.stringify(r)); })")
+try:
+    r = json.loads(_sp.run(["node", "--input-type=module", "-e", js], capture_output=True, text=True, timeout=20).stdout)
+except Exception as exc:
+    r = {"error": str(exc)}
+comprobar("JS: t() con marcadores, el español de reserva (avisa una vez), la clave sola; Intl para números y listas",
+          r.get("a") == "Hi 2" and r.get("b") == "solo es" and r.get("c") == "nada" and r.get("avisos") == 2 and
+          r.get("d") == "5,167" and r.get("e") == "5.167" and r.get("f") == "la cara, el pelo y el texto" and
+          r.get("g") == "face and hair", r)
+generados = I.locales()
+al_dia = all(json.load(open(os.path.join(AQUI, "locales", i, a), encoding="utf-8")) == c
+             for i, archivos in generados.items() for a, c in archivos.items()
+             if os.path.exists(os.path.join(AQUI, "locales", i, a))) and \
+    all(os.path.exists(os.path.join(AQUI, "locales", i, a)) for i, archivos in generados.items() for a in archivos)
+comprobar("locales/{es,en}/ (nodeDefs, settings, main) están al día con las claves (si no: python i18n.py)", al_dia)
+raros = [v for archivos in generados.values() for c in archivos.values() for v in re.findall(r'"([^"]*)"', json.dumps(c, ensure_ascii=False))
+         if re.search(r"[{}|@]", v)]
+comprobar("y no llevan { } | @ (ComfyUI los lee como formato de vue-i18n)", not raros, raros)
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

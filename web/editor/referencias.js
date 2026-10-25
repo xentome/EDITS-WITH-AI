@@ -499,7 +499,7 @@ export function instalar(ctx) {
     secRefs.replaceChildren(el("div", { class: "epl-mitades" },
       el("div", { class: "epl-mitad izq" },
         el("div", { class: "epl-tit" }, "Lo que no cambia · persistente", botones("izq")),
-        ...wf.avisos.map((a) => el("p", { class: "epl-aviso" }, "⚠ " + a)),
+        ...wf.avisos.map((a) => el("p", { class: "epl-aviso" }, "⚠ " + (Array.isArray(a) ? u.t(...a) : a))),
         izq.length ? rejIzq : el("p", { class: "epl-vacio" }, "Pon aquí lo que tiene que salir siempre igual: el personaje " +
           "(una cajita con sus fotos), un producto o un lugar. Usa «+ Añadir» o «+ Cajita», o cambia el papel de una referencia.")),
       el("div", { class: "epl-mitad der" },

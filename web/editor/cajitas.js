@@ -79,8 +79,9 @@ export function instalar(ctx) {
                 st.pestaña = "input";
                 if (!medios) { try { medios = (await api("medios", {})).fotos; } catch (e) { ctx.avisar(e.message, "mal"); medios = []; } }
                 pintar(); } }, "Del Media Loader (input/minimax_h3)"),
-              el("input", { placeholder: "buscar…", value: st.filtro, style: { flex: 1 },
-                oninput: (e) => { st.filtro = e.target.value; clearTimeout(st.t); st.t = setTimeout(() => { pintar(); v.modal.querySelector("input[placeholder='buscar…']")?.focus(); }, 250); } })),
+              // se busca por su clase (no por su texto, que cambia con el idioma) para devolverle el foco al repintar
+              el("input", { class: "epl-cajita-buscar", placeholder: "buscar…", value: st.filtro, style: { flex: 1 },
+                oninput: (e) => { st.filtro = e.target.value; clearTimeout(st.t); st.t = setTimeout(() => { pintar(); v.modal.querySelector(".epl-cajita-buscar")?.focus(); }, 250); } })),
             el("div", { class: "epl-fila" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, "tamaño de las fotos"),
               ctx.controlTamano((t) => { tamElegir = t; rejElegir.style.setProperty("--epl-tam", t + "px"); }, "epl-tam-cajita", tamElegir)),
             st.pestaña === "input" && !medios ? el("p", { class: "epl-vacio" }, "Cargando…") : null,

@@ -1,0 +1,28 @@
+# Fases: bilingüe (español / inglés)
+
+Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para retomarlo si el PC se suspende o se apaga.
+
+**En resumen:** el nodo «Prompt del edit (LLM)» y su ventana se ven en español o en inglés. Los textos viven en `web/i18n/es.json` y `en.json`; el código solo usa `t("clave")`. Lo que va al LLM o a H3 sigue en inglés.
+
+## Estado
+
+| Fase | Qué | Estado |
+|---|---|---|
+| 1 | Base: las dos trampas, `web/i18n/{es,en}.json`, `t()` en JS y en Python, ajuste de idioma y botón «ES \| EN», comprobaciones nuevas en `pruebas.py` | ✅ hecha · ver git log |
+| 2 | La ventana: todos los textos de `web/editor_core.js`, `web/editor.js` y `web/editor/*.js` con `t()`, marcadores, `Intl`, redibujar al cambiar | 🔄 en curso |
+| 3 | El servidor y el nodo: `ErrorUsuario(clave, **datos)`, `idioma` en cada llamada, `locales/{es,en}/nodeDefs.json`, reiniciar ComfyUI | ⬜ |
+| 4 | Probar en los dos idiomas en el navegador real (workflow «Prueba bilingüe»), capturas y documentar en los planos 2, 4 y 6 | ⬜ |
+
+## A medias
+
+- Fase 1 hecha: `i18n.py` (t, num, ErrorUsuario y el generador de `locales/`), `web/editor/i18n.js` (cargarTextos, idiomaElegido, traductor con t/num/lista), el ajuste `EditPromptLLM.Idioma` en `web/editor.js`, el botón «ES | EN» en `web/editor_core.js` (que ya usa `t()`), `util.api` manda `idioma`, `duracion.js` devuelve los cambios como datos. Trampas: el buscador de `cajitas.js` se busca por la clase `epl-cajita-buscar`; el `client_id` de `rutas._crear_refmod` va en su propio parámetro `cliente`.
+- `pruebas.py` sección 15: la lista `PENDIENTES` dice qué archivos aún no pasaron a `t()`; se vacía al terminar las fases 2 y 3 (entonces también se mira que no sobren claves).
+- Fase 2: falta pasar a `t()` plan.js, referencias.js, cajitas.js, tapar.js, linea.js, audio.js y final.js (y quitarlos de `PENDIENTES`). Ayudante para añadir claves: `~/Escritorio/experimentos_edit/edit_prompt_llm/bilingue/herramientas/claves.py`.
+
+## Cómo seguir
+
+1. `cd ~/comfy/ComfyUI/custom_nodes/edit_prompt_llm && git status && git diff --stat` para ver lo que quedó a medias.
+2. Sigue la fase en curso; corre `~/ComfyUI-CLI/.venv/bin/python pruebas.py` hasta TODO BIEN.
+3. El inventario de partida está en `~/Escritorio/experimentos_edit/edit_prompt_llm/bilingue/textos.json` (con su `LEEME.md`). Ya no hace falta: lo vigente son `web/i18n/*.json`.
+4. Si al volver de una suspensión falla una llamada (LLM, ComfyUI o navegador), repítela antes de dar la fase por fallida.
+5. Al terminar cada fase: actualiza este archivo, commit en español con `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` y `git push`. No incluyas `maqueta/dibujo.json` (es del usuario).

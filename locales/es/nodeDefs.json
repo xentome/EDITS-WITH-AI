@@ -1,0 +1,44 @@
+{
+ "PromptDelEdit": {
+  "display_name": "Prompt del edit (LLM)",
+  "description": "Idea → prompt H3. Con «Abrir editor…» ves y enlazas las referencias, el prompt que lee el LLM y el prompt final. Sin editor, Qwen3.8 escribe la historia y cada toma con los campos del nodo. Planos: custom_nodes/edit_prompt_llm/PLANOS.md",
+  "inputs": {
+   "idea": {
+    "name": "idea"
+   },
+   "tomas": {
+    "name": "tomas"
+   },
+   "duracion_s": {
+    "name": "duración (s)",
+    "tooltip": "Fotogramas / 24; igual que la duración del Prompt Builder"
+   },
+   "palabras": {
+    "name": "palabras"
+   },
+   "semilla_llm": {
+    "name": "semilla del LLM",
+    "tooltip": "Otra semilla = otra versión; la misma semilla = el mismo prompt, sin llamar al LLM"
+   },
+   "audio": {
+    "name": "audio",
+    "tooltip": "El LoadAudio del workflow: los cortes caen en sus beats. Sin audio, cortes parejos."
+   },
+   "texto_bloqueado": {
+    "name": "texto bloqueado"
+   },
+   "estado": {
+    "name": "estado",
+    "tooltip": "Lo guarda el editor (oculto)"
+   }
+  },
+  "outputs": {
+   "0": {
+    "name": "prompt"
+   },
+   "1": {
+    "name": "informe"
+   }
+  }
+ }
+}

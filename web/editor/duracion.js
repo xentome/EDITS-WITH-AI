@@ -5,6 +5,7 @@
  *   - el «duration» (segundos) de los demás nodos MiniMaxH3 que lo tengan;
  *   - el «duration» del builder_state del Prompt Builder (en segundos: fotogramas / 24).
  * Los nodos se buscan por su tipo, no por su número. Un campo que llega enlazado desde otro nodo no se toca.
+ * Cada cambio se devuelve como datos ({nodo, campo, antes, despues}); textoCambio lo escribe en el idioma de la ventana.
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Planos: ../../planos/4 El editor.md, «La duración». */
 
 export const FPS = 24;
@@ -20,23 +21,29 @@ export const segundosH3 = (s) => Math.round(fotogramasH3(s) / FPS * 1000) / 1000
 
 const enlazado = (n, nombre) => (n.inputs || []).some((i) => i.widget?.name === nombre && i.link != null);
 const nombreNodo = (n) => `#${n.id} ${n.title || n.type}`;
+const redondo = (x) => typeof x === "number" ? Math.round(x * 1000) / 1000 : x;
 
-/* Pone la duración en los nodos del workflow. Devuelve {fotogramas, segundos, cambios: [texto]} (solo lo que cambió). */
+// un cambio en palabras: «#9 Text Encode: length 73 → 124». tr: el traductor de la ventana (i18n.js)
+export const textoCambio = (c, tr) => tr.t(`duracion.cambio.${c.campo}`, { nodo: c.nodo,
+  antes: typeof c.antes === "number" ? tr.num(c.antes) : c.antes, despues: typeof c.despues === "number" ? tr.num(c.despues) : c.despues });
+
+/* Pone la duración en los nodos del workflow. Devuelve {fotogramas, segundos, cambios: [{nodo, campo, antes, despues}]}
+ * (solo lo que cambió; campo: length, duracion o builder). */
 export function aplicarDuracion(graph, segundos) {
   const f = fotogramasH3(segundos), s = Math.round(f / FPS * 1000) / 1000, cambios = [];
   for (const n of graph?._nodes || []) {
     const ws = n.widgets || [];
-    const poner = (w, v, texto) => {
+    const poner = (w, v, campo) => {
       if (!w || enlazado(n, w.name) || w.value === v) return;
       const antes = w.value;
       w.value = v;
       try { w.callback?.(v); } catch { /* el nodo no necesita enterarse */ }
-      cambios.push(`${nombreNodo(n)}: ${texto} ${typeof antes === "number" ? +antes.toFixed?.(3) : antes} → ${v}`);
+      cambios.push({ nodo: nombreNodo(n), campo, antes: redondo(antes), despues: v });
     };
     const len = ws.find((w) => w.name === "length" && typeof w.value === "number");
     if (len && (LONGITUD.includes(n.type) || /^MiniMaxH3/.test(n.type))) poner(len, f, "length");
     const dur = ws.find((w) => w.name === "duration" && typeof w.value === "number");
-    if (dur && /^MiniMaxH3/.test(n.type)) poner(dur, s, "duración (s)");
+    if (dur && /^MiniMaxH3/.test(n.type)) poner(dur, s, "duracion");
     if (n.type === "MiniMaxH3PromptBuilder") {
       const w = ws.find((x) => x.name === "builder_state") || ws.find((x) => typeof x.value === "string" && /^\s*\{[\s\S]*"duration"/.test(x.value));
       let st = null;
@@ -45,7 +52,7 @@ export function aplicarDuracion(graph, segundos) {
         const antes = +st.duration;
         st.duration = s;
         w.value = JSON.stringify(st);
-        cambios.push(`${nombreNodo(n)}: duración del builder ${Math.round(antes * 1000) / 1000} → ${s}`);
+        cambios.push({ nodo: nombreNodo(n), campo: "builder", antes: redondo(antes), despues: s });
       }
     }
     if (cambios.length) n.setDirtyCanvas?.(true, true);
