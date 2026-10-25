@@ -16,7 +16,7 @@ Símbolos: ✅ hecha (con su commit) · 🔄 en curso · ⬜ pendiente.
 
 ## Fases
 
-1. 🔄 **El núcleo pega.** Consiste en:
+1. ✅ **El núcleo pega** (`c813d74`). Consiste en:
    - `frases.json` con todas las frases de unión;
    - `montar` arma la carta solo con el molde, los campos y esas frases, y devuelve los trozos con su origen;
    - cada referencia que se usa se presenta arriba con su ficha, sea del papel que sea;
@@ -24,7 +24,7 @@ Símbolos: ✅ hecha (con su commit) · 🔄 en curso · ⬜ pendiente.
    - un campo vacío ya no deja «[…]»: no sale, y se avisa;
    - en `pruebas.py`, las tres pruebas nuevas;
    - la referencia de Teto se regenera tras leer la diferencia.
-2. ⬜ **La ventana enseña quién escribe cada trozo.** Consiste en:
+2. ✅ **La ventana enseña quién escribe cada trozo** (este commit, probado en una pestaña aparte en los dos idiomas). Consiste en:
    - colores en el prompt final, con su leyenda;
    - el panel «Frases del código» para cambiarlas;
    - en la ficha de cada referencia, «Cómo se presenta» y «Qué se copia» (vacío = la frase del código);

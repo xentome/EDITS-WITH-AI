@@ -132,6 +132,26 @@ export function instalar(ctx) {
       el("div", { class: "epl-marca-frase" }, marca, propia && !/^E\d+$/.test(toma.efecto) ? guardarComo : null));
   }
 
+  /* el encuadre: el menú (ENCUADRES) o, con «✎ escribir el mío», un texto propio (queda fijo y se pega tal cual). Un
+   * encuadre que no está en el menú se enseña ya como texto; «≡ menú» vuelve al menú. */
+  let encuadrePropio = false, tomaPintada = null;
+  function campoEncuadre(toma) {
+    const propio = encuadrePropio || (toma.encuadre && !ENCUADRES.includes(toma.encuadre));
+    if (!propio) {
+      const ops = [["", "—"], ...ENCUADRES.map((e, i) => [e, t(`toma.encuadre_op.${i}`)]), ["__mio", t("toma.encuadre.mio")]];
+      const sel = el("select", { "data-campo": "encuadre", onchange: (e) => {
+        if (e.target.value === "__mio") { encuadrePropio = true; ctx.pintarToma(); return; }
+        toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pintarPlan(); ctx.pedirMontaje(); } },
+        ops.map(([v, txt]) => el("option", { value: v, selected: (toma.encuadre || "") === v }, txt)));
+      return el("label", { class: "epl-campo" }, el("span", {}, t("toma.encuadre")), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
+    }
+    const entrada = el("input", { "data-campo": "encuadre", value: toma.encuadre || "", placeholder: t("toma.encuadre.mio.placeholder"),
+      oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pedirMontaje(); } });
+    return el("label", { class: "epl-campo" }, el("span", {}, t("toma.encuadre")), entrada,
+      el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
+        onclick: () => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
+        t("toma.encuadre.menu")));
+  }
   /* el lugar de la toma con su selector de entorno (en lugar del candado): «Entorno auto» (lo escribe el LLM; si lo
    * escribes tú, pasa a manual), «Entorno manual» (fijo) o «Sin entorno» (no se escribe ningún lugar ni fondo, y la luz
    * solo va si la escribes) */
@@ -206,6 +226,7 @@ export function instalar(ctx) {
   };
   ctx.pintarToma = function pintarToma() {
     const k = S.elegida, toma = k ? S.plan.tomas[k - 1] : null;
+    if (k !== tomaPintada) { encuadrePropio = false; tomaPintada = k; }   // en otra toma, el modo lo decide su valor
     if (!toma) {
       secToma.replaceChildren(el("div", { class: "epl-tit" }, t("toma.titulo_vacio")),
         el("div", { class: "epl-vacio" }, t("toma.vacio")));
@@ -241,7 +262,7 @@ export function instalar(ctx) {
           ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))]),
           el("p", { class: "epl-ayuda" }, t("toma.refs.ayuda"))),
         el("div", {}, el("b", {}, t("toma.direccion")),
-          campoMenu(toma, "encuadre", t("toma.encuadre"), toma.fijos, [["", "—"], ...ENCUADRES.map((e, i) => [e, t(`toma.encuadre_op.${i}`)])]),
+          campoEncuadre(toma),
           campoTexto(toma, "camara", t("toma.camara"), toma.fijos),
           campoTexto(toma, "luz", t(ninguno ? "toma.luz_opcional" : "toma.luz"), toma.fijos),
           campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true }))));

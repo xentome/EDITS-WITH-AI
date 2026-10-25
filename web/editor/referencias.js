@@ -605,6 +605,7 @@ export function instalar(ctx) {
                   ctx.pedirMontaje(); refrescar(); pintar(); } }, t("referencias.propuesta.usar")),
                 el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; pintar(); } }, t("referencias.propuesta.descartar")))) : null,
             ref.riesgos?.length ? el("div", { class: "epl-aviso" }, t("referencias.riesgo", { lista: ref.riesgos.join(" · ") })) : null,
+            ref.papel !== "no" ? renglonesArriba(r, ref, cambiar) : null,
             stack,
             ctx.bloqueTapar?.(r, v) || null,
             extra?.botones?.(r, v) || null,
@@ -614,6 +615,18 @@ export function instalar(ctx) {
     pintar();
     return v;
   };
+  /* los dos renglones de arriba del prompt de esta referencia (subject_definitions y retention_analysis): vacíos, la frase
+   * de su papel en frases.json, que se ve en gris (S.lineasRef, del último montaje); lo que escribas va tal cual */
+  function renglonesArriba(r, ref, cambiar) {
+    const auto = S.lineasRef[r.tag] || {};
+    const campo = (k, etiqueta) => el("label", {}, t(etiqueta),
+      el("textarea", { class: "epl-renglon", "data-renglon": k, rows: 2, placeholder: auto[k] || t("referencias.renglon.sin_frase"),
+                       oninput: (e) => cambiar(k, e.target.value) }, ref[k] || ""));
+    return el("details", { class: "epl-renglones", open: !!(ref.presentacion || ref.copia) },
+      el("summary", {}, t("referencias.renglones")),
+      el("p", { class: "epl-ayuda" }, t("referencias.renglones.ayuda")),
+      campo("presentacion", "referencias.renglon.presentacion"), campo("copia", "referencias.renglon.copia"));
+  }
   let espera = null;
   const refrescar = () => { clearTimeout(espera); espera = setTimeout(() => { ctx.pintarRefs(); ctx.pintarToma?.(); }, 500); };
 

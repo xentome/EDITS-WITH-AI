@@ -153,6 +153,14 @@ input.corto{width:70px}
   max-height:52vh;min-height:160px;overflow:auto}
 textarea.epl-final{min-height:40vh}
 .epl-tag{background:#2b3a52;color:#cfe0ff;border-radius:calc(var(--radio) * 4px);padding:0 3px}
+/* quién escribió cada trozo del prompt final: código (frases.json), tú o el LLM; el molde va sin color */
+.epl-o-codigo{color:#f0b866}.epl-o-tu{color:#9be39b}.epl-o-llm{color:#9cc8ff}.epl-o-molde{color:#8a93a3}
+.epl-o.frase{cursor:pointer}.epl-o.frase:hover{background:#3a2f1c}
+.epl-leyenda{font-size:11px;color:#8a93a3;margin:2px 0 6px}.epl-leyenda .epl-o{margin-right:10px;font-weight:600}
+.epl-frase{border-top:1px solid #2e3440;padding:6px 0}.epl-frase.foco{background:#2a2516}
+.epl-frase b{font-family:ui-monospace,monospace;font-size:11.5px;color:#f0b866}.epl-frase textarea{width:100%;font-family:ui-monospace,monospace;font-size:11.5px}
+.epl-renglones{margin:6px 0}.epl-renglones summary{cursor:pointer;color:#cfe0ff;font-size:12px}
+.epl-renglones textarea{width:100%;font-family:ui-monospace,monospace;font-size:11.5px}
 .epl-marca{color:#e0a94c;font-size:11px;border:1px solid #6d5527;border-radius:calc(var(--radio) * 6px);padding:1px 6px}
 .epl-hl{outline:2px solid #e0a94c !important;background:#4a3a1a !important}
 /* botones */
