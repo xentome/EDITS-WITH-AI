@@ -91,14 +91,15 @@ print("5 · Frase de efecto escrita por el usuario")
 plan3 = N.ajustar_plan(ref["plan"], 6)
 plan3["tomas"][0].update(efecto_frase="pink heart confetti falling around <Subject 1>.", fijos=["efecto_frase"])
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("la frase propia sustituye a la ficha del efecto", "Effect: pink heart confetti falling around <Subject 1>." in p3
+comprobar("la frase propia sustituye a la ficha del efecto",
+          "At 00:00.000 Close-up, pink heart confetti falling around <Subject 1>. A neon-lit crosswalk" in p3
           and "hand-drawn white and colored doodles" not in p3.split("[Shot 2]")[0].split("[Shot 1]")[1])
 plan3["tomas"][1].update(efecto="", efecto_frase="soft film grain")
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("efecto solo de texto escrito en la toma", "Effect: soft film grain." in p3)
+comprobar("efecto solo de texto escrito en la toma", "Medium close-up, soft film grain. A night train platform" in p3)
 plan3["tomas"][2].update(efecto="U3", efecto_frase="")
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "Effect:" not in p3.split("[Shot 3]")[1].split("[Shot 4]")[0])
+comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "[Shot 3] At 00:01.846 Extreme close-up, a rooftop" in p3)
 
 print("6 · Palabras en pantalla")
 comprobar("lee 'TO YOU @1; PEAK @ultima'", N.leer_palabras("TO YOU @1; PEAK @ultima", 6) == {1: "TO YOU", 6: "PEAK"})
@@ -185,9 +186,9 @@ plan11 = N.ajustar_plan(plan7, 3)
 plan11["tomas"][0]["efecto"], plan11["tomas"][1]["efecto"] = "<Picture 6>", "E1"
 p11, _, _ = N.montar_plan({**e7, "refs": refs11}, plan11)
 comprobar("efecto como referencia: su ficha tal cual, su cita y su retención; el de texto, solo la ficha",
-          "Effect: neon light streaks cross the frame, like the effect in <Picture 6>." in p11 and
-          "<Picture 6>: attribute_transfer - only the visual effect is transferred" in p11 and
-          "Effect: soft film grain." in p11 and "E1:" not in p11, p11)
+          "Close-up, neon light streaks cross the frame, like the effect in <Picture 6>. Corner 1, neon:" in p11 and
+          "<Picture 6>: attribute_transfer - only its look is transferred." in p11 and
+          "Close-up, soft film grain. Corner 2" in p11 and "E1:" not in p11, p11)
 plan11["tomas"][2]["efecto"] = ""
 plan11["tomas"][0]["efecto"] = ""
 p11b = N.revisar_historia({"plan": {**plan11, "arco": "a", "look": "b"}, "formato": []}, pf7, N.menu_de(refs11))
@@ -202,6 +203,33 @@ comprobar("el nodo sin editor lee del estado las referencias, los efectos y el e
           and "receta" not in ee, ee)
 comprobar("no queda ninguna receta en el código", not hasattr(N, "cargar_recetas") and
           not os.path.exists(os.path.join(AQUI, "recetas.json")))
+
+print("8b · La carta ordenada como el edit de Ren (efectos arriba, transformación tras el encuadre)")
+refs8 = {"<Video 1>": {"papel": "personaje", "nombre": "Ren", "pronombre": "he", "ficha": "a young man with messy black hair"},
+         "<Picture 1>": {"papel": "efecto", "nombre": "gradient silhouette",
+                         "ficha": "<Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan gradient"},
+         "<Video 2>": {"papel": "efecto", "nombre": "", "ficha": "a sudden full-frame white flash"},
+         "E1": {"papel": "efecto", "nombre": "grano", "ficha": "soft film grain"}}
+e8 = {"idea": "x", "tomas": 2, "duracion": 2.0, "palabras": "", "refs": refs8, "estilo": "anime"}
+plan8 = N.ajustar_plan(None, 2)
+for t in plan8["tomas"]:
+    t.update(encuadre="close-up", luz="neon glow", gesto="looks up", camara="holds still", lugar="")
+plan8["tomas"][0]["efecto"], plan8["tomas"][1]["efecto"] = "<Picture 1>", "E1"
+plan8["arco"], plan8["look"] = "a", "b"
+p8, _, _ = N.montar_plan(e8, plan8)
+comprobar("cada efecto con imagen se define arriba con su ficha (los de texto no)",
+          "<Picture 1> is the gradient silhouette effect reference: <Subject 1>'s face turned into a flat silhouette filled "
+          "with a hot-pink and cyan gradient." in p8 and "<Video 2> is a visual effect reference: a sudden full-frame white "
+          "flash." in p8 and "E1 is" not in p8, p8[:700])
+comprobar("y se retiene en su propia línea: solo su aspecto",
+          "<Picture 1>: attribute_transfer - only its look is transferred.\n<Video 2>: attribute_transfer - only its look is "
+          "transferred." in p8, p8)
+comprobar("en la toma, el efecto va justo después del encuadre, antes del lugar, la luz y la acción",
+          "[Shot 1] At 00:00.000 Close-up, <Subject 1>'s face turned into a flat silhouette filled with a hot-pink and cyan "
+          "gradient, like the effect in <Picture 1>. […], neon glow: <Subject 1> looks up; the camera holds still." in p8, p8)
+comprobar("solo primeros planos y sin lugares: el resumen dice de qué está hecho el edit",
+          "A music edit of <Subject 1> (anime) made only of close-ups of his face, cut on the beat of <Audio 1>: a." in p8 and
+          "close shots cut on the beat" in prompt, p8)
 
 print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402

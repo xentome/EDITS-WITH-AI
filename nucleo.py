@@ -824,7 +824,27 @@ def definiciones(perfil, menu):
     for tag, suj in sujetos_objeto(menu).items():  # 💡
         sujeto.append(f"{suj} is the {nombre_de(menu['objeto'][tag], 'object')} shown in {tag}; it is the same object in every "
                       "shot where it appears.")
+    # cada efecto con imagen se presenta arriba con su ficha, como en el edit de Ren que funcionó (receta_ren/prompt_h3_5s.txt)
+    for tag, e in efectos_con_imagen(menu).items():
+        quien = f"the {e['nombre']} effect reference" if e["nombre"] else "a visual effect reference"
+        sujeto.append(f"{tag} is {quien}" + (f": {e['ficha'].rstrip('.')}" if e["ficha"] else "") + ".")
     return sujeto, retencion
+
+
+def efectos_con_imagen(menu):
+    """Las referencias de papel efecto que son una imagen o un clip (<Picture N>, <Video N>); los efectos de texto (E1…) no."""
+    return {t: e for t, e in menu["efecto"].items() if t.startswith("<")}
+
+
+def solo_primeros_planos(plan):
+    """True si todas las tomas son de cerca y ninguna escribe un lugar: el edit está hecho solo de primeros planos de la
+    cara (Ren). El resumen lo dice, como el original."""
+    return bool(plan["tomas"]) and all("close" in (t["encuadre"] or "") and not lugar_escrito(t) for t in plan["tomas"])
+
+
+def lugar_escrito(t):
+    """Si la toma escribe un lugar o un fondo en la carta."""
+    return bool(t["lugar"] or t["lugar_ref"] or t["fondo_ref"])
 
 
 def montar(perfil, menu, plan, ini, palabras, idioma="es"):
@@ -847,13 +867,16 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
         if t["fondo_ref"]:
             lugar += f" like the place in {t['fondo_ref']}"
         encuadre = falta(t["encuadre"], "final.hueco.sin_encuadre", k=k).capitalize()
-        s = (f"[Shot {k}] At {mmss(t0)} {encuadre}, {lugar}, {falta(t['luz'], 'final.hueco.sin_luz', k=k)}: <Subject 1>" +
+        entorno = f"{lugar}, {falta(t['luz'], 'final.hueco.sin_luz', k=k)}"
+        # el efecto (la transformación) va justo después del encuadre, antes del lugar, la luz, la acción y la cámara: así
+        # lo leía H3 en el edit de Ren que funcionó. Un efecto con imagen se cita además por su etiqueta.
+        efecto = frase_efecto(menu, t)
+        if efecto:
+            efecto += f", like the effect in {t['efecto']}" if t["efecto"] in efectos_con_imagen(menu) else ""
+            entorno = f"{efecto}. {entorno[:1].upper()}{entorno[1:]}"
+        s = (f"[Shot {k}] At {mmss(t0)} {encuadre}, {entorno}: <Subject 1>" +
              (", " + " and ".join(citas) + "," if citas else "") +
              f" {falta(t['gesto'], 'final.hueco.sin_gesto', k=k)}; the camera {falta(t['camara'], 'final.hueco.sin_camara', k=k)}.")
-        if frase_efecto(menu, t):
-            # 💡 un efecto con imagen se cita además por su etiqueta (sin render todavía)
-            s += f" Effect: {frase_efecto(menu, t)}" + (f", like the effect in {t['efecto']}" if t["efecto"].startswith("<") and
-                                                        t["efecto"] in menu["efecto"] else "") + "."
         if k in palabras:
             s += (f' At {mmss(t0 + 0.15)} the words "{palabras[k]}" appear {perfil["texto_estilo"]}, beside <Subject 1>, '
                   f"never covering {perfil['posesivo']} face.")
@@ -877,10 +900,8 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
                          "any person in it is not transferred.")
     if menu["estilo"]:
         retencion.append(f"{lista(menu['estilo'])}: attribute_transfer - only the visual style is transferred.")
-    efectos_img = [t for t in menu["efecto"] if t.startswith("<")]
-    if efectos_img:  # 💡
-        retencion.append(f"{lista(efectos_img)}: attribute_transfer - only the visual effect is transferred, in the shots that "
-                         "use it; any person in it is not transferred.")
+    for tag in efectos_con_imagen(menu):  # una línea por efecto, como en el original de Ren
+        retencion.append(f"{tag}: attribute_transfer - only its look is transferred.")
     retencion.append(RETENCION_AUDIO)
     texto = ("The only text on screen is " + " and ".join(f'"{w}" in shot {k}' for k, w in sorted(palabras.items())) + "."
              if palabras else "No text on screen.")
@@ -890,8 +911,9 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
         estilo += f" Backgrounds: {plan['fondo'].rstrip('.')}."
     if menu["estilo"]:
         estilo += f" Visual style of {lista(menu['estilo'])}."
-    resumen = "A music edit of <Subject 1>" + (f" ({perfil['estilo']})" if perfil["estilo"] else "") + \
-              ", close shots cut on the beat of <Audio 1>"
+    resumen = "A music edit of <Subject 1>" + (f" ({perfil['estilo']})" if perfil["estilo"] else "") + (
+        f" made only of close-ups of {perfil['posesivo']} face, cut on the beat of <Audio 1>" if solo_primeros_planos(plan)
+        else ", close shots cut on the beat of <Audio 1>")
     prompt = ("subject_definitions:\n" + "\n".join(sujeto) + "\n" + AUDIO +
               "\n\nsummary:\n[reference generation + audio reference] " + resumen + ": " +
               falta(plan["arco"], "final.hueco.sin_arco").rstrip(".") + "." +

@@ -20,7 +20,7 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 6. [Cambiar sin romper](planos/6%20Cambiar%20sin%20romper.md): el procedimiento para modificarlo.
 7. [Medidas y pendientes](planos/7%20Medidas%20y%20pendientes.md): números medidos y lo que aún no sabemos.
 
-Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md) y [2 Bilingüe](planos/fases/2%20Bilingue.md).
+Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md), [2 Bilingüe](planos/fases/2%20Bilingue.md) y [3 Carta, entorno y texto](planos/fases/3%20Carta,%20entorno%20y%20texto.md) (en curso).
 
 ## Las 5 reglas de la casa
 
