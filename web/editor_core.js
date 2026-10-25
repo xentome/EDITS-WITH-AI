@@ -4,6 +4,7 @@
  *   2 · Prompt de la toma elegida (su línea [Shot n] y sus campos)   → editor/plan.js
  *   3 · Referencias en dos mitades: lo que no cambia (rojo) y lo que se presta (azul), con cajitas
  *                                                                     → editor/referencias.js y editor/cajitas.js
+ *       y en la ficha de cada referencia, «tapar con SAM 3.1»        → editor/tapar.js
  *   4 · Línea de tiempo (una cajita por toma, ancho = duración)      → editor/linea.js
  *       y debajo la ventana de audio (el tramo de la canción, y la canción entera en una línea delgada) → editor/audio.js
  *   5 · Prompt final (lo que recibe H3)                              → editor/final.js
@@ -15,8 +16,8 @@
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [u, estilos, referencias, cajitas, plan, linea, final, audio] = await Promise.all(
-    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio"].map(pieza));
+  const [u, estilos, referencias, cajitas, plan, linea, final, audio, tapar] = await Promise.all(
+    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar"].map(pieza));
   const { el, W, leerJSON, api } = u;
 
   document.getElementById("epl-css")?.remove();
@@ -74,6 +75,7 @@ export async function abrir(node, app) {
 
   referencias.instalar(ctx);
   cajitas.instalar(ctx);
+  tapar.instalar(ctx);
   plan.instalar(ctx);
   linea.instalar(ctx);
   audio.instalar(ctx);

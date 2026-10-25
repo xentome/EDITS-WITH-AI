@@ -149,6 +149,13 @@ textarea.epl-final{min-height:40vh}
 .epl-elegir>div:hover{border-color:#e0a94c}.epl-elegir>div.si{border-color:#e0a94c;background:#3a2f18}
 .epl-elegir img{width:100%;height:calc(var(--epl-tam) * 1.15);object-fit:contain;background:#0d1015;border-radius:calc(var(--radio) * 4px);display:block}
 .epl-elegir .nombre,.epl-biblio-item .nombre{margin-top:4px}
+.epl-tapar{border-top:1px solid #343b48;margin-top:8px;padding-top:4px}
+.epl-tapar.encendido{border-top-color:#a47a2a}
+.epl-tapar .epl-interruptor{font-size:12px;color:#e8edf5;cursor:pointer}
+.epl-tapar-libre{flex:1;min-width:140px}
+.epl-tapar-estado{white-space:pre-line}
+.epl-tapar-previas{display:flex;gap:6px;flex-wrap:wrap}
+.epl-tapar-previas img{max-height:180px;max-width:100%;object-fit:contain;border:1px solid #343b48}
 .epl-propuesta{font-size:11px;color:#cfe0ff;background:#1c2738;border:1px solid #2b3a52;border-radius:calc(var(--radio) * 6px);padding:5px;margin-top:4px}
 .epl-usada{font-size:11px;color:#8fb0e0;margin-top:6px}
 .epl-biblio-rejilla{--epl-tam:270px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--epl-tam),100%),1fr));gap:12px;margin-top:8px}

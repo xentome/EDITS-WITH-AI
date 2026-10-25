@@ -2,7 +2,7 @@
  * Derecha azul: lo que se presta (ropa, pose, fondo, estilo) y los efectos de la receta como fichas.
  * Lee el RefMod Stack y el Media Loader del workflow, guarda papel/nombre/ficha de cada referencia por su clave, cambia el
  * Stack, abre la biblioteca de RefMods, enseña la ficha de cada referencia (al tocarla) y pide la ficha con visión.
- * Las cajitas (un RefMod con varias fotos) se abren y se crean en cajitas.js.
+ * Las cajitas (un RefMod con varias fotos) se abren y se crean en cajitas.js; «tapar con SAM» de la ficha está en tapar.js.
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u, sin imports, para que
  * este archivo también se recargue al abrir la ventana. Planos: ../../planos/4 El editor.md. */
 
@@ -89,6 +89,7 @@ export function instalar(ctx) {
       for (const it of lib.items || []) ctx.biblioteca[it.name] = it;
     } catch { /* sin datos de Fantastic: las fichas quedan vacías */ }
     try { Object.assign(ctx.cajitas, (await api("cajitas", {})).cajitas); } catch { /* sin fotos apuntadas */ }
+    await ctx.cargarTapados?.();                         // qué tarjetas son tapados y de qué original (tapar.js)
   };
 
   // lo guardado antes de esta versión iba por número: se pasa a clave con el mapa de etiquetas de entonces (o el de ahora)
@@ -411,6 +412,7 @@ export function instalar(ctx) {
                 el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; pintar(); } }, "descartar"))) : null,
             ref.riesgos?.length ? el("div", { class: "epl-aviso" }, "⚠ riesgo: " + ref.riesgos.join(" · ")) : null,
             stack,
+            ctx.bloqueTapar?.(r, v) || null,
             extra?.botones?.(r, v) || null,
             el("div", { class: "epl-usada" }, "usada en: " + ctx.usadaEn(r.tag)))));
     };
