@@ -312,6 +312,12 @@ comprobar("fila de texto: mover al fotograma, imán a ±0,15 s del beat (si est�
           r.get("a") == 1.997 and r.get("b") == 1.708 and r.get("c") == 1.708 and r.get("d") == 2.9 and r.get("e") == 4.958 and
           r.get("f") == 3 and r.get("g") == 2.829 and r.get("h") == 5 and r.get("i") == 2.5, r)
 
+print("8d · Renglón «Sonido»")
+p8s, _, _ = N.montar_plan({**e8, "sonido": "whooshes and impact hits accent each cut and word"}, plan8)
+comprobar("lo que escribe el usuario va tal cual a overall_soundscape; vacío, el de la casa",
+          "overall_soundscape:\nwhooshes and impact hits accent each cut and word\n\nnon_diegetic_music:" in p8s and
+          "overall_soundscape:\n" + N.SONIDO + "\n" in prompt and N.entradas_de_estado({"sonido": "x"})["sonido"] == "x", p8s[-300:])
+
 print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402
 import subprocess  # noqa: E402

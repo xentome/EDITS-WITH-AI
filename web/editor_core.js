@@ -42,6 +42,7 @@ export async function abrir(node, app) {
     refs: guardado.refs || {}, plan: plan.ajustarPlan(guardado.plan, +W(node, "tomas").value),
     // lo que antes daba la receta, ahora a la vista: el estilo de todo el edit, el de las palabras y los efectos de texto
     estilo: guardado.estilo || "", estilo_palabras: guardado.estilo_palabras || "", efectos: guardado.efectos || {},
+    sonido: guardado.sonido || "",            // renglón «Sonido»: vacío = el de la casa (solo la música, sin efectos)
     prompt: guardado.prompt || "", a_mano: !!guardado.a_mano, cortes: [], avisos: [], ocupado: false, elegida: null,
   };
 
@@ -64,6 +65,7 @@ export async function abrir(node, app) {
   // (los efectos de texto, E1, E2…, van con las referencias, con papel «efecto»)
   const entradas = () => ({
     idea: S.idea, tomas: S.tomas, duracion: S.duracion, palabras: S.palabras, estilo: S.estilo, estilo_palabras: S.estilo_palabras,
+    sonido: S.sonido,
     refs: { ...Object.fromEntries(wf.lista.map((r) => [r.tag, S.refs[r.clave]]).filter(([, x]) => x && x.papel && x.papel !== "no")),
             ...Object.fromEntries(Object.entries(S.efectos).map(([k, e]) => [k, { ...e, papel: "efecto" }])) },
   });
@@ -140,7 +142,7 @@ export async function abrir(node, app) {
     W(node, "palabras").value = S.palabras;
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
-                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, plan: S.plan, prompt: S.prompt,
+                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, sonido: S.sonido, plan: S.plan, prompt: S.prompt,
                                                a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, idioma: tr.idioma,
                                                guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);

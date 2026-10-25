@@ -58,6 +58,7 @@ DEFINICION_EDIT = ("Video corto hecho de tomas breves que cambian al ritmo de un
 AUDIO = "<Audio 1> is the music reference."
 RETENCION_AUDIO = "<Audio 1>: reference - the song plays unchanged and times every cut."
 TEXTO_ESTILO = "in bold clean white letters"
+SONIDO = "Only the music of <Audio 1>, unchanged, with no dialogue and no added sound effects."   # renglón «Sonido» vacío
 # campo del LLM → campo del plan
 HISTORIA = {"PLACE": "lugar", "MOMENT": "momento", "OUTFIT": "personaje", "CLOTHES": "ropa", "POSE": "pose",
             "OBJECT": "objeto", "LOCATION": "lugar_ref", "BACKGROUND": "fondo_ref", "EFFECT": "efecto"}
@@ -151,7 +152,9 @@ def perfil_de(menu, entradas=None):
             "posesivo": PRONOMBRES[pron][1], "Posesivo": PRONOMBRES[pron][2], "lleva": PRONOMBRES[pron][3],
             # el pronombre se revisa solo si hay un único personaje con «she» o «he» (con varios, cada uno tiene el suyo)
             "revisar_pronombre": pron if len(ps) == 1 and pron in CONTRARIO else "",
-            "estilo": (e.get("estilo") or "").strip().rstrip(".")}
+            "estilo": (e.get("estilo") or "").strip().rstrip("."),
+            # lo que escriba el usuario en «Sonido» va tal cual a overall_soundscape; vacío, el de la casa
+            "sonido": (e.get("sonido") or "").strip() or SONIDO}
 
 
 def atuendos(menu):
@@ -1020,7 +1023,7 @@ def montar(perfil, menu, plan, ini, textos, idioma="es"):
               "\n\nretention_analysis:\n" + "\n".join(retencion) +
               "\n\ndetailed_description:\n" + estilo + texto + "\n" + "\n".join(lineas) +
               ("\nNo other text appears on screen." if textos else "") +
-              "\n\noverall_soundscape:\nOnly the music of <Audio 1>, unchanged, with no dialogue and no added sound effects."
+              "\n\noverall_soundscape:\n" + perfil["sonido"] +
               "\n\nnon_diegetic_music:\nThe song in <Audio 1> plays unchanged throughout the whole video.")
     return prompt, avisos
 
