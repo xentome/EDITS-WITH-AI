@@ -8,7 +8,7 @@ Lectura: 3 min
 
 | Archivo | Qué tiene |
 |---|---|
-| `nucleo.py` | Todo el trabajo. Secciones, en orden: plan y referencias · reloj · LLM y registro · revisiones · historia · tomas · montaje · acciones. |
+| `nucleo.py` | Todo el trabajo. Secciones, en orden: plan y referencias · reloj · audio (tramo de la canción) · LLM y registro · revisiones · historia · tomas · montaje · acciones. |
 | `rutas.py` | Lo que hace cada ruta del editor. Llama a `nucleo`. |
 | `__init__.py` | El nodo, el registro de las rutas y la liberación de la GPU. Es delgado: no decide nada. |
 | `web/editor.js` | El botón «Abrir editor…» del nodo. |
@@ -18,6 +18,7 @@ Lectura: 3 min
 | `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, las dos mitades, la ficha de cada referencia (papel, nombre, ficha, visión, activa, fuerza, quitar), el Stack, la biblioteca y el resaltado. |
 | `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
 | `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
+| `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre) y la línea de la canción entera; al guardar, el recorte. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
 | `recetas.json` | Lo fijo de cada personaje (plano 3). |
@@ -51,6 +52,9 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 | `describir` | propone la ficha y los riesgos de una referencia, con visión | sí |
 | `medios` | las fotos de `input/minimax_h3`, para elegirlas en una cajita | no |
 | `cajitas` | las fotos de cada cajita (de los archivos `<RefMod>.cajita.json`) | no |
+| `audio_info` | duración y resumen de picos de la canción entera (caché en disco) | no |
+| `audio_ventana` | picos finos alrededor del tramo y, con `wav`, el tramo en WAV para oírlo | no |
+| `audio_recortar` | escribe el tramo en `input/edit_tramo_<hash>.wav`, sin tocar la original | no |
 | `crear_cajita` | crea un RefMod con varias fotos: manda a ComfyUI el nodo `MiniMaxH3FantasticRefModCreate` (Full Reference, 512) con un VAELoader, por `/prompt`, y apunta sus fotos | no (usa ComfyUI unos 10 s) |
 
 Para añadir una acción basta con escribir su función en `rutas.py` y ponerla en `ACCIONES`: no hace falta reiniciar ComfyUI. Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU, igual que hace `/free`.
@@ -70,6 +74,8 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | las cajitas | `web/editor/cajitas.js` y `rutas.crear_cajita` |
 | la historia general, la toma elegida, los candados | `web/editor/plan.js` |
 | la línea de tiempo | `web/editor/linea.js` |
+| la ventana de audio (arrastre, aceleración, reproducir) | `web/editor/audio.js` (constantes `K` y `GANANCIA_MAX`) |
+| el recorte, los picos o los beats del tramo | `nucleo.py`, sección audio (`decodificar`, `info_audio`, `beats_cancion`, `beats_de_tramo`) |
 | el prompt final y sus botones | `web/editor/final.js` |
 | colores y tamaños de la ventana | `web/editor/estilos.js` |
 | qué se guarda en el nodo o los botones de arriba | `web/editor_core.js` |
@@ -79,7 +85,7 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 
 - **Campos visibles:** receta, idea, tomas, duración, palabras y semilla.
 - **`texto_bloqueado`:** si tiene texto, sale tal cual.
-- **`estado` (oculto):** JSON con lo que guarda el editor: `refs`, `plan`, `prompt` y `a_mano`.
+- **`estado` (oculto):** JSON con lo que guarda el editor: `refs`, `plan`, `prompt`, `a_mano` y `audio` (`original`, `inicio_s`, `recorte`, `tocado`).
 
 Al ejecutar, el nodo decide así:
 1. si hay `texto_bloqueado`, sale ese texto;

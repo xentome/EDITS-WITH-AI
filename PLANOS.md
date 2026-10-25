@@ -33,4 +33,5 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 - ✅ **Núcleo v2:** referencias por papel, candados y regenerar una sola toma. Probado con `pruebas.py` y con el LLM real (104 s, 8 llamadas).
 - ✅ **Nodo en ComfyUI:** probado con un render de Teto a 480p.
 - ✅ **Editor, interfaz nueva (24 oct):** una pantalla con historia general, prompt de la toma, referencias en dos mitades (lo que no cambia / lo que se presta) con cajitas, línea de tiempo y prompt final (plano 4). Probada con un render: Teto en cajita + ropa de Vera + un lugar fijo.
+- ✅ **Ventana de audio (24 oct):** debajo de las tomas, la onda del tramo, ▶/⏸, arrastre con aceleración que cae en el fotograma y la canción entera en una línea con su punto (plano 4). Al guardar escribe el recorte para H3. Probada con un render de Blue Fairy desde 1:30.500.
 - ✅ **Papeles nuevos:** objeto, lugar y ropa; personaje como `<Video N>` (plano 1). 💡 El objeto aún no tiene render.

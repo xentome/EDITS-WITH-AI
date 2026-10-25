@@ -49,6 +49,17 @@ Lectura: 4 min
 - Una cajita de color por toma. **Su ancho es lo que dura**, con los cortes puestos en los beats del audio. Dice su número, su lugar, sus segundos y su efecto.
 - Tocar una toma la elige (o la suelta). **+** añade una toma; no deja si ya no caben (0,4 s cada una).
 
+### 4b · Ventana de audio (debajo de las tomas)
+- **Para qué:** elegir con exactitud qué tramo de una canción larga usa el edit, sin recortar audios a mano. Lo eliges tú; la app no lo decide. Los cortes de las tomas caen en los beats **de ese tramo**.
+- **Dos filas del mismo largo:** arriba las tomas y debajo la **onda solo del tramo** que duran (por ejemplo 3,042 s). El ▶/⏸ va justo debajo del +. Las líneas blancas sobre la onda son los cortes de las tomas.
+- **▶/⏸** suena solo el tramo y se para sola al final; un cabezal dorado avanza. Pausa y sigue desde ahí. Espacio hace lo mismo con la onda elegida.
+- **Arrastrar la onda** mueve la canción por debajo (a la izquierda = más adelante). Tiene aceleración tipo puntero: despacio, 1 px es muy poco (unos 2 ms con 5 s de tramo); rápido, avanza mucho (600 px rápidos = unos 75 s). Al soltar, el inicio cae en el fotograma más cercano (1/24 s).
+- **Fino:** rueda = ±1 fotograma; **←/→** = ±1 fotograma; **Mayús+flecha** = ±1 s; Inicio = 0.
+- Arriba de la onda, el inicio y el fin (`m:ss.mmm · f N`); debajo, el tramo, la ayuda y la canción con su duración.
+- **La línea delgada** (10 px, no cuenta como fila) es la **canción entera**, del mismo largo: el segmento azul es el tramo y el **punto blanco** su centro. Tocar la línea salta ahí; arrastrar el punto lo mueve (despacio, menos que el ratón, para afinar). La línea y la ventana se mueven siempre juntas.
+- **Al guardar:** si moviste el audio, se escribe el recorte `input/edit_tramo_<hash>.wav` (el mismo archivo, inicio y duración dan el mismo nombre) y el LoadAudio del workflow pasa a apuntar a él: es lo que reciben H3 (AddGuide) y CreateVideo. La canción original y el inicio quedan en el estado; al reabrir, la ventana vuelve a la original. Si no tocaste el audio, todo sigue como antes. Si el LoadAudio apunta a otra canción, se empieza de cero con ella.
+- **Beats:** son los de la canción entera (calculados una vez y guardados en `~/Escritorio/experimentos_edit/edit_prompt_llm/cache_audio/`) desplazados al inicio del tramo. Analizar solo el tramo cambiaba el tempo que ve librosa (a veces la mitad de beats).
+
 ### 5 · Prompt final
 - El código lo vuelve a montar cada vez que cambias algo, sin llamar al LLM, y avisa de los huecos.
 - **Escribir historia** (unos 80–110 s): rellena lo no fijado del arco, la luz y, en cada toma, el lugar, lo que pasa, las referencias y el efecto. Vacía la dirección no fijada.
@@ -64,11 +75,13 @@ Lectura: 4 min
 ## Por dentro
 - **Esquinas rectas en toda la ventana** (cajas, tarjetas, botones, campos, insignias, menús y ventanitas). En `web/editor/estilos.js` cada curva vale `--radio × su tamaño de antes`, con `--radio:0` en `.epl-fondo`; con `--radio:1` vuelven las de antes. La maqueta usa la misma variable en `:root`.
 - **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` junta las piezas de `web/editor/` (plano 2). Todo se vuelve a cargar cada vez que se abre.
-- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (recetas, montar, historia, tomas, describir, medios, cajitas, crear_cajita). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita también exige la cola vacía.
+- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (recetas, montar, historia, tomas, describir, medios, cajitas, crear_cajita, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita también exige la cola vacía.
 - Al abrir sin recargar la pestaña: `const m = await import('/extensions/edit_prompt_llm/editor_core.js?v='+Date.now()); await m.abrir(app.graph.getNodeById(74), app)` (devuelve el `ctx`, útil para probar).
 
 ## Límites conocidos
 - Si una tarjeta del Stack tiene copias, la numeración puede no coincidir con la del Text Encode. El editor avisa. También avisa con más de 9 fotos o 3 videos.
 - Los videos del Media Loader no tienen vista previa en el editor.
+- Sin el editor (el nodo hace todo con el LLM), los beats salen del audio que llega al nodo, o sea del recorte entero, no de la canción desplazada: pueden variar unos ms.
+- Los recortes `edit_tramo_*.wav` se quedan en `input/`; no se borran solos.
 - Las frases fijas de los efectos de la receta pueden chocar con el lugar (U3 habla de «the night city»); hoy lo corrige el usuario (plano 5, fila 29).
 - El `resumen` de la receta de Teto dice «in a Japanese city» aunque el lugar fijo sea otro.
