@@ -5,12 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Maqueta 1 de la interfaz (24 oct): sigue el dibujo del usuario. Datos reales del edit de Teto (datos_maqueta.json). -->
 <style>
-  :root { --fondo: #191c22; --panel: #15181e; --borde: #2e3440; --texto: #d7dbe2; --suave: #8a93a3; --acento: #e0a94c; }
+  :root { --fondo: #191c22; --panel: #15181e; --borde: #2e3440; --texto: #d7dbe2; --suave: #8a93a3; --acento: #e0a94c;
+           --radio: 0; /* esquinas rectas; 1 = como antes */ }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--fondo); color: var(--texto); font: 13px system-ui, sans-serif; }
   .app { height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto minmax(90px, 20%); gap: 8px; padding: 10px 4% 10px 4%; }
-  .caja { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; min-height: 0; }
+  .caja { background: var(--panel); border: 1px solid var(--borde); border-radius: calc(var(--radio) * 8px); padding: 8px 10px; min-height: 0; }
   .titulo { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+  /* historia general: rojo oscuro opaco con letras blancas */
+  .caja.historia-caja { background: #5a1a1a; border-color: #7a2c2c; color: #fff; }
+  .historia-caja .titulo, #historia i { color: #fff !important; }
+  /* bordes por mitad: rojo apagado = lo que no cambia, azul apagado = lo que se presta; dorado doble = toma elegida */
+  .mitad.IZQ .ref { border: 2px solid #9a3a3a; } .mitad.DER .ref { border: 2px solid #3a5f9a; }
+  .mitad.IZQ .mosaico img { border: 2px solid #9a3a3a; } .mitad.DER .mosaico img { border: 2px solid #3a5f9a; }
+  .mitad .ref.usada { border: 3px solid var(--acento); outline: 2px solid var(--acento); outline-offset: -8px; }
   /* 1 · prompt de la toma elegida */
   #historia { font-size: 13px; line-height: 1.5; } #historia i { color: var(--suave); font-style: normal; font-size: 11px; margin-right: 6px; }
   #toma-prompt { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.45; color: #cfe0ff; }
@@ -28,20 +36,20 @@
   #persistentes { grid-template-columns: 1fr; }
   #prestadas { grid-template-columns: repeat(3, 1fr); }
   .efectos { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .efecto { background: #1f2c45; border: 1px solid #2f4a78; border-radius: 6px; padding: 4px 8px; font-size: 11px; }
+  .efecto { background: #1f2c45; border: 1px solid #2f4a78; border-radius: calc(var(--radio) * 6px); padding: 4px 8px; font-size: 11px; }
   .efecto b { color: #8fb6f0; margin-right: 4px; }
   .efecto.usada { outline: 2px solid var(--acento); }
   .efecto.atenuada { opacity: .35; }
   .grupo { cursor: pointer; }
   .mosaico { position: absolute; inset: 4px 4px 30px 4px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 3px; }
-  .mosaico img { position: static !important; width: 100% !important; height: 100% !important; min-height: 0; object-fit: contain; background: #0d1015; border-radius: 4px; }
-  .insignia { position: absolute; top: 8px; right: 8px; background: #a83a3a; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+  .mosaico img { position: static !important; width: 100% !important; height: 100% !important; min-height: 0; object-fit: contain; background: #0d1015; border-radius: calc(var(--radio) * 4px); }
+  .insignia { position: absolute; top: 8px; right: 8px; background: #a83a3a; color: #fff; border-radius: calc(var(--radio) * 10px); padding: 1px 8px; font-size: 11px; }
   #modal .fondo-modal { position: fixed; inset: 0; background: rgba(5,7,10,.78); display: flex; align-items: center; justify-content: center; z-index: 9; }
-  #modal .ventana { width: min(900px, 92vw); max-height: 86vh; overflow: auto; background: var(--fondo); border: 1px solid #a83a3a; border-radius: 10px; padding: 14px; }
+  #modal .ventana { width: min(900px, 92vw); max-height: 86vh; overflow: auto; background: var(--fondo); border: 1px solid #a83a3a; border-radius: calc(var(--radio) * 10px); padding: 14px; }
   #modal .fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px; }
-  #modal .fotos div { background: #12151b; border: 1px solid var(--borde); border-radius: 8px; padding: 6px; font-size: 11px; }
+  #modal .fotos div { background: #12151b; border: 1px solid var(--borde); border-radius: calc(var(--radio) * 8px); padding: 6px; font-size: 11px; }
   #modal .fotos img { width: 100%; height: 240px; object-fit: contain; display: block; }
-  .ref { position: relative; border: 1px solid var(--borde); border-radius: 9px; overflow: hidden; background: #12151b; transition: outline .1s, opacity .15s; min-height: 0; }
+  .ref { position: relative; border: 1px solid var(--borde); border-radius: calc(var(--radio) * 9px); overflow: hidden; background: #12151b; transition: outline .1s, opacity .15s; min-height: 0; }
   .ref .fondo-img { position: absolute; inset: -12px; background-size: cover; background-position: center; filter: blur(14px) brightness(.45); }
   .ref img { position: absolute; inset: 4px 4px 30px 4px; width: calc(100% - 8px); height: calc(100% - 34px); object-fit: contain; display: block; }
   .ref div { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,.85)); padding: 6px 8px !important; }
@@ -50,26 +58,26 @@
   .ref small { color: var(--suave); display: block; }
   .ref.usada { outline: 2px solid var(--acento); }
   .ref.atenuada { opacity: .35; }
-  .papel { font-size: 10px; border-radius: 5px; padding: 0 5px; }
+  .papel { font-size: 10px; border-radius: calc(var(--radio) * 5px); padding: 0 5px; }
   .papel.personaje { background: #2b3a52; } .papel.pose { background: #3a2b52; }
   /* 3 · línea de tiempo */
   .linea { display: flex; gap: 4px; height: 96px; }
-  .toma { border-radius: 6px; padding: 5px 7px; cursor: pointer; overflow: hidden; color: #111; font-size: 11px; line-height: 1.25;
+  .toma { border-radius: calc(var(--radio) * 6px); padding: 5px 7px; cursor: pointer; overflow: hidden; color: #111; font-size: 11px; line-height: 1.25;
           border: 2px solid transparent; min-width: 34px; display: flex; flex-direction: column; justify-content: space-between; }
   .toma.elegida { border-color: #fff; box-shadow: 0 0 0 2px var(--acento); }
   .toma b { font-size: 12px; } .toma span { opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mas { min-width: 44px; border: 1px dashed var(--borde); border-radius: 6px; color: var(--suave); background: none; cursor: pointer; font-size: 18px; }
+  .mas { min-width: 44px; border: 1px dashed var(--borde); border-radius: calc(var(--radio) * 6px); color: var(--suave); background: none; cursor: pointer; font-size: 18px; }
   .regla { display: flex; justify-content: space-between; color: var(--suave); font-size: 10px; margin-top: 3px; }
   /* 4 · prompt final */
   .final { overflow: auto; }
   .final pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 11.5px/1.45 ui-monospace, monospace; }
-  .tag { background: #2b3a52; color: #cfe0ff; border-radius: 4px; padding: 0 3px; }
-  .boton { margin-left: auto; background: #2f3947; color: #fff; border: 1px solid #3d4a5c; border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 11px; text-transform: none; letter-spacing: 0; }
+  .tag { background: #2b3a52; color: #cfe0ff; border-radius: calc(var(--radio) * 4px); padding: 0 3px; }
+  .boton { margin-left: auto; background: #2f3947; color: #fff; border: 1px solid #3d4a5c; border-radius: calc(var(--radio) * 6px); padding: 3px 10px; cursor: pointer; font-size: 11px; text-transform: none; letter-spacing: 0; }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="caja">
+  <div class="caja historia-caja">
     <div class="titulo">Historia general · la narrativa de todo el edit</div>
     <div id="historia"></div>
   </div>

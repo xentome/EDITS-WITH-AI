@@ -148,15 +148,22 @@ export function instalar(ctx) {
     ctx.cambiarStack((p) => { p.splice(r.idx, 1); });
     ctx.avisar(`Quitada ${r.nombre} del Stack`, "bien");
   };
-  ctx.anadirDeBiblioteca = function anadirDeBiblioteca(it, lado) {
-    if (lado && !S.refs[it.name]) {
-      S.refs[it.name] = { papel: papelPorLado(lado, it.concept || ""), nombre: "",
-                          ficha: (it.appearance || it.desc || "").slice(0, 300), origen: "RefMod" };
+  ctx.anadirDeBiblioteca = (it, lado) => ctx.anadirVariosDeBiblioteca([it], lado);
+  /* añade varios RefMods de la biblioteca de una vez, en ese orden. Si no caben en las 12 tarjetas del Stack, no añade
+   * ninguno y lanza un error (la biblioteca lo enseña dentro de su ventana). */
+  ctx.anadirVariosDeBiblioteca = function anadirVariosDeBiblioteca(its, lado) {
+    const hay = (leerJSON(W(wf.stack || {}, "stack_state")?.value, {}).picks || []).length;
+    if (hay + its.length > 12) {
+      throw new Error(`No caben: el Stack tiene ${hay} de 12 tarjetas y quieres añadir ${its.length}. ` +
+                      `Desmarca ${hay + its.length - 12} o quita tarjetas del Stack.`);
     }
-    ctx.cambiarStack((picks) => {
-      if (picks.length >= 12) throw new Error("El Stack ya tiene 12 tarjetas");
-      picks.push(ctx.tarjeta(it, picks));
-    });
+    for (const it of its) {
+      if (lado && !S.refs[it.name]) {
+        S.refs[it.name] = { papel: papelPorLado(lado, it.concept || ""), nombre: "",
+                            ficha: (it.appearance || it.desc || "").slice(0, 300), origen: "RefMod" };
+      }
+    }
+    ctx.cambiarStack((picks) => { for (const it of its) picks.push(ctx.tarjeta(it, picks)); });
   };
 
   // ---- ventanas sobre el editor (una a la vez)
@@ -187,25 +194,53 @@ export function instalar(ctx) {
       el("button", { class: "epl-mini", title: "Más grandes", onclick: () => poner(tam + 40) }, "+"));
   };
 
+  /* biblioteca de RefMods con selección múltiple: tocar una foto la marca o la desmarca (✓); «Añadir (N)» mete todas las
+   * marcadas en el Stack, en el orden en que se marcaron, y cierra. Buscar no borra lo marcado. */
   ctx.abrirBiblioteca = function abrirBiblioteca(lado) {
+    const marcadas = [];                                   // nombres, en el orden en que se marcaron
     const filtro = el("input", { placeholder: "buscar por nombre o carpeta…", oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
+    const aviso = el("p", { class: "epl-aviso epl-biblio-aviso" });
+    const anadir = el("button", { class: "epl-boton epl-azul epl-grande epl-biblio-anadir", onclick: () => {
+      const its = marcadas.map((n) => ctx.biblioteca[n]).filter(Boolean);
+      try {
+        ctx.anadirVariosDeBiblioteca(its, lado);
+        v.cerrar();
+        ctx.avisar(its.length === 1 ? `Añadida ${its[0].label || its[0].name}` : `Añadidas ${its.length} referencias`, "bien");
+      } catch (e) { aviso.textContent = "⚠ " + e.message; }
+    } });
     const v = ctx.capa(lado,
       el("div", { class: "epl-tit" }, `Añadir a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}» desde la biblioteca de RefMods`,
         el("span", { class: "der" }, filtro, ctx.controlTamano((t) => rejilla.style.setProperty("--epl-tam", t + "px"), "epl-tam-biblioteca", 270), el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
-      el("p", { class: "epl-ayuda" }, "Para juntar varias fotos en una sola referencia usa «+ Cajita». Para crear un RefMod de una " +
-        "sola imagen nueva sigue sirviendo «Create…» en el nodo RefMod Stack."), rejilla);
+      el("p", { class: "epl-ayuda" }, "Toca las fotos para marcarlas o desmarcarlas y pulsa «Añadir». Para juntar varias fotos en una " +
+        "sola referencia usa «+ Cajita». Para crear un RefMod de una sola imagen nueva sigue sirviendo «Create…» en el nodo RefMod Stack."),
+      rejilla,
+      el("div", { class: "epl-biblio-pie" }, aviso, anadir));
+    const contar = () => {
+      anadir.textContent = `Añadir (${marcadas.length})`;
+      anadir.disabled = !marcadas.length;
+      aviso.textContent = "";
+    };
     const pintar = () => {
       const q = filtro.value.toLowerCase();
       rejilla.replaceChildren(...Object.values(ctx.biblioteca).filter((it) => it.visual && it.name.toLowerCase().includes(q))
-        .map((it) => el("div", { class: "epl-biblio-item", title: it.name, onclick: () => {
-          try { ctx.anadirDeBiblioteca(it, lado); v.cerrar(); ctx.avisar(`Añadida ${it.label || it.name}`, "bien"); }
-          catch (e) { ctx.avisar(e.message, "mal"); } } },
-          el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
-          el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
-            (it.visual?.source === "stack" ? ` · cajita de ${it.visual.t}` : "")))));
+        .map((it) => {
+          const item = el("div", { class: "epl-biblio-item" + (marcadas.includes(it.name) ? " marcada" : ""), title: it.name,
+                                   "data-nombre": it.name, onclick: () => {
+            const i = marcadas.indexOf(it.name);
+            if (i >= 0) marcadas.splice(i, 1); else marcadas.push(it.name);
+            item.classList.toggle("marcada", i < 0);
+            contar();
+          } },
+            el("span", { class: "epl-check" }, "✓"),
+            el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
+            el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
+              (it.visual?.source === "stack" ? ` · cajita de ${it.visual.t}` : "")));
+          return item;
+        }));
     };
     pintar();
+    contar();
     filtro.focus();
   };
 

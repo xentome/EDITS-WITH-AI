@@ -104,8 +104,8 @@ export async function abrir(node, app) {
 
   caja.append(
     el("div", { class: "epl-cabecera" }, el("b", {}, "Editor del edit"), estado,
-      el("button", { class: "epl-boton", onclick: () => ctx.guardarYAvisar() }, "Guardar"),
-      el("button", { class: "epl-boton", onclick: () => { guardar(); cerrar(); } }, "Guardar y cerrar"),
+      el("button", { class: "epl-boton epl-azul", onclick: () => ctx.guardarYAvisar() }, "Guardar"),
+      el("button", { class: "epl-boton epl-verde epl-grande", onclick: () => { guardar(); cerrar(); } }, "Guardar y cerrar"),
       el("button", { class: "epl-x", title: "Cerrar sin guardar", onclick: cerrar }, "✕")),
     el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secLinea, secFinal));
   ctx.pintarPlan();

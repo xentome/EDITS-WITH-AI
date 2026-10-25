@@ -10,6 +10,7 @@ Lectura: 4 min
 - **Idea**, con tus palabras. Manda sobre todo lo demás.
 - **Arco, luz y ambiente, y fondo general**, con candado.
 - Arriba a la derecha, los campos del nodo: receta, tomas, duración, semilla y palabras (opcionales: `TO YOU @1`).
+- La caja va en **rojo oscuro opaco con letras blancas**, para que resalte; los campos de dentro, en un rojo más oscuro.
 
 ### 2 · Prompt de la toma
 - Al principio dice «Selecciona una toma…». Cuando eliges una en la línea de tiempo, aparece:
@@ -23,6 +24,7 @@ Lectura: 4 min
 ### 3 · Referencias, partidas en dos
 - **Izquierda roja, lo que no cambia:** personaje, objeto y lugar.
 - **Derecha azul, lo que se presta:** ropa, pose, fondo y estilo. Abajo, los **efectos** de la receta como fichas.
+- **Colores por mitad:** cada tarjeta lleva un borde de 2 px rojo apagado a la izquierda y azul apagado a la derecha (también cada foto del mosaico de una cajita). La que usa la toma elegida lleva una **doble línea dorada**, más gruesa, para que no se confunda.
 - **Cómo se ven:** grandes y enteras, sobre la misma foto desenfocada. Abajo, una franja con el número (`<Picture N>`, `<Video N>`), el papel y el nombre. Las columnas se eligen solas para que las fotos salgan lo más grandes posible.
 - **Al elegir una toma** se iluminan en dorado las que usa, en las dos mitades y en los efectos, y las demás se apagan. La identidad (personaje sin nombre) y el estilo cuentan como usados en todas. Tocar un efecto lo pone o lo quita en la toma elegida.
 - **Al tocar una referencia** se abre su **ficha**: la foto grande y sus controles:
@@ -34,6 +36,7 @@ Lectura: 4 min
   - **usada en** (definición, T1 · T3).
 - **✕ en la esquina de arriba a la izquierda** de cada tarjeta del Stack (también en las cajitas): siempre visible. El primer toque pregunta «¿quitar? sí / no»; «sí» hace lo mismo que «✕ quitar» de la ficha (`ctx.quitarDelStack`). Tocar la ✕ no abre la ficha. Los medios del Media Loader no la tienen, porque no están en el Stack.
 - **+ Añadir** abre la biblioteca de RefMods, con recuadros grandes (unas 4 columnas) y fotos enteras. Con **− / deslizador / +** los haces más grandes o más pequeños; se recuerda el último tamaño en el navegador. Lo que añades toma el papel que toca en esa mitad (por ejemplo, un RefMod de fondo añadido a la izquierda es un lugar).
+- **La biblioteca es de selección múltiple:** tocar una foto la marca o la desmarca (✓ y borde azul); no la añade ni cierra. Abajo a la derecha, **«Añadir (N)»** (azul, apagado si no hay ninguna) mete todas las marcadas en el Stack, en el orden en que las marcaste, y cierra (`ctx.anadirVariosDeBiblioteca`). Si con ellas el Stack pasa de 12 tarjetas, avisa dentro de la ventana y no añade ninguna. Buscar no borra lo marcado.
 - **Cada referencia se reconoce por su nombre de RefMod, no por su número.** Si añades, quitas o apagas tarjetas, los números cambian, pero el papel, la ficha y las tomas siguen a su imagen.
 
 ### Las cajitas
@@ -53,11 +56,13 @@ Lectura: 4 min
 - **Guardar**, **Editar a mano** (queda «editado a mano» y no se vuelve a montar solo) y **Volver a montar**.
 
 ## Guardar
+- Arriba a la derecha: **«Guardar»** en azul opaco y **«Guardar y cerrar»**, un poco más grande, en verde opaco. Colores lisos, sin degradados.
 - «Guardar» (arriba o en el prompt final) y «Guardar y cerrar» escriben en el nodo: los campos visibles y el campo oculto `estado`. Después guarda el workflow (Ctrl+S).
 - ✕ cierra sin guardar. Escape cierra solo la ventana de encima (ficha, cajita o biblioteca).
 - Al ejecutar, el informe del nodo dice «Prompt del editor».
 
 ## Por dentro
+- **Esquinas rectas en toda la ventana** (cajas, tarjetas, botones, campos, insignias, menús y ventanitas). En `web/editor/estilos.js` cada curva vale `--radio × su tamaño de antes`, con `--radio:0` en `.epl-fondo`; con `--radio:1` vuelven las de antes. La maqueta usa la misma variable en `:root`.
 - **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` junta las piezas de `web/editor/` (plano 2). Todo se vuelve a cargar cada vez que se abre.
 - **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (recetas, montar, historia, tomas, describir, medios, cajitas, crear_cajita). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita también exige la cola vacía.
 - Al abrir sin recargar la pestaña: `const m = await import('/extensions/edit_prompt_llm/editor_core.js?v='+Date.now()); await m.abrir(app.graph.getNodeById(74), app)` (devuelve el `ctx`, útil para probar).
