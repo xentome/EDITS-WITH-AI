@@ -5,7 +5,7 @@ Lectura: 2 min · Actualizado: 25 oct 2026
 **En resumen**
 - Es **la base de la app**: convierte una idea en el prompt de MiniMax H3 usando las referencias del workflow y el LLM local (Qwen3.8).
 - Funciona como un nodo de ComfyUI, «Prompt del edit (LLM)». También tiene un editor de una pantalla: historia, toma elegida, referencias en dos mitades, línea de tiempo y prompt final.
-- **Regla de la casa:** el LLM decide lo creativo; el código pone lo exacto (tiempos, fichas de los efectos, partes fijas) y revisa todo lo que escribe el LLM.
+- **Regla de la casa:** deciden tú y el LLM; el código **solo pega**. Pone los tiempos y el molde de H3, y une lo que escribisteis con las frases de `frases.json`, que se ven y se cambian en la ventana. En el prompt final, cada trozo sale del color de quien lo escribió.
 - Después de cualquier cambio, corre `pruebas.py` (tarda segundos). Si dice TODO BIEN, no se rompió nada.
 
 Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
@@ -20,13 +20,13 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 6. [Cambiar sin romper](planos/6%20Cambiar%20sin%20romper.md): el procedimiento para modificarlo.
 7. [Medidas y pendientes](planos/7%20Medidas%20y%20pendientes.md): números medidos y lo que aún no sabemos.
 
-Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md), [2 Bilingüe](planos/fases/2%20Bilingue.md) y [3 Carta, entorno y texto](planos/fases/3%20Carta,%20entorno%20y%20texto.md).
+Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md), [2 Bilingüe](planos/fases/2%20Bilingue.md), [3 Carta, entorno y texto](planos/fases/3%20Carta,%20entorno%20y%20texto.md) y [4 El código solo pega](planos/fases/4%20El%20codigo%20solo%20pega.md).
 
 ## Las 5 reglas de la casa
 
-1. El LLM decide; el código pone lo exacto y revisa.
+1. Deciden tú y el LLM; el código solo pega: el molde de H3, los tiempos, vuestros campos y las frases de `frases.json`. No añade, no quita y no cambia letras. `pruebas.py` lo comprueba (sección 16).
 2. Lo que fija el usuario (candado) nunca lo cambia el LLM.
-3. Cada fallo nuevo se convierte en una regla de revisión, con su fila en el plano 5, y no en más texto en el prompt.
+3. Cada fallo nuevo se apunta en el plano 5. Si hace falta protegerse, que sea a la vista: una frase de `frases.json` o una revisión de lo que escribe el LLM, nunca un texto escondido. ❓ Las reglas de revisión que limitan al LLM están por repasar con el usuario (plano 5, «Para repasar»).
 4. Cada problema que se le devuelve al LLM nombra la causa exacta: campo y valor.
 5. Nada se da por bueno sin `pruebas.py`. Y si cambió el prompt final, tampoco sin un render de prueba.
 
@@ -41,4 +41,5 @@ Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos
 - ✅ **Sin recetas (25 oct):** el personaje sale de su referencia (nombre, pronombre, ficha), el estilo es un campo de la historia general y los efectos son referencias o efectos de texto (plano 3). Probado con un render.
 - ✅ **Editor, 25 oct:** quitar tomas y arrastrar el borde entre tomas (cortes a mano, con imán a los beats), la duración manda en todo el workflow (length de H3 y Prompt Builder), «Cambiar canción» y «Subir foto» (plano 4). Probado con un render.
 - ✅ **Carta, entorno y texto (25 oct):** cada efecto se define arriba y va justo tras el encuadre; selector de entorno por toma (auto / manual / sin entorno); 7 encuadres; fila de texto en la línea de tiempo (palabras encima o al lado, con su letra y su momento, sin anunciarlas antes); renglón «Sonido». Probado con dos renders: Ren saca sus 5 mundos y las palabras encima (como el original, con sus defectos) y Teto sale igual de bien (plano 7).
+- ✅ **El código solo pega (25 oct):** todas las frases de unión están en `frases.json` y en el panel «Frases del código». El prompt final se pinta por quién lo escribió: molde, código, tú o LLM. Cada referencia con papel se presenta arriba con su ficha, que se puede reescribir («Cómo se presenta», «Qué se copia»), y hay un encuadre propio (planos 1 y 4). Probado con `pruebas.py` (frases marcadas, carta vacía y copia y pega) y en el navegador en los dos idiomas. 💡 Sin render todavía.
 - ✅ **Bilingüe (25 oct):** la ventana, el nodo y los avisos del servidor en español o inglés; botón «ES | EN» y ajuste «Prompt del edit › Idioma» (plano 4). Los textos están en `web/i18n/`; cómo añadir uno, en el plano 2. Probado en el navegador en los dos idiomas.

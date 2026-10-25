@@ -12,9 +12,28 @@ Lectura: 2 min
    - la luz y el ambiente de todo el edit (LOOK);
    - por cada toma: lugar, qué pasa, atuendo o ropa, pose, objeto, lugar que no cambia, fondo y efecto.
 3. **Tomas** (LLM: 1 llamada por toma, sin razonamiento). Escribe el encuadre, la luz, el gesto y la cámara de cada toma. Cada toma ve la historia completa, las tomas ya escritas y qué usaron sus vecinas.
-4. **Montaje** (código). Arma las 6 secciones de H3 con los tiempos, la definición de cada personaje (de su referencia), la de cada efecto con imagen y cada letra, el estilo que escribiste, la ficha de cada efecto tal cual, las palabras en su momento, el sonido y las partes fijas de la casa (plano 3).
+4. **Montaje** (código, **solo pega**). Arma las 6 secciones de H3 con tres cosas:
+   - el molde: los nombres de las secciones, las etiquetas y los tiempos;
+   - lo que escribisteis tú y el LLM, tal cual;
+   - las frases de unión de `frases.json`, que ves y cambias en el panel «Frases del código» (plano 4).
 
-**Orden de cada toma en la carta** (25 oct, como el edit de Ren que funcionó): `[Shot n] At t <encuadre>, <efecto>, like the effect in <Picture N>. <Lugar>, <luz>: <Subject 1>, <citas>, <gesto>; the camera <cámara>.` y después sus palabras («At 00:02.016 the huge word "RISE" slams over…»). Sin efecto, `<encuadre>, <lugar>, <luz>: …`; sin entorno, sin lugar ni fondo (y la luz solo si la escribiste).
+   Cada referencia con papel se presenta arriba con su ficha y tiene su renglón de lo que se copia. Si un campo está vacío, no sale nada en su lugar (se avisa). Ver «El código pega», abajo.
+
+**Orden de cada toma en la carta** (frase `toma.linea`, como en el edit de Ren que funcionó): `[Shot n] At t <encuadre>, <efecto>, like the effect in <Picture N>. <lugar>, <luz>: <Subject 1>, <citas>, <gesto>; the camera <cámara>.` y después sus palabras («At 00:02.016 the huge word "RISE" slams over…»). Sin entorno, no hay lugar ni fondo, y la luz solo va si la escribiste. Los campos van tal cual, sin mayúsculas añadidas.
+
+## El código pega
+
+- **`frases.json`** guarda todas las frases que el código pone entre vuestros campos (unas 45). Cada frase es un texto con huecos:
+  - `{campo}` se rellena con su dato;
+  - `{campo|palabra}` pone «palabra» si el dato está vacío;
+  - lo que va entre `[[` y `]]` solo sale si todos sus huecos tienen algo.
+- **El usuario las cambia** en el panel «Frases del código». Se guardan en el estado del nodo (`frases`) y valen también para el nodo sin editor.
+- **Renglones propios:** «Cómo se presenta» y «Qué se copia» de la ficha sustituyen los renglones de arriba de esa referencia.
+- **El montaje devuelve trozos con su origen:** `molde`, `codigo`, `tu` (lo escrito o fijado por el usuario) o `llm`. La ventana pinta cada uno de su color.
+- **`pruebas.py`, sección 16, lo comprueba:**
+  - con cada frase cambiada por un marcador, fuera de los marcadores, los campos y el molde no queda ni una palabra;
+  - con todo vacío, solo queda el molde;
+  - cada campo llega entero, con su origen.
 
 Después de cada llamada, el código revisa la respuesta. Si algo falla, se la devuelve al LLM con la causa y le pide que la escriba de nuevo: hasta 3 veces la historia y hasta 4 cada toma. Si aun así no pasa, se detiene con el error en lugar de mandar a H3 un prompt malo.
 
@@ -38,7 +57,7 @@ Cada referencia del workflow (`<Picture N>` o `<Video N>`) tiene un **papel**. L
 
 | Papel | Qué hace | Cómo se cita en el prompt final |
 |---|---|---|
-| personaje | quién sale: nombre, pronombre y ficha; vale para todas las tomas. Suele ser una **cajita** (`<Video N>`) con varias fotos ✅. Un sujeto por nombre | en la definición de `<Subject 1>` y en su retención |
+| personaje | quién sale: nombre, pronombre y ficha; vale para todas las tomas. Suele ser una **cajita** (`<Video N>`) con varias fotos ✅. Un sujeto por nombre | en la definición de `<Subject 1>` y en su retención (frases `def.personaje`, `ret.personaje`) |
 | personaje con atuendo | además, un atuendo: cada toma elige uno | «wearing her school uniform from `<Picture 1>`» ✅ |
 | objeto | un producto u objeto que no cambia; es `<Subject 2>`, `<Subject 3>`… Sale en las tomas donde encaja (al menos una) | se define como sujeto y el gesto lo nombra: «raises `<Subject 2>`…» 💡 |
 | lugar | un sitio que no cambia; fija el lugar de las tomas que lo usan | «…, in the cargo plane cabin shown in `<Picture 5>`» y retención `fully_preserved` 💡 |
@@ -49,7 +68,7 @@ Cada referencia del workflow (`<Picture N>` o `<Video N>`) tiene un **papel**. L
 |---|---|---|
 | ropa | solo la ropa de otra persona | «wearing the red racing jacket from `<Picture 1>`» y «only the clothes are transferred (…); that person's face, hair and body are not transferred» ✅ |
 | pose | solo la postura | «in the pose of `<Picture 5>`» ✅ |
-| fondo | solo el fondo de una toma | «like the place in `<Picture 10>`» 💡 |
+| fondo | solo el fondo de una toma | presentado arriba con su ficha («`<Picture 10>` is the manga rooftop background reference: …»), «like the place in `<Picture 10>`» en su toma y «only the place and its background are transferred» 💡 |
 | estilo | solo el estilo visual | en la línea de estilo 💡 |
 | efecto | un efecto de ejemplo; su ficha es la frase | definido arriba («`<Picture 1>` is the gradient silhouette effect reference: …»), retenido aparte («only its look is transferred») y en la toma justo tras el encuadre: «Close-up, …, like the effect in `<Picture 1>`.» (render de Ren, plano 7) |
 | letra | la tipografía de una palabra de la fila de texto (fuerza 0,5) | «`<Picture 5>` is the typography reference for the word "RISE"», «only its lettering style is transferred; the words written in it are not reproduced» y «in the lettering style of `<Picture 5>`» |
@@ -66,4 +85,4 @@ También tiene un **nombre** corto, que es el que va al prompt (por ejemplo, «T
 
 - **El usuario:** la idea, el estilo, las palabras en pantalla, los personajes (nombre, pronombre y ficha), los efectos, los papeles de las referencias y cualquier campo que fije.
 - **El LLM:** lo que no está fijado (lugares, momentos, qué referencia va en cada toma, luz, gesto y cámara).
-- **El código:** los tiempos, pegar la ficha de cada efecto, la definición de cada personaje, la retención, la línea de estilo y la revisión.
+- **El código:** los tiempos y pegar. Une todo con las frases de `frases.json`, que se ven y se cambian, y revisa lo que escribe el LLM (plano 5). Lo que añade el código sale en naranja en el prompt final.

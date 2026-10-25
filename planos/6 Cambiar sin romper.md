@@ -9,7 +9,7 @@ Lectura: 2 min
 1. **Cambia** el archivo que toque (plano 2, «Dónde cambiar cada cosa»).
 2. **Comprueba en segundos:**
    `~/ComfyUI-CLI/.venv/bin/python ~/comfy/ComfyUI/custom_nodes/edit_prompt_llm/pruebas.py`
-   Si sale TODO BIEN, sigue (89 comprobaciones; las 9 de audio usan audios sintéticos en una carpeta temporal y ffmpeg, las 6 de tapar, máscaras sintéticas, sin GPU, y las 10 de dos idiomas miran los textos y el código). Si cambiaste el montaje **a propósito**, revisa la diferencia y fija la nueva referencia con `pruebas.py --nueva-referencia`.
+   Si sale TODO BIEN, sigue (95 comprobaciones; las 9 de audio usan audios sintéticos en una carpeta temporal y ffmpeg, las 6 de tapar, máscaras sintéticas, sin GPU, las 10 de dos idiomas miran los textos y el código, y las 6 de «el código solo pega» comprueban que el montaje no escribe nada fuera de `frases.json`). Si cambiaste el montaje **a propósito**, revisa la diferencia y fija la nueva referencia con `pruebas.py --nueva-referencia`.
 3. **Si cambiaste lo que se le pide al LLM:** prueba en la terminal (unos 2 min) y mira la carpeta de la corrida, con cada prompt y su respuesta:
    `~/ComfyUI-CLI/.venv/bin/python nucleo.py --idea "…" --tomas 6 --palabras "TO YOU @1" --estilo "flat 2D anime illustration" --audio ~/comfy/ComfyUI/input/stay_0_5s.wav`
    Antes, libera la GPU de ComfyUI (`/free`), porque desde la terminal no se libera sola.
@@ -21,6 +21,7 @@ Lectura: 2 min
 
 | Cambié… | Qué hacer |
 |---|---|
+| `frases.json` | nada: se relee con `nucleo` en cada llamada. Si cambia el prompt de Teto, `pruebas.py --nueva-referencia` tras mirar la diferencia |
 | `nucleo.py` o `rutas.py`, incluida una acción nueva en `rutas.ACCIONES` | nada: el editor los recarga en cada llamada (el nodo, al ejecutarse, usa la versión que cargó el editor la última vez, o la del arranque) |
 | `web/editor_core.js` o `web/editor/*.js` | nada: se recargan al abrir la ventana |
 | un archivo nuevo en `web/editor/` | nada, si lo cargas desde `editor_core.js` (función `pieza`); solo debe exportar funciones |

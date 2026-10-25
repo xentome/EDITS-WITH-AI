@@ -9,6 +9,7 @@ Lectura: 3 min
 | Archivo | Qué tiene |
 |---|---|
 | `nucleo.py` | Todo el trabajo. Arriba, lo fijo de la casa (`DEFINICION_EDIT`, `AUDIO`, `GENERALES`…). Secciones, en orden: plan, referencias y personajes · reloj · audio (tramo de la canción) · LLM y registro · revisiones · historia · tomas · montaje · visión · tapar · acciones. |
+| `frases.json` | Todas las frases de unión de la carta: lo único que el código escribe entre los campos (plano 1, «El código pega»). Cambiarlas aquí cambia el valor por defecto para todos; el usuario las cambia para su edit en la ventana. |
 | `rutas.py` | Lo que hace cada ruta del editor. Llama a `nucleo`. |
 | `__init__.py` | El nodo, el registro de las rutas y la liberación de la GPU. Es delgado: no decide nada. |
 | `web/editor.js` | El botón «Abrir editor…» del nodo. |
@@ -22,7 +23,7 @@ Lectura: 3 min
 | `web/editor/textos.js` | Parte 4, entre las tomas y la onda: la fila de texto (palabras en pantalla), su arrastre al beat y su tarjetita (texto, encima / al lado, letra, frase). |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre), la línea de la canción entera y «Cambiar canción» (elegir o subir); al guardar, el recorte. |
 | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
-| `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
+| `web/editor/final.js` | Parte 5: el prompt final pintado por quién escribió cada trozo (o editado a mano), el panel «Frases del código», Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
 | `web/editor/i18n.js` | Dos idiomas en la ventana: carga `web/i18n/*.json`, elige el idioma (`idiomaElegido`) y da `t`, `num` y `lista` (`traductor`). |
 | `web/i18n/es.json`, `en.json` | Todos los textos que ve el usuario, `{"clave": "texto con {marcadores}"}`. |
@@ -38,11 +39,11 @@ Las piezas de `web/editor/` comparten un objeto `ctx` (estado, referencias y fun
 
 - `escribir_historia(entradas, plan, beats, semilla)` → plan con la historia escrita.
 - `escribir_tomas(entradas, plan, beats, semilla, solo=None)` → plan con la dirección escrita. Con `solo=k` regenera solo la toma k.
-- `montar_plan(entradas, plan, beats)` → prompt final, avisos (campos vacíos) y cortes.
+- `montar_plan(entradas, plan, beats, idioma, con_trozos=False)` → prompt final, avisos (campos vacíos) y cortes; con `con_trozos`, además `{trozos: [(texto, origen, frase)], referencias: {tag: {presentacion, copia}}}`. El montaje (`nucleo.montar`, `renglones_referencias`, `frase_texto`) usa solo `Carta.pegar(clave, **valores)`.
 - `planear(idea, n, dur, …, extra=None)` → el recorrido completo sin editor. Lo usa el nodo (con `extra = entradas_de_estado(estado)`) y guarda el resultado en disco para no repetirlo.
 
-`entradas` contiene `{idea, tomas, duracion, palabras, refs, estilo, estilo_palabras, sonido}` (y, desde el nodo sin editor, `textos`):
-- `refs` es `{"<Picture N>", "<Video N>" o "E1": {papel, nombre, ficha, pronombre, atuendo}}` (`pronombre` y `atuendo` solo en personaje; `E1`… son los efectos de texto). Papeles: `personaje`, `objeto`, `lugar` (no cambian) y `ropa`, `pose`, `fondo`, `estilo`, `efecto` (se prestan).
+`entradas` contiene `{idea, tomas, duracion, palabras, refs, estilo, estilo_palabras, sonido, frases}` (y, desde el nodo sin editor, `textos`). `frases` son las frases de unión que cambió el usuario:
+- `refs` es `{"<Picture N>", "<Video N>" o "E1": {papel, nombre, ficha, pronombre, atuendo, presentacion, copia}}` (`pronombre` y `atuendo` solo en personaje; `E1`… son los efectos de texto). Papeles: `personaje`, `objeto`, `lugar` (no cambian) y `ropa`, `pose`, `fondo`, `estilo`, `efecto` (se prestan).
 - `perfil_de(menu, entradas)` saca de ahí lo que antes daba la receta: los personajes, el pronombre del protagonista, el estilo y el de las palabras.
 - `palabras` y `estilo_palabras` son el formato viejo (`TO YOU @1; PEAK @ultima`): si el plan no tiene `textos`, `textos_de` los convierte. Lo vigente es `plan.textos` (plano 1).
 - Papel nuevo `letra` (la tipografía de una palabra), en la mitad azul.
@@ -53,7 +54,7 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 
 | Acción | Para qué | ¿LLM? |
 |---|---|---|
-| `montar` | plan → prompt final, cortes, beats y la fila de texto (`textos`, convertida del formato viejo si hace falta) | no |
+| `montar` | plan → prompt final y sus trozos con origen, los renglones de cada referencia, las frases de `frases.json`, cortes, beats y la fila de texto (`textos`, convertida del formato viejo si hace falta) | no |
 | `historia` | escribe la historia | sí |
 | `tomas` | escribe las tomas, o solo una con `solo` | sí |
 | `describir` | propone la ficha y los riesgos de una referencia, con visión | sí |
@@ -78,11 +79,11 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | lo que se le pide al LLM en la historia | `nucleo.prompt_historia` |
 | lo que se le pide en cada toma | `nucleo.prompt_toma` |
 | una regla de revisión | `nucleo.revisar_historia`, `revisar_toma` o la lista `GENERALES` |
-| cómo se escribe una línea `[Shot n]` | `nucleo.montar` |
+| cómo se escribe una línea `[Shot n]` | la frase `toma.linea` de `frases.json` (y `toma.*`) |
 | cómo se define y se retiene un personaje | `nucleo.definiciones` (la frase «In each shot she wears…» solo va si hay atuendos o ropa) |
 | lo fijo de la casa (qué es un edit, el audio, las palabras por defecto) | constantes de arriba de `nucleo.py` |
-| cómo se cita un efecto | `nucleo.montar` y `nucleo.frase_efecto` |
-| cómo se cita un objeto, un lugar o una ropa | `nucleo.montar` (marcado con 💡 lo no probado) |
+| cómo se cita un efecto | las frases `def.efecto`, `ret.efecto` y `toma.efecto` de `frases.json` |
+| cómo se presenta o se cita cualquier referencia | `def.<papel>`, `ret.<papel>` y `toma.*` en `frases.json` |
 | dónde caen los cortes | `nucleo.cortes` |
 | las dos mitades, la ficha de una referencia, la biblioteca o el resaltado | `web/editor/referencias.js` |
 | las cajitas | `web/editor/cajitas.js` y `rutas.crear_cajita` |

@@ -12,7 +12,7 @@ Lectura: 3 min
 |---|---|---|---|
 | 1 | Tiempos mal escritos o tomas mal numeradas | «00:00.1045», tomas 6–10 | los tiempos los pone el código · CÓDIGO |
 | 2 | Frase de efecto ambigua → artefacto | «wet red strands» → líquido rojo | el LLM elige el efecto (E1, `<Picture N>`); su ficha, que escribe el usuario, la pega el código tal cual · MENÚ |
-| 3 | Partes fijas reescritas | definiciones cambiadas | las arma el código con el nombre y la ficha del personaje · CÓDIGO |
+| 3 | Partes fijas reescritas | definiciones cambiadas | las arma el código con el nombre y la ficha de cada referencia y las frases de `frases.json` (a la vista; el usuario puede reescribirlas en la ficha) · CÓDIGO |
 | 4 | Mismo lugar o atuendo en todas las tomas | Teto mínimo, monótono | lugares distintos (repetidos y parecidos); atuendo distinto en tomas seguidas · REVISIÓN |
 | 5 | Pose o efecto repetido | — | pose: una vez como mucho, también contra lo fijado en otras tomas; efecto: no en dos tomas seguidas, y cada uno al menos una vez si caben · REVISIÓN |
 | 6 | Gesto calcado de otra toma | la narrativa copiaba | parecido > 0,6 → repetir · REVISIÓN |
@@ -49,6 +49,32 @@ Lectura: 3 min
 - **Con la pose `<Picture 5>` (saludo), Teto sale de cuerpo entero, con el pelo largo y a veces con uniforme de marinero.** Ha pasado en 3 de 3 renders: la recortada, el nodo y el editor. Las otras 4 poses salen bien. Parece que esa referencia arrastra su propia composición. Hay tres opciones, ninguna probada: nombrar el pelo dentro de la toma, como hacía la v3; rehacer ese RefMod; o no usar esa pose.
 - En el efecto G2 la cara no queda en color (2 de 2).
 - Vistos una sola vez: «TO YOU» tapando la cara, la lluvia de U5 que no se ve, y un garabato como de firma con la pose `<Picture 6>`. En el render del editor no se repitieron.
+
+## Para repasar con el usuario ❓
+
+Desde el 25 oct el código solo pega (plano 1). Pero todavía quedan filtros que deciden por el usuario, porque limitan lo que puede escribir el LLM. Hay que repasarlos juntos, uno por uno: seguir, pasar a aviso visible o quitarse.
+
+**Las reglas que limitan lo creativo:**
+- 4 y 21: lugar, encuadre y cámara distintos entre tomas.
+- 5: pose y efecto sin repetir, y cada efecto al menos una vez.
+- 6: gesto parecido.
+- 7: el LLM solo elige primeros planos (el usuario ya puede escribir su encuadre).
+- 9 y 10: palabras prohibidas (`GENERALES`).
+- 11, 12 y 13: sin dígitos, sin negaciones y sin texto en pantalla.
+- 14: no describir al personaje.
+- 17: gestos de 25 palabras como máximo.
+- 25 a 28: atuendo o ropa, lugar sin fondo, objeto nombrado y cada objeto o lugar al menos una vez.
+
+**Lo que se le pide al LLM sin que se vea en la ventana** (en `nucleo.py`):
+- `DEFINICION_EDIT`: «Cada toma muestra de cerca al personaje…». Empuja a primeros planos.
+- `REGLA`: solo lo que se ve, sin metáforas ni negaciones.
+- `FISICA`: nunca tumbado ni con el suelo de fondo.
+
+**Lo que no limita, y se queda:**
+- 1, 2, 3 y 8: el formato y las partes fijas.
+- 15: el pronombre.
+- 18 a 20: leer la respuesta y la GPU.
+- 30 y 31: el orden de la carta, ahora en `frases.json`.
 
 ## Añadir una regla
 

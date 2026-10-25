@@ -96,7 +96,11 @@ Lectura: 4 min
 - **Beats:** son los de la canción entera (calculados una vez y guardados en `~/Escritorio/experimentos_edit/edit_prompt_llm/cache_audio/`) desplazados al inicio del tramo. Analizar solo el tramo cambiaba el tempo que ve librosa (a veces la mitad de beats).
 
 ### 5 · Prompt final
-- El código lo vuelve a montar cada vez que cambias algo, sin llamar al LLM, y avisa de los huecos.
+- El código lo vuelve a montar cada vez que cambias algo, sin llamar al LLM, y avisa de los huecos (un campo vacío no deja nada en la carta).
+- **Colores, quién escribió cada trozo:** gris = molde de H3 (secciones, etiquetas, tiempos), naranja = frase del código, verde = tú (lo escrito o fijado con 🔒), azul = el LLM. La leyenda va encima. Con el prompt editado a mano no hay colores.
+- **Frases del código (N cambiadas):** el panel con todas las frases de `frases.json`, cada una editable, y ↺ para volver a la de siempre. Tocar un trozo naranja del prompt abre el panel en esa frase. Las cambiadas se guardan en el nodo.
+- **En la ficha de cada referencia,** «Sus renglones arriba en el prompt»: «Cómo se presenta» (subject_definitions) y «Qué se copia» (retention_analysis). Vacíos, se ve en gris la frase de su papel; lo que escribas va tal cual.
+- **Encuadre propio:** en el menú de encuadre de una toma, «✎ escribir el mío…» deja escribir uno que no está en la lista (en inglés, tal cual irá), por ejemplo «high-angle full shot». «≡ menú» vuelve al menú.
 - **Escribir historia** (unos 80–110 s): rellena lo no fijado del arco, la luz y, en cada toma, el lugar, lo que pasa, las referencias y el efecto. Vacía la dirección no fijada.
 - **Escribir tomas** (13–30 s): encuadre, luz, gesto y cámara de todas las tomas, salvo lo fijado.
 - **Guardar**, **Editar a mano** (queda «editado a mano» y no se vuelve a montar solo) y **Volver a montar**.

@@ -30,13 +30,13 @@ Símbolos: ✅ hecha (con su commit) · 🔄 en curso · ⬜ pendiente.
    - en la ficha de cada referencia, «Cómo se presenta» y «Qué se copia» (vacío = la frase del código);
    - un encuadre propio («✎ escribir el mío»);
    - todo en los dos idiomas.
-3. ⬜ **Planos al día.** Consiste en:
+3. ✅ **Planos al día** (este commit). Consiste en:
    - los planos 1, 2, 4, 5 y 6, y `PLANOS.md`, incluida la regla de la casa nueva: el código solo pega;
    - la lista de reglas de revisión del plano 5, para repasarla con el usuario. Esas reglas son el filtro que queda, en lo que escribe el LLM.
 
 ## Lo que quedó a medias y cómo seguir
 
-(se rellena al parar)
+Las tres fases están hechas. Lo siguiente lo decide el usuario: repasar el plano 5, «Para repasar», y la prueba de control de Ren (abajo).
 
 ## Pendiente, cuando el usuario lo decida
 
