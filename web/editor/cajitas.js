@@ -7,12 +7,14 @@
 const CONCEPTO = { personaje: "identity", objeto: "generic", lugar: "background", ropa: "clothing", pose: "pose_motion",
                    fondo: "background", estilo: "style", efecto: "style" };
 const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
+// la descripción que se guarda en el RefMod (en disco, la ve la biblioteca de Fantastic): un dato, en un solo idioma
+const DESCRIPCION = (n) => `Cajita de ${n} fotos (editor del edit)`;
 
 /* Añade ctx.abrirCajita y ctx.crearCajita. Usa de ctx: u, S, wf, caja, capa, abrirFicha, cargarBiblioteca, biblioteca,
  * cajitas, cambiarStack, tarjeta, vista, fotosDe, nFotos, ladoDe, avisar. */
 export function instalar(ctx) {
   const { u, S, wf, caja } = ctx;
-  const { el, api } = u;
+  const { el, api, t } = u;
 
   // ---- abrir: la ficha de la referencia, con sus fotos a la izquierda
   ctx.abrirCajita = function abrirCajita(r) {
@@ -24,16 +26,16 @@ export function instalar(ctx) {
           return el("div", {},
             el("div", { class: "grande" }, src ? el("div", { class: "fondo", style: { backgroundImage: `url("${src}")` } }) : null,
               src ? el("img", { src, alt: "" }) : null),
-            el("p", { class: "epl-ayuda" }, `Esta cajita tiene ${ctx.nFotos(r2)} fotos, pero no están apuntadas: solo se ve la primera. ` +
-              "Si la vuelves a crear con «Cambiar fotos», quedarán apuntadas."));
+            el("p", { class: "epl-ayuda" }, t("referencias.cajita.sin_apuntar", { n: ctx.nFotos(r2) })));
         }
-        return el("div", {}, el("div", { class: "epl-ayuda" }, `Cajita «${r2.nombre}» · ${fotos.length} fotos · H3 la recibe como ${r2.tag || "(apagada)"}`),
+        return el("div", {}, el("div", { class: "epl-ayuda" }, t("referencias.cajita.resumen",
+                                                                { nombre: r2.nombre, n: fotos.length, tag: r2.tag || t("comun.apagada") })),
           el("div", { class: "epl-fotos epl-cajita-fotos" }, ...fotos.map((f, i) => el("div", {},
             el("img", { src: u.vistaMedio(f.file), alt: "" }), el("b", {}, `${i + 1}. `), f.name))));
       },
       botones: (r2, v) => el("div", { class: "epl-fila" },
-        el("button", { class: "epl-mini", title: "Abre el creador con estas fotos; al crearla, la nueva ocupa el lugar de esta en el Stack",
-          onclick: () => { v.cerrar(); ctx.crearCajita({ lado: ctx.ladoDe(r2), desde: r2 }); } }, "✎ Cambiar fotos (crea una cajita nueva)")),
+        el("button", { class: "epl-mini", title: t("referencias.cajita.cambiar.tooltip"),
+          onclick: () => { v.cerrar(); ctx.crearCajita({ lado: ctx.ladoDe(r2), desde: r2 }); } }, t("referencias.cajita.cambiar"))),
     });
   };
 
@@ -56,7 +58,7 @@ export function instalar(ctx) {
     };
     const candidatos = () => st.pestaña === "editor"
       ? wf.items.filter((r) => r.ref && r.kind === "image").map((r) => ({ clave: "ref:" + r.ref, src: ctx.vista(r),
-          texto: `${r.tag || "(apagada)"} ${r.nombre}`, fuente: { refmod: r.ref }, ref: r.ref }))
+          texto: `${r.tag || t("comun.apagada")} ${r.nombre}`, fuente: { refmod: r.ref }, ref: r.ref }))
       : (medios || []).map((m) => ({ clave: "file:" + m.file, src: u.vistaMedio(m.file), texto: `${m.carpeta.replace(/^minimax_h3\/?/, "")}/${m.name}`,
                                     fuente: { file: m.file } }));
     // tamaño de los recuadros del selector: se recuerda (ctx.controlTamano) y sobrevive a cada repintado
@@ -68,59 +70,60 @@ export function instalar(ctx) {
       const rejElegir = el("div", { class: "epl-elegir" }, ...lista.map((c) => el("div", { class: elegida(c.clave) ? "si" : "", title: c.texto,
                 onclick: () => alternar(c) }, el("img", { src: c.src, alt: "", loading: "lazy" }), el("div", { class: "nombre" }, c.texto))));
       v.modal.replaceChildren(
-        el("div", { class: "epl-tit" }, desde ? `Cambiar las fotos de «${desde.nombre}» (se crea una cajita nueva)` : "Nueva cajita: varias fotos en una sola referencia",
-          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        el("div", { class: "epl-tit" }, desde ? t("referencias.cajita.titulo_cambiar", { nombre: desde.nombre }) : t("referencias.cajita.titulo_nueva"),
+          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
         el("div", { class: "epl-ficha" },
           el("div", {},
             el("div", { class: "epl-fila" },
               el("button", { class: "epl-mini" + (st.pestaña === "editor" ? " fijo" : ""), onclick: () => { st.pestaña = "editor"; pintar(); } },
-                "De las referencias del editor"),
+                t("referencias.cajita.de_editor")),
               el("button", { class: "epl-mini" + (st.pestaña === "input" ? " fijo" : ""), onclick: async () => {
                 st.pestaña = "input";
                 if (!medios) { try { medios = (await api("medios", {})).fotos; } catch (e) { ctx.avisar(e.message, "mal"); medios = []; } }
-                pintar(); } }, "Del Media Loader (input/minimax_h3)"),
+                pintar(); } }, t("referencias.cajita.de_media")),
               // se busca por su clase (no por su texto, que cambia con el idioma) para devolverle el foco al repintar
-              el("input", { class: "epl-cajita-buscar", placeholder: "buscar…", value: st.filtro, style: { flex: 1 },
+              el("input", { class: "epl-cajita-buscar", placeholder: t("comun.buscar"), value: st.filtro, style: { flex: 1 },
                 oninput: (e) => { st.filtro = e.target.value; clearTimeout(st.t); st.t = setTimeout(() => { pintar(); v.modal.querySelector(".epl-cajita-buscar")?.focus(); }, 250); } })),
-            el("div", { class: "epl-fila" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, "tamaño de las fotos"),
+            el("div", { class: "epl-fila" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, t("referencias.cajita.tamano")),
               ctx.controlTamano((t) => { tamElegir = t; rejElegir.style.setProperty("--epl-tam", t + "px"); }, "epl-tam-cajita", tamElegir)),
-            st.pestaña === "input" && !medios ? el("p", { class: "epl-vacio" }, "Cargando…") : null,
+            st.pestaña === "input" && !medios ? el("p", { class: "epl-vacio" }, t("comun.cargando")) : null,
             rejElegir,
-            el("p", { class: "epl-ayuda" }, "Toca una foto para meterla o sacarla. La primera marca el tamaño de las demás.")),
+            el("p", { class: "epl-ayuda" }, t("referencias.cajita.ayuda"))),
           el("div", {},
-            el("label", {}, `Fotos dentro (${st.elegidas.length})`),
+            el("label", {}, t("referencias.cajita.dentro", { n: st.elegidas.length })),
             el("div", { class: "epl-fotos" }, ...st.elegidas.map((e, i) => el("div", {},
               el("img", { src: e.src, alt: "", style: { height: "120px" } }), `${i + 1}. ${e.texto}`,
-              el("button", { class: "epl-mini quitar", title: "Sacar", onclick: () => { st.elegidas.splice(i, 1); pintar(); } }, "✕")))),
-            el("label", {}, "Nombre del RefMod (carpeta cajitas/)"),
-            el("input", { value: st.nombre, placeholder: "ej.: teto_identidad", oninput: (e) => { st.nombre = e.target.value; } }),
-            el("label", {}, "Papel"),
+              el("button", { class: "epl-mini quitar", title: t("referencias.cajita.sacar"), onclick: () => { st.elegidas.splice(i, 1); pintar(); } }, "✕")))),
+            el("label", {}, t("referencias.cajita.nombre_refmod")),
+            el("input", { value: st.nombre, placeholder: t("referencias.cajita.nombre_refmod.placeholder"), oninput: (e) => { st.nombre = e.target.value; } }),
+            el("label", {}, t("referencias.ficha.papel")),
             el("select", { onchange: (e) => { st.papel = e.target.value; } },
-              ...Object.keys(CONCEPTO).map((p) => el("option", { value: p, selected: st.papel === p }, p))),
-            el("label", {}, "Nombre (del personaje, el objeto, el lugar, la ropa o el efecto)"),
+              ...Object.keys(CONCEPTO).map((p) => el("option", { value: p, selected: st.papel === p }, t(`referencias.papel.${p}`)))),
+            el("label", {}, t("referencias.cajita.nombre")),
             el("input", { value: st.nombrePrompt, oninput: (e) => { st.nombrePrompt = e.target.value; } }),
-            el("label", {}, "Ficha (en inglés, opcional)"),
+            el("label", {}, t("referencias.cajita.ficha")),
             el("textarea", { rows: 2, oninput: (e) => { st.ficha = e.target.value; } }, st.ficha),
             el("label", { style: { display: "flex", gap: "6px", alignItems: "center" } },
               el("input", { type: "checkbox", checked: st.apagar, onchange: (e) => { st.apagar = e.target.checked; } }),
-              "apagar en el Stack las referencias sueltas que meta en la cajita"),
+              t("referencias.cajita.apagar_sueltas")),
             el("div", { class: "epl-fila" },
-              el("button", { class: "epl-boton fuerte", onclick: () => crear() }, "Crear cajita (unos 10 s)")))));
+              el("button", { class: "epl-boton fuerte", onclick: () => crear() }, t("referencias.cajita.crear"))))));
     };
+    v.repintar = pintar;                                   // al cambiar de idioma: lo elegido se conserva en st
     async function crear() {
       if (S.ocupado) return;
-      if (st.elegidas.length < 2) return ctx.avisar("Una cajita necesita al menos 2 fotos", "mal");
-      if (!st.nombre.trim()) return ctx.avisar("Ponle un nombre a la cajita", "mal");
+      if (st.elegidas.length < 2) return ctx.avisar(t("errores.cajita_pocas_fotos"), "mal");
+      if (!st.nombre.trim()) return ctx.avisar(t("errores.cajita_sin_nombre"), "mal");
       S.ocupado = true;
       caja.classList.add("ocupada");
       const t0 = Date.now();
-      const reloj = setInterval(() => ctx.avisar(`Creando la cajita… ${Math.round((Date.now() - t0) / 1000)} s`, "trabajando"), 500);
+      const reloj = setInterval(() => ctx.avisar(t("referencias.cajita.creando", { s: Math.round((Date.now() - t0) / 1000) }), "trabajando"), 500);
       try {
         const res = await api("crear_cajita", { nombre: st.nombre.trim(), carpeta: "cajitas", concepto: CONCEPTO[st.papel],
-          descripcion: `Cajita de ${st.elegidas.length} fotos (editor del edit)`, fotos: st.elegidas.map((e) => e.fuente) });
+          descripcion: DESCRIPCION(st.elegidas.length), fotos: st.elegidas.map((e) => e.fuente) });
         await ctx.cargarBiblioteca();
         const it = ctx.biblioteca[res.name];
-        if (!it) throw new Error(`${res.name} se creó pero no aparece en la biblioteca`);
+        if (!it) throw new Error(t("referencias.cajita.no_en_biblioteca", { nombre: res.name }));
         S.refs[res.name] = { papel: st.papel, nombre: st.nombrePrompt.trim(), ficha: st.ficha.trim(), origen: "cajita" };
         const sueltas = st.apagar ? st.elegidas.map((e) => e.fuente.refmod).filter(Boolean) : [];
         // las tomas que citaban la cajita vieja pasan a citar la nueva
@@ -128,7 +131,7 @@ export function instalar(ctx) {
         ctx.cambiarStack((picks) => {
           const nueva = ctx.tarjeta(it, picks);
           if (desde?.idx !== undefined && picks[desde.idx]?.name === desde.ref) picks[desde.idx] = nueva;
-          else { if (picks.length >= 12) throw new Error("El Stack ya tiene 12 tarjetas"); picks.push(nueva); }
+          else { if (picks.length >= 12) throw new Error(t("errores.stack_lleno")); picks.push(nueva); }
           for (const p of picks) if (sueltas.includes(p.name)) p.on = false;
         });
         const tagNueva = wf.lista.find((r) => r.clave === res.name)?.tag;
@@ -137,9 +140,10 @@ export function instalar(ctx) {
         ctx.pintarRefs();
         ctx.pintarPlan();
         ctx.pedirMontaje();
-        ctx.avisar(`Cajita ${res.name} creada en ${res.segundos} s y añadida al Stack` + (tagNueva ? ` como ${tagNueva}` : ""), "bien");
+        ctx.avisar(t(tagNueva ? "referencias.cajita.creada_como" : "referencias.cajita.creada",
+                     { nombre: res.name, s: u.num(res.segundos), tag: tagNueva }), "bien");
       } catch (e) {
-        ctx.avisar("Cajita: " + e.message, "mal");
+        ctx.avisar(t("referencias.cajita.error", { error: e.message }), "mal");
       } finally {
         clearInterval(reloj);
         S.ocupado = false;

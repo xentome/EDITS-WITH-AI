@@ -425,6 +425,11 @@ SIN_LETRERO = {"bien", "mal", "trabajando", "izq", "der", "px", "%", "es", "en"}
 TROZO_URL = re.compile(r"^[?&/#][\w=/.&?%-]*$")                                   # «?v=», «&t=», «/view?filename=»…
 CLASES = set(re.findall(r"\.([a-z][\w-]*)", open(os.path.join(AQUI, "web", "editor", "estilos.js"), encoding="utf-8").read()))
 es_clase = lambda x: all(p in CLASES for p in x.split())                         # « fijo», « usada»: clases de CSS
+PALABRAS_SUELTAS = {v.lower() for v in list(ES.values()) + list(EN.values()) if re.fullmatch(r"[\w-]+", v)}
+# un nombre de código («stack_state», «textarea», «epl-tam-cajita»): sin espacios, sin mayúscula al empezar, y que no sea
+# una palabra que también es un texto de la ventana («cerrar», «usar»…)
+es_codigo = lambda x: bool(re.fullmatch(r"[a-z0-9_][\w-]*", x)) and x.lower() not in PALABRAS_SUELTAS
+ETIQUETA_H3 = re.compile(r"^<(?:Picture|Video|Subject|Audio) [^>]*>$")              # «<Picture ${n}>»: va al prompt
 JS_LETRERO = [r"""\b(?:title|placeholder|label|alt|"aria-label")\s*:\s*(["'`])((?:(?!\1).)*)\1""",
               r"""\.textContent\s*=\s*(["'`])((?:(?!\1).)*)\1""",
               r"""\bavisar\(\s*(["'`])((?:(?!\1).)*)\1""",
@@ -443,10 +448,12 @@ EXCEPCIONES = {
     ("editor.js", "Idioma / Language"),     # nombre de reserva del ajuste; ComfyUI lo traduce con locales/*/settings.json
     ("editor.js", "auto = Comfy.Locale"),   # su ayuda de reserva, igual
     ("editor_core.js", "ES"), ("editor_core.js", "EN"),   # el botón de idioma: los nombres de los idiomas no se traducen
+    ("audio.js", "audio"), ("referencias.js", "audio"),   # el nombre del campo del LoadAudio (W(nodo, "audio"))
+    ("referencias.js", "RefMod"),           # de dónde salió una ficha: un dato del estado (se enseña con referencias.origen.*)
 }
 # piezas que aún no pasaron a t(): se vacía al terminar las fases 2 (ventana) y 3 (servidor y nodo)
-PENDIENTES = {"plan.js", "referencias.js", "cajitas.js", "tapar.js", "linea.js", "audio.js",
-              "final.js", "__init__.py", "rutas.py", "nucleo.py"}
+PENDIENTES = {
+              "__init__.py", "rutas.py", "nucleo.py"}
 letreros = []
 for ruta, pats in [(r, JS_LETRERO) for r in CODIGO_JS] + [(r, PY_LETRERO) for r in CODIGO_PY]:
     nombre = os.path.basename(ruta)
@@ -457,8 +464,9 @@ for ruta, pats in [(r, JS_LETRERO) for r in CODIGO_JS] + [(r, PY_LETRERO) for r 
             continue                         # comentarios y mensajes de consola (son para quien programa)
         for pat in pats:
             for _, txt in re.findall(pat, lin):
-                limpio = re.sub(r"\$\{[^}]*\}|\{\w*\}", "", txt).strip()
+                limpio = re.sub(r"\$\{[^}]*\}|\{\w*\}|\\[nt]", "", txt).strip()
                 if LETRAS.search(limpio) and limpio not in SIN_LETRERO and not TROZO_URL.match(limpio) and not es_clase(limpio) \
+                        and not es_codigo(limpio) and not ETIQUETA_H3.match(txt) \
                         and (nombre, txt) not in EXCEPCIONES \
                         and not literal.fullmatch(f'"{txt}"'):
                     letreros.append(f"{nombre}:{n_lin}: {txt[:60]}")

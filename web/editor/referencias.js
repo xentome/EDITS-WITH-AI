@@ -4,17 +4,16 @@
  * Stack, abre la biblioteca de RefMods, enseña la ficha de cada referencia (al tocarla) y pide la ficha con visión.
  * Las cajitas (un RefMod con varias fotos) se abren y se crean en cajitas.js; «tapar con SAM» de la ficha está en tapar.js.
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u, sin imports, para que
- * este archivo también se recargue al abrir la ventana. Planos: ../../planos/4 El editor.md. */
+ * este archivo también se recargue al abrir la ventana. Los textos, con u.t("clave") (web/i18n/*.json); cada ventanita
+ * guarda en v.repintar cómo volver a pintarse, para cambiar de idioma sin perder lo escrito. Planos: ../../planos/4 El editor.md. */
 
-// papel → [texto, mitad]
+// papel → mitad. Su letrero: referencias.papel.<papel> (largo) y referencias.papel_corto.<papel> (en la franja)
 export const PAPELES = {
-  personaje: ["personaje (identidad o atuendo)", "izq"], objeto: ["objeto / producto", "izq"], lugar: ["lugar", "izq"],
-  ropa: ["ropa", "der"], pose: ["pose", "der"], fondo: ["fondo de una toma", "der"], estilo: ["estilo", "der"],
-  efecto: ["efecto (imagen o clip de ejemplo)", "der"], no: ["no usar", "der"],
+  personaje: "izq", objeto: "izq", lugar: "izq", ropa: "der", pose: "der", fondo: "der", estilo: "der", efecto: "der", no: "der",
 };
 // campos de la toma que citan una referencia (los mismos que nucleo.CAMPO_PAPEL); «efecto» también puede ser E1, E2…
 export const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
-export const PRONOMBRES = [["they", "they (por defecto)"], ["she", "she"], ["he", "he"]];
+export const PRONOMBRES = ["they", "she", "he"];       // van al prompt en inglés; solo «they» lleva letrero (por defecto)
 const CONCEPTO = { identity: "personaje", clothing: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                    scene: "fondo", style: "estilo" };
 // al añadir desde una mitad, el papel que toca en ese lado según el concepto del RefMod
@@ -22,13 +21,13 @@ const POR_LADO = { izq: { identity: "personaje", background: "lugar", scene: "lu
                    der: { clothing: "ropa", identity: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                           scene: "fondo", "": "estilo" } };
 export const papelPorLado = (lado, concepto) => POR_LADO[lado][concepto] || POR_LADO[lado][""];
-const AYUDA_NOMBRE = { personaje: "nombre del personaje (ej.: Teto); las fotos con el mismo nombre son el mismo personaje",
-                       efecto: "nombre corto del efecto (ej.: neon light streaks)",
-                       objeto: "nombre del objeto en el prompt (ej.: red soda can)", lugar: "nombre del lugar (ej.: neon arcade street)",
-                       ropa: "nombre de la ropa (ej.: red racing jacket)" };
+// la ayuda del nombre de cada papel: referencias.nombre.<papel>
+const CON_NOMBRE = ["personaje", "objeto", "lugar", "ropa", "efecto"];
+// de dónde salió la ficha (se guarda así en el estado) → su letrero, referencias.origen.<clave>
+const ORIGENES = { RefMod: "RefMod", editor: "editor", "visión, revisada": "vision", cajita: "cajita", subida: "subida" };
 
 /* Numeración igual que el Text Encode: primero los medios del Media Loader, después las tarjetas activas del Stack,
- * un contador por tipo (Picture / Video). */
+ * un contador por tipo (Picture / Video). Los avisos van como [clave, datos]: se escriben al pintar, en el idioma de ahora. */
 export function referenciasDelWorkflow(u, graph, node) {
   const { W, leerJSON, origen, destinos } = u;
   const pb = destinos(graph, node, 0).find((n) => n.type === "MiniMaxH3PromptBuilder");
@@ -48,16 +47,16 @@ export function referenciasDelWorkflow(u, graph, node) {
   (leerJSON(W(stack || {}, "stack_state")?.value, {}).picks || []).forEach((p, idx) => {
     if (!p) return;
     const activa = p.on !== false && (p.visual?.w ?? 1) > 0;
-    if (activa && (p.visual?.c || 1) > 1) avisos.push(`${p.label}: tiene copias; la numeración puede no coincidir con el Text Encode`);
+    if (activa && (p.visual?.c || 1) > 1) avisos.push(["referencias.aviso.copias", { nombre: p.label }]);
     const kind = p.visual?.kind || "image";
     const tag = !activa ? null : kind === "video" ? `<Video ${++videos}>` : kind === "image" ? `<Picture ${++fotos}>` : null;
     items.push({ tag, nombre: p.label || p.name, clave: p.name, ref: p.name, preview: p.preview || p.name, idx, kind,
                  on: p.on !== false, fuerza: p.visual?.w ?? 1 });
   });
-  if (fotos > 9) avisos.push(`Hay ${fotos} fotos activas: H3 admite 9 como mucho`);
-  if (videos > 3) avisos.push(`Hay ${videos} videos (o cajitas) activos: H3 admite 3 como mucho`);
-  if (!pb) avisos.push("El nodo no está conectado a un Prompt Builder: se usa el primer RefMod Stack del workflow.");
-  if (!stack && !loader) avisos.push("No encontré RefMod Stack ni Media Loader: no hay referencias que enlazar.");
+  if (fotos > 9) avisos.push(["referencias.aviso.fotos", { n: fotos }]);
+  if (videos > 3) avisos.push(["referencias.aviso.videos", { n: videos }]);
+  if (!pb) avisos.push(["referencias.aviso.sin_prompt_builder", {}]);
+  if (!stack && !loader) avisos.push(["referencias.aviso.sin_stack", {}]);
   const audioNodo = origen(graph, node, "audio") || (pb && origen(graph, pb, "audio_1"));
   return { items, lista: items.filter((r) => r.tag), avisos, stack, audioNodo, audio: W(audioNodo || {}, "audio")?.value || "" };
 }
@@ -66,7 +65,9 @@ export function referenciasDelWorkflow(u, graph, node) {
  * cajitas, avisar, pedirMontaje, pintarPlan, pintarToma, abrirCajita, crearCajita. */
 export function instalar(ctx) {
   const { u, S, wf, graph, node, caja, secRefs } = ctx;
-  const { el, W, leerJSON, api } = u;
+  const { el, W, leerJSON, api, t } = u;
+  const papelLargo = (p) => t(`referencias.papel.${PAPELES[p] ? p : "no"}`);
+  const apagada = (r) => r.tag || t("comun.apagada");
 
   ctx.claveDe = (tag) => wf.lista.find((r) => r.tag === tag)?.clave;
   ctx.refDe = (tag) => S.refs[ctx.claveDe(tag)] || {};
@@ -82,7 +83,7 @@ export function instalar(ctx) {
   ctx.fotosDe = (r) => (r.ref && ctx.cajitas[r.ref]) || null;           // fotos apuntadas de una cajita
   ctx.esCajita = (r) => !!ctx.fotosDe(r) || ctx.biblioteca[r.ref]?.visual?.source === "stack";
   ctx.nFotos = (r) => ctx.fotosDe(r)?.length || ctx.biblioteca[r.ref]?.visual?.t || 1;
-  ctx.ladoDe = (r) => PAPELES[S.refs[r.clave]?.papel || "no"]?.[1] || "der";
+  ctx.ladoDe = (r) => PAPELES[S.refs[r.clave]?.papel || "no"] || "der";
 
   // datos de Fantastic (ficha, concepto, vista previa) de cada RefMod, y las fotos de cada cajita
   ctx.cargarBiblioteca = async function cargarBiblioteca() {
@@ -133,27 +134,27 @@ export function instalar(ctx) {
     let pregunta = false;
     const v = ctx.capa("der");
     const pintar = () => v.modal.replaceChildren(
-      el("div", { class: "epl-tit" }, id ? `Efecto de texto ${id}` : "Nuevo efecto de texto",
-        el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
-      el("p", { class: "epl-ayuda" }, "Un efecto sin imagen: el LLM puede ponerlo en las tomas donde encaje y el código pega la frase tal cual. " +
-        "Para un efecto con imagen o clip de ejemplo, añade la referencia y ponle el papel «efecto»."),
-      el("label", {}, "Nombre corto"),
-      el("input", { class: "epl-nombre", value: e.nombre, placeholder: "ej.: neon light streaks", oninput: (x) => { e.nombre = x.target.value; } }),
-      el("label", {}, "Frase del efecto (en inglés; va tal cual al prompt)"),
-      el("textarea", { class: "epl-ficha-txt", rows: 3, placeholder: "ej.: thin neon light streaks cross the frame behind <Subject 1>",
+      el("div", { class: "epl-tit" }, id ? t("referencias.efecto.titulo", { id }) : t("referencias.efecto.nuevo"),
+        el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
+      el("p", { class: "epl-ayuda" }, t("referencias.efecto.ayuda")),
+      el("label", {}, t("referencias.efecto.nombre")),
+      el("input", { class: "epl-nombre", value: e.nombre, placeholder: t("referencias.efecto.nombre.placeholder"), oninput: (x) => { e.nombre = x.target.value; } }),
+      el("label", {}, t("referencias.efecto.frase")),
+      el("textarea", { class: "epl-ficha-txt", rows: 3, placeholder: t("referencias.efecto.frase.placeholder"),
                        oninput: (x) => { e.ficha = x.target.value; } }, e.ficha),
       aviso,
       el("div", { class: "epl-fila" },
         el("button", { class: "epl-boton epl-azul", onclick: () => {
-          if (!e.ficha.trim()) { aviso.textContent = "⚠ Escribe la frase del efecto"; return; }
+          if (!e.ficha.trim()) { aviso.textContent = "⚠ " + t("referencias.efecto.falta_frase"); return; }
           if (id) S.efectos[id] = { nombre: e.nombre.trim(), ficha: e.ficha.trim() }; else ctx.nuevoEfecto(e);
           v.cerrar(); ctx.pintarRefs(); ctx.pintarPlan(); ctx.pedirMontaje();
-        } }, id ? "Guardar" : "Crear efecto"),
+        } }, id ? t("comun.guardar") : t("referencias.efecto.crear")),
         id ? (pregunta
-          ? el("span", { class: "epl-ayuda" }, "¿quitar el efecto? ",
-              el("button", { class: "epl-mini", onclick: () => { ctx.quitarEfecto(id); v.cerrar(); ctx.pintarRefs(); ctx.pintarPlan(); ctx.pedirMontaje(); } }, "sí"),
-              el("button", { class: "epl-mini", onclick: () => { pregunta = false; pintar(); } }, "no"))
-          : el("button", { class: "epl-mini", onclick: () => { pregunta = true; pintar(); } }, "✕ quitar efecto")) : null));
+          ? el("span", { class: "epl-ayuda" }, t("referencias.efecto.pregunta_quitar") + " ",
+              el("button", { class: "epl-mini", onclick: () => { ctx.quitarEfecto(id); v.cerrar(); ctx.pintarRefs(); ctx.pintarPlan(); ctx.pedirMontaje(); } }, t("comun.si")),
+              el("button", { class: "epl-mini", onclick: () => { pregunta = false; pintar(); } }, t("comun.no")))
+          : el("button", { class: "epl-mini", onclick: () => { pregunta = true; pintar(); } }, t("referencias.efecto.quitar"))) : null));
+    v.repintar = pintar;
     pintar();
     return v;
   };
@@ -161,7 +162,7 @@ export function instalar(ctx) {
   // ---- cambiar las tarjetas del RefMod Stack (añadir, quitar, encender, fuerza): se escribe en su propio campo
   ctx.cambiarStack = function cambiarStack(cambio) {
     const st = wf.stack, w = W(st || {}, "stack_state");
-    if (!w) return ctx.avisar("No hay RefMod Stack conectado", "mal");
+    if (!w) return ctx.avisar(t("referencias.sin_stack_conectado"), "mal");
     const estadoStack = leerJSON(w.value, {});
     estadoStack.picks = estadoStack.picks || [];
     const antes = ctx.mapaEtiquetas();
@@ -189,7 +190,7 @@ export function instalar(ctx) {
   // quitar una tarjeta del Stack: lo usan el botón «✕ quitar» de la ficha y la ✕ de cada tarjeta grande
   ctx.quitarDelStack = function quitarDelStack(r) {
     ctx.cambiarStack((p) => { p.splice(r.idx, 1); });
-    ctx.avisar(`Quitada ${r.nombre} del Stack`, "bien");
+    ctx.avisar(t("referencias.quitada", { nombre: r.nombre }), "bien");
   };
   ctx.anadirDeBiblioteca = (it, lado) => ctx.anadirVariosDeBiblioteca([it], lado);
   /* añade varios RefMods de la biblioteca de una vez, en ese orden. Si no caben en las 12 tarjetas del Stack, no añade
@@ -197,8 +198,7 @@ export function instalar(ctx) {
   ctx.anadirVariosDeBiblioteca = function anadirVariosDeBiblioteca(its, lado) {
     const hay = (leerJSON(W(wf.stack || {}, "stack_state")?.value, {}).picks || []).length;
     if (hay + its.length > 12) {
-      throw new Error(`No caben: el Stack tiene ${hay} de 12 tarjetas y quieres añadir ${its.length}. ` +
-                      `Desmarca ${hay + its.length - 12} o quita tarjetas del Stack.`);
+      throw new Error(t("referencias.no_caben", { hay, n: its.length, sobran: hay + its.length - 12 }));
     }
     for (const it of its) {
       if (lado && !S.refs[it.name]) {
@@ -209,13 +209,15 @@ export function instalar(ctx) {
     ctx.cambiarStack((picks) => { for (const it of its) picks.push(ctx.tarjeta(it, picks)); });
   };
 
-  // ---- ventanas sobre el editor (una a la vez)
+  // ---- ventanas sobre el editor (una a la vez). Quien la abre pone en v.repintar cómo pintarla de nuevo (al cambiar de
+  // idioma, editor_core.js la llama con caja.querySelector(".epl-capa").epl.repintar)
   ctx.capa = function capa(lado, ...hijos) {
     caja.querySelector(".epl-capa")?.remove();
     const modal = el("div", { class: "epl-modal " + (lado || "") }, ...hijos);
     const c = el("div", { class: "epl-capa", onclick: (e) => { if (e.target === c) c.remove(); } }, modal);
     caja.append(c);
-    return { capa: c, modal, cerrar: () => c.remove() };
+    c.epl = { capa: c, modal, cerrar: () => c.remove(), repintar: null };
+    return c.epl;
   };
 
   /* control − / deslizador / + para el tamaño de los recuadros (biblioteca y creador de cajitas). `aplicar(tam)` lo pone
@@ -223,7 +225,7 @@ export function instalar(ctx) {
   ctx.controlTamano = function controlTamano(aplicar, clave, defecto, min = 110, max = 520) {
     let tam = defecto;
     try { const g = +localStorage.getItem(clave); if (g >= min && g <= max) tam = g; } catch { /* sin localStorage */ }
-    const barra = el("input", { type: "range", min, max, step: 10, value: tam, class: "epl-tam-barra", title: "Tamaño de los recuadros",
+    const barra = el("input", { type: "range", min, max, step: 10, value: tam, class: "epl-tam-barra", title: t("comun.tamano"),
                                 oninput: (e) => poner(+e.target.value) });
     const poner = (t) => {
       tam = Math.max(min, Math.min(max, Math.round(t)));
@@ -232,16 +234,16 @@ export function instalar(ctx) {
       try { localStorage.setItem(clave, String(tam)); } catch { /* sin localStorage */ }
     };
     poner(tam);
-    return el("span", { class: "epl-tam", title: "Tamaño de los recuadros" },
-      el("button", { class: "epl-mini", title: "Más pequeños", onclick: () => poner(tam - 40) }, "−"), barra,
-      el("button", { class: "epl-mini", title: "Más grandes", onclick: () => poner(tam + 40) }, "+"));
+    return el("span", { class: "epl-tam", title: t("comun.tamano") },
+      el("button", { class: "epl-mini", title: t("comun.mas_pequenos"), onclick: () => poner(tam - 40) }, "−"), barra,
+      el("button", { class: "epl-mini", title: t("comun.mas_grandes"), onclick: () => poner(tam + 40) }, "+"));
   };
 
   /* biblioteca de RefMods con selección múltiple: tocar una foto la marca o la desmarca (✓); «Añadir (N)» mete todas las
    * marcadas en el Stack, en el orden en que se marcaron, y cierra. Buscar no borra lo marcado. */
   ctx.abrirBiblioteca = function abrirBiblioteca(lado) {
     const marcadas = [];                                   // nombres, en el orden en que se marcaron
-    const filtro = el("input", { placeholder: "buscar por nombre o carpeta…", oninput: () => pintar(), style: { flex: 1 } });
+    const filtro = el("input", { oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
     const aviso = el("p", { class: "epl-aviso epl-biblio-aviso" });
     const anadir = el("button", { class: "epl-boton epl-azul epl-grande epl-biblio-anadir", onclick: () => {
@@ -249,20 +251,27 @@ export function instalar(ctx) {
       try {
         ctx.anadirVariosDeBiblioteca(its, lado);
         v.cerrar();
-        ctx.avisar(its.length === 1 ? `Añadida ${its[0].label || its[0].name}` : `Añadidas ${its.length} referencias`, "bien");
+        ctx.avisar(its.length === 1 ? t("referencias.biblioteca.anadida", { nombre: its[0].label || its[0].name })
+                                    : t("referencias.biblioteca.anadidas", { n: its.length }), "bien");
       } catch (e) { aviso.textContent = "⚠ " + e.message; }
     } });
-    const v = ctx.capa(lado,
-      el("div", { class: "epl-tit" }, `Añadir a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}» desde la biblioteca de RefMods`,
-        el("span", { class: "der" }, filtro, ctx.controlTamano((t) => rejilla.style.setProperty("--epl-tam", t + "px"), "epl-tam-biblioteca", 270),
-          el("button", { class: "epl-boton epl-azul", title: "Crear referencias nuevas con fotos de tu PC", onclick: () => ctx.abrirSubir(lado) }, "⬆ Subir foto"),
-          el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
-      el("p", { class: "epl-ayuda" }, "Toca las fotos para marcarlas o desmarcarlas y pulsa «Añadir». Para juntar varias fotos en una " +
-        "sola referencia usa «+ Cajita». Para una foto nueva de tu PC, «⬆ Subir foto»."),
-      rejilla,
-      el("div", { class: "epl-biblio-pie" }, aviso, anadir));
+    const v = ctx.capa(lado);
+    // toda la ventana (también al cambiar de idioma): lo buscado y lo marcado se conservan
+    v.repintar = () => {
+      filtro.placeholder = t("referencias.biblioteca.buscar");
+      v.modal.replaceChildren(
+        el("div", { class: "epl-tit" }, t(lado === "izq" ? "referencias.biblioteca.titulo_izq" : "referencias.biblioteca.titulo_der"),
+          el("span", { class: "der" }, filtro, ctx.controlTamano((x) => rejilla.style.setProperty("--epl-tam", x + "px"), "epl-tam-biblioteca", 270),
+            el("button", { class: "epl-boton epl-azul", title: t("referencias.subir.tooltip"), onclick: () => ctx.abrirSubir(lado) }, t("referencias.subir")),
+            el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
+        el("p", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda")),
+        rejilla,
+        el("div", { class: "epl-biblio-pie" }, aviso, anadir));
+      pintar();
+      contar();
+    };
     const contar = () => {
-      anadir.textContent = `Añadir (${marcadas.length})`;
+      anadir.textContent = t("referencias.biblioteca.anadir", { n: marcadas.length });
       anadir.disabled = !marcadas.length;
       aviso.textContent = "";
     };
@@ -280,12 +289,11 @@ export function instalar(ctx) {
             el("span", { class: "epl-check" }, "✓"),
             el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
             el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
-              (it.visual?.source === "stack" ? ` · cajita de ${it.visual.t}` : "")));
+              (it.visual?.source === "stack" ? t("referencias.biblioteca.cajita_de", { n: it.visual.t }) : "")));
           return item;
         }));
     };
-    pintar();
-    contar();
+    v.repintar();
     filtro.focus();
   };
 
@@ -300,7 +308,7 @@ export function instalar(ctx) {
     fd.append("type", "input");
     fd.append("subfolder", "minimax_h3");
     const r = await fetch("/upload/image", { method: "POST", body: fd });
-    if (!r.ok) throw new Error(`no se pudo subir ${archivo.name} (${r.status})`);
+    if (!r.ok) throw new Error(t("comun.no_se_pudo_subir", { nombre: archivo.name, estado: r.status }));
     const j = await r.json();
     return `${j.subfolder ? j.subfolder + "/" : ""}${j.name}`;
   };
@@ -312,7 +320,7 @@ export function instalar(ctx) {
     const v = ctx.capa(lado);
     const anadir = (lista) => {
       const imgs = [...lista].filter((f) => /^image\//.test(f.type));
-      if (!imgs.length) { aviso.textContent = "⚠ Eso no es una imagen"; return; }
+      if (!imgs.length) { aviso.textContent = "⚠ " + t("referencias.subir.no_es_imagen"); return; }
       for (const f of imgs) st.fotos.push({ f, url: URL.createObjectURL(f) });
       if (!st.nombre) st.nombre = imgs[0].name.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 30);
       aviso.textContent = "";
@@ -321,52 +329,54 @@ export function instalar(ctx) {
     const pintar = () => {
       const varias = st.fotos.length > 1;
       v.modal.replaceChildren(
-        el("div", { class: "epl-tit" }, `Subir foto a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}»`,
-          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        el("div", { class: "epl-tit" }, t(lado === "izq" ? "referencias.subir.titulo_izq" : "referencias.subir.titulo_der"),
+          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
         archivo,
         el("div", { class: "epl-ficha" },
           el("div", { class: "epl-soltar", onclick: () => archivo.click() },
             st.fotos.length ? el("div", { class: "epl-fotos" }, ...st.fotos.map((x, i) => el("div", {},
               el("img", { src: x.url, alt: "" }), x.f.name,
-              el("button", { class: "epl-mini quitar", title: "Sacar", onclick: (e) => { e.stopPropagation(); st.fotos.splice(i, 1); pintar(); } }, "✕"))))
-              : el("p", { class: "epl-vacio" }, "Toca aquí para elegir una o varias imágenes de tu PC, o suéltalas encima de esta ventana.")),
+              el("button", { class: "epl-mini quitar", title: t("referencias.cajita.sacar"), onclick: (e) => { e.stopPropagation(); st.fotos.splice(i, 1); pintar(); } }, "✕"))))
+              : el("p", { class: "epl-vacio" }, t("referencias.subir.vacio"))),
           el("div", {},
-            el("label", {}, "Papel"),
+            el("label", {}, t("referencias.ficha.papel")),
             el("select", { class: "epl-subir-papel", onchange: (e) => { st.papel = e.target.value; pintar(); } },
-              ...PAPELES_LADO[lado].map((p) => el("option", { value: p, selected: st.papel === p }, PAPELES[p][0]))),
-            el("label", {}, st.papel === "personaje" ? "Nombre del personaje (corto; también el del RefMod)" : "Nombre corto (va al prompt y al RefMod)"),
-            el("input", { class: "epl-subir-nombre", value: st.nombre, placeholder: "ej.: teto, chaqueta_roja", oninput: (e) => { st.nombre = e.target.value; } }),
+              ...PAPELES_LADO[lado].map((p) => el("option", { value: p, selected: st.papel === p }, papelLargo(p)))),
+            el("label", {}, t(st.papel === "personaje" ? "referencias.subir.nombre_personaje" : "referencias.subir.nombre")),
+            el("input", { class: "epl-subir-nombre", value: st.nombre, placeholder: t("referencias.subir.nombre.placeholder"), oninput: (e) => { st.nombre = e.target.value; } }),
             varias ? el("label", { style: { display: "flex", gap: "6px", alignItems: "center" } },
               el("input", { type: "checkbox", class: "epl-subir-juntar", checked: st.juntar, onchange: (e) => { st.juntar = e.target.checked; } }),
-              `juntar las ${st.fotos.length} fotos en una sola cajita (el mismo personaje u objeto)`) : null,
+              t("referencias.subir.juntar", { n: st.fotos.length })) : null,
             el("label", { style: { display: "flex", gap: "6px", alignItems: "center" } },
               el("input", { type: "checkbox", class: "epl-subir-tapar", checked: st.tapar, onchange: (e) => { st.tapar = e.target.checked; } }),
-              "tapar al subir: cara y pelo, con SAM 3.1 (para que no se cuele quien sale en la foto)"),
-            el("p", { class: "epl-ayuda" }, "Se guardan en input/minimax_h3/ y el RefMod en la carpeta subidas/ (Full Reference, 512; unos 5–10 s cada uno, más unos 15 s si se tapa)."),
+              t("referencias.subir.tapar")),
+            el("p", { class: "epl-ayuda" }, t("referencias.subir.ayuda")),
             aviso,
             el("div", { class: "epl-fila" },
               el("button", { class: "epl-boton fuerte epl-subir-crear", disabled: !st.fotos.length, onclick: () => crear() },
-                st.fotos.length ? `Subir y crear (${varias && !st.juntar ? st.fotos.length + " referencias" : "1 referencia"})` : "Subir y crear")))));
+                !st.fotos.length ? t("referencias.subir.crear") : varias && !st.juntar
+                  ? t("referencias.subir.crear_varias", { n: st.fotos.length }) : t("referencias.subir.crear_una"))))));
     };
+    v.repintar = pintar;
     v.modal.addEventListener("dragover", (e) => { e.preventDefault(); v.modal.classList.add("soltar"); });
     v.modal.addEventListener("dragleave", () => v.modal.classList.remove("soltar"));
     v.modal.addEventListener("drop", (e) => { e.preventDefault(); v.modal.classList.remove("soltar"); anadir(e.dataTransfer.files); });
     async function crear() {
       if (S.ocupado || !st.fotos.length) return;
-      if (!st.nombre.trim()) { aviso.textContent = "⚠ Ponle un nombre corto"; return; }
+      if (!st.nombre.trim()) { aviso.textContent = "⚠ " + t("referencias.subir.sin_nombre"); return; }
       const juntar = st.juntar && st.fotos.length > 1, cuantas = juntar ? 1 : st.fotos.length;
       const hay = (leerJSON(W(wf.stack || {}, "stack_state")?.value, {}).picks || []).length;
-      if (hay + cuantas > 12) { aviso.textContent = `⚠ No caben: el Stack tiene ${hay} de 12 tarjetas.`; return; }
+      if (hay + cuantas > 12) { aviso.textContent = "⚠ " + t("referencias.subir.no_caben", { hay }); return; }
       S.ocupado = true;
       caja.classList.add("ocupada");
       const t0 = Date.now();
-      let fase = "Subiendo las fotos…";
-      const reloj = setInterval(() => ctx.avisar(`${fase} ${Math.round((Date.now() - t0) / 1000)} s`, "trabajando"), 500);
+      let fase = "referencias.subir.subiendo";                // la clave del texto de la fase
+      const reloj = setInterval(() => ctx.avisar(t("comun.trabajando", { tarea: t(fase), s: Math.round((Date.now() - t0) / 1000) }), "trabajando"), 500);
       let creados = [];
       try {
         const rels = [];
         for (const x of st.fotos) rels.push(await ctx.subirFoto(x.f));
-        fase = "Creando la referencia…";
+        fase = "referencias.subir.creando";
         const res = await api("subir_refmods", { nombre: st.nombre.trim(), papel: st.papel, fotos: rels, juntar });
         creados = res.creados;
         await ctx.cargarBiblioteca();
@@ -374,10 +384,11 @@ export function instalar(ctx) {
         for (const n of creados) S.refs[n] = { papel: st.papel, nombre, ficha: "", origen: "subida" };
         ctx.anadirVariosDeBiblioteca(creados.map((n) => ctx.biblioteca[n]).filter(Boolean), lado);
         v.cerrar();
-        ctx.avisar(`Creada${creados.length > 1 ? "s" : ""} ${creados.join(", ")} en ${res.segundos} s y añadida${creados.length > 1 ? "s" : ""} al Stack`, "bien");
+        ctx.avisar(t(creados.length > 1 ? "referencias.subir.creadas" : "referencias.subir.creada",
+                     { nombres: u.lista(creados), s: u.num(res.segundos) }), "bien");
       } catch (e) {
         aviso.textContent = "⚠ " + e.message;
-        ctx.avisar("Subir foto: " + e.message, "mal");
+        ctx.avisar(t("referencias.subir.error", { error: e.message }), "mal");
       } finally {
         clearInterval(reloj);
         S.ocupado = false;
@@ -397,17 +408,17 @@ export function instalar(ctx) {
 
   // ---- dónde se usa cada referencia
   ctx.usadaEn = function usadaEn(tag) {
-    if (!tag) return "apagada: no se envía";
+    if (!tag) return t("referencias.usada.apagada");
     const r = ctx.refDe(tag);
-    const tomas = S.plan.tomas.map((t, i) => CAMPOS_REF.some((c) => t[c] === tag) ? `T${i + 1}` : null).filter(Boolean);
-    if (r.papel === "personaje") tomas.unshift(r.atuendo ? "definición" : "definición (todas las tomas)");
-    if (r.papel === "objeto") tomas.unshift("definición");
-    if (r.papel === "estilo") tomas.unshift("todo el edit");
-    return tomas.length ? tomas.join(" · ") : "sin usar";
+    const tomas = S.plan.tomas.map((x, i) => CAMPOS_REF.some((c) => x[c] === tag) ? t("comun.toma_corta", { k: i + 1 }) : null).filter(Boolean);
+    if (r.papel === "personaje") tomas.unshift(t(r.atuendo ? "referencias.usada.definicion" : "referencias.usada.definicion_todas"));
+    if (r.papel === "objeto") tomas.unshift(t("referencias.usada.definicion"));
+    if (r.papel === "estilo") tomas.unshift(t("referencias.usada.todo"));
+    return tomas.length ? tomas.join(" · ") : t("referencias.usada.sin_usar");
   };
   // lo que usa la toma k: lo que cita, más la identidad (personaje sin nombre) y el estilo, que valen para todas
   ctx.usadasEnToma = function usadasEnToma(k) {
-    const t = S.plan.tomas[k - 1], usadas = new Set(t ? CAMPOS_REF.map((c) => t[c]).filter(Boolean) : []);
+    const toma = S.plan.tomas[k - 1], usadas = new Set(toma ? CAMPOS_REF.map((c) => toma[c]).filter(Boolean) : []);
     for (const r of wf.lista) {
       const ref = S.refs[r.clave] || {};
       if ((ref.papel === "personaje" && !(ref.atuendo || "").trim()) || ref.papel === "estilo") usadas.add(r.tag);
@@ -417,8 +428,8 @@ export function instalar(ctx) {
   // marca la referencia y las tomas que la usan (lo usa también el prompt final al pasar el ratón)
   ctx.resaltar = function resaltar(tag, si) {
     caja.querySelectorAll(`[data-tag="${tag}"]`).forEach((e) => e.classList.toggle("epl-hl", si));
-    S.plan.tomas.forEach((t, i) => {
-      if (CAMPOS_REF.some((c) => t[c] === tag)) caja.querySelector(`#epl-tomab-${i + 1}`)?.classList.toggle("epl-hl", si);
+    S.plan.tomas.forEach((toma, i) => {
+      if (CAMPOS_REF.some((c) => toma[c] === tag)) caja.querySelector(`#epl-tomab-${i + 1}`)?.classList.toggle("epl-hl", si);
     });
   };
 
@@ -428,7 +439,7 @@ export function instalar(ctx) {
     const src = ctx.vista(r), fotos = ctx.fotosDe(r), cajita = ctx.esCajita(r);
     const marca = !r.tag ? " apagada" : usadas ? (usadas.has(r.tag) ? " usada" : " atenuada") : "";
     const imagen = fotos ? el("div", { class: "mosaico" }, ...fotos.slice(0, 4).map((f) => el("img", { src: u.vistaMedio(f.file), alt: "", loading: "lazy" })))
-      : src ? el("img", { src, alt: "", loading: "lazy" }) : el("div", { class: "sinfoto" }, r.kind === "video" ? "🎞 video" : "sin vista previa");
+      : src ? el("img", { src, alt: "", loading: "lazy" }) : el("div", { class: "sinfoto" }, t(r.kind === "video" ? "referencias.tarjeta.video" : "comun.sin_vista_previa"));
     const fondoSrc = fotos ? u.vistaMedio(fotos[0].file) : src;
     const papel = ref.papel && PAPELES[ref.papel] ? ref.papel : "no";
     return el("div", { class: "epl-tile" + marca, "data-tag": r.tag || "", title: r.nombre,
@@ -437,23 +448,23 @@ export function instalar(ctx) {
       fondoSrc ? el("div", { class: "fondo", style: { backgroundImage: `url("${fondoSrc}")` } }) : null,
       imagen,
       r.idx !== undefined ? cruz(r) : null,
-      cajita ? el("span", { class: "epl-insignia" }, `${ctx.nFotos(r)} fotos`) : null,
-      el("div", { class: "franja" }, el("b", {}, r.tag || "(apagada)"), " ",
-        el("span", { class: "epl-papel " + papel }, PAPELES[papel][0].split(" (")[0]),
+      cajita ? el("span", { class: "epl-insignia" }, t("referencias.tarjeta.fotos", { n: ctx.nFotos(r) })) : null,
+      el("div", { class: "franja" }, el("b", {}, apagada(r)), " ",
+        el("span", { class: "epl-papel " + papel }, t(`referencias.papel_corto.${papel}`)),
         ref.nombre ? ` ${ref.nombre}` : "",
-        el("small", {}, (cajita ? "cajita · tócala para abrirla · " : "") + r.nombre)));
+        el("small", {}, cajita ? t("referencias.tarjeta.cajita", { nombre: r.nombre }) : r.nombre)));
   }
   /* la ✕ de la esquina de cada tarjeta del Stack: el primer toque pide confirmar («¿quitar? sí / no») y «sí» la quita
    * con ctx.quitarDelStack, lo mismo que «✕ quitar» de la ficha. Ningún toque aquí abre la ficha. */
   function cruz(r) {
     const nodo = el("div", { class: "epl-cruz", onclick: (e) => e.stopPropagation() });
-    const normal = () => nodo.replaceChildren(el("button", { class: "x", title: "Quitar del Stack", "aria-label": "Quitar del Stack",
+    const normal = () => nodo.replaceChildren(el("button", { class: "x", title: t("referencias.quitar_del_stack"), "aria-label": t("referencias.quitar_del_stack"),
       onclick: (e) => { e.stopPropagation(); preguntar(); } }, "✕"));
     const preguntar = () => {
-      nodo.replaceChildren(el("button", { class: "x", title: "No quitar", onclick: (e) => { e.stopPropagation(); normal(); } }, "✕"),
-        el("span", { class: "pregunta" }, "¿quitar?",
-          el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, "sí"),
-          el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, "no")));
+      nodo.replaceChildren(el("button", { class: "x", title: t("referencias.no_quitar"), onclick: (e) => { e.stopPropagation(); normal(); } }, "✕"),
+        el("span", { class: "pregunta" }, t("referencias.pregunta_quitar"),
+          el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, t("comun.si")),
+          el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, t("comun.no"))));
     };
     normal();
     return nodo;
@@ -477,34 +488,33 @@ export function instalar(ctx) {
     const orden = (r) => (!r.tag ? 2 : (S.refs[r.clave]?.papel || "no") === "no" ? 1 : 0);
     der.sort((a, b) => orden(a) - orden(b));
     const botones = (lado) => el("span", { class: "der" },
-      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.abrirBiblioteca(lado) }, "+ Añadir") : null,
-      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, "+ Cajita") : null);
+      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.abrirBiblioteca(lado) }, t("referencias.anadir")) : null,
+      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, t("referencias.cajita")) : null);
     const rejIzq = el("div", { class: "epl-rejilla" }, ...izq.map((r) => tile(r, usadas)));
     const rejDer = el("div", { class: "epl-rejilla" }, ...der.map((r) => tile(r, usadas)));
     // efectos de texto: tocar uno lo pone o lo quita en la toma elegida; sin toma elegida, se abre para cambiarlo
     const efectos = Object.entries(S.efectos);
-    const t = S.elegida ? S.plan.tomas[S.elegida - 1] : null;
-    const fichas = el("div", { class: "epl-efectos" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, "Efectos de texto:"),
+    const toma = S.elegida ? S.plan.tomas[S.elegida - 1] : null;
+    const fichas = el("div", { class: "epl-efectos" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, t("referencias.efectos")),
       ...efectos.map(([c, e]) =>
-        el("span", { class: "epl-efecto" + (t ? (t.efecto === c ? " usada" : " atenuada") : ""), "data-efecto": c,
-                     title: e.ficha + (t ? "\n\nTócalo para ponerlo o quitarlo en la toma elegida" : "\n\nTócalo para cambiarlo o quitarlo"),
+        el("span", { class: "epl-efecto" + (toma ? (toma.efecto === c ? " usada" : " atenuada") : ""), "data-efecto": c,
+                     title: e.ficha + "\n\n" + t(toma ? "referencias.efecto.tocar_toma" : "referencias.efecto.tocar"),
                      onclick: () => {
-                       if (!t) return ctx.abrirEfecto(c);
-                       t.efecto = t.efecto === c ? "" : c;
-                       if (!t.fijos.includes("efecto")) t.fijos.push("efecto");
+                       if (!toma) return ctx.abrirEfecto(c);
+                       toma.efecto = toma.efecto === c ? "" : c;
+                       if (!toma.fijos.includes("efecto")) toma.fijos.push("efecto");
                        ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
           el("b", {}, c), e.nombre || e.ficha.split(/\s+/).slice(0, 4).join(" "),
-          t ? el("button", { class: "epl-mini", title: "Cambiar o quitar este efecto", onclick: (x) => { x.stopPropagation(); ctx.abrirEfecto(c); } }, "✎") : null)),
-      el("button", { class: "epl-mini", title: "Un efecto sin imagen: nombre y frase que va tal cual al prompt", onclick: () => ctx.abrirEfecto(null) }, "+ Efecto"));
+          toma ? el("button", { class: "epl-mini", title: t("referencias.efecto.editar.tooltip"), onclick: (x) => { x.stopPropagation(); ctx.abrirEfecto(c); } }, "✎") : null)),
+      el("button", { class: "epl-mini", title: t("referencias.efecto.anadir.tooltip"), onclick: () => ctx.abrirEfecto(null) }, t("referencias.efecto.anadir")));
     secRefs.replaceChildren(el("div", { class: "epl-mitades" },
       el("div", { class: "epl-mitad izq" },
-        el("div", { class: "epl-tit" }, "Lo que no cambia · persistente", botones("izq")),
-        ...wf.avisos.map((a) => el("p", { class: "epl-aviso" }, "⚠ " + (Array.isArray(a) ? u.t(...a) : a))),
-        izq.length ? rejIzq : el("p", { class: "epl-vacio" }, "Pon aquí lo que tiene que salir siempre igual: el personaje " +
-          "(una cajita con sus fotos), un producto o un lugar. Usa «+ Añadir» o «+ Cajita», o cambia el papel de una referencia.")),
+        el("div", { class: "epl-tit" }, t("referencias.izq.titulo"), botones("izq")),
+        ...wf.avisos.map(([clave, datos]) => el("p", { class: "epl-aviso" }, "⚠ " + t(clave, datos))),
+        izq.length ? rejIzq : el("p", { class: "epl-vacio" }, t("referencias.izq.vacio"))),
       el("div", { class: "epl-mitad der" },
-        el("div", { class: "epl-tit" }, "Lo que se presta · ropa, poses, fondos, estilo y efectos", botones("der")),
-        der.length ? rejDer : el("p", { class: "epl-vacio" }, "Ropa, poses, fondos y estilos que se toman solo en algunas tomas."),
+        el("div", { class: "epl-tit" }, t("referencias.der.titulo"), botones("der")),
+        der.length ? rejDer : el("p", { class: "epl-vacio" }, t("referencias.der.vacio")),
         fichas)));
     requestAnimationFrame(() => { ajustarRejilla(rejIzq, izq.length); ajustarRejilla(rejDer, der.length); });
   };
@@ -520,68 +530,69 @@ export function instalar(ctx) {
       const cambiar = (k, val) => { ref[k] = val; ref.origen = "editor"; ctx.pedirMontaje(); refrescar(); };
       const src = ctx.vista(r);
       const stack = r.idx === undefined ? null : el("div", { class: "epl-fila" },
-        el("label", { title: "Apagada no se envía a H3 y no tiene número", style: { margin: 0 } },
+        el("label", { title: t("referencias.ficha.apagada.tooltip"), style: { margin: 0 } },
           el("input", { type: "checkbox", checked: r.on, onchange: (e) => { ctx.cambiarStack((p) => { p[r.idx].on = e.target.checked; }); pintar(); } }),
-          " activa"),
-        el("label", { title: "Fuerza: 1 = normal, 0.3 = suave (poses), más de 1 = copias", style: { margin: 0 } }, "fuerza ",
+          " " + t("referencias.ficha.activa")),
+        el("label", { title: t("referencias.ficha.fuerza.tooltip"), style: { margin: 0 } }, t("referencias.ficha.fuerza") + " ",
           el("input", { type: "number", min: 0, max: 10, step: 0.05, value: r.fuerza, class: "corto",
             onchange: (e) => { ctx.cambiarStack((p) => {
               const val = Math.max(0, Math.min(10, +e.target.value || 0));
               p[r.idx].visual = { ...(p[r.idx].visual || {}), mode: "weight", w: val };
             }); pintar(); } })),
-        el("button", { class: "epl-mini", title: "Quitar del Stack", onclick: () => { v.cerrar(); ctx.quitarDelStack(r); } }, "✕ quitar"));
-      const lleva = ["personaje", "objeto", "lugar", "ropa", "efecto"].includes(ref.papel);
+        el("button", { class: "epl-mini", title: t("referencias.quitar_del_stack"), onclick: () => { v.cerrar(); ctx.quitarDelStack(r); } }, t("referencias.ficha.quitar")));
+      const lleva = CON_NOMBRE.includes(ref.papel);
       const izquierda = extra?.izquierda?.(r) || el("div", { class: "grande" },
         src ? el("div", { class: "fondo", style: { backgroundImage: `url("${src}")` } }) : null,
-        src ? el("img", { src, alt: "" }) : el("div", { class: "epl-vacio", style: { padding: "20px" } }, "sin vista previa"));
+        src ? el("img", { src, alt: "" }) : el("div", { class: "epl-vacio", style: { padding: "20px" } }, t("comun.sin_vista_previa")));
       v.modal.className = "epl-modal " + ctx.ladoDe(r);
       v.modal.replaceChildren(
-        el("div", { class: "epl-tit" }, el("b", { style: { color: "#cfe0ff" } }, r.tag || "(apagada)"), r.nombre,
-          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        el("div", { class: "epl-tit" }, el("b", { style: { color: "#cfe0ff" } }, apagada(r)), r.nombre,
+          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
         el("div", { class: "epl-ficha" }, izquierda,
           el("div", {},
-            el("label", {}, "Papel"),
+            el("label", {}, t("referencias.ficha.papel")),
             el("select", { class: "epl-papel-sel", onchange: (e) => { cambiar("papel", e.target.value); ctx.pintarRefs(); ctx.pintarPlan(); pintar(); } },
-              el("optgroup", { label: "Lo que no cambia" }, ...["personaje", "objeto", "lugar"].map((p) =>
-                el("option", { value: p, selected: ref.papel === p }, PAPELES[p][0]))),
-              el("optgroup", { label: "Lo que se presta" }, ...["ropa", "pose", "fondo", "estilo", "efecto"].map((p) =>
-                el("option", { value: p, selected: ref.papel === p }, PAPELES[p][0]))),
-              el("option", { value: "no", selected: ref.papel === "no" || !PAPELES[ref.papel] }, "no usar")),
-            lleva ? el("label", {}, ref.papel === "personaje" ? "Nombre del personaje" : "Nombre en el prompt") : null,
-            lleva ? el("input", { class: "epl-nombre", value: ref.nombre || "", placeholder: AYUDA_NOMBRE[ref.papel],
+              el("optgroup", { label: t("referencias.mitad.izq") }, ...["personaje", "objeto", "lugar"].map((p) =>
+                el("option", { value: p, selected: ref.papel === p }, papelLargo(p)))),
+              el("optgroup", { label: t("referencias.mitad.der") }, ...["ropa", "pose", "fondo", "estilo", "efecto"].map((p) =>
+                el("option", { value: p, selected: ref.papel === p }, papelLargo(p)))),
+              el("option", { value: "no", selected: ref.papel === "no" || !PAPELES[ref.papel] }, papelLargo("no"))),
+            lleva ? el("label", {}, t(ref.papel === "personaje" ? "referencias.ficha.nombre_personaje" : "referencias.ficha.nombre_prompt")) : null,
+            lleva ? el("input", { class: "epl-nombre", value: ref.nombre || "", placeholder: t(`referencias.nombre.${ref.papel}`),
                                   oninput: (e) => cambiar("nombre", e.target.value) }) : null,
             ref.papel === "personaje" ? el("div", { class: "epl-fila" },
-              el("label", { style: { margin: 0 } }, "Pronombre ",
+              el("label", { style: { margin: 0 } }, t("referencias.ficha.pronombre") + " ",
                 el("select", { class: "epl-pronombre", onchange: (e) => cambiar("pronombre", e.target.value) },
-                  ...PRONOMBRES.map(([v2, t2]) => el("option", { value: v2, selected: (ref.pronombre || "they") === v2 }, t2)))),
-              el("label", { style: { margin: 0, flex: 1 } }, "Atuendo (opcional) ",
-                el("input", { class: "epl-atuendo", value: ref.atuendo || "", placeholder: "solo si esta foto es un atuendo: school uniform",
+                  ...PRONOMBRES.map((p) => el("option", { value: p, selected: (ref.pronombre || "they") === p },
+                                              p === "they" ? t("referencias.pronombre.they") : p)))),
+              el("label", { style: { margin: 0, flex: 1 } }, t("referencias.ficha.atuendo") + " ",
+                el("input", { class: "epl-atuendo", value: ref.atuendo || "", placeholder: t("referencias.ficha.atuendo.placeholder"),
                               oninput: (e) => cambiar("atuendo", e.target.value) }))) : null,
-            ref.papel === "personaje" ? el("p", { class: "epl-ayuda" }, "Cada personaje es un sujeto (<Subject 1>, <Subject 2>…): el código " +
-              "escribe su definición y su retención con el nombre, el pronombre y la ficha. Las fotos con el mismo nombre son el mismo " +
-              "personaje. Con atuendo, la foto es además un atuendo y cada toma elige uno (su ficha describe esa ropa).") : null,
-            ref.papel !== "no" ? el("label", {}, ref.papel === "efecto" ? "Ficha: la frase del efecto que va tal cual al prompt (en inglés)"
-              : ref.papel === "personaje" ? "Ficha: cómo es el personaje (en inglés; va a su definición)" : "Ficha: qué se ve (en inglés; el LLM no ve la imagen)") : null,
+            ref.papel === "personaje" ? el("p", { class: "epl-ayuda" }, t("referencias.ficha.personaje.ayuda")) : null,
+            ref.papel !== "no" ? el("label", {}, t(ref.papel === "efecto" ? "referencias.ficha.ficha_efecto"
+              : ref.papel === "personaje" ? "referencias.ficha.ficha_personaje" : "referencias.ficha.ficha")) : null,
             ref.papel !== "no" ? el("textarea", { class: "epl-ficha-txt", rows: 3, oninput: (e) => cambiar("ficha", e.target.value) }, ref.ficha || "") : null,
             ref.papel !== "no" && r.preview ? el("div", { class: "epl-fila" },
-              el("button", { class: "epl-mini", title: "Qwen mira la imagen y propone la ficha y los riesgos; revísala",
-                onclick: () => describir(r, ref, pintar) }, "👁 describir con visión"),
-              ref.origen ? el("span", { class: "epl-ayuda" }, "ficha: " + ref.origen) : null) : null,
-            ref.propuesta ? el("div", { class: "epl-propuesta" }, `Propuesta de Qwen: «${ref.propuesta.nombre}» · ${ref.propuesta.ficha}`,
+              el("button", { class: "epl-mini", title: t("referencias.ficha.describir.tooltip"),
+                onclick: () => describir(r, ref, pintar) }, t("referencias.ficha.describir")),
+              ref.origen ? el("span", { class: "epl-ayuda" }, t("referencias.ficha.origen", {
+                origen: ORIGENES[ref.origen] ? t(`referencias.origen.${ORIGENES[ref.origen]}`) : ref.origen })) : null) : null,
+            ref.propuesta ? el("div", { class: "epl-propuesta" }, t("referencias.propuesta", { nombre: ref.propuesta.nombre, ficha: ref.propuesta.ficha }),
               el("div", { class: "epl-fila" },
                 el("button", { class: "epl-mini", onclick: () => {
                   ref.ficha = ref.propuesta.ficha;
                   if (lleva && ref.papel !== "personaje" && !ref.nombre) ref.nombre = ref.propuesta.nombre;
                   ref.origen = "visión, revisada";
                   delete ref.propuesta;
-                  ctx.pedirMontaje(); refrescar(); pintar(); } }, "usar"),
-                el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; pintar(); } }, "descartar"))) : null,
-            ref.riesgos?.length ? el("div", { class: "epl-aviso" }, "⚠ riesgo: " + ref.riesgos.join(" · ")) : null,
+                  ctx.pedirMontaje(); refrescar(); pintar(); } }, t("referencias.propuesta.usar")),
+                el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; pintar(); } }, t("referencias.propuesta.descartar")))) : null,
+            ref.riesgos?.length ? el("div", { class: "epl-aviso" }, t("referencias.riesgo", { lista: ref.riesgos.join(" · ") })) : null,
             stack,
             ctx.bloqueTapar?.(r, v) || null,
             extra?.botones?.(r, v) || null,
-            el("div", { class: "epl-usada" }, "usada en: " + ctx.usadaEn(r.tag)))));
+            el("div", { class: "epl-usada" }, t("referencias.usada_en", { lista: ctx.usadaEn(r.tag) })))));
     };
+    v.repintar = pintar;
     pintar();
     return v;
   };
@@ -593,15 +604,15 @@ export function instalar(ctx) {
     S.ocupado = true;
     caja.classList.add("ocupada");
     const t0 = Date.now();
-    const reloj = setInterval(() => ctx.avisar(`Mirando ${r.tag}… ${Math.round((Date.now() - t0) / 1000)} s`, "trabajando"), 500);
+    const reloj = setInterval(() => ctx.avisar(t("referencias.mirando", { tag: r.tag, s: Math.round((Date.now() - t0) / 1000) }), "trabajando"), 500);
     try {
       const d = await api("describir", { preview: r.preview, papel: ref.papel });
       // la ficha no se cambia sola: Qwen se equivoca en objetos pequeños (estudio nombrar_refmods); decide el usuario
       ref.propuesta = { ficha: d.ficha, nombre: d.nombre };
       ref.riesgos = d.riesgos;
-      ctx.avisar(`${r.tag}: propuesta lista en ${d.segundos} s. Úsala o descártala.`, "bien");
+      ctx.avisar(t("referencias.propuesta_lista", { tag: r.tag, s: u.num(d.segundos) }), "bien");
     } catch (e) {
-      ctx.avisar(`${r.tag}: ${e.message}`, "mal");
+      ctx.avisar(t("comun.error_de", { tarea: r.tag, error: e.message }), "mal");
     } finally {
       clearInterval(reloj);
       S.ocupado = false;

@@ -9,6 +9,7 @@ export const FPS = 24;
 // aceleración del arrastre: ganancia = 1 + K·v² (v en px/ms, suavizada), como mucho GANANCIA_MAX
 export const K = 4, GANANCIA_MAX = 60;
 
+// el tiempo como en un editor de video, m:ss.mmm (con punto en los dos idiomas: es un código de tiempo, no un decimal)
 export function reloj(s) {
   s = Math.max(0, s);
   const m = Math.floor(s / 60), r = s - m * 60;
@@ -21,7 +22,7 @@ export const fotograma = (s) => Math.round(s * FPS);
  * pedirMontaje, avisar. */
 export function instalar(ctx) {
   const { u, S, wf, secAudio } = ctx;
-  const { el, api, W } = u;
+  const { el, api, W, t } = u;
 
   // ---- estado: la canción original y el inicio elegido. Si el LoadAudio ya apunta al recorte guardado, la original sigue
   // siendo la del estado; si apunta a otra canción, se empieza de cero con ella.
@@ -41,15 +42,20 @@ export function instalar(ctx) {
   ctx.audioCuerpo = () => !S.audio ? { audio: "" } :
     { audio: S.audio.original, ...(S.audio.tocado ? { audio_inicio: S.audio.inicio_s } : {}) };
 
-  // ---- elementos
-  const onda = el("canvas", { class: "epl-onda-cv", tabindex: "0",
-    title: "Arrastra para mover la canción (despacio = fino, rápido = lejos) · rueda o ←/→ = 1 fotograma · Mayús+flecha = 1 s · espacio = ▶/⏸" });
+  // ---- elementos: se crean una vez (la onda no se vuelve a crear al repintar); sus textos los pone rotular()
+  const onda = el("canvas", { class: "epl-onda-cv", tabindex: "0" });
   const etIni = el("span", { class: "epl-onda-et izq" }), etFin = el("span", { class: "epl-onda-et der" });
-  const boton = el("button", { class: "epl-play", title: "Oír solo el tramo (se para sola al final)", onclick: () => alternar() }, "▶");
-  const barra = el("canvas", { class: "epl-barra-cv", title: "La canción entera: arrastra el punto blanco (o toca la línea) para saltar" });
+  const boton = el("button", { class: "epl-play", onclick: () => alternar() }, "▶");
+  const barra = el("canvas", { class: "epl-barra-cv" });
   const datos = el("div", { class: "epl-audio-info" });
-  const cambiar = el("button", { class: "epl-mini epl-cambiar-cancion", title: "Elegir otra canción de input/ o subir una desde el PC",
-                                 onclick: () => ctx.abrirCanciones() }, "♫ Cambiar canción");
+  const cambiar = el("button", { class: "epl-mini epl-cambiar-cancion", onclick: () => ctx.abrirCanciones() });
+  function rotular() {
+    onda.title = t("audio.onda.tooltip");
+    boton.title = t("audio.play.tooltip");
+    barra.title = t("audio.barra.tooltip");
+    cambiar.title = t("audio.cambiar.tooltip");
+    cambiar.textContent = t("audio.cambiar");
+  }
 
   ctx.moverAudio = (s, { soltar = true } = {}) => {
     if (!S.audio || !info) return;
@@ -155,7 +161,7 @@ export function instalar(ctx) {
       maxPico = Math.max(1, ...info.picos);
       S.audio.inicio_s = alFotograma(S.audio.inicio_s);
       error = "";
-    } catch (e) { error = "No pude leer el audio: " + e.message; }
+    } catch (e) { error = e.message; }
     dibujar();
     pedirFino();
   }
@@ -190,7 +196,7 @@ export function instalar(ctx) {
         buffer = await ac.decodeAudioData(Uint8Array.from(atob(r.wav), (c) => c.charCodeAt(0)).buffer);
         claveBuf = k;
         desplaz = 0;
-      } catch (e) { ctx.avisar("No pude preparar el tramo: " + e.message, "mal"); }
+      } catch (e) { ctx.avisar(t("audio.error_tramo", { error: e.message }), "mal"); }
       cargando = false;
       if (claveBuf !== clave()) return dibujar();
     }
@@ -261,13 +267,13 @@ export function instalar(ctx) {
     // el cabezal
     const p = posicion();
     if (sonando || p > 0) { c.fillStyle = "#e0a94c"; c.fillRect(Math.round(p / d * w), 0, 2 * r, h); }
-    etIni.textContent = `${reloj(a)} · f ${fotograma(a)}`;
-    etFin.textContent = `${reloj(a + d)} · f ${fotograma(a + d)}`;
+    etIni.textContent = t("audio.etiqueta", { reloj: reloj(a), f: fotograma(a) });
+    etFin.textContent = t("audio.etiqueta", { reloj: reloj(a + d), f: fotograma(a + d) });
     boton.textContent = sonando ? "⏸" : "▶";
     dibujarBarra();
     datos.replaceChildren(
-      el("span", {}, `Tramo ${reloj(a)} (f ${fotograma(a)}) → ${reloj(a + d)} (f ${fotograma(a + d)}) · ${d.toFixed(3)} s`),
-      el("span", { class: "epl-ayuda" }, "arrastra la onda: despacio = fino, rápido = lejos · rueda o ←/→ = 1 fotograma · Mayús = 1 s"),
+      el("span", {}, t("audio.tramo", { a: reloj(a), fa: fotograma(a), b: reloj(a + d), fb: fotograma(a + d), d: u.num(d, 3) })),
+      el("span", { class: "epl-ayuda" }, t("audio.ayuda")),
       el("span", {}, `${S.audio.original} · ${reloj(info.duracion)}`));
   }
   function dibujarBarra() {
@@ -287,16 +293,17 @@ export function instalar(ctx) {
 
   ctx.pintarAudio = function pintarAudio() {
     if (!S.audio) {
-      secAudio.replaceChildren(el("p", { class: "epl-vacio" }, "Sin audio conectado: los cortes van parejos."));
+      secAudio.replaceChildren(el("p", { class: "epl-vacio" }, t("audio.sin_audio")));
       return;
     }
+    rotular();
     if (!onda.isConnected) {
       secAudio.replaceChildren(
         el("div", { class: "epl-audio-fila" }, el("div", { class: "epl-onda" }, onda, etIni, etFin), boton),
         el("div", { class: "epl-audio-fila epl-barra-fila" }, barra, el("span", { class: "epl-hueco" })),
         datos, el("div", { class: "epl-fila", style: { margin: "4px 0 0" } }, cambiar));
     }
-    if (error) datos.replaceChildren(el("span", { class: "epl-aviso" }, error));
+    if (error) datos.replaceChildren(el("span", { class: "epl-aviso" }, t("audio.error_leer", { error })));
     if (info && S.audio.inicio_s > maxInicio()) ctx.moverAudio(S.audio.inicio_s);  // la duración creció: que quepa
     if (claveBuf && claveBuf !== clave() && !sonando) desplaz = 0;
     dibujar();
@@ -312,7 +319,7 @@ export function instalar(ctx) {
   ctx.prepararAudioParaGuardar = async function prepararAudioParaGuardar() {
     if (!S.audio?.tocado || !info) return null;
     const widget = W(wf.audioNodo || {}, "audio");
-    if (!widget) throw new Error("no encuentro el LoadAudio del workflow");
+    if (!widget) throw new Error(t("audio.sin_loadaudio"));
     const r = await api("audio_recortar", { audio: S.audio.original, inicio: S.audio.inicio_s, dur: dur() });
     const valores = widget.options?.values;
     if (Array.isArray(valores) && !valores.includes(r.nombre)) valores.push(r.nombre);
@@ -328,7 +335,7 @@ export function instalar(ctx) {
    * H3 recibe solo el tramo que duran las tomas. */
   ctx.cambiarCancion = async function cambiarCancion(nombre) {
     const widget = W(wf.audioNodo || {}, "audio");
-    if (!widget) throw new Error("no encuentro el LoadAudio del workflow");
+    if (!widget) throw new Error(t("audio.sin_loadaudio"));
     parar(true);
     const valores = widget.options?.values;
     if (Array.isArray(valores) && !valores.includes(nombre)) valores.push(nombre);
@@ -341,7 +348,7 @@ export function instalar(ctx) {
     await cargar();
     ctx.pintarAudio();
     ctx.pedirMontaje();
-    ctx.avisar(`Canción: ${nombre} (${info ? reloj(info.duracion) : "?"}) · el tramo empieza en 0`, "bien");
+    ctx.avisar(t("audio.cancion_lista", { nombre, dur: info ? reloj(info.duracion) : "?" }), "bien");
   };
 
   // subir un audio del PC a input/ con la ruta de ComfyUI (/upload/image acepta cualquier archivo); devuelve su nombre
@@ -350,50 +357,56 @@ export function instalar(ctx) {
     fd.append("image", archivo, archivo.name);
     fd.append("type", "input");
     const r = await fetch("/upload/image", { method: "POST", body: fd });
-    if (!r.ok) throw new Error(`no se pudo subir ${archivo.name} (${r.status})`);
+    if (!r.ok) throw new Error(t("comun.no_se_pudo_subir", { nombre: archivo.name, estado: r.status }));
     return (await r.json()).name;
   };
 
   // la ventanita: lista de input/ con buscador, «Subir desde el PC» y soltar un archivo encima
   ctx.abrirCanciones = async function abrirCanciones() {
     if (!S.audio) return;
-    let lista = [];
-    const filtro = el("input", { placeholder: "buscar…", style: { flex: 1 }, oninput: () => pintar() });
+    let lista = null;                                       // null: aún cargando
+    const filtro = el("input", { style: { flex: 1 }, oninput: () => pintar() });
     const rejilla = el("div", { class: "epl-canciones" });
     const aviso = el("p", { class: "epl-aviso" });
     const elegir = async (nombre) => {
-      try { v.cerrar(); await ctx.cambiarCancion(nombre); } catch (e) { ctx.avisar("Canción: " + e.message, "mal"); }
+      try { v.cerrar(); await ctx.cambiarCancion(nombre); } catch (e) { ctx.avisar(t("audio.cancion_error", { error: e.message }), "mal"); }
     };
     const subir = async (archivos) => {
       const a = [...archivos].find((f) => /^audio\//.test(f.type) || /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i.test(f.name));
-      if (!a) { aviso.textContent = "⚠ Eso no es un audio (wav, mp3, flac, ogg, m4a…)"; return; }
-      aviso.textContent = `Subiendo ${a.name}…`;
+      if (!a) { aviso.textContent = "⚠ " + t("audio.no_es_audio"); return; }
+      aviso.textContent = t("audio.subiendo", { nombre: a.name });
       try { await elegir(await ctx.subirCancion(a)); } catch (e) { aviso.textContent = "⚠ " + e.message; }
     };
     const archivo = el("input", { type: "file", accept: "audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.opus", style: { display: "none" },
                                   onchange: (e) => subir(e.target.files) });
     const pintar = () => {
+      if (!lista) return rejilla.replaceChildren(el("p", { class: "epl-vacio" }, t("comun.cargando")));
       const q = filtro.value.toLowerCase();
       rejilla.replaceChildren(...lista.filter((x) => x.nombre.toLowerCase().includes(q)).map((x) =>
         el("div", { class: "epl-cancion" + (x.nombre === S.audio.original ? " actual" : ""), title: x.nombre, "data-nombre": x.nombre,
                     onclick: () => elegir(x.nombre) },
-          el("b", {}, x.nombre), el("small", {}, `${x.mb.toString().replace(".", ",")} MB · ${x.fecha}` +
-            (x.nombre === S.audio.original ? " · la de ahora" : "")))));
-      if (!rejilla.children.length) rejilla.append(el("p", { class: "epl-vacio" }, lista.length ? "Nada con ese nombre." : "No hay audios en input/."));
+          el("b", {}, x.nombre), el("small", {}, t(x.nombre === S.audio.original ? "audio.cancion.info_actual" : "audio.cancion.info",
+                                                    { mb: u.num(x.mb), fecha: x.fecha })))));
+      if (!rejilla.children.length) rejilla.append(el("p", { class: "epl-vacio" }, t(lista.length ? "comun.nada_con_ese_nombre" : "audio.sin_audios")));
     };
-    const v = ctx.capa("der",
-      el("div", { class: "epl-tit" }, "Cambiar la canción",
-        el("span", { class: "der" }, filtro,
-          el("button", { class: "epl-boton epl-azul", onclick: () => archivo.click() }, "⬆ Subir desde el PC"),
-          el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
-      el("p", { class: "epl-ayuda" }, "Los audios de input/ (los que ve el LoadAudio). Toca uno para usarlo, o sube uno: también puedes " +
-        "soltar el archivo encima de esta ventana. Al cambiarla, el tramo vuelve al inicio y los beats son los de la canción nueva."),
-      archivo, aviso, rejilla);
+    const v = ctx.capa("der");
+    // toda la ventanita, también al cambiar de idioma (v.repintar): el buscador y la lista se conservan
+    v.repintar = () => {
+      filtro.placeholder = t("comun.buscar");
+      v.modal.replaceChildren(
+        el("div", { class: "epl-tit" }, t("audio.canciones.titulo"),
+          el("span", { class: "der" }, filtro,
+            el("button", { class: "epl-boton epl-azul", onclick: () => archivo.click() }, t("audio.subir")),
+            el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
+        el("p", { class: "epl-ayuda" }, t("audio.canciones.ayuda")),
+        archivo, aviso, rejilla);
+      pintar();
+    };
     v.modal.addEventListener("dragover", (e) => { e.preventDefault(); v.modal.classList.add("soltar"); });
     v.modal.addEventListener("dragleave", () => v.modal.classList.remove("soltar"));
     v.modal.addEventListener("drop", (e) => { e.preventDefault(); v.modal.classList.remove("soltar"); subir(e.dataTransfer.files); });
-    rejilla.append(el("p", { class: "epl-vacio" }, "Cargando…"));
-    try { lista = (await api("audios", {})).audios; } catch (e) { aviso.textContent = "⚠ " + e.message; }
+    v.repintar();
+    try { lista = (await api("audios", {})).audios; } catch (e) { lista = []; aviso.textContent = "⚠ " + e.message; }
     pintar();
     filtro.focus();
     return v;

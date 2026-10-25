@@ -7,19 +7,22 @@
  * La relación tapado → original está en <tapado>.tapado.json, junto al RefMod (ctx.tapados).
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Planos: ../../planos/4 El editor.md, «Tapar». */
 
-const CHIPS = [["cara", "la cara"], ["pelo", "el pelo"], ["texto", "el texto"]];
-const FORMAS = [["difuminar", "difuminado"], ["pixelar", "pixelado"], ["color", "parche de color"]];
+// los chips (su letrero: tapar.chip.<c>; en una frase: tapar.busca.<c>) y las formas (tapar.forma.<f>)
+const CHIPS = ["cara", "pelo", "texto"];
+const FORMAS = ["difuminar", "pixelar", "color"];
 const OPCIONES = { cosas: ["cara", "pelo"], libre: "", forma: "difuminar" };
+// la palabra que recibe SAM (nucleo.COSAS_TAPAR) → su chip, para enseñarla en el idioma de la ventana
+const CHIP_DE = { face: "cara", hair: "pelo", text: "texto" };
 
 /* Añade ctx.tapados, ctx.cargarTapados, ctx.cambiarTarjeta y ctx.bloqueTapar. Usa de ctx: u, S, wf, caja, biblioteca,
  * cargarBiblioteca, cambiarStack, abrirFicha, abrirCajita, esCajita, fotosDe, nFotos, avisar, pintarRefs, pintarPlan,
  * pedirMontaje. */
 export function instalar(ctx) {
   const { u, S, wf, caja } = ctx;
-  const { el, api } = u;
+  const { el, api, t } = u;
   const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
   ctx.tapados = {};
-  const mensajes = {};                                   // último resultado de cada tarjeta, para enseñarlo en su ficha
+  const mensajes = {};       // último resultado de cada tarjeta, para enseñarlo en su ficha (una función: sale en el idioma de ahora)
 
   ctx.cargarTapados = async function cargarTapados() {
     try { ctx.tapados = (await api("tapados", {})).tapados || {}; } catch { ctx.tapados = {}; }
@@ -29,12 +32,12 @@ export function instalar(ctx) {
    * «activa». El papel, el nombre y la ficha se copian a la clave nueva, y las tomas que la citaban la siguen citando. */
   ctx.cambiarTarjeta = function cambiarTarjeta(r, nombre) {
     const it = ctx.biblioteca[nombre];
-    if (!it) throw new Error(`${nombre} no aparece en la biblioteca de RefMods`);
+    if (!it) throw new Error(t("tapar.no_en_biblioteca", { nombre }));
     const citas = r.tag ? S.plan.tomas.flatMap((t) => CAMPOS_REF.filter((c) => t[c] === r.tag).map((c) => [t, c])) : [];
     S.refs[nombre] = JSON.parse(JSON.stringify(S.refs[r.clave] || {}));
     ctx.cambiarStack((picks) => {
       const viejo = picks[r.idx];
-      if (viejo?.name !== r.ref) throw new Error("El Stack cambió mientras se tapaba: vuelve a abrir la ficha");
+      if (viejo?.name !== r.ref) throw new Error(t("tapar.stack_cambio"));
       const nueva = ctx.tarjeta(it, picks);
       nueva.uid = viejo.uid;
       nueva.on = viejo.on;
@@ -50,14 +53,18 @@ export function instalar(ctx) {
   };
 
   const reabrir = (r) => r && (ctx.esCajita(r) ? ctx.abrirCajita(r) : ctx.abrirFicha(r));
-  const queBusca = (op) => {
-    const partes = [...CHIPS.filter(([c]) => op.cosas.includes(c)).map(([, t]) => t),
-                    ...(op.libre || "").split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean).map((x) => `«${x}»`)];
-    return partes.length > 1 ? partes.slice(0, -1).join(", ") + " y " + partes.at(-1) : partes[0] || "";
-  };
+  const libres = (libre) => (libre || "").split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  // «la cara, el pelo y “hat”»
+  const queBusca = (op) => u.lista([...CHIPS.filter((c) => op.cosas.includes(c)).map((c) => t(`tapar.busca.${c}`)),
+                                    ...libres(op.libre).map((x) => t("tapar.busca.libre", { x }))]);
+  const palabra = (w) => CHIP_DE[w] ? t(`tapar.chip.${CHIP_DE[w]}`) : w;
+  // un aviso del servidor: con su clave (aviso_i18n) se escribe en el idioma de ahora; si no, el texto tal cual
+  const avisoDe = (x) => x?.aviso_i18n ? t(x.aviso_i18n.clave, x.aviso_i18n.datos) : x?.aviso || "";
+  const origenDe = (x) => x?.origen_i18n ? t(x.origen_i18n.clave, x.origen_i18n.datos) : x?.origen || "";
   const mismas = (a, b) => !!a && !!b && a.forma === b.forma && (a.libre || "").trim() === (b.libre || "").trim() &&
     [...a.cosas].sort().join() === [...b.cosas].sort().join();
-  const encontrado = (e = {}) => Object.entries(e).map(([w, p]) => p > 0 ? `${w} ${String(p).replace(".", ",")} %` : `⚠ no encontré «${w}»`).join(" · ");
+  const encontrado = (e = {}) => Object.entries(e).map(([w, p]) => p > 0 ? t("tapar.encontrado", { palabra: palabra(w), pct: u.num(p) })
+    : t("tapar.no_encontrado", { palabra: palabra(w) })).join(" · ");
 
   // reloj de trabajo: el texto de la fase y los segundos, en la cabecera y en la ficha
   function trabajando(linea) {
@@ -79,21 +86,22 @@ export function instalar(ctx) {
                      concepto: meta.concept || "", descripcion: meta.desc || "", apariencia: meta.appearance || "" };
     const w = trabajando(linea);
     try {
-      w.fase(`Buscando ${queBusca(op)}…`);
+      w.fase(t("tapar.buscando", { que: queBusca(op) }));
       const pv = await api("tapar_previa", cuerpo);
-      if (!pv.existe) w.fase("Creando la referencia tapada…");
+      if (!pv.existe) w.fase(t("tapar.creando"));
       const res = await api("tapar", cuerpo);
       await ctx.cargarBiblioteca();
       const nueva = ctx.cambiarTarjeta(desde, res.name);
-      const texto = res.reutilizado ? `Reutilizo ${res.name}: ya estaba tapado con estas opciones (sin SAM) · ${res.segundos} s`
-        : `Tapada en ${Math.round((pv.segundos + res.segundos) * 10) / 10} s (SAM ${pv.segundos_sam} s, RefMod ${res.segundos_refmod} s) · ${encontrado(res.encontrado)}`;
-      mensajes[res.name] = texto + (res.aviso ? `\n⚠ ${res.aviso}` : "");
+      const texto = () => res.reutilizado ? t("tapar.reutilizo", { nombre: res.name, s: u.num(res.segundos) })
+        : t("tapar.tapada", { s: u.num(Math.round((pv.segundos + res.segundos) * 10) / 10), sam: u.num(pv.segundos_sam),
+                              refmod: u.num(res.segundos_refmod), encontrado: encontrado(res.encontrado) });
+      mensajes[res.name] = () => texto() + (avisoDe(res) ? `\n⚠ ${avisoDe(res)}` : "");
       v.cerrar();
       if (!sinFicha) reabrir(nueva);
-      ctx.avisar(texto, "bien");
+      ctx.avisar(texto(), "bien");
       return nueva;
     } catch (e) {
-      ctx.avisar("Tapar: " + e.message, "mal");
+      ctx.avisar(t("tapar.error", { error: e.message }), "mal");
       if (linea) linea.textContent = "⚠ " + e.message;
     } finally { w.fin(); }
   }
@@ -104,26 +112,26 @@ export function instalar(ctx) {
   function apagar(r, info, v) {
     try {
       const vuelta = ctx.cambiarTarjeta(r, info.original);
-      mensajes[info.original] = `Vuelve la original (${info.original}); el tapado se queda guardado para la próxima vez.`;
+      mensajes[info.original] = () => t("tapar.vuelve_original", { original: info.original });
       v.cerrar();
       reabrir(vuelta);
-      ctx.avisar(`Destapada: vuelve ${info.original}`, "bien");
-    } catch (e) { ctx.avisar("Tapar: " + e.message, "mal"); }
+      ctx.avisar(t("tapar.destapada", { original: info.original }), "bien");
+    } catch (e) { ctx.avisar(t("tapar.error", { error: e.message }), "mal"); }
   }
 
   async function previa(r, original, op, lugar, linea) {
     if (S.ocupado) return;
     const w = trabajando(linea);
     try {
-      w.fase(`Buscando ${queBusca(op)}…`);
+      w.fase(t("tapar.buscando", { que: queBusca(op) }));
       const pv = await api("tapar_previa", { refmod: original, cosas: op.cosas, libre: op.libre, forma: op.forma, n_fotos: ctx.nFotos(r) });
       lugar.replaceChildren(...pv.imagenes.map((f) => el("img", { src: u.vistaMedio(f) + "&t=" + Date.now(), alt: "" })));
-      const texto = `Vista previa en ${pv.segundos} s` + (pv.existe ? " (ya creada: se reutilizará)" : pv.sam ? ` (SAM ${pv.segundos_sam} s)` : " (máscaras de la caché)") +
-        ` · ${encontrado(pv.encontrado)} · de ${pv.origen}`;
-      linea.textContent = texto + (pv.aviso ? `\n⚠ ${pv.aviso}` : "");
+      const detalle = pv.existe ? t("tapar.previa.ya_creada") : pv.sam ? t("tapar.previa.sam", { s: u.num(pv.segundos_sam) }) : t("tapar.previa.cache");
+      const texto = t("tapar.previa.lista", { s: u.num(pv.segundos), detalle, encontrado: encontrado(pv.encontrado), origen: origenDe(pv) });
+      linea.textContent = texto + (avisoDe(pv) ? `\n⚠ ${avisoDe(pv)}` : "");
       ctx.avisar(texto, "bien");
     } catch (e) {
-      ctx.avisar("Vista previa: " + e.message, "mal");
+      ctx.avisar(t("tapar.previa.error", { error: e.message }), "mal");
       linea.textContent = "⚠ " + e.message;
     } finally { w.fin(); }
   }
@@ -136,31 +144,32 @@ export function instalar(ctx) {
     const ref = S.refs[r.clave] || (S.refs[r.clave] = { papel: "no", nombre: "", ficha: "" });
     const op = ref.tapar || (ref.tapar = info ? { cosas: [...(info.cosas || [])], libre: info.libre || "", forma: info.forma || "difuminar" }
                                               : JSON.parse(JSON.stringify(OPCIONES)));
-    const linea = el("div", { class: "epl-ayuda epl-tapar-estado" }, mensajes[r.ref] || "");
+    const linea = el("div", { class: "epl-ayuda epl-tapar-estado" }, mensajes[r.ref]?.() || "");
     const previas = el("div", { class: "epl-tapar-previas" });
     const bloque = el("div", { class: "epl-tapar" + (info ? " encendido" : "") });
     const pintar = () => {
       const cambiadas = info && !mismas(op, { cosas: info.cosas || [], libre: info.libre, forma: info.forma });
       bloque.replaceChildren(...[
         el("div", { class: "epl-fila" },
-          el("label", { class: "epl-interruptor", title: "Tapa lo elegido en la foto con SAM 3.1 y usa esa copia en el Stack. Apagado vuelve la original.", style: { margin: 0 } },
+          el("label", { class: "epl-interruptor", title: t("tapar.interruptor.tooltip"), style: { margin: 0 } },
             el("input", { type: "checkbox", class: "epl-tapar-si", checked: !!info, onchange: (e) => {
               if (S.ocupado) { e.target.checked = !!info; return; }
               if (e.target.checked) encender(r, original, op, v, linea); else apagar(r, info, v);
-            } }), el("b", {}, " tapar"), " con SAM 3.1"),
-          ...CHIPS.map(([c]) => el("button", { class: "epl-mini epl-tapar-chip" + (op.cosas.includes(c) ? " fijo" : ""), "data-cosa": c,
-            onclick: () => { op.cosas = op.cosas.includes(c) ? op.cosas.filter((x) => x !== c) : [...op.cosas, c]; pintar(); } }, c)),
-          el("input", { class: "epl-tapar-libre", value: op.libre, placeholder: "otra cosa, en inglés: hat, logo",
+            } }), " ", el("b", {}, t("tapar.interruptor.verbo")), " " + t("tapar.interruptor.resto")),
+          ...CHIPS.map((c) => el("button", { class: "epl-mini epl-tapar-chip" + (op.cosas.includes(c) ? " fijo" : ""), "data-cosa": c,
+            onclick: () => { op.cosas = op.cosas.includes(c) ? op.cosas.filter((x) => x !== c) : [...op.cosas, c]; pintar(); } }, t(`tapar.chip.${c}`))),
+          el("input", { class: "epl-tapar-libre", value: op.libre, placeholder: t("tapar.libre.placeholder"),
                         onchange: (e) => { op.libre = e.target.value; pintar(); } }),
           el("select", { class: "epl-tapar-forma", onchange: (e) => { op.forma = e.target.value; pintar(); } },
-            ...FORMAS.map(([f, t]) => el("option", { value: f, selected: op.forma === f }, t)))),
+            ...FORMAS.map((f) => el("option", { value: f, selected: op.forma === f }, t(`tapar.forma.${f}`))))),
         el("div", { class: "epl-fila" },
-          el("button", { class: "epl-mini epl-tapar-previa", title: "Enseña cómo queda, sin crear la referencia", onclick: () => previa(r, original, op, previas, linea) }, "👁 vista previa"),
-          cambiadas ? el("button", { class: "epl-mini fijo epl-tapar-aplicar", title: "Crea (o reutiliza) el tapado con estas opciones y lo pone en el Stack",
-            onclick: () => encender(r, original, op, v, linea) }, "↻ aplicar estas opciones") : null,
-          info ? el("span", { class: "epl-ayuda" }, `tapado de ${original} · ${(info.palabras || []).join(", ")} · ${FORMAS.find(([f]) => f === info.forma)?.[1] || info.forma}`)
-               : el("span", { class: "epl-ayuda" }, "para que no se cuele la cara de quien lleva la ropa o la pose")),
-        info?.aviso ? el("div", { class: "epl-aviso" }, "⚠ " + info.aviso) : null,
+          el("button", { class: "epl-mini epl-tapar-previa", title: t("tapar.previa.tooltip"), onclick: () => previa(r, original, op, previas, linea) }, t("tapar.previa")),
+          cambiadas ? el("button", { class: "epl-mini fijo epl-tapar-aplicar", title: t("tapar.aplicar.tooltip"),
+            onclick: () => encender(r, original, op, v, linea) }, t("tapar.aplicar")) : null,
+          info ? el("span", { class: "epl-ayuda" }, t("tapar.info", { original, palabras: u.lista((info.palabras || []).map(palabra)),
+                                                                     forma: FORMAS.includes(info.forma) ? t(`tapar.forma.${info.forma}`) : info.forma }))
+               : el("span", { class: "epl-ayuda" }, t("tapar.para_que"))),
+        avisoDe(info) ? el("div", { class: "epl-aviso" }, "⚠ " + avisoDe(info)) : null,
         linea, previas].filter(Boolean));
     };
     pintar();

@@ -38,7 +38,7 @@ export function quitarDeCortes(cortes, dur, k) {
  * Usa de ctx: u, S, secLinea, guardado, ajustarPlan, avisar, pedirMontaje, pintarPlan, pintarToma, pintarRefs. */
 export function instalar(ctx) {
   const { u, S, secLinea } = ctx;
-  const { el } = u;
+  const { el, t } = u;
   S.pegarBeats = ctx.guardado?.pegar_beats ?? true;
 
   ctx.elegir = function elegir(k) {
@@ -49,7 +49,7 @@ export function instalar(ctx) {
   };
   ctx.cambiarTomas = function cambiarTomas(n) {
     n = Math.max(1, Math.min(12, Math.round(n) || 1));
-    if (n * MIN_TOMA > S.duracion) return ctx.avisar(`${n} tomas no caben en ${S.duracion} s (cada toma necesita al menos 0,4 s)`, "mal");
+    if (n * MIN_TOMA > S.duracion) return ctx.avisar(t("errores.tomas_no_caben", { n, dur: u.num(S.duracion) }), "mal");
     S.tomas = n;
     S.plan = ctx.ajustarPlan(S.plan, n);
     if (S.elegida > n) S.elegida = null;
@@ -64,7 +64,7 @@ export function instalar(ctx) {
     if (c?.length === antes) {
       const ult = S.duracion - c[antes - 1];
       if (ult >= 2 * MIN_TOMA) S.plan.cortes = [...c, alFotograma(c[antes - 1] + ult / 2)];
-      else { delete S.plan.cortes; ctx.avisar("La última toma no se puede partir: vuelvo a los cortes automáticos", "mal"); }
+      else { delete S.plan.cortes; ctx.avisar(t("linea.no_partir"), "mal"); }
     }
     ctx.cambiarTomas(S.tomas + 1);
     if (S.tomas > antes) ctx.elegir(S.tomas);
@@ -76,7 +76,7 @@ export function instalar(ctx) {
     S.plan.tomas.splice(k - 1, 1);
     S.elegida = null;
     ctx.cambiarTomas(S.tomas - 1);
-    ctx.avisar(`Quitada la toma ${k}`, "bien");
+    ctx.avisar(t("linea.quitada", { k }), "bien");
   };
   // fija el borde i en t (lo que hace soltar un arrastre): desde ahí los cortes son «a mano» y van en el plan
   ctx.moverCorte = function moverCorte(i, t) {
@@ -89,7 +89,7 @@ export function instalar(ctx) {
   // otra duración: los cortes a mano se estiran o se encogen en proporción (al fotograma); si ya no caben, automáticos
   ctx.cambiarDuracion = function cambiarDuracion(d) {
     if (!(d > 0)) return;
-    if (S.tomas * MIN_TOMA > d) return ctx.avisar(`${S.tomas} tomas no caben en ${d} s (cada toma necesita al menos 0,4 s)`, "mal");
+    if (S.tomas * MIN_TOMA > d) return ctx.avisar(t("errores.tomas_no_caben", { n: S.tomas, dur: u.num(d) }), "mal");
     const c = S.plan.cortes, antes = +S.duracion;
     S.duracion = d;
     if (c?.length === S.tomas) {
@@ -105,7 +105,7 @@ export function instalar(ctx) {
   ctx.cortesAuto = function cortesAuto() {
     delete S.plan.cortes;
     ctx.pedirMontaje();
-    ctx.avisar("Cortes automáticos: en los beats, repartidos parejo", "bien");
+    ctx.avisar(t("linea.cortes_auto_listo"), "bien");
   };
 
   const cortesAhora = () => {
@@ -113,7 +113,7 @@ export function instalar(ctx) {
     if (S.plan.cortes?.length === n) return S.plan.cortes.slice();
     return S.cortes.length === n ? S.cortes.slice() : Array.from({ length: n }, (_, i) => alFotograma(S.duracion * i / n));
   };
-  const seg = (x) => x.toFixed(2).replace(".", ",");
+  const seg = (x) => u.num(x, 2);
 
   ctx.pintarLinea = function pintarLinea() {
     const n = S.tomas, dur = +S.duracion;
@@ -121,37 +121,37 @@ export function instalar(ctx) {
     const fin = (c, i) => (i + 1 < n ? c[i + 1] : dur);
     const fila = el("div", { class: "epl-tomas-fila" });
     const tiempos = [];
-    const bloques = S.plan.tomas.slice(0, n).map((t, i) => {
+    const bloques = S.plan.tomas.slice(0, n).map((toma, i) => {
       const cruz = el("span", { class: "epl-tomab-x", onclick: (e) => e.stopPropagation() });
-      const normal = () => cruz.replaceChildren(el("button", { class: "x", title: "Quitar esta toma", "aria-label": "Quitar esta toma",
+      const normal = () => cruz.replaceChildren(el("button", { class: "x", title: t("toma.quitar.tooltip"), "aria-label": t("toma.quitar.tooltip"),
         onclick: (e) => { e.stopPropagation(); preguntar(); } }, "✕"));
-      const preguntar = () => cruz.replaceChildren(el("span", { class: "pregunta" }, "¿quitar?",
-        el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarToma(i + 1); } }, "sí"),
-        el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, "no")));
+      const preguntar = () => cruz.replaceChildren(el("span", { class: "pregunta" }, t("referencias.pregunta_quitar"),
+        el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarToma(i + 1); } }, t("comun.si")),
+        el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, t("comun.no"))));
       normal();
-      const efecto = t.efecto ? ` · ${/^E\d+$/.test(t.efecto) ? S.efectos?.[t.efecto]?.nombre || t.efecto : t.efecto}` : "";
+      const efecto = toma.efecto ? ` · ${/^E\d+$/.test(toma.efecto) ? S.efectos?.[toma.efecto]?.nombre || toma.efecto : toma.efecto}` : "";
       const tiempo = el("span", { class: "epl-tomab-t" });
       tiempos.push([tiempo, efecto]);
       return el("div", {
         class: "epl-tomab" + (S.elegida === i + 1 ? " elegida" : ""), id: `epl-tomab-${i + 1}`,
         style: { background: COLORES[i % COLORES.length] },
-        title: [t.lugar, t.momento].filter(Boolean).join(" — ") || "toma sin historia todavía",
+        title: [toma.lugar, toma.momento].filter(Boolean).join(" — ") || t("linea.toma_sin_historia"),
         onclick: () => ctx.elegir(S.elegida === i + 1 ? null : i + 1) },
         n > 1 ? cruz : null,
-        el("b", {}, `Toma ${i + 1}`), el("span", {}, t.lugar || "(sin lugar)"), tiempo);
+        el("b", {}, t("linea.toma", { k: i + 1 })), el("span", {}, toma.lugar || t("linea.sin_lugar")), tiempo);
     });
     // cada toma va donde empieza y dura lo que dura (posición absoluta: los bordes caen justo en los cortes)
     const colocar = (c) => bloques.forEach((b, i) => {
       b.style.left = `calc(${c[i] / dur * 100}% + 2px)`;
       b.style.width = `calc(${(fin(c, i) - c[i]) / dur * 100}% - 4px)`;
-      tiempos[i][0].textContent = `${seg(c[i])}–${seg(fin(c, i))} s` + tiempos[i][1];
+      tiempos[i][0].textContent = t("linea.tiempo", { a: seg(c[i]), b: seg(fin(c, i)) }) + tiempos[i][1];
     });
     // los bordes: se arrastran (puntero) y muestran los segundos de las dos tomas mientras tanto
     const bordes = ini.slice(1).map((_, j) => {
       const i = j + 1, etiqueta = el("span", { class: "epl-borde-et" });
-      const b = el("div", { class: "epl-borde", "data-borde": i, title: "Arrastra para alargar una toma y acortar la otra" }, etiqueta);
+      const b = el("div", { class: "epl-borde", "data-borde": i, title: t("linea.borde.tooltip") }, etiqueta);
       let arr = null;
-      const t = (e) => (e.clientX - fila.getBoundingClientRect().left) / Math.max(1, fila.clientWidth) * dur;
+      const en = (e) => (e.clientX - fila.getBoundingClientRect().left) / Math.max(1, fila.clientWidth) * dur;
       b.addEventListener("pointerdown", (e) => {
         if (e.button > 0) return;
         try { b.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
@@ -162,16 +162,16 @@ export function instalar(ctx) {
       });
       b.addEventListener("pointermove", (e) => {
         if (!arr || e.pointerId !== arr.id) return;
-        ini = moverBorde(arr.base, dur, i, t(e));                 // sin imán mientras se arrastra: el fotograma exacto
+        ini = moverBorde(arr.base, dur, i, en(e));                // sin imán mientras se arrastra: el fotograma exacto
         colocar(ini);
         b.style.left = `${ini[i] / dur * 100}%`;
-        etiqueta.textContent = `${seg(ini[i] - ini[i - 1])} s | ${seg(fin(ini, i) - ini[i])} s`;
+        etiqueta.textContent = t("linea.borde.etiqueta", { a: seg(ini[i] - ini[i - 1]), b: seg(fin(ini, i) - ini[i]) });
       });
       const soltar = (e) => {
         if (!arr || e.pointerId !== arr.id) return;
         arr = null;
         b.classList.remove("arrastrando");
-        ctx.moverCorte(i, t(e));
+        ctx.moverCorte(i, en(e));
       };
       b.addEventListener("pointerup", soltar);
       b.addEventListener("pointercancel", soltar);
@@ -182,16 +182,16 @@ export function instalar(ctx) {
     colocar(ini);
     const manual = S.plan.cortes?.length === n;
     secLinea.replaceChildren(
-      el("div", { class: "epl-tit" }, `Línea de tiempo · ${n} toma${n === 1 ? "" : "s"} en ${dur.toFixed(2)} s`,
-        manual ? el("span", { class: "epl-marca" }, "cortes a mano") : null,
+      el("div", { class: "epl-tit" }, t(n === 1 ? "linea.titulo_una" : "linea.titulo_varias", { n, dur: u.num(dur, 2) }),
+        manual ? el("span", { class: "epl-marca" }, t("linea.a_mano")) : null,
         el("span", { class: "der epl-ayuda", style: { margin: 0 } },
-          el("label", { class: "epl-pegar", title: "Al soltar un borde, se va al beat más cercano (±0,15 s)" },
-            el("input", { type: "checkbox", checked: S.pegarBeats, onchange: (e) => { S.pegarBeats = e.target.checked; } }), " pegar a los beats"),
-          manual ? el("button", { class: "epl-mini", title: "Olvidar los cortes movidos a mano y volver a ponerlos en los beats",
-                                  onclick: () => ctx.cortesAuto() }, "↺ cortes automáticos") : null,
-          " Toca una toma para ver su prompt · arrastra un borde para cambiar lo que duran · + añade una")),
+          el("label", { class: "epl-pegar", title: t("linea.pegar.tooltip") },
+            el("input", { type: "checkbox", checked: S.pegarBeats, onchange: (e) => { S.pegarBeats = e.target.checked; } }), " " + t("linea.pegar")),
+          manual ? el("button", { class: "epl-mini", title: t("linea.cortes_auto.tooltip"),
+                                  onclick: () => ctx.cortesAuto() }, t("linea.cortes_auto")) : null,
+          " " + t("linea.ayuda"))),
       el("div", { class: "epl-linea" }, fila,
-        el("button", { class: "epl-mas", title: "Añadir una toma (las demás se estrechan)", onclick: () => ctx.anadirToma() }, "+")),
-      el("div", { class: "epl-regla" }, el("span", {}, "0 s"), el("span", {}, `${dur.toFixed(2)} s`)));
+        el("button", { class: "epl-mas", title: t("linea.anadir.tooltip"), onclick: () => ctx.anadirToma() }, "+")),
+      el("div", { class: "epl-regla" }, el("span", {}, t("linea.segundos", { s: u.num(0) })), el("span", {}, t("linea.segundos", { s: u.num(dur, 2) }))));
   };
 }
