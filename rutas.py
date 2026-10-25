@@ -1,5 +1,6 @@
 """Lo que hacen las rutas del editor (/edit_prompt_llm/*). __init__.py las registra una vez y recarga este archivo y nucleo.py
 en cada llamada: un cambio en la lógica se prueba sin reiniciar ComfyUI. planos/4 El editor.md."""
+import os
 import time
 
 from . import nucleo
@@ -13,22 +14,57 @@ def recetas(d=None):
             for nombre, r in nucleo.cargar_recetas().items()}
 
 
-def beats(audio):
-    """Beats del archivo de audio que usa el workflow (nombre de LoadAudio); sin audio, cortes parejos."""
+def _ruta_audio(audio):
+    import folder_paths
+    ruta = folder_paths.get_annotated_filepath(audio)
+    if not ruta or not os.path.isfile(ruta):
+        raise FileNotFoundError(f"no encuentro el audio «{audio}» en input/")
+    return ruta
+
+
+def beats(d):
+    """Beats del audio que usa el workflow (nombre del LoadAudio); sin audio, cortes parejos. Si el editor eligió un tramo
+    («audio_inicio»), son los beats de ese tramo de la canción original, contados desde su inicio (nucleo.beats_de_tramo)."""
+    audio = d.get("audio")
     if not audio:
         return None
-    import folder_paths
-    return nucleo.beats_de_archivo(folder_paths.get_annotated_filepath(audio))
+    if d.get("audio_inicio") is not None:
+        return nucleo.beats_de_tramo(_ruta_audio(audio), float(d["audio_inicio"]), float(d["entradas"]["duracion"]))
+    return nucleo.beats_de_archivo(_ruta_audio(audio))
 
 
 def montar(d):
-    prompt, avisos, ini = nucleo.montar_plan(d["receta"], d["entradas"], d["plan"], beats(d.get("audio")))
+    prompt, avisos, ini = nucleo.montar_plan(d["receta"], d["entradas"], d["plan"], beats(d))
     return {"prompt": prompt, "avisos": avisos, "cortes": ini}
+
+
+# ------------------------------------------------------------------ ventana de audio (planos/4 El editor.md)
+def audio_info(d):
+    """Duración y resumen de picos de la canción entera (cacheado en disco)."""
+    t = time.time()
+    return {**nucleo.info_audio(_ruta_audio(d["audio"])), "segundos": round(time.time() - t, 3)}
+
+
+def audio_ventana(d):
+    """Picos finos alrededor del tramo; con «wav», también el tramo en WAV (base64) para oírlo en el navegador."""
+    import base64
+    ruta, ini, dur = _ruta_audio(d["audio"]), float(d["inicio"]), float(d["dur"])
+    out = nucleo.ventana_audio(ruta, ini, dur, d.get("margen"))
+    if d.get("wav"):
+        datos, sr, can = nucleo.tramo_wav(ruta, ini, dur)
+        out.update(wav=base64.b64encode(datos).decode(), sr=sr, canales=can)
+    return out
+
+
+def audio_recortar(d):
+    """Escribe el tramo como WAV en input/ (edit_tramo_<hash>.wav), sin tocar el original."""
+    import folder_paths
+    return nucleo.recortar_audio(_ruta_audio(d["audio"]), float(d["inicio"]), float(d["dur"]), folder_paths.get_input_directory())
 
 
 def historia(d):
     t = time.time()
-    plan, intentos = nucleo.escribir_historia(d["receta"], d["entradas"], d["plan"], beats(d.get("audio")),
+    plan, intentos = nucleo.escribir_historia(d["receta"], d["entradas"], d["plan"], beats(d),
                                               int(d.get("semilla", 0)))
     return {"plan": plan, "intentos": intentos, "segundos": round(time.time() - t, 1)}
 
@@ -52,7 +88,7 @@ def describir(d):
 def tomas(d):
     t = time.time()
     solo = int(d["solo"]) if d.get("solo") else None
-    plan, intentos = nucleo.escribir_tomas(d["receta"], d["entradas"], d["plan"], beats(d.get("audio")),
+    plan, intentos = nucleo.escribir_tomas(d["receta"], d["entradas"], d["plan"], beats(d),
                                            int(d.get("semilla", 0)), solo=solo)
     return {"plan": plan, "intentos": intentos, "segundos": round(time.time() - t, 1)}
 
@@ -213,4 +249,7 @@ ACCIONES = {
     "medios": (medios, False),
     "cajitas": (cajitas, False),
     "crear_cajita": (crear_cajita, False),
+    "audio_info": (audio_info, False),
+    "audio_ventana": (audio_ventana, False),
+    "audio_recortar": (audio_recortar, False),
 }

@@ -147,6 +147,183 @@ def duraciones(n, dur, beats=None):
     return ini, [b - a for a, b in zip(ini, ini[1:] + [dur])]
 
 
+# ------------------------------------------------------------------ audio: la canción entera y el tramo elegido
+# La ventana de audio del editor (planos/4 El editor.md) deja elegir qué tramo de una canción larga usa el edit. Todo se
+# decodifica con ffmpeg (decodificar: búsqueda rápida hasta un segundo entero antes y el resto exacto, a la muestra).
+# Los beats del tramo son los de la canción entera (cacheados en disco) desplazados al 0 del tramo.
+CACHE_AUDIO = os.path.join(CORRIDAS, "cache_audio")
+SR_PICOS, PICOS_POR_S, PICOS_RESUMEN = 4000, 50, 4000
+
+
+def _ffmpeg(ruta, sr, canales=1, desde=0, dur=None):
+    """ffmpeg escribiendo PCM int16 por stdout desde «desde» (s enteros: así la búsqueda cae justo en una muestra)."""
+    import subprocess
+    cmd = ["ffmpeg", "-v", "error", "-nostdin"] + (["-ss", str(int(desde))] if desde > 0 else []) + ["-i", ruta]
+    if dur is not None:
+        cmd += ["-t", f"{dur:.6f}"]
+    return subprocess.Popen(cmd + ["-f", "s16le", "-ac", str(canales), "-ar", str(sr), "-"], stdout=subprocess.PIPE)
+
+
+def decodificar(ruta, sr, canales=1, inicio=0.0, dur=None):
+    """PCM int16 [muestras, canales] de [inicio, inicio+dur]. Empieza en la muestra floor(inicio·sr + ½) y, con «dur», da
+    exactamente round(dur·sr) muestras (con ceros si la canción se acaba antes). ffmpeg busca hasta el segundo entero de al
+    menos 1 s antes y el resto se recorta aquí: en un mp3 los primeros 20 ms después de buscar salen mal."""
+    import math
+    import numpy as np
+    desde = max(0, math.floor(inicio) - 1)
+    salto = math.floor(inicio * sr + 0.5) - desde * sr
+    p = _ffmpeg(ruta, sr, canales, desde, None if dur is None else inicio - desde + dur + 0.25)
+    x = np.frombuffer(p.stdout.read(), np.int16).reshape(-1, canales)[salto:]
+    p.wait()
+    if dur is not None:
+        n = round(dur * sr)
+        x = x[:n] if len(x) >= n else np.concatenate([x, np.zeros((n - len(x), canales), np.int16)])
+    return x
+
+
+def datos_audio(ruta):
+    """Duración, frecuencia y canales (ffprobe)."""
+    import subprocess
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries",
+                          "stream=sample_rate,channels:format=duration", "-of", "json", ruta],
+                         capture_output=True, text=True, check=True).stdout
+    j = json.loads(out)
+    s = (j.get("streams") or [{}])[0]
+    return {"duracion": float(j["format"]["duration"]), "sr": int(s.get("sample_rate", 44100)), "canales": int(s.get("channels", 2))}
+
+
+def _picos(x, por):
+    """Pico (0–255) de cada grupo de «por» muestras de una onda mono int16."""
+    import numpy as np
+    x = np.abs(x.reshape(-1).astype(np.int32))
+    n = -(-len(x) // por)
+    x = np.pad(x, (0, n * por - len(x)))
+    return (x.reshape(n, por).max(1) * 255 // 32767).astype(np.uint8)
+
+
+def info_audio(ruta, cache=CACHE_AUDIO):
+    """Duración y resumen de picos de la canción entera (≤ PICOS_RESUMEN valores), cacheado en disco por archivo + fecha +
+    tamaño. Decodifica en streaming a mono y 4 kHz: una canción de una hora no se carga entera en memoria."""
+    import numpy as np
+    st = os.stat(ruta)
+    clave = hashlib.sha1(f"{os.path.abspath(ruta)}|{st.st_mtime_ns}|{st.st_size}".encode()).hexdigest()[:16]
+    archivo = os.path.join(cache, clave + ".json")
+    if os.path.isfile(archivo):
+        with open(archivo) as f:
+            return {**json.load(f), "cache": True}
+    d = datos_audio(ruta)
+    p, por, trozos, resto = _ffmpeg(ruta, SR_PICOS), SR_PICOS // PICOS_POR_S, [], b""
+    while True:
+        b = p.stdout.read(1 << 20)
+        if not b:
+            break
+        b, resto = resto + b, b""
+        corte = len(b) - len(b) % (2 * por)
+        b, resto = b[:corte], b[corte:]
+        if b:
+            trozos.append(_picos(np.frombuffer(b, np.int16), por))
+    p.wait()
+    if resto:
+        trozos.append(_picos(np.frombuffer(resto[:len(resto) // 2 * 2], np.int16), por))
+    finos = np.concatenate(trozos) if trozos else np.zeros(1, np.uint8)
+    grupo = max(1, -(-len(finos) // PICOS_RESUMEN))
+    n = -(-len(finos) // grupo)
+    resumen = np.pad(finos, (0, n * grupo - len(finos))).reshape(n, grupo).max(1)
+    out = {**d, "picos": resumen.tolist(), "s_por_pico": grupo / PICOS_POR_S}
+    os.makedirs(cache, exist_ok=True)
+    with open(archivo, "w") as f:
+        json.dump(out, f)
+    return {**out, "cache": False}
+
+
+def ventana_audio(ruta, inicio, dur, margen=None, por_s=400, sr=16000):
+    """Picos finos (0–255, «por_s» por segundo) de [inicio − margen, inicio + dur + margen] para dibujar la ventana con detalle
+    mientras se arrastra. Devuelve desde dónde empiezan («desde», s)."""
+    margen = max(8.0, 3 * dur) if margen is None else margen
+    desde = max(0.0, inicio - margen)
+    x = decodificar(ruta, sr, 1, desde, inicio + dur + margen - desde)
+    return {"desde": desde, "por_s": por_s, "picos": _picos(x, sr // por_s).tolist()}
+
+
+def wav_bytes(x, sr):
+    """PCM int16 [muestras, canales] → bytes de un WAV."""
+    import io
+    import wave
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(x.shape[1])
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(x.tobytes())
+    return buf.getvalue()
+
+
+def tramo_wav(ruta, inicio, dur):
+    """El tramo [inicio, inicio+dur] en WAV, con la frecuencia de la canción y como mucho 2 canales."""
+    d = datos_audio(ruta)
+    sr, can = d["sr"], min(2, d["canales"])
+    return wav_bytes(decodificar(ruta, sr, can, inicio, dur), sr), sr, can
+
+
+def nombre_tramo(ruta, inicio, dur):
+    """Nombre estable del recorte: el mismo archivo, inicio y duración dan siempre el mismo nombre."""
+    st = os.stat(ruta)
+    h = hashlib.sha1(f"{os.path.basename(ruta)}|{st.st_mtime_ns}|{st.st_size}|{inicio:.4f}|{dur:.4f}".encode()).hexdigest()[:12]
+    return f"edit_tramo_{h}.wav"
+
+
+def recortar_audio(ruta, inicio, dur, carpeta):
+    """Escribe el tramo [inicio, inicio+dur] como WAV en «carpeta» (input/ de ComfyUI) sin tocar el original. Si ya existe, lo
+    reutiliza. Devuelve su nombre, sus muestras y su frecuencia."""
+    nombre = nombre_tramo(ruta, inicio, dur)
+    destino = os.path.join(carpeta, nombre)
+    if not os.path.isfile(destino):
+        datos, sr, can = tramo_wav(ruta, inicio, dur)
+        with open(destino + ".tmp", "wb") as f:
+            f.write(datos)
+        os.replace(destino + ".tmp", destino)
+    import wave
+    with wave.open(destino) as w:
+        return {"nombre": nombre, "muestras": w.getnframes(), "sr": w.getframerate()}
+
+
+def beats_cancion(ruta, cache=CACHE_AUDIO, sr=22050, hop=512, trozo_s=60):
+    """Beats (s) de la canción entera, cacheados en disco por archivo + fecha + tamaño. La fuerza de los golpes (onset) se
+    calcula por trozos de 1 minuto, así una hora de audio no se carga entera (unos 13 s la primera vez); después librosa
+    sigue el pulso de toda la canción de una vez. Da los mismos beats que librosa con la canción entera a 22 kHz (±1 hop)."""
+    import numpy as np
+    import librosa
+    st = os.stat(ruta)
+    clave = hashlib.sha1(f"{os.path.abspath(ruta)}|{st.st_mtime_ns}|{st.st_size}|{sr}|{hop}".encode()).hexdigest()[:16]
+    archivo = os.path.join(cache, clave + "_beats.json")
+    if os.path.isfile(archivo):
+        with open(archivo) as f:
+            return json.load(f)
+    p, n, previo, envs = _ffmpeg(ruta, sr), trozo_s * sr, np.zeros(0, np.float32), []
+    while True:
+        b = p.stdout.read(n * 2)
+        if not b:
+            break
+        y = np.frombuffer(b[:len(b) // 2 * 2], np.int16).astype(np.float32) / 32768
+        c = len(previo) // hop  # el final del trozo anterior va delante para que el borde no invente un golpe
+        envs.append(librosa.onset.onset_strength(y=np.concatenate([previo, y]), sr=sr, hop_length=hop)[c:c + -(-len(y) // hop)])
+        previo = y[-4 * hop:] if len(y) >= 4 * hop else np.zeros(0, np.float32)
+    p.wait()
+    env = np.concatenate(envs) if envs else np.zeros(1, np.float32)
+    _, cuadros = librosa.beat.beat_track(onset_envelope=env, sr=sr, hop_length=hop)
+    beats = [round(float(t), 3) for t in librosa.frames_to_time(cuadros, sr=sr, hop_length=hop)]
+    os.makedirs(cache, exist_ok=True)
+    with open(archivo, "w") as f:
+        json.dump(beats, f)
+    return beats
+
+
+def beats_de_tramo(ruta, inicio, dur, cache=CACHE_AUDIO):
+    """Beats del tramo [inicio, inicio+dur], contados desde su inicio: los de la canción entera, desplazados. (Analizar solo
+    el tramo con un margen cambia el tempo que ve librosa: a veces sale la mitad de beats.)"""
+    return [round(b - inicio, 3) for b in beats_cancion(ruta, cache) if inicio <= b <= inicio + dur]
+
+
 def en_palabras(d):
     if d < 0.7:
         return "muy corta: un solo gesto pequeño"

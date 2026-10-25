@@ -125,5 +125,63 @@ plan7["tomas"][2]["objeto"] = "<Picture 2>"
 comprobar("la toma con objeto pide <Subject 2> en ACTION",
           "ACTION tiene que incluir el objeto con su etiqueta <Subject 2>" in N.revisar_toma(d7, receta, plan7, 3, [], set(), m7))
 
+print("8 · Audio: tramo de una canción larga (ventana de audio del editor)")
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+import tempfile  # noqa: E402
+import time  # noqa: E402
+import wave  # noqa: E402
+import numpy as np  # noqa: E402
+tmp = tempfile.mkdtemp(prefix="epl_audio_")
+try:
+    sr = 44100
+    rng = np.random.default_rng(1)
+    onda = (rng.standard_normal((40 * sr, 2)) * 3000).astype(np.int16)  # 40 s de ruido estéreo: cada muestra es distinta
+    cancion = os.path.join(tmp, "cancion.wav")
+    open(cancion, "wb").write(N.wav_bytes(onda, sr))
+    r = N.recortar_audio(cancion, 12.345, 3.0, tmp)
+    with wave.open(os.path.join(tmp, r["nombre"])) as w:
+        recorte = np.frombuffer(w.readframes(w.getnframes()), np.int16).reshape(-1, 2)
+    comprobar("el recorte dura exactamente dur", abs(len(recorte) - round(3.0 * sr)) <= 1, len(recorte))
+    comprobar("el recorte empieza en inicio", np.array_equal(recorte, onda[int(12.345 * sr + 0.5):int(12.345 * sr + 0.5) + len(recorte)]))
+    comprobar("el nombre del recorte es estable", N.recortar_audio(cancion, 12.345, 3.0, tmp)["nombre"] == r["nombre"] !=
+              N.nombre_tramo(cancion, 12.5, 3.0) and r["nombre"].startswith("edit_tramo_"), r)
+    # en un mp3, la búsqueda rápida de ffmpeg sola da mal los primeros 20 ms: el recorte tiene que salir igual que la canción
+    mp3 = os.path.join(tmp, "cancion.mp3")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", cancion, "-b:a", "192k", mp3], check=True)
+    entero = N.decodificar(mp3, sr, 2)
+    trozo = N.decodificar(mp3, sr, 2, 20.0, 2.0)
+    dif = np.abs(trozo.astype(int) - entero[20 * sr:22 * sr].astype(int)).max()
+    comprobar("el tramo de un mp3 coincide muestra a muestra con la canción entera", len(trozo) == 2 * sr and dif <= 2, dif)
+    # beats: una pista de golpes a 120 BPM (uno cada 0,5 s)
+    golpes = np.zeros(60 * 22050, np.float32)
+    for t in np.arange(0.25, 60, 0.5):
+        i = int(t * 22050)
+        golpes[i:i + 600] = np.hanning(1200)[600:] * np.sin(np.arange(600) * 0.12)  # unos 400 Hz
+    pista = os.path.join(tmp, "golpes.wav")
+    open(pista, "wb").write(N.wav_bytes((golpes * 20000).astype(np.int16)[:, None], 22050))
+    todos = N.beats_cancion(pista, tmp)
+    tramo = N.beats_de_tramo(pista, 20.5, 3.0, tmp)
+    comprobar("los beats del tramo son los de la canción desplazados",
+              tramo == [round(b - 20.5, 3) for b in todos if 20.5 <= b <= 23.5] and len(tramo) == 6, (tramo, todos[:5]))
+    comprobar("los beats de la canción caen en los golpes (±1 fotograma)",
+              all(abs((b - 0.25) / 0.5 - round((b - 0.25) / 0.5)) * 0.5 <= 1 / 24 for b in todos) and len(todos) >= 100, todos[:8])
+    # el resumen de picos de un audio largo (20 min) se genera una vez y después sale de la caché
+    largo = os.path.join(tmp, "largo.wav")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-stream_loop", "29", "-i", pista, "-t", "1200", largo], check=True)
+    t0 = time.time()
+    i1 = N.info_audio(largo, os.path.join(tmp, "cache"))
+    t1 = time.time() - t0
+    t0 = time.time()
+    i2 = N.info_audio(largo, os.path.join(tmp, "cache"))
+    t2 = time.time() - t0
+    comprobar("resumen de picos de 20 min: pocos miles de valores", not i1["cache"] and abs(i1["duracion"] - 1200) < 0.1 and
+              1000 <= len(i1["picos"]) <= N.PICOS_RESUMEN and max(i1["picos"]) > 100, (i1["duracion"], len(i1["picos"])))
+    comprobar("el resumen se reutiliza de la caché", i2["cache"] and i2["picos"] == i1["picos"] and t2 < 0.1, (t1, t2))
+    v = N.ventana_audio(largo, 600.0, 3.0)
+    comprobar("la ventana fina cubre el tramo con margen", v["desde"] <= 600 - 8 and v["desde"] + len(v["picos"]) / v["por_s"] >= 603 + 8, v["desde"])
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)
