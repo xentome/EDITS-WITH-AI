@@ -17,6 +17,12 @@ import re
 import time
 import urllib.request
 
+try:                        # dentro de ComfyUI es un paquete; en pruebas.py y en la terminal, un módulo suelto
+    from . import i18n
+except ImportError:
+    import i18n
+ErrorUsuario = i18n.ErrorUsuario    # los errores que ve el usuario llevan su clave y se traducen en la ruta (i18n.py)
+
 URL = "http://127.0.0.1:8080/v1/chat/completions"
 MODELO = "qwen3.8-27b"
 CORRIDAS = os.path.expanduser("~/Escritorio/experimentos_edit/edit_prompt_llm")
@@ -406,11 +412,11 @@ def leer_palabras(texto, n):
         if not lin.strip():
             continue
         if "@" not in lin:
-            raise ValueError(f"palabras: falta '@ toma' en «{lin.strip()}» (ejemplo: TO YOU @1)")
+            raise ErrorUsuario("errores.palabras_falta_arroba", linea=lin.strip())
         txt, donde = (s.strip() for s in lin.rsplit("@", 1))
         k = n if donde.lower() in ("ultima", "última", "last") else int(donde) if donde.isdigit() else 0
         if not txt or not 1 <= k <= n:
-            raise ValueError(f"palabras: «{lin.strip()}» no vale (la toma va de 1 a {n}, o @ultima)")
+            raise ErrorUsuario("errores.palabras_no_vale", linea=lin.strip(), n=n)
         out[k] = txt.strip('"«»“”')
     return out
 
@@ -467,7 +473,7 @@ def pedir(reg, nombre, mensajes, pensar, semilla, max_tokens):
 def conversar(reg, nombre, prompt, leer, revisar, intentos, pensar, semilla, max_tokens):
     """Pide, lee y revisa; si hay problemas se los devuelve al LLM en la misma conversación. Devuelve (datos, intentos)."""
     if not llm_vivo():
-        raise RuntimeError(f"El LLM no responde en {URL} (servicio llama-qwen38: systemctl --user start llama-qwen38).")
+        raise ErrorUsuario("errores.llm_no_responde", url=URL)
     mensajes = [{"role": "user", "content": prompt}]
     for i in range(1, intentos + 1):
         texto, fin = pedir(reg, f"{nombre}_{i}", mensajes, pensar, semilla, max_tokens)
@@ -480,8 +486,8 @@ def conversar(reg, nombre, prompt, leer, revisar, intentos, pensar, semilla, max
                      {"role": "user", "content": "Tu respuesta tiene estos problemas:\n- " + "\n- ".join(problemas) +
                       "\nEscríbela de nuevo completa, en el mismo formato, corrigiéndolos."}]
     reg.volcar()
-    raise RuntimeError(f"{nombre}: {intentos} intentos sin pasar la revisión. Últimos problemas: {'; '.join(problemas)}. "
-                       f"Detalle en {reg.carpeta}")
+    # los problemas son los que se le dieron al LLM (en español): van tal cual dentro del aviso
+    raise ErrorUsuario("errores.revision", paso=nombre, n=intentos, problemas="; ".join(problemas), carpeta=reg.carpeta)
 
 
 # ------------------------------------------------------------------ revisiones comunes
@@ -821,9 +827,10 @@ def definiciones(perfil, menu):
     return sujeto, retencion
 
 
-def montar(perfil, menu, plan, ini, palabras):
+def montar(perfil, menu, plan, ini, palabras, idioma="es"):
     """Plan → prompt H3 (6 secciones). Devuelve (prompt, avisos); un campo vacío sale como […] y queda en avisos."""
-    avisos, falta = [], lambda v, que: v or (avisos.append(que) or "[…]")
+    # un campo vacío sale como […] y su hueco (la clave final.hueco.*) va a los avisos, en el idioma de la ventana
+    avisos, falta = [], lambda v, que, **d: v or (avisos.append(i18n.t(que, idioma, **d)) or "[…]")
     lineas = []
     for k, t in enumerate(plan["tomas"], 1):
         t0 = ini[k - 1]
@@ -834,15 +841,15 @@ def montar(perfil, menu, plan, ini, palabras):
             citas.append(f"wearing the {nombre_de(menu['ropa'][t['ropa']], 'clothes')} from {t['ropa']}")
         if t["pose"]:
             citas.append(f"in the pose of {t['pose']}")
-        lugar = re.sub(r"^(A|An|The)\b", lambda m: m.group(1).lower(), falta(t["lugar"], f"toma {k}: sin lugar"))
+        lugar = re.sub(r"^(A|An|The)\b", lambda m: m.group(1).lower(), falta(t["lugar"], "final.hueco.sin_lugar", k=k))
         if t["lugar_ref"] in menu["lugar"]:
             lugar += f", in the {nombre_de(menu['lugar'][t['lugar_ref']], 'place')} shown in {t['lugar_ref']}"
         if t["fondo_ref"]:
             lugar += f" like the place in {t['fondo_ref']}"
-        encuadre = falta(t["encuadre"], f"toma {k}: sin encuadre").capitalize()
-        s = (f"[Shot {k}] At {mmss(t0)} {encuadre}, {lugar}, {falta(t['luz'], f'toma {k}: sin luz')}: <Subject 1>" +
+        encuadre = falta(t["encuadre"], "final.hueco.sin_encuadre", k=k).capitalize()
+        s = (f"[Shot {k}] At {mmss(t0)} {encuadre}, {lugar}, {falta(t['luz'], 'final.hueco.sin_luz', k=k)}: <Subject 1>" +
              (", " + " and ".join(citas) + "," if citas else "") +
-             f" {falta(t['gesto'], f'toma {k}: sin gesto')}; the camera {falta(t['camara'], f'toma {k}: sin cámara')}.")
+             f" {falta(t['gesto'], 'final.hueco.sin_gesto', k=k)}; the camera {falta(t['camara'], 'final.hueco.sin_camara', k=k)}.")
         if frase_efecto(menu, t):
             # 💡 un efecto con imagen se cita además por su etiqueta (sin render todavía)
             s += f" Effect: {frase_efecto(menu, t)}" + (f", like the effect in {t['efecto']}" if t["efecto"].startswith("<") and
@@ -878,7 +885,7 @@ def montar(perfil, menu, plan, ini, palabras):
     texto = ("The only text on screen is " + " and ".join(f'"{w}" in shot {k}' for k, w in sorted(palabras.items())) + "."
              if palabras else "No text on screen.")
     # la línea de estilo: el estilo del usuario (si lo hay) y el look del LLM; sin estilo no se inventa ninguno
-    estilo = (perfil["estilo"] + ". " if perfil["estilo"] else "") + falta(plan["look"], "sin look (luz general)") + "."
+    estilo = (perfil["estilo"] + ". " if perfil["estilo"] else "") + falta(plan["look"], "final.hueco.sin_look") + "."
     if plan["fondo"]:
         estilo += f" Backgrounds: {plan['fondo'].rstrip('.')}."
     if menu["estilo"]:
@@ -887,7 +894,7 @@ def montar(perfil, menu, plan, ini, palabras):
               ", close shots cut on the beat of <Audio 1>"
     prompt = ("subject_definitions:\n" + "\n".join(sujeto) + "\n" + AUDIO +
               "\n\nsummary:\n[reference generation + audio reference] " + resumen + ": " +
-              falta(plan["arco"], "sin arco").rstrip(".") + "." +
+              falta(plan["arco"], "final.hueco.sin_arco").rstrip(".") + "." +
               "\n\nretention_analysis:\n" + "\n".join(retencion) +
               "\n\ndetailed_description:\n" + estilo + " " + texto + "\n" + "\n".join(lineas) +
               "\n\noverall_soundscape:\nOnly the music of <Audio 1>, unchanged, with no dialogue and no added sound effects."
@@ -1051,7 +1058,7 @@ def contexto(entradas, plan, beats):
     palabras. entradas: {idea, tomas, duracion, palabras, refs, estilo, estilo_palabras}."""
     n, dur = int(entradas["tomas"]), float(entradas["duracion"])
     if n * 0.4 > dur:
-        raise ValueError(f"{n} tomas no caben en {dur} s (cada toma necesita al menos 0,4 s).")
+        raise ErrorUsuario("errores.tomas_no_caben", n=n, dur=dur)
     plan = ajustar_plan(plan, n)
     # los cortes elegidos a mano en la línea de tiempo (plan.cortes) mandan sobre los calculados, si caben
     ini, durs = duraciones(n, dur, beats, [round(float(x), 3) for x in plan["cortes"]] if plan.get("cortes") else None)
@@ -1064,7 +1071,7 @@ def escribir_historia(entradas, plan, beats=None, semilla=0, reg=None):
     Respeta lo fijado. Devuelve (plan, intentos)."""
     perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
     if not (entradas.get("idea") or "").strip():
-        raise ValueError("Falta la idea.")
+        raise ErrorUsuario("errores.falta_idea")
     reg = reg or registro_nuevo("historia")
     datos, intentos = conversar(reg, "historia", prompt_historia(perfil, menu, plan, entradas["idea"].strip(), durs, palabras),
                                 lambda x: leer_historia(x, plan, menu), lambda x: revisar_historia(x, perfil, menu),
@@ -1074,13 +1081,13 @@ def escribir_historia(entradas, plan, beats=None, semilla=0, reg=None):
     return datos["plan"], intentos
 
 
-def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, aviso=None):
+def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, aviso=None, idioma="es"):
     """Encuadre, luz, gesto y cámara (1 llamada por toma, sin razonamiento). `solo`: regenera solo esa toma, mirando a
     sus dos vecinas. Respeta lo fijado. Devuelve (plan, intentos por toma)."""
     perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
     faltan = [k for k, t in enumerate(plan["tomas"], 1) if not t["lugar"] or not t["momento"]]
     if faltan:
-        raise ValueError(f"Primero hace falta la historia: las tomas {faltan} no tienen lugar o momento.")
+        raise ErrorUsuario("errores.falta_historia", faltan=faltan)
     reg = reg or registro_nuevo("tomas" if solo is None else f"toma{solo}")
     n, hechas = len(plan["tomas"]), {}
     if solo is None:  # pasada completa: lo no fijado se escribe de nuevo, sin mirar versiones viejas
@@ -1099,26 +1106,28 @@ def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, a
         t.update(d)
         hechas[k] = it
         if aviso:
-            aviso(k, n, f"toma {k}/{n} lista ({it} intento/s)")
+            aviso(k, n, i18n.t("nodo.progreso.toma", idioma, k=k, n=n, i=it))
     return plan, hechas
 
 
-def montar_plan(entradas, plan, beats=None):
+def montar_plan(entradas, plan, beats=None, idioma="es"):
+    """Plan → (prompt, avisos, cortes). Los avisos (huecos) salen en `idioma`; el prompt es siempre el mismo (inglés)."""
     perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
-    prompt, avisos = montar(perfil, menu, plan, ini, palabras)
+    prompt, avisos = montar(perfil, menu, plan, ini, palabras, idioma)
     if plan.get("cortes") and not cortes_validos(plan["cortes"], len(plan["tomas"]), float(entradas["duracion"])):
-        avisos.append("los cortes elegidos a mano no caben en la duración: uso los automáticos")
+        avisos.append(i18n.t("final.hueco.cortes_a_mano", idioma))
     return prompt, avisos, ini
 
 
-def planear(idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, antes_del_llm=None, extra=None):
+def planear(idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, antes_del_llm=None, extra=None, idioma="es"):
     """Recorrido completo del nodo sin editor: idea → prompt H3. Devuelve (prompt, informe, llamó_al_llm).
     extra: lo que se pueda leer del estado del editor (referencias, estilo; entradas_de_estado). Sin él no hay referencias:
     el personaje es <Subject 1> sin más y no hay estilo.
-    avance(paso, total, texto) se llama después de cada etapa; antes_del_llm() justo antes de la primera llamada."""
+    avance(paso, total, texto) se llama después de cada etapa; antes_del_llm() justo antes de la primera llamada.
+    idioma: el del informe y los textos de avance (el prompt no cambia)."""
     idea = idea.strip()
     if not idea:
-        raise ValueError("Falta la idea.")
+        raise ErrorUsuario("errores.falta_idea")
     entradas = {"idea": idea, "tomas": n, "duracion": dur, "palabras": palabras_txt, "refs": {}, **(extra or {})}
     ini = cortes(n, dur, beats)
     # despensa: mismas entradas, mismo código y misma semilla → mismo prompt, sin llamar al LLM
@@ -1127,9 +1136,9 @@ def planear(idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, a
     hecho = sorted(glob.glob(os.path.join(CORRIDAS, f"*_{huella}", "prompt_final.txt")))
     if hecho:
         with open(hecho[-1]) as f:
-            return f.read(), f"Reutilizado de disco (mismas entradas y semilla): {os.path.dirname(hecho[-1])}", False
+            return f.read(), i18n.t("nodo.informe.reutilizado", idioma, carpeta=os.path.dirname(hecho[-1])), False
     if not llm_vivo():
-        raise RuntimeError(f"El LLM no responde en {URL} (servicio llama-qwen38: systemctl --user start llama-qwen38).")
+        raise ErrorUsuario("errores.llm_no_responde", url=URL)
     if antes_del_llm:
         antes_del_llm()
     aviso = avance or (lambda paso, total, texto: print(f"[{paso}/{total}] {texto}", flush=True))
@@ -1137,8 +1146,8 @@ def planear(idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, a
     t0 = time.time()
     plan, ih = escribir_historia(entradas, plan_vacio(n), beats, semilla, reg)
     t_historia = time.time() - t0
-    aviso(1, n + 1, f"historia lista ({ih} intento/s, {t_historia:.0f} s)")
-    plan, _ = escribir_tomas(entradas, plan, beats, semilla, reg=reg,
+    aviso(1, n + 1, i18n.t("nodo.progreso.historia", idioma, n=ih, s=round(t_historia)))
+    plan, _ = escribir_tomas(entradas, plan, beats, semilla, reg=reg, idioma=idioma,
                              aviso=lambda k, total, texto: aviso(k + 1, total + 1, texto))
     prompt, avisos, ini = montar_plan(entradas, plan, beats)
     total = time.time() - t0
@@ -1148,14 +1157,16 @@ def planear(idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, a
         json.dump({"entradas": {**entradas, "semilla": semilla, "beats": beats}, "cortes": ini,
                    "plan": plan, "llamadas": reg.llamadas, "problemas": reg.problemas, "segundos": round(total, 1),
                    "huella": huella, "fecha": time.strftime("%Y-%m-%d %H:%M:%S")}, f, ensure_ascii=False, indent=1)
-    revision = "; ".join(f"{x['paso']} intento {x['intento']}: {' / '.join(x['problemas'])}" for x in reg.problemas)
-    refs = len(entradas.get("refs") or {})
-    informe = (f"{n} tomas en {dur:.3f} s · semilla {semilla} · {refs} referencia/s"
-               f"{' · estilo: ' + entradas['estilo'] if entradas.get('estilo') else ' · sin estilo'}\n"
-               f"Cortes: {' · '.join(f'{t:.3f}' for t in ini)}\n"
-               f"{len(reg.llamadas)} llamadas en {total:.0f} s (historia {t_historia:.0f} s, tomas {total - t_historia:.0f} s)\n"
-               f"Revisión: {revision or 'todo pasó a la primera'}\n"
-               f"Carpeta: {reg.carpeta}")
+    t = lambda clave, **d: i18n.t(clave, idioma, **d)
+    revision = "; ".join(t("nodo.informe.revision_item", paso=x["paso"], i=x["intento"], problemas=" / ".join(x["problemas"]))
+                         for x in reg.problemas)
+    estilo = t("nodo.informe.estilo", estilo=entradas["estilo"]) if entradas.get("estilo") else t("nodo.informe.sin_estilo")
+    informe = "\n".join([
+        t("nodo.informe.resumen", n=n, dur=i18n.num(dur, idioma, 3), semilla=semilla, refs=len(entradas.get("refs") or {})) + estilo,
+        t("nodo.informe.cortes", cortes=" · ".join(i18n.num(x, idioma, 3) for x in ini)),
+        t("nodo.informe.llamadas", n=len(reg.llamadas), total=round(total), historia=round(t_historia), tomas=round(total - t_historia)),
+        t("nodo.informe.revision", revision=revision or t("nodo.informe.revision_limpia")),
+        t("nodo.informe.carpeta", carpeta=reg.carpeta)])
     return prompt, informe, True
 
 

@@ -68,6 +68,7 @@ export function instalar(ctx) {
   const { el, W, leerJSON, api, t } = u;
   const papelLargo = (p) => t(`referencias.papel.${PAPELES[p] ? p : "no"}`);
   const apagada = (r) => r.tag || t("comun.apagada");
+  const origen = (o) => { const clave = ORIGENES[o]; return clave ? t(`referencias.origen.${clave}`) : o; };
 
   ctx.claveDe = (tag) => wf.lista.find((r) => r.tag === tag)?.clave;
   ctx.refDe = (tag) => S.refs[ctx.claveDe(tag)] || {};
@@ -575,8 +576,7 @@ export function instalar(ctx) {
             ref.papel !== "no" && r.preview ? el("div", { class: "epl-fila" },
               el("button", { class: "epl-mini", title: t("referencias.ficha.describir.tooltip"),
                 onclick: () => describir(r, ref, pintar) }, t("referencias.ficha.describir")),
-              ref.origen ? el("span", { class: "epl-ayuda" }, t("referencias.ficha.origen", {
-                origen: ORIGENES[ref.origen] ? t(`referencias.origen.${ORIGENES[ref.origen]}`) : ref.origen })) : null) : null,
+              ref.origen ? el("span", { class: "epl-ayuda" }, t("referencias.ficha.origen", { origen: origen(ref.origen) })) : null) : null,
             ref.propuesta ? el("div", { class: "epl-propuesta" }, t("referencias.propuesta", { nombre: ref.propuesta.nombre, ficha: ref.propuesta.ficha }),
               el("div", { class: "epl-fila" },
                 el("button", { class: "epl-mini", onclick: () => {

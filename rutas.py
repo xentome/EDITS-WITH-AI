@@ -1,16 +1,21 @@
 """Lo que hacen las rutas del editor (/edit_prompt_llm/*). __init__.py las registra una vez y recarga este archivo y nucleo.py
-en cada llamada: un cambio en la lógica se prueba sin reiniciar ComfyUI. planos/4 El editor.md."""
+en cada llamada: un cambio en la lógica se prueba sin reiniciar ComfyUI. planos/4 El editor.md.
+Idioma: cada llamada trae `idioma` (es / en). Los errores para el usuario son ErrorUsuario(clave, **datos) y __init__.py los
+traduce; lo que se devuelve para enseñar (huecos, de dónde sale un tapado, avisos) sale ya en ese idioma, y lo que se
+guarda en disco (descripciones de RefMods, .tapado.json) queda en español, con su clave al lado cuando se vuelve a enseñar."""
 import os
 import time
 
-from . import nucleo
+from . import i18n, nucleo
+
+ErrorUsuario = i18n.ErrorUsuario
 
 
 def _ruta_audio(audio):
     import folder_paths
     ruta = folder_paths.get_annotated_filepath(audio)
     if not ruta or not os.path.isfile(ruta):
-        raise FileNotFoundError(f"no encuentro el audio «{audio}» en input/")
+        raise ErrorUsuario("errores.audio_no_esta", audio=audio)
     return ruta
 
 
@@ -27,7 +32,7 @@ def beats(d):
 
 def montar(d):
     b = beats(d)
-    prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], b)
+    prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], b, d.get("idioma"))
     # los beats van a la línea de tiempo: al soltar un borde arrastrado, se pega al más cercano
     return {"prompt": prompt, "avisos": avisos, "cortes": ini, "beats": b or [], "fijos": nucleo.cortes_validos(
         (d["plan"] or {}).get("cortes"), int(d["entradas"]["tomas"]), float(d["entradas"]["duracion"]))}
@@ -144,16 +149,18 @@ def _item_media(rel):
 
 
 def _cola_libre(para):
+    """`para`: la tarea (crear_cajita, crear_subidas, crear_tapada, buscar_sam) → el aviso errores.cola.<para>."""
     cola = _comfy("/api/queue")
     if cola.get("queue_running") or cola.get("queue_pending"):
-        raise RuntimeError(f"ComfyUI está trabajando: espera a que termine la cola para {para}.")
+        raise ErrorUsuario(f"errores.cola.{para}")
 
 
-def _ejecutar(grafo, que, cliente="edit_prompt_llm", max_s=600):
-    """Manda un grafo a ComfyUI por /prompt y espera a que termine. Devuelve sus salidas (history[...]["outputs"])."""
+def _ejecutar(grafo, tarea, cliente="edit_prompt_llm", max_s=600):
+    """Manda un grafo a ComfyUI por /prompt y espera a que termine. Devuelve sus salidas (history[...]["outputs"]).
+    `tarea` (crear_cajita, crear_subidas, crear_tapada, mascaras) elige los avisos errores.no_se_pudo.* y errores.tarda.*."""
     r = _comfy("/prompt", {"prompt": grafo, "client_id": cliente})
     if r.get("node_errors"):
-        raise RuntimeError(f"ComfyUI no aceptó el grafo: {r['node_errors']}")
+        raise ErrorUsuario("errores.grafo", errores=str(r["node_errors"]))
     pid = r["prompt_id"]
     for _ in range(max_s * 4):
         time.sleep(0.25)
@@ -161,12 +168,13 @@ def _ejecutar(grafo, que, cliente="edit_prompt_llm", max_s=600):
         if h and h.get("status", {}).get("completed") is not None:
             if h["status"].get("status_str") != "success":
                 msgs = [m for m in h["status"].get("messages", []) if m[0] == "execution_error"]
-                raise RuntimeError(f"No se pudo {que}: " + (msgs[0][1].get("exception_message", "") if msgs else "error"))
+                raise ErrorUsuario(f"errores.no_se_pudo.{tarea}",
+                                   detalle=(msgs[0][1].get("exception_message", "") if msgs else "") or "—")
             return h.get("outputs", {})
-    raise RuntimeError(f"Tarda demasiado ({max_s // 60} min) en {que}; mira la consola de ComfyUI.")
+    raise ErrorUsuario(f"errores.tarda.{tarea}", min=max_s // 60)
 
 
-def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", apariencia="", que="RefMod",
+def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", apariencia="", tarea="crear_subidas",
                   cliente="edit_prompt_llm_RefMod"):
     """RefMod con las fotos `items` (nodo MiniMaxH3FantasticRefModCreate: Full Reference, 512, VAE de H3), por /prompt.
     `cliente` es el client_id de ComfyUI: va aparte de los textos, que cambian con el idioma."""
@@ -179,7 +187,7 @@ def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", a
             "concept_type": concepto, "description": descripcion, "write_preview": True,
             "source": json.dumps(items, ensure_ascii=False), "subject_name": sujeto, "appearance": apariencia,
             "vae": ["1", 0]}}}
-    _ejecutar(grafo, f"crear la {que}", cliente)
+    _ejecutar(grafo, tarea, cliente)
 
 
 def medios(d=None):
@@ -227,7 +235,7 @@ def _foto_de_refmod(nombre, raiz):
             return [x["file"][:-len(" [input]")]]
     previa = next((os.path.join(raiz, nombre + e) for e in (".png", ".jpg", ".webp") if os.path.isfile(os.path.join(raiz, nombre + e))), None)
     if not previa:
-        raise ValueError(f"{nombre}: no encuentro su foto original ni su vista previa")
+        raise ErrorUsuario("errores.sin_foto", nombre=nombre)
     rel = f"minimax_h3/cajitas/{tronco}{os.path.splitext(previa)[1]}"
     destino = os.path.join(folder_paths.get_input_directory(), rel)
     os.makedirs(os.path.dirname(destino), exist_ok=True)
@@ -245,11 +253,11 @@ def crear_cajita(d):
     nombre = re.sub(r"[^A-Za-z0-9._-]+", "_", (d.get("nombre") or "").strip()).strip("._")
     carpeta = re.sub(r"[^A-Za-z0-9._/-]+", "_", (d.get("carpeta") or "cajitas").strip()).strip("/.")
     if not nombre:
-        raise ValueError("Ponle un nombre a la cajita.")
+        raise ErrorUsuario("errores.cajita_sin_nombre")
     raiz = _raiz_refmods()
     destino = f"{carpeta}/{nombre}" if carpeta else nombre
     if os.path.exists(os.path.join(raiz, destino + ".safetensors")):
-        raise ValueError(f"Ya existe un RefMod «{destino}»: elige otro nombre.")
+        raise ErrorUsuario("errores.refmod_existe", nombre=destino)
     rels = []
     for f in d.get("fotos") or []:
         if f.get("refmod"):
@@ -258,15 +266,19 @@ def crear_cajita(d):
             rels.append(f["file"].removesuffix(" [input]"))
     rels = list(dict.fromkeys(rels))
     if len(rels) < 2:
-        raise ValueError("Una cajita necesita al menos 2 fotos.")
+        raise ErrorUsuario("errores.cajita_pocas_fotos")
     items = [_item_media(r) for r in rels]
-    _cola_libre("crear la cajita")
+    _cola_libre("crear_cajita")
     _crear_refmod(nombre, carpeta, items, d.get("concepto") or "identity", d.get("descripcion") or "",
-                  d.get("sujeto") or "", d.get("apariencia") or "", "cajita", "edit_prompt_llm_cajita")
+                  d.get("sujeto") or "", d.get("apariencia") or "", "crear_cajita", "edit_prompt_llm_cajita")
     with open(os.path.join(raiz, destino + ".cajita.json"), "w") as fh:
         json.dump({"fotos": items, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}, fh, ensure_ascii=False, indent=1)
     return {"name": destino, "fotos": items, "segundos": round(time.time() - t0, 1)}
 
+
+# la descripción que se guarda en el RefMod (un dato en disco, en un solo idioma)
+_DESC_SUBIDA = "Subida desde el editor del edit ({papel})"
+_DESC_TAPADO = "tapado con SAM 3.1: {palabras} ({forma})"
 
 # papel de la mitad → concept_type del RefMod (lo que Fantastic sabe hacer con él)
 CONCEPTO_PAPEL = {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background",
@@ -295,20 +307,20 @@ def subir_refmods(d):
     base = re.sub(r"[^A-Za-z0-9._-]+", "_", (d.get("nombre") or "").strip()).strip("._")
     carpeta = re.sub(r"[^A-Za-z0-9._/-]+", "_", (d.get("carpeta") or "subidas").strip()).strip("/.")
     if not base:
-        raise ValueError("Ponle un nombre corto (ej.: teto, chaqueta_roja).")
+        raise ErrorUsuario("errores.subir_sin_nombre")
     rels = list(dict.fromkeys(f.removesuffix(" [input]") for f in d.get("fotos") or [] if f))
     if not rels:
-        raise ValueError("No hay fotos que subir.")
+        raise ErrorUsuario("errores.subir_sin_fotos")
     concepto = CONCEPTO_PAPEL.get(d.get("papel"), "generic")
     raiz = _raiz_refmods()
     grupos = [rels] if d.get("juntar") or len(rels) == 1 else [[r] for r in rels]
-    _cola_libre("crear las referencias")
+    _cola_libre("crear_subidas")
     creados = []
     for i, fotos in enumerate(grupos, 1):
         destino = _libre(raiz, f"{carpeta}/{base}" + ("" if len(grupos) == 1 else f"_{i}"))
         items = [_item_media(r) for r in fotos]
         _crear_refmod(os.path.basename(destino), os.path.dirname(destino), items, concepto,
-                      f"Subida desde el editor del edit ({d.get('papel') or 'sin papel'})", "", "", "referencia subida",
+                      _DESC_SUBIDA.format(papel=d.get("papel") or "-"), "", "", "crear_subidas",
                       "edit_prompt_llm_referencia")
         if len(items) > 1:       # una cajita apunta sus fotos, como las de «+ Cajita»
             with open(os.path.join(raiz, destino + ".cajita.json"), "w") as fh:
@@ -361,7 +373,8 @@ def tapados(d=None):
 
 
 def _fuentes_tapar(original, raiz, n_fotos=1):
-    """Las fotos (en input/) de las que se hace el tapado de un RefMod, de dónde salen y un aviso si hay que usar su vista
+    """Las fotos (en input/) de las que se hace el tapado de un RefMod, de dónde salen ((clave, datos)) y un aviso ((clave,
+    datos) o None) si hay que usar su vista
     previa (512 px de alto). Orden: las fotos de su .cajita.json; la foto de input/minimax_h3 con el mismo nombre y la misma
     proporción que la vista previa; la vista previa .png junto al .safetensors (copiada a input/minimax_h3/tapado/fuentes/)."""
     import os
@@ -370,10 +383,9 @@ def _fuentes_tapar(original, raiz, n_fotos=1):
     from PIL import Image
     ya = cajitas()["cajitas"].get(original)
     if ya:
-        return [x["file"][:-len(" [input]")] for x in ya], "las fotos de su .cajita.json", ""
+        return [x["file"][:-len(" [input]")] for x in ya], ("tapar.origen.cajita", {}), None
     if n_fotos > 1:
-        raise ValueError(f"{original} es una cajita de {n_fotos} fotos sin sus fotos apuntadas: no puedo taparla entera. "
-                         "Vuelve a crearla con «Cambiar fotos» y después tápala.")
+        raise ErrorUsuario("errores.tapar.cajita_sin_fotos", original=original, n=n_fotos)
     previa = next((os.path.join(raiz, original + e) for e in (".png", ".jpg", ".webp")
                    if os.path.isfile(os.path.join(raiz, original + e))), None)
     pw = ph = None
@@ -388,16 +400,14 @@ def _fuentes_tapar(original, raiz, n_fotos=1):
         with Image.open(os.path.join(entrada, rel)) as im:
             w, h = im.size
         if not previa or abs(w / h - pw / ph) < 0.02:
-            return [rel], f"su foto original {rel} ({w}×{h}, mismo nombre que el RefMod)", ""
+            return [rel], ("tapar.origen.foto", {"ruta": rel, "w": w, "h": h}), None
     if not previa:
-        raise ValueError(f"{original}: no encuentro su foto original ni su vista previa")
+        raise ErrorUsuario("errores.sin_foto", nombre=original)
     rel = f"minimax_h3/tapado/fuentes/{original.replace('/', '__')}{os.path.splitext(previa)[1]}"
     destino = os.path.join(entrada, rel)
     os.makedirs(os.path.dirname(destino), exist_ok=True)
     shutil.copyfile(previa, destino)
-    return [rel], f"su vista previa ({pw}×{ph})", (
-        f"Uso la vista previa del RefMod ({pw}×{ph}, menos resolución que una foto): no encontré su foto original en "
-        f"input/minimax_h3. Si la tienes, ponla allí como «{tronco}.jpg» y vuelve a encender «tapar».")
+    return [rel], ("tapar.origen.previa", {"w": pw, "h": ph}), ("tapar.aviso.previa", {"w": pw, "h": ph, "tronco": tronco})
 
 
 def _preparar_tapado(d):
@@ -411,9 +421,12 @@ def _preparar_tapado(d):
         original = info["original"]
     palabras = nucleo.palabras_tapar(d.get("cosas"), d.get("libre"))
     if not palabras:
-        raise ValueError("Elige qué tapar: cara, pelo, texto, o escribe otra cosa en inglés (hat, logo…).")
+        raise ErrorUsuario("errores.tapar.elige")
     forma = d.get("forma") if d.get("forma") in nucleo.FORMAS_TAPAR else "difuminar"
     rels, origen, aviso = _fuentes_tapar(original, raiz, int(d.get("n_fotos") or 1))
+    # para enseñar: en el idioma de la ventana; para guardar en .tapado.json: en español, con su clave (el editor la traduce)
+    texto = lambda x, idioma: i18n.t(x[0], idioma, **x[1]) if x else ""
+    a_mano = lambda x: {"clave": x[0], "datos": x[1]} if x else None
     entrada = folder_paths.get_input_directory()
     datos = {}
     for r in rels:
@@ -421,7 +434,10 @@ def _preparar_tapado(d):
             datos[r] = fh.read()
     nombre = nucleo.nombre_tapado(original, nucleo.huella_tapado(original, [datos[r] for r in rels], palabras, forma))
     return {"raiz": raiz, "original": original, "palabras": palabras, "forma": forma, "rels": rels, "datos": datos,
-            "origen": origen, "aviso": aviso, "nombre": nombre, "existe": os.path.isfile(os.path.join(raiz, nombre + ".safetensors"))}
+            "origen": texto(origen, d.get("idioma")), "aviso": texto(aviso, d.get("idioma")),
+            "origen_i18n": a_mano(origen), "aviso_i18n": a_mano(aviso),
+            "origen_es": texto(origen, "es"), "aviso_es": texto(aviso, "es"),
+            "nombre": nombre, "existe": os.path.isfile(os.path.join(raiz, nombre + ".safetensors"))}
 
 
 def _mascaras(p):
@@ -432,10 +448,10 @@ def _mascaras(p):
     faltan = [(r, w) for r in p["rels"] for w in p["palabras"] if not os.path.isfile(nucleo.ruta_mascara(p["datos"][r], w))]
     t = time.time()
     if faltan:
-        _cola_libre("buscar con SAM")
+        _cola_libre("buscar_sam")
         _vram_libre()
         grafo, salidas = nucleo.grafo_sam(faltan)
-        out = _ejecutar(grafo, "hacer las máscaras con SAM 3.1", "edit_prompt_llm_sam", max_s=300)
+        out = _ejecutar(grafo, "mascaras", "edit_prompt_llm_sam", max_s=300)
         os.makedirs(nucleo.CACHE_TAPAR, exist_ok=True)
         for (r, w), nodo in salidas.items():
             im = out[nodo]["images"][0]
@@ -472,7 +488,8 @@ def tapar_previa(d):
     lo dice («existe») y enseña sus fotos, sin SAM."""
     t0 = time.time()
     p = _preparar_tapado(d)
-    base = {"nombre": p["nombre"], "original": p["original"], "palabras": p["palabras"], "origen": p["origen"], "aviso": p["aviso"]}
+    base = {"nombre": p["nombre"], "original": p["original"], "palabras": p["palabras"], "origen": p["origen"], "aviso": p["aviso"],
+            "origen_i18n": p["origen_i18n"], "aviso_i18n": p["aviso_i18n"]}
     if p["existe"]:
         info = _info_tapado(p["nombre"], p["raiz"]) or {}
         return {**base, "existe": True, "imagenes": info.get("imagenes", []), "encontrado": info.get("encontrado", {}),
@@ -491,19 +508,21 @@ def tapar(d):
     p = _preparar_tapado(d)
     if p["existe"]:
         return {"name": p["nombre"], "original": p["original"], "reutilizado": True, "segundos": round(time.time() - t0, 2),
-                "aviso": p["aviso"], "encontrado": (_info_tapado(p["nombre"], p["raiz"]) or {}).get("encontrado", {})}
+                "aviso": p["aviso"], "aviso_i18n": p["aviso_i18n"],
+                "encontrado": (_info_tapado(p["nombre"], p["raiz"]) or {}).get("encontrado", {})}
     imagenes, encontrado, n_sam, s_sam = _imagenes_tapadas(p)
     if p["palabras"] and all(encontrado.get(w, 0) == 0 for w in p["palabras"]):
-        raise ValueError("SAM no encontró nada de lo que pediste tapar (" + ", ".join(p["palabras"]) + "): no creo el tapado.")
+        raise ErrorUsuario("errores.tapar.nada", palabras=p["palabras"])
     items = [_item_media(r) for r in imagenes]
-    _cola_libre("crear la referencia tapada")
+    _cola_libre("crear_tapada")
     t1 = time.time()
     carpeta, tronco = os.path.dirname(p["nombre"]), os.path.basename(p["nombre"])
-    desc = " · ".join(x for x in (d.get("descripcion") or "", f"tapado con SAM 3.1: {', '.join(p['palabras'])} ({p['forma']})") if x)
+    desc = " · ".join(x for x in (d.get("descripcion") or "", _DESC_TAPADO.format(palabras=", ".join(p["palabras"]), forma=p["forma"])) if x)
     _crear_refmod(tronco, carpeta, items, d.get("concepto") or "clothing", desc, "", d.get("apariencia") or "",
-                  "referencia tapada", "edit_prompt_llm_referencia")
+                  "crear_tapada", "edit_prompt_llm_referencia")
     info = {"original": p["original"], "cosas": d.get("cosas") or [], "libre": d.get("libre") or "", "palabras": p["palabras"],
-            "forma": p["forma"], "fuentes": p["rels"], "origen": p["origen"], "aviso": p["aviso"], "imagenes": imagenes,
+            "forma": p["forma"], "fuentes": p["rels"], "origen": p["origen_es"], "aviso": p["aviso_es"],
+            "origen_i18n": p["origen_i18n"], "aviso_i18n": p["aviso_i18n"], "imagenes": imagenes,
             "encontrado": encontrado, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}
     base = os.path.join(p["raiz"], p["nombre"])
     with open(base + ".tapado.json", "w") as fh:
@@ -513,7 +532,7 @@ def tapar(d):
             json.dump({"fotos": items, "creada": info["creada"]}, fh, ensure_ascii=False, indent=1)
     return {"name": p["nombre"], "original": p["original"], "reutilizado": False, "encontrado": encontrado, "sam": n_sam,
             "segundos_sam": s_sam, "segundos_refmod": round(time.time() - t1, 1), "segundos": round(time.time() - t0, 1),
-            "aviso": p["aviso"], "imagenes": imagenes}
+            "aviso": p["aviso"], "aviso_i18n": p["aviso_i18n"], "imagenes": imagenes}
 
 
 # acción → (función, usa el LLM). Una acción nueva se añade aquí: no hace falta reiniciar ComfyUI.

@@ -452,8 +452,7 @@ EXCEPCIONES = {
     ("referencias.js", "RefMod"),           # de dónde salió una ficha: un dato del estado (se enseña con referencias.origen.*)
 }
 # piezas que aún no pasaron a t(): se vacía al terminar las fases 2 (ventana) y 3 (servidor y nodo)
-PENDIENTES = {
-              "__init__.py", "rutas.py", "nucleo.py"}
+PENDIENTES = set()  # (vacía: todo pasa por t())
 letreros = []
 for ruta, pats in [(r, JS_LETRERO) for r in CODIGO_JS] + [(r, PY_LETRERO) for r in CODIGO_PY]:
     nombre = os.path.basename(ruta)
