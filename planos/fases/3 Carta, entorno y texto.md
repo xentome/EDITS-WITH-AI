@@ -11,8 +11,8 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 | 1 | La carta mejor ordenada: cada efecto definido arriba y retenido aparte; en cada toma, el efecto justo después del encuadre | ✅ hecha · `f9a3777` |
 | 2 | Selector de entorno por toma (auto / manual / sin entorno) y arreglos pequeños (papel al añadir, más encuadres, sin `.capitalize()`) | ✅ hecha · `0566821` |
 | 3 | La fila de texto en la línea de tiempo (sustituye a «Palabras» y «Estilo de las palabras») | ✅ hecha · `9be57ed` |
-| 4 | El renglón «Sonido» en la historia general | ✅ hecha · (ver git log) |
-| 5 | Prueba de verdad: render de Ren y de Teto, hoja de comparación, capturas en los dos idiomas y planos al día | ⬜ |
+| 4 | El renglón «Sonido» en la historia general | ✅ hecha · `358a0ea` |
+| 5 | Prueba de verdad: render de Ren y de Teto, hoja de comparación, capturas en los dos idiomas y planos al día | ✅ hecha · `be27ae5` y el siguiente |
 
 ## A medias
 
@@ -20,6 +20,12 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 - Fase 2 hecha: campo `entorno` en cada toma (`auto`, `manual`, `ninguno`; `nucleo.con_entorno` y `conEntorno` en `plan.js` pasan los estados viejos). Con «Sin entorno» la carta no escribe lugar, lugar fijo ni fondo; la luz solo si la fijó el usuario; al LLM no se le pide PLACE ni LIGHT y la revisión no los exige. Encuadres nuevos (7, `nucleo.ENCUADRES` = `plan.js ENCUADRES`), letreros en `toma.encuadre_op.<i>`. La biblioteca tiene un menú «Papel» (por defecto, el que ya tenía la referencia o el de su concepto). Sin `.capitalize()`: solo la primera letra. La referencia de Teto no cambió. Sección 8c de `pruebas.py`.
 - Fase 3 hecha: `web/editor/textos.js` (fila de texto, tarjetita), `plan.textos` = `[{id, texto, t, fin, sitio, letra, frase}]`, papel nuevo «letra» (mitad azul, concept_type style). En el núcleo, `textos_de` (convierte «TO YOU @1» la primera vez: 0,15 s tras el corte, al lado, el estilo viejo como frase) y `frase_texto`. Ya no se anuncian las palabras: al final de `detailed_description` va «No other text appears on screen.» (sin palabras, «No text on screen.» como antes). La referencia de Teto cambió solo en eso (2 líneas). La fila 13 del plano 5 (revisión del LLM: sin comillas ni «text/words/letters») no cambia. Probado en el navegador con «Réplica Ren»: conversión de RISE/FLARE, arrastre al beat de 2,016 s, tarjetita, «encima» y la letra `tipo_shine_solo_texto` desde la biblioteca (entra como `<Picture 5>`, papel letra, fuerza 0,5). Ojo: esa prueba dejó la tarjeta SHINE en el Stack del workflow abierto (sin guardar).
 - Fase 4 hecha: campo «Sonido» debajo de «Estilo» (`S.sonido`, en el estado y en `entradas`); vacío, `nucleo.SONIDO` (el texto de antes). Sección 8d de `pruebas.py`.
+
+## Terminado (25 oct)
+
+- Fase 5: Ren en «Réplica Ren vertical 480p 5s» (680 s) y Teto en «Prueba Teto carta nueva» (450 s; su SaveVideo guarda en `output/edit_prompt_llm/carta_nueva/`). Todo en `~/Escritorio/experimentos_edit/edit_prompt_llm/carta_nueva/` (`INFORME.md`, videos, hojas, `prompt_ren.txt`, `capturas/`).
+- Ren: 5 mundos de 5 (el líquido, poco), RISE y FLARE encima de la cara. Igual que en el original, la palabra entra con el corte y no en su beat, FLARE sale con la letra de SHINE y se copia «WRAPSTARZ» al final. Teto: igual de bien que el render final, con «TO YOU» al lado.
+- Pendientes en el plano 7. No hizo falta reiniciar ComfyUI: no cambiaron `web/editor.js`, `locales/` ni `__init__.py`.
 
 ## Cómo seguir
 

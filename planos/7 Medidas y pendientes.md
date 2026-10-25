@@ -47,7 +47,16 @@ Lectura: 2 min
 | Render final (25 oct; 480p, 3,042 s, 3 tomas, Blue Fairy desde 1:30.500 elegida con «Cambiar canción», toma 2 alargada a mano de 1,21 a 1,60 s, pegada al beat de 2,519 s) | 390 s; audio = la canción desde 90,5 s (correlación 0,995); la toma 2 dura lo que se pidió (7 de 12 muestras de la hoja). H3 cortó en los fotogramas 18 y 57 (planeados 22 y 60): 3–4 antes. El chicle de la toma 1 se cuela en la toma 2. `mejoras_sin_recetas/14_*.mp4` y `15_hoja_fotogramas_final.jpg` |
 | Tapar: «text» con SAM 3.1 | encuentra letras grandes y logos (SHINE 30 %, BEABADOOBEE 6,5 %, WRAPSTARZ 8 %, el usuario de un post); no las líneas de letra pequeña |
 
+| Carta nueva, Ren («Réplica Ren vertical 480p 5s»: 5 tomas sin entorno, 6 efectos definidos arriba, RISE y FLARE encima con su letra a 0,5, sonido con whooshes; 480×864, 5,167 s) | 680 s. Salen los 5 mundos (el líquido, poco); antes 3 de 5. RISE entra con el corte (1,58 s; plan 2,016) y FLARE a 3,83 s (plan 4,013), como en el original. FLARE sale con la letra de SHINE y en los últimos 0,5 s se copia «WRAPSTARZ». Cortes a 0,79 · 1,50 · 2,42 s (plan 0,832 · 1,621 · 2,829). `carta_nueva/hoja_ren.png` |
+| Carta nueva, Teto (el plan de «Prueba final» + «TO YOU» al lado en 0,104 s; 480×864, 3,042 s) | 450 s; igual de bien que el render final. «TO YOU» debajo de la cara sin taparla (0,1–0,85 s); el chicle ya no pasa a la toma 2; cortes en los fotogramas 21 y 60 (plan 22 y 60). `carta_nueva/hoja_teto.png` |
+| `pruebas.py` | 89 comprobaciones (25 oct: carta, entorno, fila de texto, sonido) |
+
 ## Pendientes
+
+- ❓ **Letra de una palabra que copia su texto:** `tipo_wrapstarz` a fuerza 0,5 copió «WRAPSTARZ» al final del video de Ren (también en el original). Probar fuerza 0,3, tapar su texto o usar solo la frase.
+- ❓ **La palabra entra con el corte, no en su beat** (Ren, carta nueva y original): probar una toma que empiece en el beat de la palabra.
+- ❓ **Dos letras en un edit se mezclan:** FLARE salió con la letra de SHINE.
+- ❓ **Una toma corta entre dos efectos fuertes casi desaparece** (el líquido de Ren).
 
 - 💡 **Objeto que no cambia:** frases escritas y revisadas por `pruebas.py`, sin ningún render todavía.
 - ❓ **Lugar que no cambia:** un solo render. Salió el lugar, pero la hora del cielo cambió: atardecer con estrellas en la toma 1 y cielo de día por la ventanilla en la toma 2. Falta ver si una toma más abierta lo mantiene entero.
