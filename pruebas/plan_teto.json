@@ -1,11 +1,101 @@
 {
- "receta": "Teto city pop",
  "entradas": {
   "idea": "Teto normal y realista, sin dramatismo, en los lugares más bellos de una ciudad city pop, luz cálida y neones",
   "tomas": 6,
   "duracion": 5.167,
   "palabras": "TO YOU @1",
-  "refs": null
+  "refs": {
+   "<Picture 1>": {
+    "papel": "personaje",
+    "nombre": "Teto",
+    "pronombre": "she",
+    "atuendo": "school uniform",
+    "ficha": "white short-sleeve school shirt, navy plaid skirt, school bag"
+   },
+   "<Picture 2>": {
+    "papel": "personaje",
+    "nombre": "Teto",
+    "pronombre": "she",
+    "atuendo": "black leather jacket and round glasses",
+    "ficha": "black leather jacket over a dark red ribbed sweater, beige trench coat, round glasses"
+   },
+   "<Picture 3>": {
+    "papel": "personaje",
+    "nombre": "Teto",
+    "pronombre": "she",
+    "atuendo": "white open-collar shirt",
+    "ficha": "plain white shirt with an open collar"
+   },
+   "<Picture 4>": {
+    "papel": "personaje",
+    "nombre": "Teto",
+    "pronombre": "she",
+    "atuendo": "white open-collar shirt",
+    "ficha": "plain white shirt with an open collar, sunset light"
+   },
+   "<Picture 5>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl waving with one arm raised high, caught mid-step on a night crosswalk"
+   },
+   "<Picture 6>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl standing on a night train platform with her hands in her pockets, blowing a small pink bubble-gum bubble"
+   },
+   "<Picture 7>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl in profile, looking down at the phone she holds at chest height"
+   },
+   "<Picture 8>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl sitting on a railing, leaning toward the camera, with a lollipop in her mouth"
+   },
+   "<Picture 9>": {
+    "papel": "pose",
+    "nombre": "",
+    "ficha": "a girl with one hand on her chest and the other arm open, calmly enjoying the rain"
+   },
+   "E1": {
+    "papel": "efecto",
+    "nombre": "garabatos y pegatinas",
+    "ficha": "hand-drawn white and colored doodles drawn around <Subject 1>: little stars, hearts, swirls and sparkle marks"
+   },
+   "E2": {
+    "papel": "efecto",
+    "nombre": "marco de editor",
+    "ficha": "the image turns black and white except <Subject 1>'s face, which stays in full color inside a tilted rectangular selection box with small blue corner handles, like a photo-editing app"
+   },
+   "E3": {
+    "papel": "efecto",
+    "nombre": "recorte de pegatina con papel rasgado",
+    "ficha": "<Subject 1> appears cut out with a thick rough white sticker edge, in front of a huge torn paper shape in a bold color, with a few dry-brush strokes"
+   },
+   "E4": {
+    "papel": "efecto",
+    "nombre": "foto instantánea",
+    "ficha": "the image turns into a film snapshot with a white instant-photo border and slight chromatic aberration"
+   },
+   "E5": {
+    "papel": "efecto",
+    "nombre": "luz de móvil y círculos de luz de la ciudad",
+    "ficha": "her face lit only by the cold blue glow of a phone screen, the night city melting into huge flat painted golden and cyan light circles around her"
+   },
+   "E6": {
+    "papel": "efecto",
+    "nombre": "estrellas y nieve",
+    "ficha": "little colorful star sparkles in pink, blue, yellow and green and snowflakes floating right in front of her face, flash-photo look"
+   },
+   "E7": {
+    "papel": "efecto",
+    "nombre": "lluvia",
+    "ficha": "rain streaks crossing in front of her face under a gray-violet stormy light"
+   }
+  },
+  "estilo": "Flat 2D anime illustration, Japanese city pop, flat painted backgrounds",
+  "estilo_palabras": "in a bold retro sans-serif font with a magenta neon outline and an amber fill"
  },
  "beats": [
   0.755,
@@ -29,7 +119,7 @@
     "personaje": "<Picture 1>",
     "pose": "<Picture 5>",
     "fondo_ref": "",
-    "efecto": "G1",
+    "efecto": "E1",
     "encuadre": "close-up",
     "luz": "warm neon glow from the side",
     "gesto": "raises one arm high and waves while caught mid-step",
@@ -42,7 +132,7 @@
     "personaje": "<Picture 2>",
     "pose": "<Picture 6>",
     "fondo_ref": "",
-    "efecto": "G4",
+    "efecto": "E4",
     "encuadre": "medium close-up",
     "luz": "cool fluorescent light from above casting a flat glow",
     "gesto": "blows a small pink bubble-gum bubble",
@@ -55,7 +145,7 @@
     "personaje": "<Picture 3>",
     "pose": "<Picture 7>",
     "fondo_ref": "",
-    "efecto": "U3",
+    "efecto": "E5",
     "encuadre": "extreme close-up",
     "luz": "cold blue glow from the phone screen illuminating her face from below",
     "gesto": "lowers her gaze at the phone held at chest height",
@@ -68,7 +158,7 @@
     "personaje": "<Picture 1>",
     "pose": "<Picture 9>",
     "fondo_ref": "",
-    "efecto": "U5",
+    "efecto": "E7",
     "encuadre": "close-up",
     "luz": "diffused gray-violet stormy light from above",
     "gesto": "rests one hand on her chest and extends the other arm outward",
@@ -81,7 +171,7 @@
     "personaje": "<Picture 4>",
     "pose": "<Picture 8>",
     "fondo_ref": "",
-    "efecto": "G2",
+    "efecto": "E2",
     "encuadre": "medium close-up",
     "luz": "soft warm glow from the river reflection illuminating her from the side",
     "gesto": "leans toward the camera with a lollipop in her mouth",
@@ -94,7 +184,7 @@
     "personaje": "<Picture 2>",
     "pose": "",
     "fondo_ref": "",
-    "efecto": "U4",
+    "efecto": "E6",
     "encuadre": "close-up",
     "luz": "city lights glowing from below",
     "gesto": "stands still facing the city lights",

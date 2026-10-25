@@ -9,9 +9,9 @@ Lectura: 2 min
 1. **Cambia** el archivo que toque (plano 2, «Dónde cambiar cada cosa»).
 2. **Comprueba en segundos:**
    `~/ComfyUI-CLI/.venv/bin/python ~/comfy/ComfyUI/custom_nodes/edit_prompt_llm/pruebas.py`
-   Si sale TODO BIEN, sigue (39 comprobaciones; las 9 de audio usan audios sintéticos en una carpeta temporal y ffmpeg, y las 6 de tapar, máscaras sintéticas, sin GPU). Si cambiaste el montaje **a propósito**, revisa la diferencia y fija la nueva referencia con `pruebas.py --nueva-referencia`.
+   Si sale TODO BIEN, sigue (52 comprobaciones; las 9 de audio usan audios sintéticos en una carpeta temporal y ffmpeg, y las 6 de tapar, máscaras sintéticas, sin GPU). Si cambiaste el montaje **a propósito**, revisa la diferencia y fija la nueva referencia con `pruebas.py --nueva-referencia`.
 3. **Si cambiaste lo que se le pide al LLM:** prueba en la terminal (unos 2 min) y mira la carpeta de la corrida, con cada prompt y su respuesta:
-   `~/ComfyUI-CLI/.venv/bin/python nucleo.py --receta "Teto city pop" --idea "…" --tomas 6 --palabras "TO YOU @1" --audio ~/comfy/ComfyUI/input/stay_0_5s.wav`
+   `~/ComfyUI-CLI/.venv/bin/python nucleo.py --idea "…" --tomas 6 --palabras "TO YOU @1" --estilo "flat 2D anime illustration" --audio ~/comfy/ComfyUI/input/stay_0_5s.wav`
    Antes, libera la GPU de ComfyUI (`/free`), porque desde la terminal no se libera sola.
 4. **Si cambió el prompt final:** haz un render de prueba a 480p (unos 9 min) antes de darlo por bueno.
 5. **Anota** en el plano 7 lo que mediste y, si apareció un fallo nuevo, su regla en el plano 5.
@@ -20,7 +20,7 @@ Lectura: 2 min
 
 | Cambié… | Qué hacer |
 |---|---|
-| `nucleo.py`, `rutas.py` o `recetas.json`, incluida una acción nueva en `rutas.ACCIONES` | nada: el editor los recarga en cada llamada (el nodo, al ejecutarse, usa la versión que cargó el editor la última vez, o la del arranque) |
+| `nucleo.py` o `rutas.py`, incluida una acción nueva en `rutas.ACCIONES` | nada: el editor los recarga en cada llamada (el nodo, al ejecutarse, usa la versión que cargó el editor la última vez, o la del arranque) |
 | `web/editor_core.js` o `web/editor/*.js` | nada: se recargan al abrir la ventana |
 | un archivo nuevo en `web/editor/` | nada, si lo cargas desde `editor_core.js` (función `pieza`); solo debe exportar funciones |
 | `web/editor.js` | recargar la pestaña de ComfyUI |
@@ -30,7 +30,7 @@ Antes de reiniciar, mira que la cola esté vacía y que Krita no esté usando Co
 
 ## La despensa
 
-El nodo, sin editor, guarda cada prompt en disco. Si coinciden las entradas, la receta, la semilla y el propio `nucleo.py`, lo reutiliza sin llamar al LLM. Si cambias `nucleo.py`, se invalida sola. Para obtener otra versión, cambia la semilla.
+El nodo, sin editor, guarda cada prompt en disco. Si coinciden las entradas (también referencias y estilo del estado), la semilla y el propio `nucleo.py`, lo reutiliza sin llamar al LLM. Si cambias `nucleo.py`, se invalida sola. Para obtener otra versión, cambia la semilla.
 
 ## Git
 

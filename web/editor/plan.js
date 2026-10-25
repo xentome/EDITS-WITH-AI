@@ -1,7 +1,8 @@
 /* Secciones 1 y 2 del editor: el PLAN (lo que lee y extiende el LLM).
- * 1 · Historia general: idea, arco, luz y ambiente, fondo general y los campos del nodo (receta, tomas, duración…).
- * 2 · Prompt de la toma elegida en la línea de tiempo: su línea [Shot n] y todos sus campos, con candado, la frase del
- *     efecto (↺ vuelve a la de la receta), las referencias que usa y «rehacer esta toma».
+ * 1 · Historia general: idea, estilo, arco, luz y ambiente, fondo general y los campos del nodo (tomas, duración…).
+ * 2 · Prompt de la toma elegida en la línea de tiempo: su línea [Shot n] y todos sus campos, con candado, el efecto (de
+ *     las referencias de papel efecto o de los efectos de texto) y su frase (↺ vuelve a la ficha del efecto), las
+ *     referencias que usa y «rehacer esta toma».
  * También los botones que llaman al LLM (ctx.conLLM). Solo exporta funciones (ComfyUI importa todos los .js de web/).
  * Las utilidades llegan en ctx.u, sin imports, para que este archivo también se recargue al abrir la ventana.
  * Planos: ../../planos/4 El editor.md. */
@@ -22,7 +23,7 @@ export function ajustarPlan(plan, n) {
 }
 
 /* Añade a ctx: conLLM, pintarHistoria, pintarToma, pintarLineaToma, pintarPlan. Usa de ctx: u, S, wf, caja, secHistoria,
- * secToma, recetas, avisar, cuerpo, pedirMontaje, pintarRefs, pintarLinea, quitarToma, elegir, resaltar. */
+ * secToma, avisar, cuerpo, pedirMontaje, pintarRefs, pintarLinea, quitarToma, elegir, resaltar. */
 export function instalar(ctx) {
   const { u, S, wf, caja, secHistoria, secToma } = ctx;
   const { el, api } = u;
@@ -74,36 +75,51 @@ export function instalar(ctx) {
       opciones.map(([v, t]) => el("option", { value: v, selected: (obj[campo] || "") === v }, t)));
     return el("label", { class: "epl-campo" }, el("span", {}, etiqueta), sel, candado(lista, campo, () => ctx.pintarToma()));
   }
-  // referencias de un papel para un menú de la toma; las de personaje solo si tienen nombre (son atuendos)
+  // referencias de un papel para un menú de la toma; las de personaje solo si tienen atuendo. Los efectos son las
+  // referencias de papel efecto y los efectos de texto (E1, E2…)
   function opcionesDe(papel, vacio) {
-    const ops = wf.lista.filter((r) => S.refs[r.clave]?.papel === papel && (papel !== "personaje" || (S.refs[r.clave].nombre || "").trim()))
-      .map((r) => [r.tag, `${r.tag} ${S.refs[r.clave].nombre || r.nombre}`]);
+    const ops = wf.lista.filter((r) => S.refs[r.clave]?.papel === papel && (papel !== "personaje" || (S.refs[r.clave].atuendo || "").trim()))
+      .map((r) => [r.tag, `${r.tag} ${(papel === "personaje" ? S.refs[r.clave].atuendo : S.refs[r.clave].nombre) || r.nombre}`]);
+    if (papel === "efecto") ops.push(...Object.entries(S.efectos).map(([k, e]) => [k, `${k} ${e.nombre || "efecto de texto"}`]));
     return ops.length ? [["", vacio], ...ops] : null;
   }
+  // la ficha del efecto elegido (referencia o efecto de texto): es la frase que va al prompt
+  ctx.fichaEfecto = (id) => !id ? "" : /^E\d+$/.test(id) ? S.efectos[id]?.ficha || "" : ctx.refDe(id).papel === "efecto" ? ctx.refDe(id).ficha || "" : "";
 
-  // frase del efecto: se ve la de la receta; si la escribes, queda fija y es la que va al prompt (↺ vuelve a la receta)
+  /* frase del efecto: se ve la ficha del efecto elegido; si la escribes, queda fija y es la que va al prompt (↺ vuelve a la
+   * ficha). Escrita sin elegir efecto, es un efecto solo de texto para esta toma; «guardar como efecto» la convierte en un
+   * efecto de texto reutilizable (E1, E2…), que sale en la mitad azul y el LLM puede elegir en otras tomas. */
   function campoFrase(t) {
     const propia = t.fijos.includes("efecto_frase") && (t.efecto_frase || "").trim();
-    const deReceta = ctx.recetas[S.receta]?.frases?.[t.efecto] || "";
-    const marca = el("span", { class: "epl-ayuda" }, propia ? "frase propia 🔒" : deReceta ? "frase probada de la receta" : "");
+    const deFicha = ctx.fichaEfecto(t.efecto);
+    const marca = el("span", { class: "epl-ayuda" }, propia ? "frase propia 🔒" : deFicha ? "la ficha del efecto, tal cual" : "");
     const area = el("textarea", { rows: 2, placeholder: "frase del efecto, en inglés (o elige un efecto arriba)", "data-campo": "efecto_frase",
       oninput: (e) => { t.efecto_frase = e.target.value; fijar(t.fijos, "efecto_frase"); marca.textContent = "frase propia 🔒"; ctx.pedirMontaje(); } },
-      propia ? t.efecto_frase : deReceta);
+      propia ? t.efecto_frase : deFicha);
+    const guardarComo = el("button", { class: "epl-mini", title: "Guarda esta frase como un efecto de texto reutilizable (sale en la mitad azul)",
+      onclick: () => {
+        const frase = (area.value || "").trim();
+        if (!frase) return ctx.avisar("Escribe primero la frase del efecto", "mal");
+        const id = ctx.nuevoEfecto({ nombre: frase.split(/\s+/).slice(0, 4).join(" "), ficha: frase });
+        t.efecto = id;
+        t.efecto_frase = "";
+        t.fijos = [...t.fijos.filter((f) => f !== "efecto_frase"), ...(t.fijos.includes("efecto") ? [] : ["efecto"])];
+        ctx.avisar(`Efecto ${id} creado: ya sale en la mitad azul`, "bien");
+        ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje();
+      } }, "＋ guardar como efecto");
     return el("div", {},
       el("label", { class: "epl-campo" }, el("span", {}, "Frase del efecto"), area,
-        el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: "Volver a la frase de la receta",
+        el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: "Volver a la ficha del efecto elegido",
           onclick: () => { t.efecto_frase = ""; t.fijos = t.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, "↺")),
-      el("div", { class: "epl-marca-frase" }, marca));
+      el("div", { class: "epl-marca-frase" }, marca, propia && !/^E\d+$/.test(t.efecto) ? guardarComo : null));
   }
 
   // ---- 1 · historia general
   ctx.pintarHistoria = function pintarHistoria() {
-    const p = S.plan, recetas = ctx.recetas;
+    const p = S.plan;
     secHistoria.replaceChildren(
       el("div", { class: "epl-tit" }, "Historia general · la narrativa de todo el edit",
         el("span", { class: "der epl-ajustes" },
-          el("label", {}, "Receta ", el("select", { onchange: (e) => { S.receta = e.target.value; ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
-            Object.keys(recetas).map((n) => el("option", { value: n, selected: n === S.receta }, n)))),
           el("label", {}, "Tomas ", el("input", { type: "number", min: 1, max: 12, value: S.tomas, class: "corto",
             onchange: (e) => ctx.cambiarTomas(+e.target.value) })),
           el("label", {}, "Duración (s) ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto",
@@ -111,12 +127,20 @@ export function instalar(ctx) {
           el("label", {}, "Semilla ", el("input", { type: "number", value: S.semilla, class: "corto",
             onchange: (e) => { S.semilla = +e.target.value; } })),
           el("label", {}, "Palabras ", el("input", { class: "palabras", value: S.palabras, placeholder: "opcional: TO YOU @1; PEAK @ultima",
-            oninput: (e) => { S.palabras = e.target.value; ctx.pedirMontaje(); } })))),
+            oninput: (e) => { S.palabras = e.target.value; ctx.pedirMontaje(); } })),
+          el("label", { title: "Opcional: cómo se ven las palabras en pantalla, en inglés. Vacío: «in bold clean white letters»" }, "Estilo de las palabras ",
+            el("input", { class: "palabras", value: S.estilo_palabras, "data-campo": "estilo_palabras",
+              placeholder: "opcional: in a bold retro font with a neon outline",
+              oninput: (e) => { S.estilo_palabras = e.target.value; ctx.pedirMontaje(); } })))),
       el("div", { class: "epl-historia" },
         el("div", {},
           el("label", { class: "epl-campo ancho" }, el("span", {}, "Idea"),
             el("textarea", { rows: 3, "data-campo": "idea", placeholder: "qué pasa y con qué tono, en tus palabras (manda sobre todo lo demás)",
-              oninput: (e) => { S.idea = e.target.value; } }, S.idea))),
+              oninput: (e) => { S.idea = e.target.value; } }, S.idea)),
+          el("label", { class: "epl-campo ancho", title: "Va tal cual al LLM y a la línea de estilo del prompt. Vacío: el LLM no inventa ningún estilo." },
+            el("span", {}, "Estilo"),
+            el("textarea", { rows: 2, "data-campo": "estilo", placeholder: "cómo se dibuja todo, en inglés (ej.: flat 2D anime illustration, Japanese city pop, vertical)",
+              oninput: (e) => { S.estilo = e.target.value; ctx.pedirMontaje(); } }, S.estilo))),
         el("div", {},
           campoTexto(p, "arco", "Arco", p.fijos, { ayuda: "qué cambia de la primera a la última toma" }),
           campoTexto(p, "look", "Luz y ambiente", p.fijos, { ayuda: "hora, luz y paleta de todo el edit" }),
@@ -142,7 +166,6 @@ export function instalar(ctx) {
       return;
     }
     const a = S.cortes[k - 1], z = S.cortes[k] ?? S.duracion;
-    const efectos = Object.entries(ctx.recetas[S.receta]?.efectos || {});
     const menu = (campo, etiqueta, papel, vacio) => {
       const ops = opcionesDe(papel, vacio);
       return ops ? campoMenu(t, campo, etiqueta, t.fijos, ops) : null;
@@ -162,7 +185,7 @@ export function instalar(ctx) {
         el("div", {}, el("b", {}, "Qué pasa (historia)"),
           campoTexto(t, "lugar", "Lugar", t.fijos),
           campoTexto(t, "momento", "Qué pasa", t.fijos, { largo: true }),
-          efectos.length ? campoMenu(t, "efecto", "Efecto", t.fijos, [["", "sin efecto"], ...efectos.map(([c, n]) => [c, `${c} ${n}`])]) : null,
+          opcionesDe("efecto", "sin efecto") ? campoMenu(t, "efecto", "Efecto", t.fijos, opcionesDe("efecto", "sin efecto")) : null,
           campoFrase(t)),
         el("div", {}, el("b", {}, "Referencias que usa"),
           ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, "No hay referencias que elegir por toma (la identidad y el estilo valen para todas).")]),

@@ -34,6 +34,17 @@ app.registerExtension({
       this.addWidget("button", "Abrir editor…", null, () => abrirEditor(this));
       return r;
     };
+    /* Workflows de antes de quitar las recetas: sus valores empiezan por la receta («Teto city pop») y todos los demás
+     * irían un sitio corridos. Se quita ese primer valor (y se recuerda, para avisar en el editor). planos/3. */
+    const configurar = nodeType.prototype.configure;
+    nodeType.prototype.configure = function (info) {
+      const v = info?.widgets_values;
+      if (Array.isArray(v) && v.length >= 3 && typeof v[0] === "string" && typeof v[1] === "string" && typeof v[2] === "number") {
+        this._eplRecetaVieja = v[0];
+        info = { ...info, widgets_values: v.slice(1) };
+      }
+      return configurar.call(this, info);
+    };
     const dobleClic = nodeType.prototype.onDblClick;
     nodeType.prototype.onDblClick = function () {
       abrirEditor(this);

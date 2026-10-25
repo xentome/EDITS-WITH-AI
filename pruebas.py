@@ -24,11 +24,11 @@ def comprobar(nombre, condicion, detalle=""):
 
 ref = json.load(open(os.path.join(AQUI, "pruebas", "plan_teto.json")))
 esperado_txt = os.path.join(AQUI, "pruebas", "prompt_teto.txt")
-receta = N.cargar_recetas()[ref["receta"]]
-menu = N.menu_de(receta, ref["entradas"]["refs"])
+menu = N.menu_de(ref["entradas"]["refs"])
+perfil = N.perfil_de(menu, ref["entradas"])
 
 print("1 · Montaje (plan guardado → prompt)")
-prompt, avisos, ini = N.montar_plan(ref["receta"], ref["entradas"], ref["plan"], ref["beats"])
+prompt, avisos, ini = N.montar_plan(ref["entradas"], ref["plan"], ref["beats"])
 if "--nueva-referencia" in sys.argv:
     open(esperado_txt, "w").write(prompt)
     print("  referencia regenerada")
@@ -42,61 +42,81 @@ plan["tomas"][1].update(lugar="a quiet river bridge", fijos=["lugar"])
 plan["tomas"][3].update(pose="<Picture 5>", fijos=["pose"])
 resp = "ARC: a calm walk\nLOOK: Night, warm neon\n" + "\n".join(
     f"SHOT {k} | PLACE: street {chr(96 + k)} | MOMENT: she smiles | OUTFIT: <Picture {1 + k % 2}> | "
-    f"POSE: {'<Picture 5>' if k == 2 else 'none'} | EFFECT: {['G1', 'G2', 'G3', 'G4', 'U4', 'U4'][k - 1]}" for k in range(1, 7))
-datos = N.leer_historia(resp, plan, menu, receta)
+    f"POSE: {'<Picture 5>' if k == 2 else 'none'} | EFFECT: {['E1', 'E2', 'E3', 'E4', 'E6', 'E6'][k - 1]}" for k in range(1, 7))
+datos = N.leer_historia(resp, plan, menu)
 comprobar("lugar fijado se conserva", datos["plan"]["tomas"][1]["lugar"] == "a quiet river bridge")
 comprobar("pose fijada se conserva", datos["plan"]["tomas"][3]["pose"] == "<Picture 5>")
-problemas = N.revisar_historia(datos, receta, menu)
+problemas = N.revisar_historia(datos, perfil, menu)
 comprobar("detecta la pose repetida contra un candado", "SHOT 2: repite la pose <Picture 5>" in problemas, problemas)
-comprobar("detecta el efecto repetido", "SHOT 6: repite el efecto U4" in problemas, problemas)
+comprobar("detecta el efecto repetido en tomas seguidas",
+          "SHOT 6: repite el efecto E6 de la toma anterior; elige otro o none" in problemas, problemas)
 t = {**N.toma_vacia(), "encuadre": "close-up", "fijos": ["encuadre"]}
-d = N.leer_toma("FRAMING: medium close-up\nLIGHT: neon\nACTION: waves\nCAMERA: the camera holds still", receta, t)
+d = N.leer_toma("FRAMING: medium close-up\nLIGHT: neon\nACTION: waves\nCAMERA: the camera holds still", perfil, t)
 comprobar("encuadre fijado se conserva en la toma", d["encuadre"] == "close-up", d)
 comprobar("quita 'the camera' del inicio", d["camara"] == "holds still", d)
 
 print("3 · Revisión de una toma (fallos ya vistos)")
 d = N.leer_toma("FRAMING: extreme close-up | close-up | medium close-up\nLIGHT: warm glow\n"
-                "ACTION: She lies on the wet floor\nCAMERA: holds still", receta, N.toma_vacia())
-p = N.revisar_toma(d, receta, plan, 1, [], set())
+                "ACTION: She lies on the wet floor\nCAMERA: holds still", perfil, N.toma_vacia())
+p = N.revisar_toma(d, perfil, plan, 1, [], set())
 comprobar("rechaza copiar el menú de encuadres", any(x.startswith("FRAMING tiene que ser") for x in p), p)
 comprobar("rechaza tumbada / mojado / suelo", sum("da problemas" in x for x in p) >= 2, p)
 comprobar("quita el sujeto del inicio del gesto", d["gesto"].startswith("lies"), d["gesto"])
+comprobar("rechaza el pronombre contrario (Teto es she)",
+          any("usa «his»; Teto es she" in x for x in N.problemas_texto("raises his hand", perfil, "ACTION")))
 
-print("4 · Efectos que piden un objeto")
-plan2 = N.ajustar_plan(ref["plan"], 6)
-plan2["tomas"][0].update(efecto="U3", momento="she waves", pose="")
-datos = {"plan": plan2, "formato": []}
-comprobar("U3 sin móvil se rechaza", any("necesita que en la toma haya «phone»" in x for x in N.revisar_historia(datos, receta, menu)))
+print("4 · Efectos: referencias de papel efecto y efectos de texto")
+comprobar("el LLM elige el efecto por su etiqueta (E2, <Picture N>) y se normaliza",
+          N.etiqueta("E2", menu["efecto"]) == "E2" and N.etiqueta("effect e7", menu["efecto"]) == "E7" and
+          N.etiqueta("G1", menu["efecto"]) is None and N.etiqueta("none", menu["efecto"]) == "")
+plan4 = N.ajustar_plan(ref["plan"], 6)
+for t in plan4["tomas"]:
+    t["efecto"] = "E1"
+p4 = N.revisar_historia({"plan": plan4, "formato": []}, perfil, menu)
+comprobar("con más efectos que tomas no exige usarlos todos", not any(x.startswith("ninguna toma usa EFFECT") for x in p4), p4)
+comprobar("la historia ofrece los efectos del usuario con su ficha",
+          "- E5: luz de móvil y círculos de luz de la ciudad (her face lit only by the cold blue glow" in
+          N.prompt_historia(perfil, menu, plan4, "idea", [1] * 6, {}))
 
 print("5 · Frase de efecto escrita por el usuario")
 plan3 = N.ajustar_plan(ref["plan"], 6)
 plan3["tomas"][0].update(efecto_frase="pink heart confetti falling around <Subject 1>.", fijos=["efecto_frase"])
-p3, _, _ = N.montar_plan(ref["receta"], ref["entradas"], plan3, ref["beats"])
-comprobar("la frase propia sustituye a la de la receta", "Effect: pink heart confetti falling around <Subject 1>." in p3
+p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
+comprobar("la frase propia sustituye a la ficha del efecto", "Effect: pink heart confetti falling around <Subject 1>." in p3
           and "hand-drawn white and colored doodles" not in p3.split("[Shot 2]")[0].split("[Shot 1]")[1])
 plan3["tomas"][1].update(efecto="", efecto_frase="soft film grain")
-p3, _, _ = N.montar_plan(ref["receta"], ref["entradas"], plan3, ref["beats"])
-comprobar("efecto libre sin código de la receta", "Effect: soft film grain." in p3)
+p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
+comprobar("efecto solo de texto escrito en la toma", "Effect: soft film grain." in p3)
+plan3["tomas"][2].update(efecto="U3", efecto_frase="")
+p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
+comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "Effect:" not in p3.split("[Shot 3]")[1].split("[Shot 4]")[0])
 
 print("6 · Palabras en pantalla")
 comprobar("lee 'TO YOU @1; PEAK @ultima'", N.leer_palabras("TO YOU @1; PEAK @ultima", 6) == {1: "TO YOU", 6: "PEAK"})
+comprobar("el estilo de las palabras sale del campo y, vacío, es neutro",
+          'the words "TO YOU" appear in a bold retro sans-serif font' in prompt and
+          N.perfil_de(menu, {})["texto_estilo"] == N.TEXTO_ESTILO)
 
-print("7 · Papeles nuevos: personaje en <Video N>, ropa, objeto y lugar")
-refs7 = {"<Video 1>": {"papel": "personaje", "nombre": "", "ficha": "Teto, four pictures"},
+print("7 · Papeles: personaje en <Video N>, ropa, objeto y lugar")
+refs7 = {"<Video 1>": {"papel": "personaje", "nombre": "Teto", "pronombre": "she",
+                       "ficha": "anime girl, bright red hair in two big drill-shaped twin tails"},
          "<Picture 1>": {"papel": "ropa", "nombre": "red racing jacket", "ficha": "red racing jacket with patches, black pants"},
          "<Picture 2>": {"papel": "objeto", "nombre": "red soda can", "ficha": "a red soda can with a white logo"},
          "<Picture 3>": {"papel": "lugar", "nombre": "night arcade street", "ficha": "a covered arcade street with lanterns"},
          "<Picture 4>": {"papel": "fondo", "nombre": "", "ficha": "a park"}}
 e7 = {**ref["entradas"], "tomas": 3, "duracion": 5.0, "palabras": "", "refs": refs7}
-m7 = N.menu_de(receta, refs7)
+m7 = N.menu_de(refs7)
+pf7 = N.perfil_de(m7, e7)
 plan7 = N.ajustar_plan(None, 3)
 for k, t in enumerate(plan7["tomas"], 1):
     t.update(lugar=f"corner {k}", momento="she smiles", encuadre="close-up", luz="neon", gesto="smiles", camara="holds still")
 plan7["tomas"][0].update(ropa="<Picture 1>", objeto="<Picture 2>", gesto="raises <Subject 2> to her lips")
 plan7["tomas"][1].update(lugar_ref="<Picture 3>")
-p7, av7, _ = N.montar_plan(ref["receta"], e7, plan7)
-comprobar("personaje como <Video 1> en la definición y la retención",
-          "the anime girl in <Video 1>, with" in p7 and "black choker from <Video 1> in every shot" in p7, p7[:400])
+p7, av7, _ = N.montar_plan(e7, plan7)
+comprobar("el personaje sale de su referencia: nombre y ficha en la definición, y su retención",
+          "<Subject 1> is the character in <Video 1>: anime girl, bright red hair in two big drill-shaped twin tails. "
+          "Her name is Teto. In each shot she wears the outfit of the reference cited for that shot." in p7 and
+          "<Subject 1>: fully_preserved - Teto's face, hair and features from <Video 1> stay the same in every shot." in p7, p7[:500])
 comprobar("ropa: cita en la toma y retención solo de la ropa",
           "<Subject 1>, wearing the red racing jacket from <Picture 1>," in p7 and
           "<Picture 1>: attribute_transfer - only the clothes are transferred (red racing jacket with patches, black pants); "
@@ -105,27 +125,76 @@ comprobar("objeto: es <Subject 2>, definido y retenido",
           "<Subject 2> is the red soda can shown in <Picture 2>" in p7 and "<Subject 2>: fully_preserved" in p7)
 comprobar("lugar: fija el lugar de su toma y se retiene",
           "corner 2, in the night arcade street shown in <Picture 3>," in p7 and "<Picture 3>: fully_preserved - the night arcade" in p7)
-comprobar("sin cajita de atuendos no se pide OUTFIT", not N.atuendos(m7) and N.etiqueta("Video 1", m7["personaje"]) == "<Video 1>")
+comprobar("sin atuendos no se pide OUTFIT", not N.atuendos(m7) and N.etiqueta("Video 1", m7["personaje"]) == "<Video 1>")
 plan7b = N.ajustar_plan(plan7, 3)
 plan7b["tomas"][0].update(objeto="", momento="she smiles")
 plan7b["tomas"][1].update(lugar_ref="", fondo_ref="<Picture 4>")
 plan7b["tomas"][2].update(objeto="<Picture 2>", lugar_ref="<Picture 3>", fondo_ref="<Picture 4>")
 plan7b["arco"], plan7b["look"] = "a calm walk", "night, warm neon"
-p7b = N.revisar_historia({"plan": plan7b, "formato": []}, receta, m7)
+p7b = N.revisar_historia({"plan": plan7b, "formato": []}, pf7, m7)
 comprobar("revisa objeto sin <Subject 2> en MOMENT y LOCATION con BACKGROUND",
           "SHOT 3: lleva OBJECT <Picture 2>; MOMENT tiene que nombrarlo como <Subject 2>" in p7b and
           any(x.startswith("SHOT 3: lleva LOCATION <Picture 3> y BACKGROUND") for x in p7b), p7b)
 plan7b["tomas"][2].update(objeto="", lugar_ref="")
-p7b = N.revisar_historia({"plan": plan7b, "formato": []}, receta, m7)
+p7b = N.revisar_historia({"plan": plan7b, "formato": []}, pf7, m7)
 comprobar("un objeto o lugar que no cambia tiene que salir en alguna toma",
           "ninguna toma usa OBJECT <Picture 2>; ponlo al menos en una toma donde encaje" in p7b and
           "ninguna toma usa LOCATION <Picture 3>; ponlo al menos en una toma donde encaje" in p7b, p7b)
-d7 = N.leer_toma("FRAMING: close-up\nLIGHT: neon\nACTION: drinks from the can\nCAMERA: holds still", receta, N.toma_vacia())
+d7 = N.leer_toma("FRAMING: close-up\nLIGHT: neon\nACTION: drinks from the can\nCAMERA: holds still", pf7, N.toma_vacia())
 plan7["tomas"][2]["objeto"] = "<Picture 2>"
 comprobar("la toma con objeto pide <Subject 2> en ACTION",
-          "ACTION tiene que incluir el objeto con su etiqueta <Subject 2>" in N.revisar_toma(d7, receta, plan7, 3, [], set(), m7))
+          "ACTION tiene que incluir el objeto con su etiqueta <Subject 2>" in N.revisar_toma(d7, pf7, plan7, 3, [], set(), m7))
 
-print("8 · Audio: tramo de una canción larga (ventana de audio del editor)")
+print("8 · Sin recetas: personaje, estilo y efectos a la vista")
+comprobar("estilo del campo: va al LLM y a la línea de estilo y al resumen",
+          "Estilo de todo el edit (lo escribió el usuario; respétalo): Flat 2D anime illustration" in
+          N.prompt_historia(perfil, menu, ref["plan"], "idea", [1] * 6, {}) and
+          "detailed_description:\nFlat 2D anime illustration, Japanese city pop, flat painted backgrounds. Night and dusk" in prompt
+          and "A music edit of <Subject 1> (Flat 2D anime illustration" in prompt)
+e10 = {**e7, "estilo": "", "refs": {}}
+plan10 = {**N.ajustar_plan(plan7, 3), "look": "night, warm neon"}
+p10, _, _ = N.montar_plan(e10, plan10)
+pf10 = N.perfil_de(N.menu_de({}), e10)
+comprobar("sin estilo ni referencias: línea neutra, sujeto genérico y they",
+          "detailed_description:\nnight, warm neon. No text on screen." in p10 and
+          "<Subject 1> is the main character." in p10 and "Estilo" not in "\n".join(N.cabecera(pf10, N.menu_de({}))) and
+          pf10["pronombre"] == "they" and pf10["revisar_pronombre"] == "" and "A music edit of <Subject 1>, close shots" in p10,
+          p10[:300])
+refs10 = {**refs7, "<Video 2>": {"papel": "personaje", "nombre": "Ren", "pronombre": "he", "ficha": "young man, spiky dark hair"},
+          "<Picture 5>": {"papel": "personaje", "nombre": "teto", "pronombre": "", "ficha": "", "atuendo": "school uniform"}}
+m10 = N.menu_de(refs10)
+ps10 = N.personajes(m10)
+comprobar("un sujeto por personaje, juntando sus referencias por nombre; los objetos van detrás",
+          [(g["sujeto"], g["nombre"], g["tags"]) for g in ps10] == [("<Subject 1>", "Teto", ["<Video 1>", "<Picture 5>"]),
+                                                                     ("<Subject 2>", "Ren", ["<Video 2>"])] and
+          N.sujetos_objeto(m10) == {"<Picture 2>": "<Subject 3>"} and N.perfil_de(m10)["revisar_pronombre"] == "", ps10)
+comprobar("el pronombre por defecto es they (they wear)",
+          N.perfil_de(N.menu_de({"<Video 1>": {"papel": "personaje", "nombre": "Aoi"}}))["lleva"] == "wear")
+refs11 = {**refs7, "<Picture 6>": {"papel": "efecto", "nombre": "light streaks", "ficha": "neon light streaks cross the frame"},
+          "E1": {"papel": "efecto", "nombre": "grano", "ficha": "soft film grain"}}
+plan11 = N.ajustar_plan(plan7, 3)
+plan11["tomas"][0]["efecto"], plan11["tomas"][1]["efecto"] = "<Picture 6>", "E1"
+p11, _, _ = N.montar_plan({**e7, "refs": refs11}, plan11)
+comprobar("efecto como referencia: su ficha tal cual, su cita y su retención; el de texto, solo la ficha",
+          "Effect: neon light streaks cross the frame, like the effect in <Picture 6>." in p11 and
+          "<Picture 6>: attribute_transfer - only the visual effect is transferred" in p11 and
+          "Effect: soft film grain." in p11 and "E1:" not in p11, p11)
+plan11["tomas"][2]["efecto"] = ""
+plan11["tomas"][0]["efecto"] = ""
+p11b = N.revisar_historia({"plan": {**plan11, "arco": "a", "look": "b"}, "formato": []}, pf7, N.menu_de(refs11))
+comprobar("cada efecto del usuario sale en alguna toma si caben", "ninguna toma usa EFFECT <Picture 6>; ponlo al menos en una "
+          "toma donde encaje" in p11b, p11b)
+estado = {"v": 4, "refs": {"cajitas/teto": {"papel": "personaje", "nombre": "Teto"}, "ropa/vera": {"papel": "ropa"}},
+          "etiquetas": {"<Video 1>": "cajitas/teto", "<Picture 1>": "ropa/vera"}, "efectos": {"E1": {"nombre": "x", "ficha": "y"}},
+          "estilo": "flat anime", "receta": "Teto city pop"}
+ee = N.entradas_de_estado(estado)
+comprobar("el nodo sin editor lee del estado las referencias, los efectos y el estilo (la receta se ignora)",
+          ee["refs"]["<Video 1>"]["nombre"] == "Teto" and ee["refs"]["E1"]["papel"] == "efecto" and ee["estilo"] == "flat anime"
+          and "receta" not in ee, ee)
+comprobar("no queda ninguna receta en el código", not hasattr(N, "cargar_recetas") and
+          not os.path.exists(os.path.join(AQUI, "recetas.json")))
+
+print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402
 import subprocess  # noqa: E402
 import tempfile  # noqa: E402
@@ -183,7 +252,7 @@ try:
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
-print("9 · Tapar (cara, pelo o texto de una referencia), con máscaras sintéticas y sin GPU")
+print("10 · Tapar (cara, pelo o texto de una referencia), con máscaras sintéticas y sin GPU")
 from PIL import Image, ImageDraw  # noqa: E402
 foto = Image.fromarray(np.random.default_rng(2).integers(0, 255, (900, 600, 3), dtype=np.uint8))  # ruido: todo píxel cuenta
 cara, pelo = Image.new("L", foto.size), Image.new("L", foto.size)

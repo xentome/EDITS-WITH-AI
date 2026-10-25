@@ -6,14 +6,6 @@ import time
 from . import nucleo
 
 
-def recetas(d=None):
-    """Lo que el editor necesita de cada receta: efectos (código → nombre), referencias por defecto y pronombre."""
-    return {nombre: {"efectos": {c: e[0] for c, e in r["efectos"].items()},
-                     "frases": {c: e[1] for c, e in r["efectos"].items()}, "referencias": r.get("referencias", {}),
-                     "pronombre": r["pronombre"], "nombre": r["nombre"]}
-            for nombre, r in nucleo.cargar_recetas().items()}
-
-
 def _ruta_audio(audio):
     import folder_paths
     ruta = folder_paths.get_annotated_filepath(audio)
@@ -34,7 +26,7 @@ def beats(d):
 
 
 def montar(d):
-    prompt, avisos, ini = nucleo.montar_plan(d["receta"], d["entradas"], d["plan"], beats(d))
+    prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], beats(d))
     return {"prompt": prompt, "avisos": avisos, "cortes": ini}
 
 
@@ -64,7 +56,7 @@ def audio_recortar(d):
 
 def historia(d):
     t = time.time()
-    plan, intentos = nucleo.escribir_historia(d["receta"], d["entradas"], d["plan"], beats(d),
+    plan, intentos = nucleo.escribir_historia(d["entradas"], d["plan"], beats(d),
                                               int(d.get("semilla", 0)))
     return {"plan": plan, "intentos": intentos, "segundos": round(time.time() - t, 1)}
 
@@ -88,7 +80,7 @@ def describir(d):
 def tomas(d):
     t = time.time()
     solo = int(d["solo"]) if d.get("solo") else None
-    plan, intentos = nucleo.escribir_tomas(d["receta"], d["entradas"], d["plan"], beats(d),
+    plan, intentos = nucleo.escribir_tomas(d["entradas"], d["plan"], beats(d),
                                            int(d.get("semilla", 0)), solo=solo)
     return {"plan": plan, "intentos": intentos, "segundos": round(time.time() - t, 1)}
 
@@ -455,7 +447,6 @@ def tapar(d):
 
 # acción → (función, usa el LLM). Una acción nueva se añade aquí: no hace falta reiniciar ComfyUI.
 ACCIONES = {
-    "recetas": (recetas, False),
     "montar": (montar, False),
     "historia": (historia, True),
     "tomas": (tomas, True),

@@ -8,21 +8,20 @@ Lectura: 3 min
 
 | Archivo | Qué tiene |
 |---|---|
-| `nucleo.py` | Todo el trabajo. Secciones, en orden: plan y referencias · reloj · audio (tramo de la canción) · LLM y registro · revisiones · historia · tomas · montaje · visión · tapar · acciones. |
+| `nucleo.py` | Todo el trabajo. Arriba, lo fijo de la casa (`DEFINICION_EDIT`, `AUDIO`, `GENERALES`…). Secciones, en orden: plan, referencias y personajes · reloj · audio (tramo de la canción) · LLM y registro · revisiones · historia · tomas · montaje · visión · tapar · acciones. |
 | `rutas.py` | Lo que hace cada ruta del editor. Llama a `nucleo`. |
 | `__init__.py` | El nodo, el registro de las rutas y la liberación de la GPU. Es delgado: no decide nada. |
 | `web/editor.js` | El botón «Abrir editor…» del nodo. |
 | `web/editor_core.js` | La ventana: solo junta las piezas de `web/editor/`, guarda en el nodo y pinta. Se vuelve a cargar cada vez que se abre, con todas sus piezas. |
 | `web/editor/util.js` | Ayudas comunes: crear elementos, leer campos del nodo, seguir enlaces, llamar al servidor, direcciones de las fotos. |
-| `web/editor/plan.js` | Partes 1 y 2: historia general y prompt de la toma elegida (campos con candado, frase del efecto, rehacer esta toma) y los botones del LLM. |
-| `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, las dos mitades, la ficha de cada referencia (papel, nombre, ficha, visión, activa, fuerza, quitar), el Stack, la biblioteca y el resaltado. |
+| `web/editor/plan.js` | Partes 1 y 2: historia general (idea, estilo, estilo de las palabras) y prompt de la toma elegida (campos con candado, efecto y su frase, rehacer esta toma) y los botones del LLM. |
+| `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, las dos mitades, la ficha de cada referencia (papel, nombre, pronombre y atuendo del personaje, ficha, visión, activa, fuerza, quitar), los efectos de texto, el Stack, la biblioteca y el resaltado. |
 | `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
 | `web/editor/tapar.js` | «Tapar con SAM 3.1» en la ficha: interruptor, chips de qué tapar, forma, vista previa y el cambio de tarjeta entre original y tapado (`ctx.cambiarTarjeta`). |
 | `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre) y la línea de la canción entera; al guardar, el recorte. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
-| `recetas.json` | Lo fijo de cada personaje (plano 3). |
 | `maqueta/` | El pizarrón donde se diseña la interfaz nueva: `servidor.py`, `index.html` (pizarra), `interfaz.html` (maqueta) y `documentacion/`. |
 | `pruebas.py` y `pruebas/` | Las comprobaciones rápidas y su plan de referencia. |
 | corridas | `~/Escritorio/experimentos_edit/edit_prompt_llm/<fecha>_<paso>/`: cada llamada al LLM con su prompt, su respuesta y `registro.json`. |
@@ -31,13 +30,14 @@ Las piezas de `web/editor/` comparten un objeto `ctx` (estado, referencias y fun
 
 ## Las funciones de entrada
 
-- `escribir_historia(receta, entradas, plan, beats, semilla)` → plan con la historia escrita.
-- `escribir_tomas(receta, entradas, plan, beats, semilla, solo=None)` → plan con la dirección escrita. Con `solo=k` regenera solo la toma k.
-- `montar_plan(receta, entradas, plan, beats)` → prompt final, avisos (campos vacíos) y cortes.
-- `planear(...)` → el recorrido completo sin editor. Lo usa el nodo y guarda el resultado en disco para no repetirlo.
+- `escribir_historia(entradas, plan, beats, semilla)` → plan con la historia escrita.
+- `escribir_tomas(entradas, plan, beats, semilla, solo=None)` → plan con la dirección escrita. Con `solo=k` regenera solo la toma k.
+- `montar_plan(entradas, plan, beats)` → prompt final, avisos (campos vacíos) y cortes.
+- `planear(idea, n, dur, …, extra=None)` → el recorrido completo sin editor. Lo usa el nodo (con `extra = entradas_de_estado(estado)`) y guarda el resultado en disco para no repetirlo.
 
-`entradas` contiene `{idea, tomas, duracion, palabras, refs}`:
-- `refs` es `{"<Picture N>" o "<Video N>": {papel, nombre, ficha}}`; con `None` se usan las referencias de la receta. Papeles: `personaje`, `objeto`, `lugar` (no cambian) y `ropa`, `pose`, `fondo`, `estilo` (se prestan).
+`entradas` contiene `{idea, tomas, duracion, palabras, refs, estilo, estilo_palabras}`:
+- `refs` es `{"<Picture N>", "<Video N>" o "E1": {papel, nombre, ficha, pronombre, atuendo}}` (`pronombre` y `atuendo` solo en personaje; `E1`… son los efectos de texto). Papeles: `personaje`, `objeto`, `lugar` (no cambian) y `ropa`, `pose`, `fondo`, `estilo`, `efecto` (se prestan).
+- `perfil_de(menu, entradas)` saca de ahí lo que antes daba la receta: los personajes, el pronombre del protagonista, el estilo y el de las palabras.
 - `palabras` va como `TO YOU @1; PEAK @ultima`.
 
 ## Las rutas del editor
@@ -46,7 +46,6 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 
 | Acción | Para qué | ¿LLM? |
 |---|---|---|
-| `recetas` | efectos y referencias por defecto de cada receta | no |
 | `montar` | plan → prompt final | no |
 | `historia` | escribe la historia | sí |
 | `tomas` | escribe las tomas, o solo una con `solo` | sí |
@@ -71,7 +70,9 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | lo que se le pide en cada toma | `nucleo.prompt_toma` |
 | una regla de revisión | `nucleo.revisar_historia`, `revisar_toma` o la lista `GENERALES` |
 | cómo se escribe una línea `[Shot n]` | `nucleo.montar` |
-| un personaje, su definición o sus efectos | `recetas.json` (la frase «In each shot she wears…» es `sujeto_atuendo` y solo va si hay atuendos o ropa) |
+| cómo se define y se retiene un personaje | `nucleo.definiciones` (la frase «In each shot she wears…» solo va si hay atuendos o ropa) |
+| lo fijo de la casa (qué es un edit, el audio, las palabras por defecto) | constantes de arriba de `nucleo.py` |
+| cómo se cita un efecto | `nucleo.montar` y `nucleo.frase_efecto` |
 | cómo se cita un objeto, un lugar o una ropa | `nucleo.montar` (marcado con 💡 lo no probado) |
 | dónde caen los cortes | `nucleo.cortes` |
 | las dos mitades, la ficha de una referencia, la biblioteca o el resaltado | `web/editor/referencias.js` |
@@ -90,11 +91,11 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 
 ## Qué guarda el nodo
 
-- **Campos visibles:** receta, idea, tomas, duración, palabras y semilla.
+- **Campos visibles:** idea, tomas, duración, palabras y semilla (ya no hay receta; plano 3).
 - **`texto_bloqueado`:** si tiene texto, sale tal cual.
-- **`estado` (oculto):** JSON con lo que guarda el editor: `refs`, `plan`, `prompt`, `a_mano` y `audio` (`original`, `inicio_s`, `recorte`, `tocado`).
+- **`estado` (oculto, `v: 4`):** JSON con lo que guarda el editor: `refs` (por nombre de RefMod), `etiquetas`, `efectos` (de texto), `estilo`, `estilo_palabras`, `plan`, `prompt`, `a_mano` y `audio` (`original`, `inicio_s`, `recorte`, `tocado`).
 
 Al ejecutar, el nodo decide así:
 1. si hay `texto_bloqueado`, sale ese texto;
 2. si no, y el editor dejó un prompt, sale ese prompt;
-3. si no hay ninguno de los dos, hace el recorrido completo con el LLM.
+3. si no hay ninguno de los dos, hace el recorrido completo con el LLM, con las referencias, efectos y estilo del estado si los hay.

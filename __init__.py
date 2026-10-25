@@ -6,7 +6,6 @@ import asyncio
 import gc
 import importlib
 import json
-import os
 import time
 
 from . import nucleo, rutas
@@ -47,7 +46,6 @@ class PromptDelEdit:
     def INPUT_TYPES(cls):
         texto = lambda ayuda: ("STRING", {"multiline": True, "default": "", "placeholder": ayuda})
         return {"required": {
-            "receta": (list(nucleo.cargar_recetas()),),
             "idea": texto("Qué pasa y con qué tono, en tus palabras (manda sobre todo lo demás)"),
             "tomas": ("INT", {"default": 6, "min": 1, "max": 12}),
             "duracion_s": ("FLOAT", {"default": 5.167, "min": 1.0, "max": 12.0, "step": 0.001,
@@ -61,12 +59,8 @@ class PromptDelEdit:
             "estado": ("STRING", {"default": "", "tooltip": "Lo guarda el editor (oculto)"}),
         }}
 
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        # si editas recetas.json, el nodo vuelve a ejecutarse aunque los campos no cambien
-        return os.path.getmtime(nucleo.RECETAS)
-
-    def generar(self, receta, idea, tomas, duracion_s, palabras, semilla_llm, audio=None, texto_bloqueado="", estado=""):
+    def generar(self, idea, tomas, duracion_s, palabras, semilla_llm, audio=None, texto_bloqueado="", estado="", **_viejos):
+        # **_viejos: un workflow de antes puede traer «receta»; ya no existe y se ignora (planos/3)
         if texto_bloqueado.strip():
             return (texto_bloqueado.strip(), "Texto bloqueado: sale tal cual, sin LLM.")
         try:
@@ -90,7 +84,9 @@ class PromptDelEdit:
             print(f"[Prompt del edit] {texto}", flush=True)
             mm.throw_exception_if_processing_interrupted()
 
-        prompt, informe, llamo = nucleo.planear(receta, idea, tomas, duracion_s, palabras, semilla_llm, beats, avance, liberar_gpu)
+        # sin prompt del editor: el LLM escribe todo, con las referencias y el estilo que el editor dejara guardados (si los hay)
+        prompt, informe, llamo = nucleo.planear(idea, tomas, duracion_s, palabras, semilla_llm, beats, avance, liberar_gpu,
+                                                extra=nucleo.entradas_de_estado(editor))
         if llamo:
             informe += "\n" + esperar_vram()
         return (prompt, informe)

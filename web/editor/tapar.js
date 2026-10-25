@@ -17,7 +17,7 @@ const OPCIONES = { cosas: ["cara", "pelo"], libre: "", forma: "difuminar" };
 export function instalar(ctx) {
   const { u, S, wf, caja } = ctx;
   const { el, api } = u;
-  const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref"];
+  const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
   ctx.tapados = {};
   const mensajes = {};                                   // último resultado de cada tarjeta, para enseñarlo en su ficha
 

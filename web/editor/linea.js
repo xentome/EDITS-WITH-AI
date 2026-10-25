@@ -54,7 +54,7 @@ export function instalar(ctx) {
           title: [t.lugar, t.momento].filter(Boolean).join(" — ") || "toma sin historia todavía",
           onclick: () => ctx.elegir(S.elegida === i + 1 ? null : i + 1) },
           el("b", {}, `Toma ${i + 1}`), el("span", {}, t.lugar || "(sin lugar)"),
-          el("span", {}, `${ini[i].toFixed(2)}–${fin(i).toFixed(2)} s` + (t.efecto ? ` · ${t.efecto}` : "")))),
+          el("span", {}, `${ini[i].toFixed(2)}–${fin(i).toFixed(2)} s` + (t.efecto ? ` · ${/^E\d+$/.test(t.efecto) ? S.efectos[t.efecto]?.nombre || t.efecto : t.efecto}` : "")))),
         el("button", { class: "epl-mas", title: "Añadir una toma (las demás se estrechan)", onclick: () => ctx.anadirToma() }, "+")),
       el("div", { class: "epl-regla" }, el("span", {}, "0 s"), el("span", {}, `${(+dur).toFixed(2)} s`)));
   };

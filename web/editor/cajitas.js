@@ -5,8 +5,8 @@
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Planos: ../../planos/4 El editor.md. */
 
 const CONCEPTO = { personaje: "identity", objeto: "generic", lugar: "background", ropa: "clothing", pose: "pose_motion",
-                   fondo: "background", estilo: "style" };
-const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref"];
+                   fondo: "background", estilo: "style", efecto: "style" };
+const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
 
 /* Añade ctx.abrirCajita y ctx.crearCajita. Usa de ctx: u, S, wf, caja, capa, abrirFicha, cargarBiblioteca, biblioteca,
  * cajitas, cambiarStack, tarjeta, vista, fotosDe, nFotos, ladoDe, avisar. */
@@ -96,7 +96,7 @@ export function instalar(ctx) {
             el("label", {}, "Papel"),
             el("select", { onchange: (e) => { st.papel = e.target.value; } },
               ...Object.keys(CONCEPTO).map((p) => el("option", { value: p, selected: st.papel === p }, p))),
-            el("label", {}, "Nombre en el prompt (objeto, lugar, ropa; vacío para la identidad de un personaje)"),
+            el("label", {}, "Nombre (del personaje, el objeto, el lugar, la ropa o el efecto)"),
             el("input", { value: st.nombrePrompt, oninput: (e) => { st.nombrePrompt = e.target.value; } }),
             el("label", {}, "Ficha (en inglés, opcional)"),
             el("textarea", { rows: 2, oninput: (e) => { st.ficha = e.target.value; } }, st.ficha),

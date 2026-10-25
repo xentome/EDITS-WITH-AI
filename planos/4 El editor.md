@@ -9,13 +9,14 @@ Lectura: 4 min
 ### 1 · Historia general
 - **Idea**, con tus palabras. Manda sobre todo lo demás.
 - **Arco, luz y ambiente, y fondo general**, con candado.
-- Arriba a la derecha, los campos del nodo: receta, tomas, duración, semilla y palabras (opcionales: `TO YOU @1`).
+- **Estilo**, debajo de la idea, en inglés: cómo se dibuja todo (plano 3). Vacío, no se inventa ninguno.
+- Arriba a la derecha, los campos del nodo: tomas, duración, semilla y palabras (opcionales: `TO YOU @1`), y el **estilo de las palabras** (opcional).
 - La caja va en **rojo oscuro opaco con letras blancas**, para que resalte; los campos de dentro, en un rojo más oscuro.
 
 ### 2 · Prompt de la toma
 - Al principio dice «Selecciona una toma…». Cuando eliges una en la línea de tiempo, aparece:
   - su línea `[Shot n]`, tal como va al prompt final;
-  - **qué pasa:** lugar, qué pasa, efecto y frase del efecto (↺ vuelve a la frase de la receta);
+  - **qué pasa:** lugar, qué pasa, efecto (referencias de papel efecto y efectos de texto) y frase del efecto (↺ vuelve a la ficha del efecto; escrita sin efecto, es un efecto solo de esa toma, y «＋ guardar como efecto» la convierte en un efecto de texto);
   - **referencias que usa:** atuendo, ropa, pose, objeto, lugar fijo y fondo. Solo salen los menús de los papeles que tienen referencias;
   - **dirección:** encuadre, cámara, luz y gesto.
 - Todo con 🔒 / 🔓: lo que escribes o eliges queda fijo. Pulsa el candado para soltarlo.
@@ -23,14 +24,15 @@ Lectura: 4 min
 
 ### 3 · Referencias, partidas en dos
 - **Izquierda roja, lo que no cambia:** personaje, objeto y lugar.
-- **Derecha azul, lo que se presta:** ropa, pose, fondo y estilo. Abajo, los **efectos** de la receta como fichas.
+- **Derecha azul, lo que se presta:** ropa, pose, fondo, estilo y efecto. Abajo, los **efectos de texto** (E1, E2…) como fichas y **+ Efecto** para crear uno (nombre y frase). Tocar uno con una toma elegida lo pone o lo quita; sin toma, se abre para cambiarlo o quitarlo (con confirmación).
 - **Colores por mitad:** cada tarjeta lleva un borde de 2 px rojo apagado a la izquierda y azul apagado a la derecha (también cada foto del mosaico de una cajita). La que usa la toma elegida lleva una **doble línea dorada**, más gruesa, para que no se confunda.
 - **Cómo se ven:** grandes y enteras, sobre la misma foto desenfocada. Abajo, una franja con el número (`<Picture N>`, `<Video N>`), el papel y el nombre. Las columnas se eligen solas para que las fotos salgan lo más grandes posible.
 - **Al elegir una toma** se iluminan en dorado las que usa, en las dos mitades y en los efectos, y las demás se apagan. La identidad (personaje sin nombre) y el estilo cuentan como usados en todas. Tocar un efecto lo pone o lo quita en la toma elegida.
 - **Al tocar una referencia** se abre su **ficha**: la foto grande y sus controles:
   - **papel** (cambia de mitad al cambiarlo);
-  - **nombre en el prompt** (personaje con atuendo, objeto, lugar, ropa). Un personaje **sin nombre** solo da la identidad;
-  - **ficha** en inglés, lo que el LLM sabe de la imagen;
+  - **nombre**: en un personaje, su nombre («Teto»; las fotos con el mismo nombre son el mismo personaje); en objeto, lugar, ropa y efecto, el nombre en el prompt;
+  - en un personaje, además, **pronombre** (they por defecto, she, he) y **atuendo** opcional;
+  - **ficha** en inglés: lo que el LLM sabe de la imagen; en un personaje, va a su definición; en un efecto, es la frase que va al prompt;
   - **👁 describir con visión** (14–21 s): propone nombre, ficha y riesgos; «usar» o «descartar»;
   - **activa, fuerza y ✕ quitar** del Stack;
   - **tapar con SAM 3.1** (ver «Tapar», abajo);
@@ -91,7 +93,7 @@ Lectura: 4 min
 ## Por dentro
 - **Esquinas rectas en toda la ventana** (cajas, tarjetas, botones, campos, insignias, menús y ventanitas). En `web/editor/estilos.js` cada curva vale `--radio × su tamaño de antes`, con `--radio:0` en `.epl-fondo`; con `--radio:1` vuelven las de antes. La maqueta usa la misma variable en `:root`.
 - **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` junta las piezas de `web/editor/` (plano 2). Todo se vuelve a cargar cada vez que se abre.
-- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (recetas, montar, historia, tomas, describir, medios, cajitas, crear_cajita, tapados, tapar_previa, tapar, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita y tapar también exigen la cola vacía.
+- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (montar, historia, tomas, describir, medios, cajitas, crear_cajita, tapados, tapar_previa, tapar, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita y tapar también exigen la cola vacía.
 - Al abrir sin recargar la pestaña: `const m = await import('/extensions/edit_prompt_llm/editor_core.js?v='+Date.now()); await m.abrir(app.graph.getNodeById(74), app)` (devuelve el `ctx`, útil para probar).
 
 ## Límites conocidos
@@ -100,5 +102,4 @@ Lectura: 4 min
 - Sin el editor (el nodo hace todo con el LLM), los beats salen del audio que llega al nodo, o sea del recorte entero, no de la canción desplazada: pueden variar unos ms.
 - Los recortes `edit_tramo_*.wav` se quedan en `input/`; no se borran solos. Lo mismo con las fotos de `input/minimax_h3/tapado/` y los RefMods `__tapado_*` que ya no se usan.
 - «Tapar» no está en las fotos del Media Loader (no son tarjetas del Stack) ni en los videos.
-- Las frases fijas de los efectos de la receta pueden chocar con el lugar (U3 habla de «the night city»); hoy lo corrige el usuario (plano 5, fila 29).
-- El `resumen` de la receta de Teto dice «in a Japanese city» aunque el lugar fijo sea otro.
+- Workflows de antes de quitar las recetas: abren con avisos (plano 3, «Workflows de antes»).

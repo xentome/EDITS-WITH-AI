@@ -17,7 +17,7 @@ Lectura: 2 min
 | Misma semilla | misma respuesta |
 | Qwen3.8 | escribe a 34 tok/s y lee a ~360 tok/s |
 | Prompt final de Teto | ~700 palabras (v3: 1.524) |
-| Comprobaciones de `pruebas.py` | 39 (16 de antes, 8 de los papeles nuevos, 9 de audio y 6 de tapar), unos 4 s |
+| Comprobaciones de `pruebas.py` | 52 (sin recetas, 25 oct), unos 4 s |
 | Editor: historia / tomas / una toma / visión | 113 s / 28,7 s / 7 s / 15 s |
 | Visión: riesgos | acertó (cara difuminada, bandas negras, texto) |
 | Visión: objetos pequeños | falla y cambia entre intentos (el chicle salió como «bolso rosa» y como «tira de mochila») |
@@ -39,20 +39,21 @@ Lectura: 2 min
 | Tapar: encender en el editor (`ropa/vera`, foto de 1200×1799) | 15,3 s en total: SAM 7,4 s y RefMod 4 s; cara 4,6 % y pelo 3,8 % de la foto |
 | Tapar: apagar / volver a encender (reutiliza, sin SAM) | 0,8 s / 0,1 s; ningún `/prompt` nuevo en ComfyUI |
 | Render con la ropa tapada desde el interruptor (Teto + `ropa/vera__tapado_6811477a`, 480p, 3,042 s, 3 tomas) | 377 s; Teto en las 3 tomas con la chaqueta roja, los parches y el reloj de Vera; no se cuela la cara ni el pelo negro de Vera. Igual que la tapada a mano y que `vera_ropa_sam` (`interfaz_nueva/tapar_sam/`) |
+| Sin recetas (25 oct): historia / tomas desde la ventana (3 tomas, Teto en cajita con nombre y ficha, ropa de Vera tapada, bodega fija, estilo escrito, efecto de texto E1) | 89 s / 12 s, a la primera |
+| Render sin recetas (480p, 3,042 s, 3 tomas) | 422 s; igual que el de tapar: Teto en las 3 tomas, la chaqueta de Vera sin su cara, la puerta, la ventanilla y los asientos rojos de la bodega. El efecto de texto «golden dust» (toma 1) casi no se ve: unas motas. `interfaz_nueva/mejoras_sin_recetas/` |
 | Tapar: «text» con SAM 3.1 | encuentra letras grandes y logos (SHINE 30 %, BEABADOOBEE 6,5 %, WRAPSTARZ 8 %, el usuario de un post); no las líneas de letra pequeña |
 
 ## Pendientes
 
 - 💡 **Objeto que no cambia:** frases escritas y revisadas por `pruebas.py`, sin ningún render todavía.
 - ❓ **Lugar que no cambia:** un solo render. Salió el lugar, pero la hora del cielo cambió: atardecer con estrellas en la toma 1 y cielo de día por la ventanilla en la toma 2. Falta ver si una toma más abierta lo mantiene entero.
-- ❓ **Frases de efecto que chocan con el lugar** (U3 «the night city»; plano 5, fila 29) y el `resumen` de Teto que dice «in a Japanese city».
 
 - 💡 **Citas de fondo y estilo:** escritas, sin ningún render todavía.
-- ❓ **Editor:** no hay un botón para leer el papel y la ficha directamente de los datos del RefMod creados con visión; ahora se rellenan desde la receta o con 👁.
+- ❓ **Editor:** no hay un botón para leer el papel y la ficha directamente de los datos del RefMod creados con visión; ahora se rellenan con los datos del RefMod (concepto y apariencia) o con 👁.
 - ❓ **Pelo con la pose `<Picture 5>`:** probar a nombrar el pelo dentro de las tomas que usan una pose; la v3 lo hacía y salía bien.
 - ❓ **Si las tomas sin razonamiento salen tan bien como con el método de 3 etapas:** hay que compararlo en renders.
 - ❓ **Edits de 10 s en 2 clips:** un mismo plan para las dos mitades.
-- ❓ **Receta de Vera.**
+- 💡 **Efectos con imagen (papel efecto) y varios personajes a la vez:** escritos y revisados por `pruebas.py`, sin render.
 - ❓ **Tapar en las fotos del Media Loader:** hoy solo en tarjetas del Stack. Haría falta cambiar el archivo del medio, no una tarjeta.
 - ❓ **Tapar una pose:** sin render. Falta ver si una pose con la cara difuminada sigue dando la pose bien.
 - ❓ **H3 corta 1–2 fotogramas antes del beat** (render del tramo de Blue Fairy). Falta ver si pasa siempre y si conviene adelantar los cortes.

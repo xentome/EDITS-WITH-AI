@@ -1,5 +1,5 @@
 /* Sección 3 del editor: REFERENCIAS, partidas en dos mitades. Izquierda roja: lo que no cambia (personaje, objeto, lugar).
- * Derecha azul: lo que se presta (ropa, pose, fondo, estilo) y los efectos de la receta como fichas.
+ * Derecha azul: lo que se presta (ropa, pose, fondo, estilo, efecto) y, abajo, los efectos de texto (E1, E2…) como fichas.
  * Lee el RefMod Stack y el Media Loader del workflow, guarda papel/nombre/ficha de cada referencia por su clave, cambia el
  * Stack, abre la biblioteca de RefMods, enseña la ficha de cada referencia (al tocarla) y pide la ficha con visión.
  * Las cajitas (un RefMod con varias fotos) se abren y se crean en cajitas.js; «tapar con SAM» de la ficha está en tapar.js.
@@ -9,10 +9,12 @@
 // papel → [texto, mitad]
 export const PAPELES = {
   personaje: ["personaje (identidad o atuendo)", "izq"], objeto: ["objeto / producto", "izq"], lugar: ["lugar", "izq"],
-  ropa: ["ropa", "der"], pose: ["pose", "der"], fondo: ["fondo de una toma", "der"], estilo: ["estilo", "der"], no: ["no usar", "der"],
+  ropa: ["ropa", "der"], pose: ["pose", "der"], fondo: ["fondo de una toma", "der"], estilo: ["estilo", "der"],
+  efecto: ["efecto (imagen o clip de ejemplo)", "der"], no: ["no usar", "der"],
 };
-// campos de la toma que citan una referencia (los mismos que nucleo.CAMPO_PAPEL)
-export const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref"];
+// campos de la toma que citan una referencia (los mismos que nucleo.CAMPO_PAPEL); «efecto» también puede ser E1, E2…
+export const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
+export const PRONOMBRES = [["they", "they (por defecto)"], ["she", "she"], ["he", "he"]];
 const CONCEPTO = { identity: "personaje", clothing: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                    scene: "fondo", style: "estilo" };
 // al añadir desde una mitad, el papel que toca en ese lado según el concepto del RefMod
@@ -20,7 +22,8 @@ const POR_LADO = { izq: { identity: "personaje", background: "lugar", scene: "lu
                    der: { clothing: "ropa", identity: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                           scene: "fondo", "": "estilo" } };
 export const papelPorLado = (lado, concepto) => POR_LADO[lado][concepto] || POR_LADO[lado][""];
-const AYUDA_NOMBRE = { personaje: "solo si es un atuendo: nombre en el prompt (ej.: school uniform)",
+const AYUDA_NOMBRE = { personaje: "nombre del personaje (ej.: Teto); las fotos con el mismo nombre son el mismo personaje",
+                       efecto: "nombre corto del efecto (ej.: neon light streaks)",
                        objeto: "nombre del objeto en el prompt (ej.: red soda can)", lugar: "nombre del lugar (ej.: neon arcade street)",
                        ropa: "nombre de la ropa (ej.: red racing jacket)" };
 
@@ -59,7 +62,7 @@ export function referenciasDelWorkflow(u, graph, node) {
   return { items, lista: items.filter((r) => r.tag), avisos, stack, audioNodo, audio: W(audioNodo || {}, "audio")?.value || "" };
 }
 
-/* Añade a ctx las funciones de la sección 3. Usa de ctx: u, S, wf, graph, node, caja, secRefs, recetas, biblioteca,
+/* Añade a ctx las funciones de la sección 3. Usa de ctx: u, S, wf, graph, node, caja, secRefs, biblioteca,
  * cajitas, avisar, pedirMontaje, pintarPlan, pintarToma, abrirCajita, crearCajita. */
 export function instalar(ctx) {
   const { u, S, wf, graph, node, caja, secRefs } = ctx;
@@ -71,7 +74,7 @@ export function instalar(ctx) {
   // las tomas guardan etiquetas: si los números cambiaron, se traducen por clave (lo que ya no está queda vacío)
   ctx.remapear = function remapear(antes) {
     const ahora = Object.fromEntries(wf.lista.map((r) => [r.clave, r.tag]));
-    for (const t of S.plan.tomas) for (const c of CAMPOS_REF) if (t[c]) t[c] = ahora[antes[t[c]]] || "";
+    for (const t of S.plan.tomas) for (const c of CAMPOS_REF) if ((t[c] || "").startsWith("<")) t[c] = ahora[antes[t[c]]] || "";
   };
 
   // ---- cómo se ve cada referencia
@@ -103,17 +106,56 @@ export function instalar(ctx) {
     ctx.rellenarRefs();
   };
 
-  // papel, nombre y ficha de cada referencia: lo guardado manda; si no, la receta; si no, los datos del RefMod
+  // papel, nombre y ficha de cada referencia: lo guardado manda; si no, los datos del RefMod (su concepto y su apariencia)
   ctx.rellenarRefs = function rellenarRefs() {
-    const deLaReceta = Object.values(ctx.recetas[S.receta]?.referencias || {});
     for (const r of wf.items) {
       if (S.refs[r.clave]) continue;
-      const deReceta = deLaReceta.find((x) => x.ref === r.clave);
       const meta = ctx.biblioteca[r.ref] || {};
-      S.refs[r.clave] = deReceta ? { papel: deReceta.papel, nombre: deReceta.nombre, ficha: deReceta.ficha, origen: "receta" } :
-        { papel: r.medio ? "personaje" : (CONCEPTO[meta.concept] || "no"), nombre: "",
-          ficha: (meta.appearance || meta.desc || "").slice(0, 300), origen: meta.name ? "RefMod" : "" };
+      S.refs[r.clave] = { papel: r.medio ? "personaje" : (CONCEPTO[meta.concept] || "no"), nombre: "",
+                          ficha: (meta.appearance || meta.desc || "").slice(0, 300), origen: meta.name ? "RefMod" : "" };
     }
+  };
+
+  // ---- efectos solo de texto (E1, E2…): nombre y ficha (la frase que va al prompt); se guardan en el estado del nodo
+  ctx.nuevoEfecto = function nuevoEfecto(e) {
+    const n = Math.max(0, ...Object.keys(S.efectos).map((k) => +k.slice(1) || 0)) + 1;
+    S.efectos["E" + n] = { nombre: (e.nombre || "").trim(), ficha: (e.ficha || "").trim() };
+    return "E" + n;
+  };
+  ctx.quitarEfecto = function quitarEfecto(id) {
+    delete S.efectos[id];
+    for (const t of S.plan.tomas) if (t.efecto === id) { t.efecto = ""; t.fijos = t.fijos.filter((f) => f !== "efecto"); }
+  };
+  /* ventanita para crear o cambiar un efecto de texto: nombre y frase (en inglés, va tal cual al prompt) */
+  ctx.abrirEfecto = function abrirEfecto(id) {
+    const e = id ? { ...S.efectos[id] } : { nombre: "", ficha: "" };
+    const aviso = el("p", { class: "epl-aviso" });
+    let pregunta = false;
+    const v = ctx.capa("der");
+    const pintar = () => v.modal.replaceChildren(
+      el("div", { class: "epl-tit" }, id ? `Efecto de texto ${id}` : "Nuevo efecto de texto",
+        el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+      el("p", { class: "epl-ayuda" }, "Un efecto sin imagen: el LLM puede ponerlo en las tomas donde encaje y el código pega la frase tal cual. " +
+        "Para un efecto con imagen o clip de ejemplo, añade la referencia y ponle el papel «efecto»."),
+      el("label", {}, "Nombre corto"),
+      el("input", { class: "epl-nombre", value: e.nombre, placeholder: "ej.: neon light streaks", oninput: (x) => { e.nombre = x.target.value; } }),
+      el("label", {}, "Frase del efecto (en inglés; va tal cual al prompt)"),
+      el("textarea", { class: "epl-ficha-txt", rows: 3, placeholder: "ej.: thin neon light streaks cross the frame behind <Subject 1>",
+                       oninput: (x) => { e.ficha = x.target.value; } }, e.ficha),
+      aviso,
+      el("div", { class: "epl-fila" },
+        el("button", { class: "epl-boton epl-azul", onclick: () => {
+          if (!e.ficha.trim()) { aviso.textContent = "⚠ Escribe la frase del efecto"; return; }
+          if (id) S.efectos[id] = { nombre: e.nombre.trim(), ficha: e.ficha.trim() }; else ctx.nuevoEfecto(e);
+          v.cerrar(); ctx.pintarRefs(); ctx.pintarPlan(); ctx.pedirMontaje();
+        } }, id ? "Guardar" : "Crear efecto"),
+        id ? (pregunta
+          ? el("span", { class: "epl-ayuda" }, "¿quitar el efecto? ",
+              el("button", { class: "epl-mini", onclick: () => { ctx.quitarEfecto(id); v.cerrar(); ctx.pintarRefs(); ctx.pintarPlan(); ctx.pedirMontaje(); } }, "sí"),
+              el("button", { class: "epl-mini", onclick: () => { pregunta = false; pintar(); } }, "no"))
+          : el("button", { class: "epl-mini", onclick: () => { pregunta = true; pintar(); } }, "✕ quitar efecto")) : null));
+    pintar();
+    return v;
   };
 
   // ---- cambiar las tarjetas del RefMod Stack (añadir, quitar, encender, fuerza): se escribe en su propio campo
@@ -250,7 +292,7 @@ export function instalar(ctx) {
     if (!tag) return "apagada: no se envía";
     const r = ctx.refDe(tag);
     const tomas = S.plan.tomas.map((t, i) => CAMPOS_REF.some((c) => t[c] === tag) ? `T${i + 1}` : null).filter(Boolean);
-    if (r.papel === "personaje") tomas.unshift(r.nombre ? "definición" : "definición (todas las tomas)");
+    if (r.papel === "personaje") tomas.unshift(r.atuendo ? "definición" : "definición (todas las tomas)");
     if (r.papel === "objeto") tomas.unshift("definición");
     if (r.papel === "estilo") tomas.unshift("todo el edit");
     return tomas.length ? tomas.join(" · ") : "sin usar";
@@ -260,7 +302,7 @@ export function instalar(ctx) {
     const t = S.plan.tomas[k - 1], usadas = new Set(t ? CAMPOS_REF.map((c) => t[c]).filter(Boolean) : []);
     for (const r of wf.lista) {
       const ref = S.refs[r.clave] || {};
-      if ((ref.papel === "personaje" && !(ref.nombre || "").trim()) || ref.papel === "estilo") usadas.add(r.tag);
+      if ((ref.papel === "personaje" && !(ref.atuendo || "").trim()) || ref.papel === "estilo") usadas.add(r.tag);
     }
     return usadas;
   };
@@ -331,14 +373,21 @@ export function instalar(ctx) {
       wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, "+ Cajita") : null);
     const rejIzq = el("div", { class: "epl-rejilla" }, ...izq.map((r) => tile(r, usadas)));
     const rejDer = el("div", { class: "epl-rejilla" }, ...der.map((r) => tile(r, usadas)));
-    const efectos = Object.entries(ctx.recetas[S.receta]?.efectos || {});
+    // efectos de texto: tocar uno lo pone o lo quita en la toma elegida; sin toma elegida, se abre para cambiarlo
+    const efectos = Object.entries(S.efectos);
     const t = S.elegida ? S.plan.tomas[S.elegida - 1] : null;
-    const fichas = !efectos.length ? null : el("div", { class: "epl-efectos" }, ...efectos.map(([c, n]) =>
-      el("span", { class: "epl-efecto" + (t ? (t.efecto === c ? " usada" : " atenuada") : ""), "data-efecto": c,
-                   title: (ctx.recetas[S.receta]?.frases?.[c] || "") + (t ? "\n\nTócalo para ponerlo o quitarlo en la toma elegida" : ""),
-                   onclick: () => { if (!t) return; t.efecto = t.efecto === c ? "" : c; if (!t.fijos.includes("efecto")) t.fijos.push("efecto");
-                                    ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
-        el("b", {}, c), n.split(" (")[0])));
+    const fichas = el("div", { class: "epl-efectos" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, "Efectos de texto:"),
+      ...efectos.map(([c, e]) =>
+        el("span", { class: "epl-efecto" + (t ? (t.efecto === c ? " usada" : " atenuada") : ""), "data-efecto": c,
+                     title: e.ficha + (t ? "\n\nTócalo para ponerlo o quitarlo en la toma elegida" : "\n\nTócalo para cambiarlo o quitarlo"),
+                     onclick: () => {
+                       if (!t) return ctx.abrirEfecto(c);
+                       t.efecto = t.efecto === c ? "" : c;
+                       if (!t.fijos.includes("efecto")) t.fijos.push("efecto");
+                       ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
+          el("b", {}, c), e.nombre || e.ficha.split(/\s+/).slice(0, 4).join(" "),
+          t ? el("button", { class: "epl-mini", title: "Cambiar o quitar este efecto", onclick: (x) => { x.stopPropagation(); ctx.abrirEfecto(c); } }, "✎") : null)),
+      el("button", { class: "epl-mini", title: "Un efecto sin imagen: nombre y frase que va tal cual al prompt", onclick: () => ctx.abrirEfecto(null) }, "+ Efecto"));
     secRefs.replaceChildren(el("div", { class: "epl-mitades" },
       el("div", { class: "epl-mitad izq" },
         el("div", { class: "epl-tit" }, "Lo que no cambia · persistente", botones("izq")),
@@ -373,7 +422,7 @@ export function instalar(ctx) {
               p[r.idx].visual = { ...(p[r.idx].visual || {}), mode: "weight", w: val };
             }); pintar(); } })),
         el("button", { class: "epl-mini", title: "Quitar del Stack", onclick: () => { v.cerrar(); ctx.quitarDelStack(r); } }, "✕ quitar"));
-      const lleva = ["personaje", "objeto", "lugar", "ropa"].includes(ref.papel);
+      const lleva = ["personaje", "objeto", "lugar", "ropa", "efecto"].includes(ref.papel);
       const izquierda = extra?.izquierda?.(r) || el("div", { class: "grande" },
         src ? el("div", { class: "fondo", style: { backgroundImage: `url("${src}")` } }) : null,
         src ? el("img", { src, alt: "" }) : el("div", { class: "epl-vacio", style: { padding: "20px" } }, "sin vista previa"));
@@ -387,15 +436,24 @@ export function instalar(ctx) {
             el("select", { class: "epl-papel-sel", onchange: (e) => { cambiar("papel", e.target.value); ctx.pintarRefs(); ctx.pintarPlan(); pintar(); } },
               el("optgroup", { label: "Lo que no cambia" }, ...["personaje", "objeto", "lugar"].map((p) =>
                 el("option", { value: p, selected: ref.papel === p }, PAPELES[p][0]))),
-              el("optgroup", { label: "Lo que se presta" }, ...["ropa", "pose", "fondo", "estilo"].map((p) =>
+              el("optgroup", { label: "Lo que se presta" }, ...["ropa", "pose", "fondo", "estilo", "efecto"].map((p) =>
                 el("option", { value: p, selected: ref.papel === p }, PAPELES[p][0]))),
               el("option", { value: "no", selected: ref.papel === "no" || !PAPELES[ref.papel] }, "no usar")),
-            lleva ? el("label", {}, "Nombre en el prompt") : null,
+            lleva ? el("label", {}, ref.papel === "personaje" ? "Nombre del personaje" : "Nombre en el prompt") : null,
             lleva ? el("input", { class: "epl-nombre", value: ref.nombre || "", placeholder: AYUDA_NOMBRE[ref.papel],
                                   oninput: (e) => cambiar("nombre", e.target.value) }) : null,
-            ref.papel === "personaje" ? el("p", { class: "epl-ayuda" }, "Sin nombre, solo da la identidad y vale para todas las tomas " +
-              "(como una cajita con las fotos del personaje). Con nombre es un atuendo y cada toma elige uno.") : null,
-            ref.papel !== "no" ? el("label", {}, "Ficha: qué se ve (en inglés; el LLM no ve la imagen)") : null,
+            ref.papel === "personaje" ? el("div", { class: "epl-fila" },
+              el("label", { style: { margin: 0 } }, "Pronombre ",
+                el("select", { class: "epl-pronombre", onchange: (e) => cambiar("pronombre", e.target.value) },
+                  ...PRONOMBRES.map(([v2, t2]) => el("option", { value: v2, selected: (ref.pronombre || "they") === v2 }, t2)))),
+              el("label", { style: { margin: 0, flex: 1 } }, "Atuendo (opcional) ",
+                el("input", { class: "epl-atuendo", value: ref.atuendo || "", placeholder: "solo si esta foto es un atuendo: school uniform",
+                              oninput: (e) => cambiar("atuendo", e.target.value) }))) : null,
+            ref.papel === "personaje" ? el("p", { class: "epl-ayuda" }, "Cada personaje es un sujeto (<Subject 1>, <Subject 2>…): el código " +
+              "escribe su definición y su retención con el nombre, el pronombre y la ficha. Las fotos con el mismo nombre son el mismo " +
+              "personaje. Con atuendo, la foto es además un atuendo y cada toma elige uno (su ficha describe esa ropa).") : null,
+            ref.papel !== "no" ? el("label", {}, ref.papel === "efecto" ? "Ficha: la frase del efecto que va tal cual al prompt (en inglés)"
+              : ref.papel === "personaje" ? "Ficha: cómo es el personaje (en inglés; va a su definición)" : "Ficha: qué se ve (en inglés; el LLM no ve la imagen)") : null,
             ref.papel !== "no" ? el("textarea", { class: "epl-ficha-txt", rows: 3, oninput: (e) => cambiar("ficha", e.target.value) }, ref.ficha || "") : null,
             ref.papel !== "no" && r.preview ? el("div", { class: "epl-fila" },
               el("button", { class: "epl-mini", title: "Qwen mira la imagen y propone la ficha y los riesgos; revísala",

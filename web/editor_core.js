@@ -1,6 +1,6 @@
 /* Editor de «Prompt del edit (LLM)»: la interfaz nueva (maqueta/interfaz.html). Planos: ../planos/4 El editor.md.
  * Una sola pantalla con 5 partes, de arriba abajo:
- *   1 · Historia general (idea, arco, luz y ambiente, fondo)        → editor/plan.js
+ *   1 · Historia general (idea, estilo, arco, luz y ambiente, fondo) → editor/plan.js
  *   2 · Prompt de la toma elegida (su línea [Shot n] y sus campos)   → editor/plan.js
  *   3 · Referencias en dos mitades: lo que no cambia (rojo) y lo que se presta (azul), con cajitas
  *                                                                     → editor/referencias.js y editor/cajitas.js
@@ -28,9 +28,11 @@ export async function abrir(node, app) {
   const guardado = leerJSON(W(node, "estado")?.value, {});
   const wf = referencias.referenciasDelWorkflow(u, graph, node);
   const S = {
-    receta: W(node, "receta").value, idea: W(node, "idea").value, tomas: +W(node, "tomas").value,
+    idea: W(node, "idea").value, tomas: +W(node, "tomas").value,
     duracion: +W(node, "duracion_s").value, palabras: W(node, "palabras").value, semilla: +W(node, "semilla_llm").value,
     refs: guardado.refs || {}, plan: plan.ajustarPlan(guardado.plan, +W(node, "tomas").value),
+    // lo que antes daba la receta, ahora a la vista: el estilo de todo el edit, el de las palabras y los efectos de texto
+    estilo: guardado.estilo || "", estilo_palabras: guardado.estilo_palabras || "", efectos: guardado.efectos || {},
     prompt: guardado.prompt || "", a_mano: !!guardado.a_mano, cortes: [], avisos: [], ocupado: false, elegida: null,
   };
 
@@ -45,16 +47,18 @@ export async function abrir(node, app) {
   const secLinea = el("div", { class: "epl-zona-tomas" }), secAudio = el("div", { class: "epl-audio" });
   secTiempo.append(secLinea, secAudio);
 
-  const ctx = { u, node, app, graph, S, wf, guardado, recetas: {}, biblioteca: {}, cajitas: {}, caja,
+  const ctx = { u, node, app, graph, S, wf, guardado, biblioteca: {}, cajitas: {}, caja,
                 secHistoria, secToma, secRefs, secLinea, secAudio, secFinal, ajustarPlan: plan.ajustarPlan };
   ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
+  // (los efectos de texto, E1, E2…, van con las referencias, con papel «efecto»)
   const entradas = () => ({
-    idea: S.idea, tomas: S.tomas, duracion: S.duracion, palabras: S.palabras,
-    refs: Object.fromEntries(wf.lista.map((r) => [r.tag, S.refs[r.clave]]).filter(([, x]) => x && x.papel && x.papel !== "no")),
+    idea: S.idea, tomas: S.tomas, duracion: S.duracion, palabras: S.palabras, estilo: S.estilo, estilo_palabras: S.estilo_palabras,
+    refs: { ...Object.fromEntries(wf.lista.map((r) => [r.tag, S.refs[r.clave]]).filter(([, x]) => x && x.papel && x.papel !== "no")),
+            ...Object.fromEntries(Object.entries(S.efectos).map(([k, e]) => [k, { ...e, papel: "efecto" }])) },
   });
   // el audio: la canción original y, si se eligió un tramo, su inicio (audio.js)
-  ctx.cuerpo = (extra = {}) => ({ receta: S.receta, entradas: entradas(), plan: S.plan, ...ctx.audioCuerpo(), semilla: S.semilla, ...extra });
+  ctx.cuerpo = (extra = {}) => ({ entradas: entradas(), plan: S.plan, ...ctx.audioCuerpo(), semilla: S.semilla, ...extra });
 
   // ---- montar (sin LLM) cada vez que cambia algo, salvo si el prompt final se editó a mano
   let espera = null;
@@ -81,10 +85,32 @@ export async function abrir(node, app) {
   audio.instalar(ctx);
   final.instalar(ctx);
 
-  try { ctx.recetas = await api("recetas"); } catch (e) { wf.avisos.push("No pude leer las recetas: " + e.message); }
   await ctx.cargarBiblioteca();
   ctx.prepararRefs(guardado);
+  migrarSinRecetas();
   document.body.append(fondo);
+
+  /* Estados guardados antes de quitar las recetas (v < 4): la receta se ignora (se avisa), los efectos G1–G4 / U3–U5 de
+   * las tomas se vacían con un aviso, y el nombre de un personaje era su atuendo («school uniform»): pasa a «atuendo». */
+  function migrarSinRecetas() {
+    const viejo = (guardado.v || 0) < 4 && Object.keys(guardado).length > 0;
+    const receta = node._eplRecetaVieja || W(node, "receta")?.value || guardado.receta;
+    if (viejo && receta) wf.avisos.push(`Este workflow usaba la receta «${receta}», que ya no existe: escribe el nombre y la ficha ` +
+      "del personaje (en su referencia) y el Estilo (en la historia general).");
+    if (viejo) for (const r of Object.values(S.refs)) {
+      if (r?.papel === "personaje" && (r.nombre || "").trim() && !r.atuendo) { r.atuendo = r.nombre; r.nombre = ""; }
+    }
+    const vaciadas = [];
+    S.plan.tomas.forEach((t, i) => {
+      if (/^[GU]\d$/.test(t.efecto || "")) {
+        vaciadas.push(`T${i + 1} (${t.efecto})`);
+        t.efecto = "";
+        if (!(t.efecto_frase || "").trim()) t.fijos = t.fijos.filter((f) => f !== "efecto" && f !== "efecto_frase");
+      }
+    });
+    if (vaciadas.length) wf.avisos.push(`Los efectos de la receta ya no existen; los quité de ${vaciadas.join(", ")}. ` +
+      "Crea los tuyos con «+ Efecto» (en la mitad azul) o escribe la frase del efecto en la toma.");
+  }
 
   // ---- guardar en el nodo (si se eligió un tramo del audio, antes se escribe su recorte y el LoadAudio apunta a él)
   async function guardar() {
@@ -94,8 +120,8 @@ export async function abrir(node, app) {
     W(node, "duracion_s").value = S.duracion;
     W(node, "palabras").value = S.palabras;
     W(node, "semilla_llm").value = S.semilla;
-    W(node, "receta").value = S.receta;
-    W(node, "estado").value = JSON.stringify({ v: 3, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), plan: S.plan, prompt: S.prompt,
+    W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
+                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, plan: S.plan, prompt: S.prompt,
                                                a_mano: S.a_mano, audio: S.audio, guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);
     graph.setDirtyCanvas?.(true, true);

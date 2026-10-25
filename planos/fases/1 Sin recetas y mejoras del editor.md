@@ -1,29 +1,22 @@
 # Fases: sin recetas y mejoras del editor
 
-Actualizado: 24 oct 2026 · Este archivo dice por dónde va el trabajo, para retomarlo si el PC se suspende o se apaga.
+Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para retomarlo si el PC se suspende o se apaga.
 
 ## Estado
 
 | Fase | Qué | Estado |
 |---|---|---|
-| 1 | Quitar las recetas y los efectos G/U: personaje con nombre y ficha desde sus referencias, campo «Estilo», efectos como referencias | 🔄 en curso |
-| 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | ⬜ pendiente |
+| 1 | Quitar las recetas y los efectos G/U: personaje con nombre y ficha desde sus referencias, campo «Estilo», efectos como referencias | ✅ hecha (commit «Sin recetas: …», ver `git log`) |
+| 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | 🔄 en curso |
 | 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | ⬜ pendiente |
 | 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | ⬜ pendiente |
 | 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | ⬜ pendiente |
 
-## Fase en curso: 1
+## Fase en curso: 2
 
-Hecho (sin commit todavía):
-- `nucleo.py`: sin `recetas.json`. Nuevo `perfil_de` (personajes agrupados por nombre, pronombre she/he/they, estilo y estilo de las palabras), `personajes`, `definiciones`, `entradas_de_estado`. Papel nuevo `efecto` (referencia o efecto de texto `E1`, `E2`…). Firmas sin `nombre_receta`: `escribir_historia(entradas, plan, …)`, `escribir_tomas(entradas, plan, …)`, `montar_plan(entradas, plan, …)`, `planear(idea, n, dur, …, extra=None)`.
+Fase 1 hecha (ver su commit en la tabla). Prueba: `pruebas.py` TODO BIEN (52); workflow aparte «Prueba sin recetas» (copia de «Prueba tapar con SAM»): abre con los avisos de receta y efectos G/U; historia 89 s y tomas 12 s desde la ventana; render 480p 3 s en 422 s (`~/Escritorio/experimentos_edit/edit_prompt_llm/interfaz_nueva/mejoras_sin_recetas/`).
 
-Falta:
-- `rutas.py` (quitar `recetas`, firmas nuevas), visión del papel personaje y efecto.
-- La ventana (`web/editor_core.js`, `plan.js`, `referencias.js`, `linea.js`, `cajitas.js`, `tapar.js`): campo Estilo y estilo de las palabras, ficha del personaje (nombre, pronombre, atuendo), efectos de texto en la mitad azul, migración de estados viejos (v < 4) con avisos.
-- `pruebas.py` y `pruebas/plan_teto.json` / `prompt_teto.txt` nuevos.
-- `__init__.py` (quitar el combo receta) y `web/editor.js` (desplazar los `widgets_values` viejos), al final, con la cola vacía; reiniciar ComfyUI.
-- Borrar `recetas.json`; planos (el 3 pasa a «Personaje, estilo y efectos»).
-- Prueba en el navegador y render corto (3 s, 480p).
+Fase 2, falta todo: `plan.cortes` fijos (validados en `nucleo.contexto`), `montar` devuelve los beats, en `web/editor/linea.js` la ✕ de cada toma con confirmación y los bordes que se arrastran (mínimo 0,4 s, al fotograma, segundos a la vista, «pegar a los beats» ±0,15 s), comprobaciones en `pruebas.py`, plano 4.
 
 ## Cómo seguir
 

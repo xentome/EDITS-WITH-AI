@@ -20,14 +20,13 @@ import urllib.request
 URL = "http://127.0.0.1:8080/v1/chat/completions"
 MODELO = "qwen3.8-27b"
 CORRIDAS = os.path.expanduser("~/Escritorio/experimentos_edit/edit_prompt_llm")
-RECETAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recetas.json")
 with open(os.path.abspath(__file__), "rb") as _f:
     CODIGO = hashlib.sha1(_f.read()).hexdigest()[:8]  # entra en la huella: si cambia este archivo, la despensa no se reutiliza
 ENCUADRES = ("extreme close-up", "close-up", "medium close-up")
 # Papeles de una referencia. Lo que no cambia (persistente): personaje, objeto, lugar. Lo que se presta: ropa, pose, fondo,
-# estilo. "no usar" = cualquier otro valor. planos/1 Como funciona.md.
+# estilo y efecto. "no usar" = cualquier otro valor. planos/1 Como funciona.md y planos/3 Personaje, estilo y efectos.md.
 PERSISTENTES = ("personaje", "objeto", "lugar")
-PRESTADOS = ("ropa", "pose", "fondo", "estilo")
+PRESTADOS = ("ropa", "pose", "fondo", "estilo", "efecto")
 PAPELES = PERSISTENTES + PRESTADOS
 INTENTOS_HISTORIA, INTENTOS_TOMA = 3, 4
 REGLA = "Describe solo lo que se ve: sin metáforas, sin negaciones, sin números, medidas ni tiempos."
@@ -38,19 +37,24 @@ GENERALES = ["lying", "lie down", "lies down", "ground", "floor", "asphalt", "we
 ETIQUETA = re.compile(r"<(?:Subject|Picture|Video|Audio) \d+>")
 NEGACION = re.compile(r"\b(?:not|no|never|without|nor|nothing|none)\b|n't\b", re.I)
 CONTRARIO = {"she": r"\b(?:he|him|his|himself)\b", "he": r"\b(?:she|her|hers|herself)\b"}
+# pronombre → (sujeto, posesivo, posesivo con mayúscula, verbo «wear» conjugado). «they» por defecto.
+PRONOMBRES = {"she": ("she", "her", "Her", "wears"), "he": ("he", "his", "His", "wears"), "they": ("they", "their", "Their", "wear")}
+# Lo fijo de la casa (no depende del personaje): qué es un edit, el audio y cómo se ven las palabras si no se dice otra cosa.
+DEFINICION_EDIT = ("Video corto hecho de tomas breves que cambian al ritmo de una canción. Cada toma muestra de cerca al personaje "
+                   "principal en un momento distinto; juntas cuentan un arco pequeño que resalta lo que tiene de especial (su "
+                   "emoción, su gesto, su estilo). Cada imagen se ve bella y con intención; el texto en pantalla es mínimo.")
+AUDIO = "<Audio 1> is the music reference."
+RETENCION_AUDIO = "<Audio 1>: reference - the song plays unchanged and times every cut."
+TEXTO_ESTILO = "in bold clean white letters"
 # campo del LLM → campo del plan
 HISTORIA = {"PLACE": "lugar", "MOMENT": "momento", "OUTFIT": "personaje", "CLOTHES": "ropa", "POSE": "pose",
             "OBJECT": "objeto", "LOCATION": "lugar_ref", "BACKGROUND": "fondo_ref", "EFFECT": "efecto"}
 # campo de la toma que guarda una referencia → papel de las referencias que admite
 CAMPO_PAPEL = {"personaje": "personaje", "ropa": "ropa", "pose": "pose", "objeto": "objeto", "lugar_ref": "lugar",
-               "fondo_ref": "fondo"}
+               "fondo_ref": "fondo", "efecto": "efecto"}
 DIRECCION = {"FRAMING": "encuadre", "LIGHT": "luz", "ACTION": "gesto", "CAMERA": "camara"}
+EFECTO_TEXTO = re.compile(r"E\d+")   # un efecto solo de texto (sin imagen) se llama E1, E2… en vez de <Picture N>
 ULTIMA_LLAMADA = [0.0]  # cuándo terminó la última llamada al LLM (el nodo espera a que llama suelte la VRAM)
-
-
-def cargar_recetas():
-    with open(RECETAS) as f:
-        return json.load(f)
 
 
 # ------------------------------------------------------------------ plan y referencias
@@ -58,11 +62,12 @@ def toma_vacia():
     return {**{c: "" for c in list(HISTORIA.values()) + list(DIRECCION.values())}, "efecto_frase": "", "fijos": []}
 
 
-def frase_efecto(receta, t):
-    """La frase que va al prompt: la que escribió el usuario en la toma (efecto_frase) o, si no, la probada de la receta."""
+def frase_efecto(menu, t):
+    """La frase que va al prompt: la que escribió el usuario en la toma (efecto_frase) o, si no, la ficha del efecto
+    elegido (una referencia de papel efecto o un efecto de texto). El código la pega tal cual."""
     if (t.get("efecto_frase") or "").strip():
         return t["efecto_frase"].strip().rstrip(".")
-    return receta["efectos"][t["efecto"]][1] if t.get("efecto") in receta["efectos"] else ""
+    return menu["efecto"].get(t.get("efecto") or "", {}).get("ficha", "").rstrip(".")
 
 
 def plan_vacio(n):
@@ -80,26 +85,58 @@ def ajustar_plan(plan, n):
     return p
 
 
-def menu_de(receta, refs=None):
-    """Referencias por papel: {'personaje': {tag: {'nombre', 'ficha'}}, 'objeto': …, 'lugar': …, 'ropa': …, 'pose': …}.
-    tag es <Picture N> o <Video N> (una cajita de varias fotos llega como <Video N>).
-    Las del editor (refs) mandan; sin editor se usan las de la receta."""
+def menu_de(refs):
+    """Referencias por papel: {'personaje': {tag: {'nombre', 'ficha', 'atuendo', 'pronombre'}}, 'objeto': …, 'efecto': …}.
+    tag es <Picture N> o <Video N> (una cajita de varias fotos llega como <Video N>); un efecto solo de texto es E1, E2…"""
     m = {p: {} for p in PAPELES}
-    for tag, r in (refs if refs is not None else receta.get("referencias", {})).items():
-        if r.get("papel") in m:
-            m[r["papel"]][tag] = {"nombre": (r.get("nombre") or "").strip(), "ficha": (r.get("ficha") or "").strip()}
+    for tag, r in (refs or {}).items():
+        if r and r.get("papel") in m:
+            m[r["papel"]][tag] = {"nombre": (r.get("nombre") or "").strip(), "ficha": (r.get("ficha") or "").strip(),
+                                  "atuendo": (r.get("atuendo") or "").strip() if r["papel"] == "personaje" else "",
+                                  "pronombre": (r.get("pronombre") or "").strip().lower()}
     return m
 
 
+def personajes(menu):
+    """Un sujeto por cada personaje que no cambia: las referencias de papel personaje se juntan por su nombre («Teto»);
+    las que no tienen nombre van juntas. El primero es <Subject 1>, el protagonista. Cada uno: sujeto, nombre, ficha (la de
+    una referencia que no sea un atuendo), pronombre (el primero elegido; «they» si ninguno) y sus etiquetas."""
+    grupos = {}
+    for tag, r in menu["personaje"].items():
+        g = grupos.setdefault(r["nombre"].lower(), {"nombre": r["nombre"], "ficha": "", "pronombre": "", "tags": []})
+        g["tags"].append(tag)
+        if not g["ficha"] and r["ficha"] and not r["atuendo"]:
+            g["ficha"] = r["ficha"].rstrip(".")
+        if not g["pronombre"] and r["pronombre"] in PRONOMBRES:
+            g["pronombre"] = r["pronombre"]
+    out = list(grupos.values())
+    for i, g in enumerate(out, 1):
+        g.update(sujeto=f"<Subject {i}>", pronombre=g["pronombre"] or "they")
+    return out
+
+
+def perfil_de(menu, entradas=None):
+    """Lo que antes daba la receta, sacado de lo que está a la vista: los personajes (de sus referencias), el pronombre y el
+    nombre del protagonista, el estilo que escribió el usuario y cómo se ven las palabras en pantalla."""
+    e, ps = entradas or {}, personajes(menu)
+    pron = ps[0]["pronombre"] if ps else "they"
+    return {"personajes": ps, "nombre": ps[0]["nombre"] if ps else "", "pronombre": pron,
+            "posesivo": PRONOMBRES[pron][1], "Posesivo": PRONOMBRES[pron][2], "lleva": PRONOMBRES[pron][3],
+            # el pronombre se revisa solo si hay un único personaje con «she» o «he» (con varios, cada uno tiene el suyo)
+            "revisar_pronombre": pron if len(ps) == 1 and pron in CONTRARIO else "",
+            "estilo": (e.get("estilo") or "").strip().rstrip("."), "texto_estilo": (e.get("estilo_palabras") or "").strip() or TEXTO_ESTILO}
+
+
 def atuendos(menu):
-    """Referencias de personaje con nombre: son atuendos y cada toma elige uno (OUTFIT). Las que no tienen nombre solo dan la
-    identidad (por ejemplo una cajita con las fotos de Teto) y valen para todas las tomas."""
-    return {t: a for t, a in menu["personaje"].items() if a["nombre"]}
+    """Referencias de personaje con atuendo («school uniform»): cada toma elige uno (OUTFIT). Las que no lo tienen solo dan
+    la identidad (por ejemplo una cajita con las fotos de Teto) y valen para todas las tomas."""
+    return {t: a for t, a in menu["personaje"].items() if a["atuendo"]}
 
 
 def sujetos_objeto(menu):
-    """Cada objeto que no cambia es un sujeto más: el personaje es <Subject 1> y los objetos <Subject 2>, <Subject 3>…"""
-    return {tag: f"<Subject {i}>" for i, tag in enumerate(menu["objeto"], 2)}
+    """Cada objeto que no cambia es un sujeto más, después de los personajes: con un personaje, <Subject 2>, <Subject 3>…"""
+    primero = max(1, len(personajes(menu))) + 1
+    return {tag: f"<Subject {i}>" for i, tag in enumerate(menu["objeto"], primero)}
 
 
 def nombre_de(r, otro):
@@ -109,6 +146,16 @@ def nombre_de(r, otro):
 def lista(tags):
     tags = list(tags)
     return tags[0] if len(tags) == 1 else ", ".join(tags[:-1]) + " and " + tags[-1] if tags else ""
+
+
+def entradas_de_estado(estado):
+    """Lo que el nodo sin editor puede leer del estado guardado por el editor: las referencias por etiqueta (el editor las
+    guarda por nombre de RefMod, con el mapa etiqueta → nombre), los efectos de texto, el estilo y el de las palabras."""
+    estado = estado or {}
+    refs, etiquetas = estado.get("refs") or {}, estado.get("etiquetas") or {}
+    por_tag = {tag: refs[clave] for tag, clave in etiquetas.items() if clave in refs}
+    por_tag.update({k: {**v, "papel": "efecto"} for k, v in (estado.get("efectos") or {}).items() if EFECTO_TEXTO.fullmatch(k)})
+    return {"refs": por_tag, "estilo": estado.get("estilo") or "", "estilo_palabras": estado.get("estilo_palabras") or ""}
 
 
 # ------------------------------------------------------------------ reloj (habitación 3)
@@ -420,8 +467,8 @@ def conversar(reg, nombre, prompt, leer, revisar, intentos, pensar, semilla, max
 
 
 # ------------------------------------------------------------------ revisiones comunes
-def problemas_texto(t, receta, campo):
-    """Lo que ya causó fallos en el video (plano 5 (Reglas de revisión), filas 9–13, 15 y 24)."""
+def problemas_texto(t, perfil, campo):
+    """Lo que ya causó fallos en el video (plano 5 (Reglas de revisión), filas 9–13 y 15)."""
     p, s = [], ETIQUETA.sub("", t)
     if re.search(r"\d", s):
         p.append(f"{campo}: tiene números")
@@ -430,12 +477,13 @@ def problemas_texto(t, receta, campo):
     m = NEGACION.search(s)
     if m:
         p.append(f"{campo}: tiene una negación («{m.group(0)}»); di lo que sí se ve")
-    for w in GENERALES + receta.get("prohibidas", []):
+    for w in GENERALES:
         if re.search(rf"\b{re.escape(w)}\b", s, re.I):
             p.append(f"{campo}: usa «{w}», que da problemas en el video")
-    m = re.search(CONTRARIO[receta["pronombre"]], s, re.I) if receta["pronombre"] in CONTRARIO else None
+    pron = perfil["revisar_pronombre"]
+    m = re.search(CONTRARIO[pron], s, re.I) if pron else None
     if m:
-        p.append(f"{campo}: usa «{m.group(0)}»; {receta['nombre']} es {receta['pronombre']}")
+        p.append(f"{campo}: usa «{m.group(0)}»; {perfil['nombre'] or '<Subject 1>'} es {pron}")
     return p
 
 
@@ -444,10 +492,13 @@ def parecido(a, b):
 
 
 def etiqueta(valor, menu):
-    """'<Picture 5>', 'Picture 5' o '5' → '<Picture 5>' si está en el menú (igual con <Video N>); vacío o 'none' → '';
-    lo demás → None (no vale). Un número solo se busca primero como Picture, salvo que diga «video»."""
+    """'<Picture 5>', 'Picture 5' o '5' → '<Picture 5>' si está en el menú (igual con <Video N>; un efecto de texto, 'E2');
+    vacío o 'none' → ''; lo demás → None (no vale). Un número solo se busca primero como Picture, salvo que diga «video»."""
     if re.fullmatch(r"\s*(?:none|-|ninguna|ninguno)?\s*", valor or "", re.I):
         return ""
+    m = re.search(r"\bE\s*(\d+)\b", valor, re.I)
+    if m and f"E{m.group(1)}" in menu:
+        return f"E{m.group(1)}"
     m = re.search(r"\d+", valor)
     if not m:
         return None
@@ -455,10 +506,20 @@ def etiqueta(valor, menu):
     return next((f"<{t} {m.group(0)}>" for t in tipos if f"<{t} {m.group(0)}>" in menu), None)
 
 
-def cabecera(receta, menu=None):
-    lin = [receta["definicion_edit"],
-           f"Estilo: {receta['estilo']}. {receta['protagonista']} (su aspecto lo dan las imágenes de referencia; no lo describas)."]
-    for tag, suj in sujetos_objeto(menu or {"objeto": {}}).items():
+def cabecera(perfil, menu):
+    """Lo que el LLM sabe siempre: qué es un edit, el estilo que escribió el usuario (si lo hay) y quién sale."""
+    lin = [DEFINICION_EDIT]
+    if perfil["estilo"]:
+        lin.append(f"Estilo de todo el edit (lo escribió el usuario; respétalo): {perfil['estilo']}.")
+    ps = perfil["personajes"]
+    if not ps:
+        lin.append("El personaje principal es <Subject 1> (they); no lo describas.")
+    for i, g in enumerate(ps):
+        quien = f"{g['nombre']}, " if g["nombre"] else ""
+        lin.append(f"{'El personaje principal' if i == 0 else 'Otro personaje que no cambia'} es {g['sujeto']}, {quien}"
+                   f"pronombre {g['pronombre']} (su aspecto lo dan {lista(g['tags'])}; no lo describas)." +
+                   ("" if i == 0 else f" Sale en las tomas donde encaje y MOMENT lo nombra como {g['sujeto']}."))
+    for tag, suj in sujetos_objeto(menu).items():
         o = menu["objeto"][tag]
         lin.append(f"{suj} es {nombre_de(o, 'un objeto')}: un objeto que no cambia en todo el edit (su aspecto lo da {tag}; "
                    "no lo describas).")
@@ -466,9 +527,9 @@ def cabecera(receta, menu=None):
 
 
 # ------------------------------------------------------------------ sala de la historia (habitación 5)
-def prompt_historia(receta, menu, plan, idea, durs, palabras):
+def prompt_historia(perfil, menu, plan, idea, durs, palabras):
     n = len(plan["tomas"])
-    lin = cabecera(receta, menu) + ["", f"IDEA DEL USUARIO (manda): {idea}"]
+    lin = cabecera(perfil, menu) + ["", f"IDEA DEL USUARIO (manda): {idea}"]
     if plan["fondo"]:
         lin.append(f"Fondos de todo el edit: {plan['fondo']}")
     lin.append(f"Son {n} tomas, en orden: " +
@@ -480,8 +541,8 @@ def prompt_historia(receta, menu, plan, idea, durs, palabras):
               "MOMENT: <qué hace y siente <Subject 1>, una frase que se pueda ver de cerca>"]
     trajes = atuendos(menu)
     if trajes:
-        lin += ["", "Personaje y atuendo (cada toma usa una de estas referencias; cambia de atuendo entre tomas seguidas):"]
-        lin += [f"- {t}: {a['nombre']} ({a['ficha']})" for t, a in trajes.items()]
+        lin += ["", "Atuendos de <Subject 1> (cada toma usa una de estas referencias; cambia de atuendo entre tomas seguidas):"]
+        lin += [f"- {t}: {a['atuendo']} ({a['ficha']})" for t, a in trajes.items()]
         campos.append("OUTFIT: <Picture N>" + (" o none si la toma lleva CLOTHES" if menu["ropa"] else ""))
     if menu["ropa"]:
         lin += ["", "Ropa prestada (solo la ropa; <Subject 1> se la pone en las tomas que la usen" +
@@ -507,11 +568,13 @@ def prompt_historia(receta, menu, plan, idea, durs, palabras):
         lin += ["", "Fondos de referencia (opcionales; úsalos solo si encajan con el lugar de la toma):"]
         lin += [f"- {t}: {p['ficha']}" for t, p in menu["fondo"].items()]
         campos.append("BACKGROUND: <Picture N o none>")
-    if receta["efectos"]:
-        lin += ["", "Efectos visuales (cada toma usa uno distinto; elige el que encaje con el lugar y el momento de esa toma):"]
-        lin += [f"- {c}: {e[0]}" + (f" (solo en una toma donde haya: {e[2]})" if len(e) > 2 else "")
-                for c, e in receta["efectos"].items()]
-        campos.append("EFFECT: <código>")
+    if menu["efecto"]:
+        cada = len(menu["efecto"]) <= n
+        lin += ["", "Efectos visuales (los eligió el usuario; ponlos en las tomas donde encajen con el lugar y el momento" +
+                ("; cada uno al menos en una toma" if cada else "") + "; no repitas el mismo en dos tomas seguidas):"]
+        lin += [f"- {t}: {nombre_de(e, 'effect')} ({e['ficha']})" for t, e in menu["efecto"].items()]
+        campos.append("EFFECT: <" + " o ".join(sorted({'Picture N' if t.startswith('<') else 'E N' for t in menu['efecto']})) +
+                      " o none>")
     dados = [f"LOOK: {plan['look']}"] if "look" in plan["fijos"] else []
     dados += [f"ARC: {plan['arco']}"] if "arco" in plan["fijos"] else []
     inv = {v: k for k, v in HISTORIA.items()}
@@ -526,7 +589,7 @@ def prompt_historia(receta, menu, plan, idea, durs, palabras):
     return "\n".join(lin)
 
 
-def leer_historia(texto, plan, menu, receta):
+def leer_historia(texto, plan, menu):
     """Lee la respuesta y la funde con el plan: lo fijado por el usuario queda encima. Devuelve {'plan', 'formato'}."""
     texto, p, formato = texto.replace("**", ""), copy.deepcopy(plan), []
     for campo, clave in (("ARC", "arco"), ("LOOK", "look")):
@@ -550,7 +613,7 @@ def leer_historia(texto, plan, menu, receta):
     if vistas != set(range(1, len(p["tomas"]) + 1)):
         formato.append(f"tienen que ser exactamente {len(p['tomas'])} líneas SHOT, numeradas de 1 a {len(p['tomas'])}")
     inv = {v: c for c, v in HISTORIA.items()}
-    for k, t in enumerate(p["tomas"], 1):  # normaliza etiquetas y códigos
+    for k, t in enumerate(p["tomas"], 1):  # normaliza las etiquetas (también la del efecto)
         for clave, papel in CAMPO_PAPEL.items():
             opciones = atuendos(menu) if papel == "personaje" else menu[papel]
             if opciones:
@@ -561,28 +624,22 @@ def leer_historia(texto, plan, menu, receta):
                 t[clave] = tag or ""
             else:
                 t[clave] = ""
-        if receta["efectos"]:
-            e = re.search(r"\b([A-Z]\d)\b", (t["efecto"] or "").upper())
-            t["efecto"] = e.group(1) if e and e.group(1) in receta["efectos"] else ""
-        else:
-            t["efecto"] = ""
     return {"plan": p, "formato": formato}
 
 
-def revisar_historia(datos, receta, menu):
-    """plano 5 (Reglas de revisión), filas 4, 5, 9–16 y 22. Solo culpa al LLM de lo que eligió él (no de lo que fijó el usuario)."""
+def revisar_historia(datos, perfil, menu):
+    """plano 5 (Reglas de revisión), filas 4, 5, 9–15 y 22. Solo culpa al LLM de lo que eligió él (no de lo que fijó el usuario)."""
     p, plan = list(datos["formato"]), datos["plan"]
     for clave, campo in (("arco", "ARC"), ("look", "LOOK")):
         if clave not in plan["fijos"]:
-            p += problemas_texto(plan[clave], receta, campo) if plan[clave] else [f"falta la línea {campo}"]
+            p += problemas_texto(plan[clave], perfil, campo) if plan[clave] else [f"falta la línea {campo}"]
     # lo que el usuario fijó en cualquier toma cuenta como ya usado, también para las tomas anteriores a ella
-    fijado = lambda c: [o[c] for o in plan["tomas"] if c in o.get("fijos", []) and o[c]]
-    poses, efectos = fijado("pose"), fijado("efecto")
+    poses = [o["pose"] for o in plan["tomas"] if "pose" in o.get("fijos", []) and o["pose"]]
     for k, t in enumerate(plan["tomas"], 1):
         libre = lambda c: c not in t.get("fijos", [])
         for clave, campo in (("lugar", "PLACE"), ("momento", "MOMENT")):
             if libre(clave):
-                p += problemas_texto(t[clave], receta, f"SHOT {k} {campo}") if t[clave] else [f"SHOT {k}: falta {campo}"]
+                p += problemas_texto(t[clave], perfil, f"SHOT {k} {campo}") if t[clave] else [f"SHOT {k}: falta {campo}"]
         if libre("lugar"):  # dos tomas en el mismo lugar que no cambia sí pueden parecerse
             p += [f"SHOT {k}: el lugar se parece demasiado al de SHOT {j}; cada toma va en un lugar distinto"
                   for j, o in enumerate(plan["tomas"][:k - 1], 1) if t["lugar"] and parecido(t["lugar"], o["lugar"]) > 0.75
@@ -605,21 +662,14 @@ def revisar_historia(datos, receta, menu):
             p.append(f"SHOT {k}: repite la pose {t['pose']}")
         if libre("pose"):
             poses.append(t["pose"])
-        if receta["efectos"]:
-            e = t["efecto"]
-            if not e and libre("efecto"):
-                p.append(f"SHOT {k}: EFFECT tiene que ser uno de {', '.join(receta['efectos'])}")
-            elif e and e in efectos and libre("efecto") and len(plan["tomas"]) <= len(receta["efectos"]):
-                p.append(f"SHOT {k}: repite el efecto {e}")
-            elif e and len(receta["efectos"][e]) > 2 and (libre("efecto") or libre("momento")):
-                pide = receta["efectos"][e][2]
-                visto = " ".join([t["lugar"], t["momento"], menu["pose"].get(t["pose"], {}).get("ficha", "")]).lower()
-                if pide not in visto:
-                    p.append(f"SHOT {k}: el efecto {e} necesita que en la toma haya «{pide}»; ponlo en MOMENT o elige otro efecto")
-            if libre("efecto"):
-                efectos.append(e)
-    # un objeto o un lugar que no cambia tiene que salir al menos en una toma (si el LLM podía ponerlo)
-    for clave, papel, campo in (("objeto", "objeto", "OBJECT"), ("lugar_ref", "lugar", "LOCATION")):
+        anterior = plan["tomas"][k - 2]["efecto"] if k > 1 else ""
+        if t["efecto"] and t["efecto"] == anterior and libre("efecto") and len(menu["efecto"]) > 1:
+            p.append(f"SHOT {k}: repite el efecto {t['efecto']} de la toma anterior; elige otro o none")
+    # un objeto, un lugar o un efecto que el usuario puso tiene que salir al menos en una toma (si el LLM podía ponerlo;
+    # los efectos, solo si hay tomas para todos)
+    for clave, papel, campo in (("objeto", "objeto", "OBJECT"), ("lugar_ref", "lugar", "LOCATION"), ("efecto", "efecto", "EFFECT")):
+        if papel == "efecto" and len(menu["efecto"]) > len(plan["tomas"]):
+            continue
         for tag in menu[papel]:
             if all(t[clave] != tag for t in plan["tomas"]) and any(clave not in t.get("fijos", []) for t in plan["tomas"]):
                 p.append(f"ninguna toma usa {campo} {tag}; ponlo al menos en una toma donde encaje")
@@ -631,10 +681,10 @@ def linea_corta(t, k):
     return f"[Shot {k}] {t['encuadre']}, {t['lugar']}, {t['luz']}: {t['gesto']}; the camera {t['camara']}"
 
 
-def prompt_toma(receta, menu, plan, k, dur, vecinas):
+def prompt_toma(perfil, menu, plan, k, dur, vecinas):
     t, n = plan["tomas"][k - 1], len(plan["tomas"])
-    lin = cabecera(receta, menu) + ["", "Historia completa (respétala):", f"ARC: {plan['arco']}",
-                              f"Hora, luz y paleta de todo el edit (respétalas): {plan['look']}"]
+    lin = cabecera(perfil, menu) + ["", "Historia completa (respétala):", f"ARC: {plan['arco']}",
+                                    f"Hora, luz y paleta de todo el edit (respétalas): {plan['look']}"]
     if plan["fondo"]:
         lin.append(f"Fondos de todo el edit: {plan['fondo']}")
     lin += [f"SHOT {j}: {o['lugar']} — {o['momento']}" for j, o in enumerate(plan["tomas"], 1)]
@@ -644,7 +694,7 @@ def prompt_toma(receta, menu, plan, k, dur, vecinas):
             f"- Qué pasa: {t['momento']}"]
     if t["personaje"]:
         a = menu["personaje"].get(t["personaje"], {})
-        lin.append(f"- Atuendo: {a.get('nombre', '')} ({a.get('ficha', '')}); no lo describas, el sistema lo cita")
+        lin.append(f"- Atuendo: {a.get('atuendo', '')} ({a.get('ficha', '')}); no lo describas, el sistema lo cita")
     if t["ropa"]:
         a = menu["ropa"].get(t["ropa"], {})
         lin.append(f"- Ropa: {nombre_de(a, 'clothes')} ({a.get('ficha', '')}); no la describas, el sistema la cita")
@@ -661,8 +711,8 @@ def prompt_toma(receta, menu, plan, k, dur, vecinas):
         lin.append(f"- Pose: {menu['pose'].get(t['pose'], {}).get('ficha', '')}; el gesto es esta pose")
     if t["fondo_ref"]:
         lin.append(f"- Fondo de referencia: {menu['fondo'].get(t['fondo_ref'], {}).get('ficha', '')}")
-    if frase_efecto(receta, t):
-        lin.append(f"- Efecto (el sistema añade esta frase tal cual; tu luz no debe contradecirla): {frase_efecto(receta, t)}")
+    if frase_efecto(menu, t):
+        lin.append(f"- Efecto (el sistema añade esta frase tal cual; tu luz no debe contradecirla): {frase_efecto(menu, t)}")
     for nombre, j in vecinas:
         o = plan["tomas"][j - 1]
         if o["encuadre"] or o["camara"]:
@@ -674,7 +724,7 @@ def prompt_toma(receta, menu, plan, k, dur, vecinas):
     lin += ["", "Responde en inglés, solo estas cuatro líneas:",
             "FRAMING: <elige UNA sola: extreme close-up, close-up o medium close-up>",
             "LIGHT: <de dónde viene la luz en esta toma y cómo cae sobre ella, en pocas palabras; la paleta general ya está dicha>",
-            f"ACTION: <empieza con un verbo en presente: un gesto de <Subject 1> ({receta['pronombre']}) con una parte del cuerpo "
+            f"ACTION: <empieza con un verbo en presente: un gesto de <Subject 1> ({perfil['pronombre']}) con una parte del cuerpo "
             "o un objeto>",
             "CAMERA: <qué hace la cámara, empezando con un verbo; por ejemplo pushes in, holds still, drifts sideways, tilts up, "
             "slowly zooms in>",
@@ -682,7 +732,7 @@ def prompt_toma(receta, menu, plan, k, dur, vecinas):
     return "\n".join(lin)
 
 
-def leer_toma(texto, receta, t):
+def leer_toma(texto, perfil, t):
     """Lee las cuatro líneas y las funde con la toma: lo fijado por el usuario queda encima."""
     texto, d = texto.replace("**", ""), {}
     for campo, clave in DIRECCION.items():
@@ -690,7 +740,8 @@ def leer_toma(texto, receta, t):
         d[clave] = m.group(1).strip().rstrip(".") if m else ""
     d["encuadre"] = re.sub(r"\s+", " ", d["encuadre"].lower().replace("close up", "close-up")).strip(" <>")
     # el gesto va detrás de "<Subject 1>" y la cámara detrás de "the camera": si el LLM los repitió delante, se quitan
-    a = re.sub(rf"^(?:<Subject 1>|{receta['nombre']}|{receta['pronombre']})\s+", "", d["gesto"], flags=re.I)
+    quien = "|".join(re.escape(x) for x in ("<Subject 1>", perfil["nombre"], perfil["pronombre"]) if x)
+    a = re.sub(rf"^(?:{quien})\s+", "", d["gesto"], flags=re.I)
     d["gesto"] = a[:1].lower() + a[1:] if not a.startswith("<") else a
     c = re.sub(r"^(?:the\s+)?camera\s+", "", d["camara"], flags=re.I)
     d["camara"] = c[:1].lower() + c[1:]
@@ -700,7 +751,7 @@ def leer_toma(texto, receta, t):
     return d
 
 
-def revisar_toma(d, receta, plan, k, vecinas, fijos, menu=None):
+def revisar_toma(d, perfil, plan, k, vecinas, fijos, menu=None):
     """plano 5 (Reglas de revisión), filas 6–13, 15, 17, 21 y 27. Solo culpa al LLM de lo que eligió él."""
     libre = lambda c: c not in fijos
     p = [] if d["encuadre"] in ENCUADRES or not libre("encuadre") else [
@@ -710,7 +761,7 @@ def revisar_toma(d, receta, plan, k, vecinas, fijos, menu=None):
         p.append(f"ACTION tiene que incluir el objeto con su etiqueta {suj}")
     for clave, campo in (("luz", "LIGHT"), ("gesto", "ACTION"), ("camara", "CAMERA")):
         if libre(clave):
-            p += problemas_texto(d[clave], receta, campo) if d[clave] else [f"falta {campo}"]
+            p += problemas_texto(d[clave], perfil, campo) if d[clave] else [f"falta {campo}"]
     if libre("luz") and len(d["luz"].split()) > 15:
         p.append("LIGHT es demasiado larga: en pocas palabras")
     if libre("gesto") and len(d["gesto"].split()) > 25:
@@ -732,22 +783,41 @@ def mmss(t):
     return f"00:{t:06.3f}"
 
 
-def montar(receta, menu, plan, ini, palabras):
+def definiciones(perfil, menu):
+    """subject_definitions y la retención de cada personaje, armadas con su nombre, su ficha y sus referencias."""
+    ps, sujeto, retencion = perfil["personajes"], [], []
+    if not ps:
+        sujeto.append("<Subject 1> is the main character.")
+    for g in ps:
+        pos = PRONOMBRES[g["pronombre"]][2]
+        sujeto.append(f"{g['sujeto']} is the character in {lista(g['tags'])}" + (f": {g['ficha']}" if g["ficha"] else "") + "." +
+                      (f" {pos} name is {g['nombre']}." if g["nombre"] else ""))
+        quien = f"{g['nombre']}'s" if g["nombre"] else "the character's"
+        retencion.append(f"{g['sujeto']}: fully_preserved - {quien} face, hair and features from {lista(g['tags'])} stay the "
+                         "same in every shot.")
+    if atuendos(menu) or menu["ropa"]:
+        sujeto[0] += f" In each shot {perfil['pronombre']} {perfil['lleva']} the outfit of the reference cited for that shot."
+    for tag, suj in sujetos_objeto(menu).items():  # 💡
+        sujeto.append(f"{suj} is the {nombre_de(menu['objeto'][tag], 'object')} shown in {tag}; it is the same object in every "
+                      "shot where it appears.")
+    return sujeto, retencion
+
+
+def montar(perfil, menu, plan, ini, palabras):
     """Plan → prompt H3 (6 secciones). Devuelve (prompt, avisos); un campo vacío sale como […] y queda en avisos."""
     avisos, falta = [], lambda v, que: v or (avisos.append(que) or "[…]")
-    personajes = list(menu["personaje"])
     lineas = []
     for k, t in enumerate(plan["tomas"], 1):
         t0 = ini[k - 1]
         citas = []
-        if t["personaje"] and menu["personaje"].get(t["personaje"], {}).get("nombre"):
-            citas.append(f"wearing {receta['posesivo']} {menu['personaje'][t['personaje']]['nombre']} from {t['personaje']}")
-        if t["ropa"] in menu["ropa"]:  # 💡 cita de la ropa prestada (probada solo en la prueba Teto + ropa de Vera)
+        if t["personaje"] and menu["personaje"].get(t["personaje"], {}).get("atuendo"):
+            citas.append(f"wearing {perfil['posesivo']} {menu['personaje'][t['personaje']]['atuendo']} from {t['personaje']}")
+        if t["ropa"] in menu["ropa"]:  # cita de la ropa prestada (probada con la ropa de Vera sobre Teto)
             citas.append(f"wearing the {nombre_de(menu['ropa'][t['ropa']], 'clothes')} from {t['ropa']}")
         if t["pose"]:
             citas.append(f"in the pose of {t['pose']}")
         lugar = re.sub(r"^(A|An|The)\b", lambda m: m.group(1).lower(), falta(t["lugar"], f"toma {k}: sin lugar"))
-        if t["lugar_ref"] in menu["lugar"]:  # 💡 lugar que no cambia: sin probar en un render
+        if t["lugar_ref"] in menu["lugar"]:
             lugar += f", in the {nombre_de(menu['lugar'][t['lugar_ref']], 'place')} shown in {t['lugar_ref']}"
         if t["fondo_ref"]:
             lugar += f" like the place in {t['fondo_ref']}"
@@ -755,18 +825,19 @@ def montar(receta, menu, plan, ini, palabras):
         s = (f"[Shot {k}] At {mmss(t0)} {encuadre}, {lugar}, {falta(t['luz'], f'toma {k}: sin luz')}: <Subject 1>" +
              (", " + " and ".join(citas) + "," if citas else "") +
              f" {falta(t['gesto'], f'toma {k}: sin gesto')}; the camera {falta(t['camara'], f'toma {k}: sin cámara')}.")
-        if frase_efecto(receta, t):
-            s += f" Effect: {frase_efecto(receta, t)}."
+        if frase_efecto(menu, t):
+            # 💡 un efecto con imagen se cita además por su etiqueta (sin render todavía)
+            s += f" Effect: {frase_efecto(menu, t)}" + (f", like the effect in {t['efecto']}" if t["efecto"].startswith("<") and
+                                                        t["efecto"] in menu["efecto"] else "") + "."
         if k in palabras:
-            s += (f' At {mmss(t0 + 0.15)} the words "{palabras[k]}" appear {receta["texto_estilo"]}, beside <Subject 1>, '
-                  f"never covering {receta['posesivo']} face.")
+            s += (f' At {mmss(t0 + 0.15)} the words "{palabras[k]}" appear {perfil["texto_estilo"]}, beside <Subject 1>, '
+                  f"never covering {perfil['posesivo']} face.")
         lineas.append(s)
-    retencion = [receta["retencion"].replace("{personajes}", lista(personajes))]
-    objetos = sujetos_objeto(menu)
-    for tag, suj in objetos.items():  # 💡 frases nuevas, sin probar en un render
+    sujeto, retencion = definiciones(perfil, menu)
+    for tag, suj in sujetos_objeto(menu).items():  # 💡 frases nuevas, sin probar en un render
         retencion.append(f"{suj}: fully_preserved - the shape, colors, materials and markings of the "
                          f"{nombre_de(menu['objeto'][tag], 'object')} from {tag} wherever it appears.")
-    for tag, a in menu["lugar"].items():  # 💡
+    for tag, a in menu["lugar"].items():
         retencion.append(f"{tag}: fully_preserved - the {nombre_de(a, 'place')}: its layout, architecture, colors and light "
                          "fixtures stay the same in every shot set there; any person in it is not transferred.")
     for tag, a in menu["ropa"].items():  # probada con la ropa de Vera sobre la cajita de Teto (24 oct)
@@ -774,29 +845,30 @@ def montar(receta, menu, plan, ini, palabras):
         retencion.append(f"{tag}: attribute_transfer - only the clothes are transferred" + (f" ({ropa.rstrip('.')})" if ropa else "") +
                          "; that person's face, hair and body are not transferred.")
     if menu["pose"]:
-        retencion.append(f"{lista(menu['pose'])}: attribute_transfer - only the body pose; that girl's face, hair and clothes "
+        retencion.append(f"{lista(menu['pose'])}: attribute_transfer - only the body pose; that person's face, hair and clothes "
                          "are not transferred.")
     if menu["fondo"]:
         retencion.append(f"{lista(menu['fondo'])}: attribute_transfer - only the place and its background are transferred; "
                          "any person in it is not transferred.")
     if menu["estilo"]:
         retencion.append(f"{lista(menu['estilo'])}: attribute_transfer - only the visual style is transferred.")
-    retencion.append(receta["retencion_audio"])
+    efectos_img = [t for t in menu["efecto"] if t.startswith("<")]
+    if efectos_img:  # 💡
+        retencion.append(f"{lista(efectos_img)}: attribute_transfer - only the visual effect is transferred, in the shots that "
+                         "use it; any person in it is not transferred.")
+    retencion.append(RETENCION_AUDIO)
     texto = ("The only text on screen is " + " and ".join(f'"{w}" in shot {k}' for k, w in sorted(palabras.items())) + "."
              if palabras else "No text on screen.")
-    estilo = receta["estilo_prompt"] + " " + falta(plan["look"], "sin look (luz general)") + "."
+    # la línea de estilo: el estilo del usuario (si lo hay) y el look del LLM; sin estilo no se inventa ninguno
+    estilo = (perfil["estilo"] + ". " if perfil["estilo"] else "") + falta(plan["look"], "sin look (luz general)") + "."
     if plan["fondo"]:
         estilo += f" Backgrounds: {plan['fondo'].rstrip('.')}."
     if menu["estilo"]:
         estilo += f" Visual style of {lista(menu['estilo'])}."
-    sujeto = receta["sujeto"].replace("{personajes}", lista(personajes))
-    if receta.get("sujeto_atuendo") and (atuendos(menu) or menu["ropa"]):
-        sujeto += " " + receta["sujeto_atuendo"]
-    for tag, suj in objetos.items():  # 💡
-        sujeto += (f"\n{suj} is the {nombre_de(menu['objeto'][tag], 'object')} shown in {tag}; it is the same object in every "
-                   "shot where it appears.")
-    prompt = ("subject_definitions:\n" + sujeto + "\n" + receta["audio"] +
-              "\n\nsummary:\n[reference generation + audio reference] " + receta["resumen"] + ": " +
+    resumen = "A music edit of <Subject 1>" + (f" ({perfil['estilo']})" if perfil["estilo"] else "") + \
+              ", close shots cut on the beat of <Audio 1>"
+    prompt = ("subject_definitions:\n" + "\n".join(sujeto) + "\n" + AUDIO +
+              "\n\nsummary:\n[reference generation + audio reference] " + resumen + ": " +
               falta(plan["arco"], "sin arco").rstrip(".") + "." +
               "\n\nretention_analysis:\n" + "\n".join(retencion) +
               "\n\ndetailed_description:\n" + estilo + " " + texto + "\n" + "\n".join(lineas) +
@@ -808,8 +880,9 @@ def montar(receta, menu, plan, ini, palabras):
 # ------------------------------------------------------------------ visión: ficha de una referencia
 # El papel lo pone el usuario: con él, Qwen acierta mucho más (estudio experimentos_edit/nombrar_refmods/INFORME.md).
 VISION = {
-    "personaje": "This image is an outfit reference for the main character. Give a 2-5 word English name for the outfit "
-                 "(for example 'school uniform') and one short English sentence listing only the visible clothes and accessories.",
+    "personaje": "This image shows a character that must look the same in every shot. Give a 1-3 word English name for "
+                 "the kind of character (for example 'anime girl') and one short English sentence describing only how the "
+                 "character looks: kind of person or character, hair, eyes and distinctive features, without the clothes.",
     "objeto": "This image is a reference of an object or product that must look the same in every shot. Give a 2-4 word "
               "English name for it (for example 'red soda can') and one short English sentence describing only its shape, "
               "colors, materials and markings.",
@@ -824,6 +897,9 @@ VISION = {
             "The name is 2-4 words.",
     "fondo": "This image is a background reference. In one short English sentence describe only the place: its main objects, "
              "light and colors. The name is 2-4 words.",
+    "efecto": "This image is an example of a visual effect for a music video shot. Give a 2-4 word English name for the "
+              "effect (for example 'neon light streaks') and one short English sentence describing only the effect: what "
+              "appears on the image, its colors and how it moves, written so it can be pasted into a video prompt.",
     "estilo": "This image is a style reference. In one short English sentence describe only the visual style: drawing "
               "technique, line, color and texture. The name is 2-4 words.",
 }
@@ -952,35 +1028,36 @@ def ruta_mascara(datos_foto, palabra, cache=CACHE_TAPAR):
 
 
 # ------------------------------------------------------------------ acciones (las usan el nodo y el editor)
-def contexto(nombre_receta, entradas, plan, beats):
-    """Lo que necesitan todas las acciones: receta, menú, plan con n tomas, cortes, duraciones y palabras."""
-    receta = cargar_recetas()[nombre_receta]
+def contexto(entradas, plan, beats):
+    """Lo que necesitan todas las acciones: perfil (personajes y estilo), menú, plan con n tomas, cortes, duraciones y
+    palabras. entradas: {idea, tomas, duracion, palabras, refs, estilo, estilo_palabras}."""
     n, dur = int(entradas["tomas"]), float(entradas["duracion"])
     if n * 0.4 > dur:
         raise ValueError(f"{n} tomas no caben en {dur} s (cada toma necesita al menos 0,4 s).")
     ini, durs = duraciones(n, dur, beats)
-    return receta, menu_de(receta, entradas.get("refs")), ajustar_plan(plan, n), ini, durs, leer_palabras(entradas.get("palabras"), n)
+    menu = menu_de(entradas.get("refs"))
+    return perfil_de(menu, entradas), menu, ajustar_plan(plan, n), ini, durs, leer_palabras(entradas.get("palabras"), n)
 
 
-def escribir_historia(nombre_receta, entradas, plan, beats=None, semilla=0, reg=None):
-    """Historia (1 llamada, razonamiento low): arco, look y, por toma, lugar, momento, personaje, pose, fondo y efecto.
+def escribir_historia(entradas, plan, beats=None, semilla=0, reg=None):
+    """Historia (1 llamada, razonamiento low): arco, look y, por toma, lugar, momento, referencias y efecto.
     Respeta lo fijado. Devuelve (plan, intentos)."""
-    receta, menu, plan, ini, durs, palabras = contexto(nombre_receta, entradas, plan, beats)
+    perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
     if not (entradas.get("idea") or "").strip():
         raise ValueError("Falta la idea.")
     reg = reg or registro_nuevo("historia")
-    datos, intentos = conversar(reg, "historia", prompt_historia(receta, menu, plan, entradas["idea"].strip(), durs, palabras),
-                                lambda x: leer_historia(x, plan, menu, receta), lambda x: revisar_historia(x, receta, menu),
+    datos, intentos = conversar(reg, "historia", prompt_historia(perfil, menu, plan, entradas["idea"].strip(), durs, palabras),
+                                lambda x: leer_historia(x, plan, menu), lambda x: revisar_historia(x, perfil, menu),
                                 INTENTOS_HISTORIA, True, semilla, 6144)
     for t in datos["plan"]["tomas"]:  # la dirección anterior ya no encaja con la historia nueva (salvo lo fijado)
         t.update({c: "" for c in [*DIRECCION.values(), "efecto_frase"] if c not in t.get("fijos", [])})
     return datos["plan"], intentos
 
 
-def escribir_tomas(nombre_receta, entradas, plan, beats=None, semilla=0, solo=None, reg=None, aviso=None):
+def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, aviso=None):
     """Encuadre, luz, gesto y cámara (1 llamada por toma, sin razonamiento). `solo`: regenera solo esa toma, mirando a
     sus dos vecinas. Respeta lo fijado. Devuelve (plan, intentos por toma)."""
-    receta, menu, plan, ini, durs, palabras = contexto(nombre_receta, entradas, plan, beats)
+    perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
     faltan = [k for k, t in enumerate(plan["tomas"], 1) if not t["lugar"] or not t["momento"]]
     if faltan:
         raise ValueError(f"Primero hace falta la historia: las tomas {faltan} no tienen lugar o momento.")
@@ -995,9 +1072,9 @@ def escribir_tomas(nombre_receta, entradas, plan, beats=None, semilla=0, solo=No
         siguiente = k < n and (solo or {"encuadre", "camara"} & set(plan["tomas"][k].get("fijos", [])))
         vecinas = ([("anterior", k - 1)] if k > 1 else []) + ([("siguiente", k + 1)] if siguiente else [])
         fijos = set(t.get("fijos", []))
-        d, it = conversar(reg, f"toma{k}", prompt_toma(receta, menu, plan, k, durs[k - 1], vecinas),
-                          lambda x, t=t: leer_toma(x, receta, t),
-                          lambda x, k=k, v=vecinas, f=fijos: revisar_toma(x, receta, plan, k, v, f, menu),
+        d, it = conversar(reg, f"toma{k}", prompt_toma(perfil, menu, plan, k, durs[k - 1], vecinas),
+                          lambda x, t=t: leer_toma(x, perfil, t),
+                          lambda x, k=k, v=vecinas, f=fijos: revisar_toma(x, perfil, plan, k, v, f, menu),
                           INTENTOS_TOMA, False, semilla + k, 300)
         t.update(d)
         hechas[k] = it
@@ -1006,22 +1083,24 @@ def escribir_tomas(nombre_receta, entradas, plan, beats=None, semilla=0, solo=No
     return plan, hechas
 
 
-def montar_plan(nombre_receta, entradas, plan, beats=None):
-    receta, menu, plan, ini, durs, palabras = contexto(nombre_receta, entradas, plan, beats)
-    prompt, avisos = montar(receta, menu, plan, ini, palabras)
+def montar_plan(entradas, plan, beats=None):
+    perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
+    prompt, avisos = montar(perfil, menu, plan, ini, palabras)
     return prompt, avisos, ini
 
 
-def planear(nombre_receta, idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, antes_del_llm=None):
+def planear(idea, n, dur, palabras_txt="", semilla=0, beats=None, avance=None, antes_del_llm=None, extra=None):
     """Recorrido completo del nodo sin editor: idea → prompt H3. Devuelve (prompt, informe, llamó_al_llm).
+    extra: lo que se pueda leer del estado del editor (referencias, estilo; entradas_de_estado). Sin él no hay referencias:
+    el personaje es <Subject 1> sin más y no hay estilo.
     avance(paso, total, texto) se llama después de cada etapa; antes_del_llm() justo antes de la primera llamada."""
-    receta, idea = cargar_recetas()[nombre_receta], idea.strip()
+    idea = idea.strip()
     if not idea:
         raise ValueError("Falta la idea.")
-    entradas = {"idea": idea, "tomas": n, "duracion": dur, "palabras": palabras_txt, "refs": None}
+    entradas = {"idea": idea, "tomas": n, "duracion": dur, "palabras": palabras_txt, "refs": {}, **(extra or {})}
     ini = cortes(n, dur, beats)
-    # despensa: mismas entradas, misma receta, mismo código y misma semilla → mismo prompt, sin llamar al LLM
-    huella = hashlib.sha1(json.dumps([CODIGO, receta, idea, n, round(dur, 3), leer_palabras(palabras_txt, n), semilla, ini],
+    # despensa: mismas entradas, mismo código y misma semilla → mismo prompt, sin llamar al LLM
+    huella = hashlib.sha1(json.dumps([CODIGO, entradas, n, round(dur, 3), leer_palabras(palabras_txt, n), semilla, ini],
                                      sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:10]
     hecho = sorted(glob.glob(os.path.join(CORRIDAS, f"*_{huella}", "prompt_final.txt")))
     if hecho:
@@ -1034,21 +1113,23 @@ def planear(nombre_receta, idea, n, dur, palabras_txt="", semilla=0, beats=None,
     aviso = avance or (lambda paso, total, texto: print(f"[{paso}/{total}] {texto}", flush=True))
     reg = Registro(os.path.join(CORRIDAS, time.strftime("%Y%m%d_%H%M%S") + "_" + huella))
     t0 = time.time()
-    plan, ih = escribir_historia(nombre_receta, entradas, plan_vacio(n), beats, semilla, reg)
+    plan, ih = escribir_historia(entradas, plan_vacio(n), beats, semilla, reg)
     t_historia = time.time() - t0
     aviso(1, n + 1, f"historia lista ({ih} intento/s, {t_historia:.0f} s)")
-    plan, _ = escribir_tomas(nombre_receta, entradas, plan, beats, semilla, reg=reg,
+    plan, _ = escribir_tomas(entradas, plan, beats, semilla, reg=reg,
                              aviso=lambda k, total, texto: aviso(k + 1, total + 1, texto))
-    prompt, avisos, ini = montar_plan(nombre_receta, entradas, plan, beats)
+    prompt, avisos, ini = montar_plan(entradas, plan, beats)
     total = time.time() - t0
     with open(os.path.join(reg.carpeta, "prompt_final.txt"), "w") as f:
         f.write(prompt)
     with open(os.path.join(reg.carpeta, "plan.json"), "w") as f:
-        json.dump({"entradas": {**entradas, "receta": nombre_receta, "semilla": semilla, "beats": beats}, "cortes": ini,
+        json.dump({"entradas": {**entradas, "semilla": semilla, "beats": beats}, "cortes": ini,
                    "plan": plan, "llamadas": reg.llamadas, "problemas": reg.problemas, "segundos": round(total, 1),
                    "huella": huella, "fecha": time.strftime("%Y-%m-%d %H:%M:%S")}, f, ensure_ascii=False, indent=1)
     revision = "; ".join(f"{x['paso']} intento {x['intento']}: {' / '.join(x['problemas'])}" for x in reg.problemas)
-    informe = (f"Receta {nombre_receta} · {n} tomas en {dur:.3f} s · semilla {semilla}\n"
+    refs = len(entradas.get("refs") or {})
+    informe = (f"{n} tomas en {dur:.3f} s · semilla {semilla} · {refs} referencia/s"
+               f"{' · estilo: ' + entradas['estilo'] if entradas.get('estilo') else ' · sin estilo'}\n"
                f"Cortes: {' · '.join(f'{t:.3f}' for t in ini)}\n"
                f"{len(reg.llamadas)} llamadas en {total:.0f} s (historia {t_historia:.0f} s, tomas {total - t_historia:.0f} s)\n"
                f"Revisión: {revision or 'todo pasó a la primera'}\n"
@@ -1059,14 +1140,14 @@ def planear(nombre_receta, idea, n, dur, palabras_txt="", semilla=0, beats=None,
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description="Prueba el núcleo sin ComfyUI (planos/6 Cambiar sin romper.md).")
-    ap.add_argument("--receta", required=True)
     ap.add_argument("--idea", required=True)
     ap.add_argument("--tomas", type=int, default=6)
     ap.add_argument("--duracion", type=float, default=5.167)
     ap.add_argument("--palabras", default="", help="ej.: 'TO YOU @1' (varias separadas por ;)")
+    ap.add_argument("--estilo", default="", help="estilo de todo el edit, en inglés (ej.: 'flat 2D anime illustration')")
     ap.add_argument("--semilla", type=int, default=0)
     ap.add_argument("--audio", help="wav para poner los cortes en sus beats (sin él, cortes parejos)")
     a = ap.parse_args()
-    prompt, informe, _ = planear(a.receta, a.idea, a.tomas, a.duracion, a.palabras, a.semilla,
-                                 beats_de_archivo(a.audio) if a.audio else None)
+    prompt, informe, _ = planear(a.idea, a.tomas, a.duracion, a.palabras, a.semilla,
+                                 beats_de_archivo(a.audio) if a.audio else None, extra={"estilo": a.estilo})
     print(prompt + "\n\n" + informe)
