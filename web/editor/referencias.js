@@ -562,7 +562,7 @@ export function instalar(ctx) {
       const lleva = CON_NOMBRE.includes(ref.papel);
       const izquierda = extra?.izquierda?.(r) || el("div", { class: "grande" },
         src ? el("div", { class: "fondo", style: { backgroundImage: `url("${src}")` } }) : null,
-        src ? el("img", { src, alt: "" }) : el("div", { class: "epl-vacio", style: { padding: "20px" } }, t("comun.sin_vista_previa")));
+        clipDe(r, src, pintar) || (src ? el("img", { src, alt: "" }) : el("div", { class: "epl-vacio", style: { padding: "20px" } }, t("comun.sin_vista_previa"))));
       v.modal.className = "epl-modal " + ctx.ladoDe(r);
       v.modal.replaceChildren(
         el("div", { class: "epl-tit" }, el("b", { style: { color: "#cfe0ff" } }, apagada(r)), r.nombre,
@@ -615,6 +615,27 @@ export function instalar(ctx) {
     pintar();
     return v;
   };
+  /* un RefMod de tipo clip (no una cajita) se ve en movimiento en su ficha: su video de origen, que busca el servidor
+   * (rutas.video_de: su .fuente.json o un video de input/ con su mismo nombre). Mientras lo busca, o si no lo encuentra,
+   * se ve su primer fotograma con un aviso. ctx.clips guarda la respuesta de cada RefMod. */
+  ctx.clips = ctx.clips || {};
+  function clipDe(r, src, repintar) {
+    if (r.kind !== "video" || !r.ref || ctx.esCajita(r)) return null;
+    const ya = ctx.clips[r.ref];
+    if (ya === undefined) {
+      ctx.clips[r.ref] = null;
+      api("video_de", { nombre: r.ref }).then((x) => { ctx.clips[r.ref] = x.file || ""; repintar(); })
+        .catch(() => { ctx.clips[r.ref] = ""; repintar(); });
+    }
+    if (!ya) {
+      return el("div", { class: "epl-clip" }, src ? el("img", { src, alt: "" }) : null,
+        el("span", { class: "epl-clip-nota" }, t(ya === "" ? "referencias.clip.sin_video" : "referencias.clip.buscando")));
+    }
+    const v = el("video", { src: u.vistaMedio(ya), autoplay: true, loop: true, playsinline: true, controls: true, class: "epl-clip-video" });
+    v.muted = true;
+    return el("div", { class: "epl-clip" }, v, el("span", { class: "epl-clip-nota" }, t("referencias.clip.de", { file: ya.replace(/ \[input\]$/, "") })));
+  }
+
   /* los dos renglones de arriba del prompt de esta referencia (subject_definitions y retention_analysis): vacíos, la frase
    * de su papel en frases.json, que se ve en gris (S.lineasRef, del último montaje); lo que escribas va tal cual */
   function renglonesArriba(r, ref, cambiar) {

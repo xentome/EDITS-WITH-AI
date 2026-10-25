@@ -224,6 +224,37 @@ def cajitas(d=None):
     return {"cajitas": out}
 
 
+VIDEOS = (".mp4", ".webm", ".mov", ".mkv", ".gif")
+
+
+def video_de(d):
+    """El video del que salió un RefMod de tipo clip, para verlo en movimiento en su ficha: el que apunta su
+    `<nombre>.fuente.json` ({"file": "minimax_h3/x.mp4 [input]"}) o, si no lo tiene, un video de input/ con el mismo
+    nombre de archivo. El RefMod solo guarda el latente, no de qué archivo salió. Devuelve {file, como} o {file: ""}."""
+    import json
+    import os
+    import folder_paths
+    nombre = (d or {}).get("nombre") or ""
+    raiz, entrada = _raiz_refmods(), folder_paths.get_input_directory()
+    fuente = os.path.join(raiz, nombre + ".fuente.json")
+    if os.path.isfile(fuente):
+        try:
+            with open(fuente) as fh:
+                f = json.load(fh).get("file", "")
+            if os.path.isfile(os.path.join(entrada, f.removesuffix(" [input]"))):
+                return {"file": f, "como": "fuente"}
+        except Exception:
+            pass
+    tronco = os.path.basename(nombre)
+    for carpeta, dirs, archivos in os.walk(entrada):
+        dirs[:] = sorted(x for x in dirs if x != "cache" and not x.startswith("."))
+        for a in sorted(archivos):
+            if a.lower().endswith(VIDEOS) and os.path.splitext(a)[0] == tronco:
+                rel = os.path.relpath(os.path.join(carpeta, a), entrada).replace(os.sep, "/")
+                return {"file": f"{rel} [input]", "como": "nombre"}
+    return {"file": ""}
+
+
 def _foto_de_refmod(nombre, raiz):
     """Un RefMod de una foto → su foto original en input/minimax_h3 (mismo nombre de archivo) o, si no está, una copia de su
     vista previa en input/minimax_h3/cajitas/. Una cajita → sus fotos."""
@@ -547,6 +578,7 @@ ACCIONES = {
     "describir": (describir, True),
     "medios": (medios, False),
     "cajitas": (cajitas, False),
+    "video_de": (video_de, False),
     "crear_cajita": (crear_cajita, False),
     "subir_refmods": (subir_refmods, False),
     "tapados": (tapados, False),
