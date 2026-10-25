@@ -72,7 +72,7 @@ export function instalar(ctx) {
   }
 
   /* encender (o aplicar otras opciones): `desde` es la tarjeta que hay ahora en el Stack y `original` el RefMod sin tapar */
-  async function encender(desde, original, op, v, linea) {
+  async function encender(desde, original, op, v, linea, sinFicha = false) {
     if (S.ocupado) return;
     const meta = ctx.biblioteca[original] || {};
     const cuerpo = { refmod: original, cosas: op.cosas, libre: op.libre, forma: op.forma, n_fotos: ctx.nFotos(desde),
@@ -89,13 +89,17 @@ export function instalar(ctx) {
         : `Tapada en ${Math.round((pv.segundos + res.segundos) * 10) / 10} s (SAM ${pv.segundos_sam} s, RefMod ${res.segundos_refmod} s) · ${encontrado(res.encontrado)}`;
       mensajes[res.name] = texto + (res.aviso ? `\n⚠ ${res.aviso}` : "");
       v.cerrar();
-      reabrir(nueva);
+      if (!sinFicha) reabrir(nueva);
       ctx.avisar(texto, "bien");
+      return nueva;
     } catch (e) {
       ctx.avisar("Tapar: " + e.message, "mal");
       if (linea) linea.textContent = "⚠ " + e.message;
     } finally { w.fin(); }
   }
+
+  /* tapar una tarjeta sin abrir su ficha (lo usa «Subir foto» con «tapar al subir»): cara y pelo, difuminado */
+  ctx.taparTarjeta = (r, op = OPCIONES) => encender(r, r.ref, JSON.parse(JSON.stringify(op)), { cerrar() {} }, null, true);
 
   function apagar(r, info, v) {
     try {

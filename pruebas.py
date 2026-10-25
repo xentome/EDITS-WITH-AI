@@ -16,6 +16,15 @@ import nucleo as N  # noqa: E402
 fallos = []
 
 
+def _falla(f):
+    """True si f() lanza un error (lo que debe pasar con una entrada que no vale)."""
+    try:
+        f()
+    except Exception:
+        return True
+    return False
+
+
 def comprobar(nombre, condicion, detalle=""):
     print(("  ok   " if condicion else "  FALLA") + f" {nombre}" + ("" if condicion else f" → {detalle}"))
     if not condicion:
@@ -357,6 +366,23 @@ try:
 finally:
     sys.modules.pop("folder_paths", None)
     shutil.rmtree(tmp4, ignore_errors=True)
+
+print("14 · Subir foto: papel → concept_type y nombre libre (rutas.subir_refmods)")
+tmp5 = tempfile.mkdtemp(prefix="epl_refmods_")
+try:
+    os.makedirs(os.path.join(tmp5, "subidas"))
+    open(os.path.join(tmp5, "subidas", "teto.safetensors"), "wb").write(b"x")
+    open(os.path.join(tmp5, "subidas", "teto_2.safetensors"), "wb").write(b"x")
+    comprobar("el concept_type sale del papel (personaje→identity, ropa→clothing, pose→pose_motion, lugar/fondo→background, "
+              "objeto→generic, estilo/efecto→style)",
+              R.CONCEPTO_PAPEL == {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background",
+                                   "fondo": "background", "objeto": "generic", "estilo": "style", "efecto": "style"})
+    comprobar("un nombre que ya existe recibe _2, _3…", R._libre(tmp5, "subidas/teto") == "subidas/teto_3" and
+              R._libre(tmp5, "subidas/vera") == "subidas/vera")
+    comprobar("sin nombre o sin fotos no se crea nada", all(_falla(lambda d=d: R.subir_refmods(d)) for d in
+              ({"nombre": "", "fotos": ["a.jpg"]}, {"nombre": "x", "fotos": []})))
+finally:
+    shutil.rmtree(tmp5, ignore_errors=True)
 
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

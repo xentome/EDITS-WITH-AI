@@ -124,6 +124,8 @@ input.corto{width:70px}
 .epl-cancion{cursor:pointer;border:1px solid #2e3440;padding:6px 8px;background:#15181e;overflow-wrap:anywhere}
 .epl-cancion:hover{border-color:#e0a94c}.epl-cancion.actual{border-color:#5a8fd6;background:#1c2a40}
 .epl-cancion b{display:block;font-size:12px;font-weight:600;color:#e3e7ee}.epl-cancion small{color:#8a93a3;font-size:11px}
+.epl-soltar{min-height:240px;border:2px dashed #3d4a5c;padding:10px;cursor:pointer;display:flex;align-items:flex-start}
+.epl-soltar>.epl-vacio{margin:auto;text-align:center}.epl-soltar .epl-fotos{flex:1}
 .epl-modal.soltar{outline:3px dashed #e0a94c;outline-offset:-8px}
 .epl-papel.efecto{background:#1f4a3a}
 /* 5 · prompt final */

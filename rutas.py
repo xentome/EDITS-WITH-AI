@@ -266,6 +266,54 @@ def crear_cajita(d):
     return {"name": destino, "fotos": items, "segundos": round(time.time() - t0, 1)}
 
 
+# papel de la mitad → concept_type del RefMod (lo que Fantastic sabe hacer con él)
+CONCEPTO_PAPEL = {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background",
+                  "fondo": "background", "objeto": "generic", "estilo": "style", "efecto": "style"}
+
+
+def _libre(raiz, base):
+    """«subidas/teto» si no existe; si no, «subidas/teto_2», «_3»…"""
+    import os
+    nombre, k = base, 1
+    while os.path.exists(os.path.join(raiz, nombre + ".safetensors")):
+        k += 1
+        nombre = f"{base}_{k}"
+    return nombre
+
+
+def subir_refmods(d):
+    """Crea RefMods con fotos ya subidas a input/minimax_h3 (el editor las sube con /upload/image). d: nombre, papel,
+    fotos: [ruta en input/], juntar (varias fotos en una sola cajita), carpeta (por defecto «subidas»). Igual que una
+    cajita: MiniMaxH3FantasticRefModCreate, Full Reference, 512, VAE de H3; el concept_type sale del papel.
+    Devuelve {creados: [nombres], segundos}."""
+    import json
+    import os
+    import re
+    t0 = time.time()
+    base = re.sub(r"[^A-Za-z0-9._-]+", "_", (d.get("nombre") or "").strip()).strip("._")
+    carpeta = re.sub(r"[^A-Za-z0-9._/-]+", "_", (d.get("carpeta") or "subidas").strip()).strip("/.")
+    if not base:
+        raise ValueError("Ponle un nombre corto (ej.: teto, chaqueta_roja).")
+    rels = list(dict.fromkeys(f.removesuffix(" [input]") for f in d.get("fotos") or [] if f))
+    if not rels:
+        raise ValueError("No hay fotos que subir.")
+    concepto = CONCEPTO_PAPEL.get(d.get("papel"), "generic")
+    raiz = _raiz_refmods()
+    grupos = [rels] if d.get("juntar") or len(rels) == 1 else [[r] for r in rels]
+    _cola_libre("crear las referencias")
+    creados = []
+    for i, fotos in enumerate(grupos, 1):
+        destino = _libre(raiz, f"{carpeta}/{base}" + ("" if len(grupos) == 1 else f"_{i}"))
+        items = [_item_media(r) for r in fotos]
+        _crear_refmod(os.path.basename(destino), os.path.dirname(destino), items, concepto,
+                      f"Subida desde el editor del edit ({d.get('papel') or 'sin papel'})", "", "", "referencia subida")
+        if len(items) > 1:       # una cajita apunta sus fotos, como las de «+ Cajita»
+            with open(os.path.join(raiz, destino + ".cajita.json"), "w") as fh:
+                json.dump({"fotos": items, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}, fh, ensure_ascii=False, indent=1)
+        creados.append(destino)
+    return {"creados": creados, "concepto": concepto, "segundos": round(time.time() - t0, 1)}
+
+
 # ------------------------------------------------------------------ tapar: la referencia sin cara, pelo o texto (SAM 3.1)
 # Encender «tapar» en la ficha de una referencia: SAM hace las máscaras (por /prompt), nucleo.tapar_imagen tapa la foto,
 # se guarda en input/minimax_h3/tapado/ y se crea un RefMod hermano «<original>__tapado_<huella>» con su <nombre>.tapado.json
@@ -474,6 +522,7 @@ ACCIONES = {
     "medios": (medios, False),
     "cajitas": (cajitas, False),
     "crear_cajita": (crear_cajita, False),
+    "subir_refmods": (subir_refmods, False),
     "tapados": (tapados, False),
     "tapar_previa": (tapar_previa, False),
     "tapar": (tapar, False),

@@ -17,7 +17,7 @@ Lectura: 2 min
 | Misma semilla | misma respuesta |
 | Qwen3.8 | escribe a 34 tok/s y lee a ~360 tok/s |
 | Prompt final de Teto | ~700 palabras (v3: 1.524) |
-| Comprobaciones de `pruebas.py` | 60 (25 oct: sin recetas, línea de tiempo, duración y canciones), unos 5 s |
+| Comprobaciones de `pruebas.py` | 63 (25 oct: sin recetas, línea de tiempo, duración, canciones y subir foto), unos 5 s |
 | Editor: historia / tomas / una toma / visión | 113 s / 28,7 s / 7 s / 15 s |
 | Visión: riesgos | acertó (cara difuminada, bandas negras, texto) |
 | Visión: objetos pequeños | falla y cambia entre intentos (el chicle salió como «bolso rosa» y como «tira de mochila») |
@@ -53,6 +53,7 @@ Lectura: 2 min
 - ❓ **Pelo con la pose `<Picture 5>`:** probar a nombrar el pelo dentro de las tomas que usan una pose; la v3 lo hacía y salía bien.
 - ❓ **Si las tomas sin razonamiento salen tan bien como con el método de 3 etapas:** hay que compararlo en renders.
 - ❓ **Edits de 10 s en 2 clips:** un mismo plan para las dos mitades.
+- ❓ **Lo que crean las pruebas** se queda: RefMods en `models/refmods/subidas/` y fotos en `input/minimax_h3/` (no se borran solos, como los tapados).
 - 💡 **Efectos con imagen (papel efecto) y varios personajes a la vez:** escritos y revisados por `pruebas.py`, sin render.
 - ❓ **Tapar en las fotos del Media Loader:** hoy solo en tarjetas del Stack. Haría falta cambiar el archivo del medio, no una tarjeta.
 - ❓ **Tapar una pose:** sin render. Falta ver si una pose con la cara difuminada sigue dando la pose bien.

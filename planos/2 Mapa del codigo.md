@@ -58,6 +58,7 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 | `audio_ventana` | picos finos alrededor del tramo y, con `wav`, el tramo en WAV para oírlo | no |
 | `audio_recortar` | escribe el tramo en `input/edit_tramo_<hash>.wav`, sin tocar la original | no |
 | `crear_cajita` | crea un RefMod con varias fotos: manda a ComfyUI el nodo `MiniMaxH3FantasticRefModCreate` (Full Reference, 512) con un VAELoader, por `/prompt`, y apunta sus fotos | no (usa ComfyUI unos 10 s) |
+| `subir_refmods` | crea RefMods con fotos ya subidas a `input/minimax_h3` («⬆ Subir foto»): una por foto o todas en una cajita, con el concept_type del papel (`CONCEPTO_PAPEL`), en `subidas/` | no (RefMod unos 5 s) |
 | `tapados` | los RefMods tapados y de qué original salen (archivos `<RefMod>.tapado.json`) | no |
 | `tapar_previa` | busca las fotos fuente, hace las máscaras con SAM 3.1 (o las saca de la caché) y guarda la foto tapada en `input/minimax_h3/tapado/`; no crea el RefMod. Si ese tapado ya existe, lo dice sin SAM | no (SAM: 2–8 s) |
 | `tapar` | crea (o reutiliza) el RefMod tapado `<original>__tapado_<huella>`, con el mismo concepto que el original, y escribe su `.tapado.json` | no (RefMod unos 4 s) |
@@ -79,6 +80,7 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | dónde caen los cortes | `nucleo.cortes` |
 | las dos mitades, la ficha de una referencia, la biblioteca o el resaltado | `web/editor/referencias.js` |
 | las cajitas | `web/editor/cajitas.js` y `rutas.crear_cajita` |
+| «Subir foto» | `web/editor/referencias.js` (`ctx.abrirSubir`) y `rutas.subir_refmods` |
 | tapar: los chips, la forma o el cambio de tarjeta | `web/editor/tapar.js` |
 | tapar: de qué foto se parte | `rutas._fuentes_tapar` |
 | tapar: cómo se tapa (radios, pixelado, color) o el grafo de SAM | `nucleo.py`, sección tapar (`tapar_imagen`, `grafo_sam`, `COSAS_TAPAR`) |

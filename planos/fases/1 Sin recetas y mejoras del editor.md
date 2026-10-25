@@ -9,14 +9,14 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 | 1 | Quitar las recetas y los efectos G/U: personaje con nombre y ficha desde sus referencias, campo «Estilo», efectos como referencias | ✅ hecha · `5589d62` |
 | 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | ✅ hecha · `b002e9d` |
 | 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | ✅ hecha · `adc3d07` |
-| 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | ✅ hecha (commit «Canción: …») |
-| 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | 🔄 en curso |
+| 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | ✅ hecha · `5134304` |
+| 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | ✅ hecha (commit «Subir foto: …») |
 
-## Fase en curso: 5
+## Fase en curso: render final
 
-Fase 4 hecha: `pruebas.py` TODO BIEN (60). En «Prueba duración»: «♫ Cambiar canción» lista 47 audios de input/; elegir `bluefairy_full.mp3` deja el LoadAudio en ella, el tramo en 0 y los beats nuevos; soltar un archivo (DataTransfer) lo sube a input/ y lo usa (el de prueba se borró). Capturas 10 y 11.
+Fase 5 hecha: `pruebas.py` TODO BIEN (63). En «Prueba duración»: soltar `vera.jpg` (copia `vera_subida_epl.jpg`) en la mitad azul con papel ropa y «tapar al subir» → `subidas/vera_subida_epl` y su tapado en el Stack; dos fotos de Teto por el input de archivos, juntas → cajita `subidas/teto_subida_epl` (`<Video 2>`, personaje) en 4,5 s. Capturas 12 y 13.
 
-Fase 5, falta todo: en «+ Añadir» la opción «Subir foto» (papel, nombre corto, «tapar al subir», «juntar en una cajita»; input file y soltar), subir a `input/minimax_h3/` con `/upload/image`, acción nueva en `rutas.py` que cree el RefMod con `_crear_refmod` (concepto por papel), añadirlo al Stack; sacar `encender` de `tapar.js` a `ctx` para tapar al subir. Después, el render final (toma alargada a mano + canción cambiada desde el botón).
+Falta: el render final en un workflow aparte («Prueba final», copia de «Prueba sin recetas»): canción cambiada con «♫ Cambiar canción», una toma alargada arrastrando su borde, «Escribir tomas», guardar y render 480p; hoja de fotogramas; anotar en el plano 7 y aquí.
 
 ## Cómo seguir
 

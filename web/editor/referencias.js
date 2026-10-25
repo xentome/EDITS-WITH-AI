@@ -254,9 +254,11 @@ export function instalar(ctx) {
     } });
     const v = ctx.capa(lado,
       el("div", { class: "epl-tit" }, `Añadir a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}» desde la biblioteca de RefMods`,
-        el("span", { class: "der" }, filtro, ctx.controlTamano((t) => rejilla.style.setProperty("--epl-tam", t + "px"), "epl-tam-biblioteca", 270), el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        el("span", { class: "der" }, filtro, ctx.controlTamano((t) => rejilla.style.setProperty("--epl-tam", t + "px"), "epl-tam-biblioteca", 270),
+          el("button", { class: "epl-boton epl-azul", title: "Crear referencias nuevas con fotos de tu PC", onclick: () => ctx.abrirSubir(lado) }, "⬆ Subir foto"),
+          el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
       el("p", { class: "epl-ayuda" }, "Toca las fotos para marcarlas o desmarcarlas y pulsa «Añadir». Para juntar varias fotos en una " +
-        "sola referencia usa «+ Cajita». Para crear un RefMod de una sola imagen nueva sigue sirviendo «Create…» en el nodo RefMod Stack."),
+        "sola referencia usa «+ Cajita». Para una foto nueva de tu PC, «⬆ Subir foto»."),
       rejilla,
       el("div", { class: "epl-biblio-pie" }, aviso, anadir));
     const contar = () => {
@@ -285,6 +287,112 @@ export function instalar(ctx) {
     pintar();
     contar();
     filtro.focus();
+  };
+
+  /* ---- «⬆ Subir foto»: una o varias imágenes del PC (elegir o soltar encima) → input/minimax_h3/ (con /upload/image de
+   * ComfyUI) → RefMod nuevo en subidas/ (rutas.subir_refmods: Full Reference, 512, concept_type según el papel) → al Stack,
+   * con el papel y el nombre elegidos. Varias fotos de un mismo personaje pueden ir juntas en una cajita. Con «tapar al
+   * subir», cada referencia nueva se tapa (cara y pelo, SAM 3.1) en cuanto entra en el Stack. */
+  const PAPELES_LADO = { izq: ["personaje", "objeto", "lugar"], der: ["ropa", "pose", "fondo", "estilo", "efecto"] };
+  ctx.subirFoto = async function subirFoto(archivo) {
+    const fd = new FormData();
+    fd.append("image", archivo, archivo.name);
+    fd.append("type", "input");
+    fd.append("subfolder", "minimax_h3");
+    const r = await fetch("/upload/image", { method: "POST", body: fd });
+    if (!r.ok) throw new Error(`no se pudo subir ${archivo.name} (${r.status})`);
+    const j = await r.json();
+    return `${j.subfolder ? j.subfolder + "/" : ""}${j.name}`;
+  };
+  ctx.abrirSubir = function abrirSubir(lado) {
+    const st = { papel: PAPELES_LADO[lado][0], nombre: "", tapar: lado === "der", juntar: true, fotos: [] };
+    const aviso = el("p", { class: "epl-aviso" });
+    const archivo = el("input", { type: "file", accept: "image/*", multiple: true, style: { display: "none" },
+                                  onchange: (e) => { anadir(e.target.files); e.target.value = ""; } });
+    const v = ctx.capa(lado);
+    const anadir = (lista) => {
+      const imgs = [...lista].filter((f) => /^image\//.test(f.type));
+      if (!imgs.length) { aviso.textContent = "⚠ Eso no es una imagen"; return; }
+      for (const f of imgs) st.fotos.push({ f, url: URL.createObjectURL(f) });
+      if (!st.nombre) st.nombre = imgs[0].name.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 30);
+      aviso.textContent = "";
+      pintar();
+    };
+    const pintar = () => {
+      const varias = st.fotos.length > 1;
+      v.modal.replaceChildren(
+        el("div", { class: "epl-tit" }, `Subir foto a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}»`,
+          el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        archivo,
+        el("div", { class: "epl-ficha" },
+          el("div", { class: "epl-soltar", onclick: () => archivo.click() },
+            st.fotos.length ? el("div", { class: "epl-fotos" }, ...st.fotos.map((x, i) => el("div", {},
+              el("img", { src: x.url, alt: "" }), x.f.name,
+              el("button", { class: "epl-mini quitar", title: "Sacar", onclick: (e) => { e.stopPropagation(); st.fotos.splice(i, 1); pintar(); } }, "✕"))))
+              : el("p", { class: "epl-vacio" }, "Toca aquí para elegir una o varias imágenes de tu PC, o suéltalas encima de esta ventana.")),
+          el("div", {},
+            el("label", {}, "Papel"),
+            el("select", { class: "epl-subir-papel", onchange: (e) => { st.papel = e.target.value; pintar(); } },
+              ...PAPELES_LADO[lado].map((p) => el("option", { value: p, selected: st.papel === p }, PAPELES[p][0]))),
+            el("label", {}, st.papel === "personaje" ? "Nombre del personaje (corto; también el del RefMod)" : "Nombre corto (va al prompt y al RefMod)"),
+            el("input", { class: "epl-subir-nombre", value: st.nombre, placeholder: "ej.: teto, chaqueta_roja", oninput: (e) => { st.nombre = e.target.value; } }),
+            varias ? el("label", { style: { display: "flex", gap: "6px", alignItems: "center" } },
+              el("input", { type: "checkbox", class: "epl-subir-juntar", checked: st.juntar, onchange: (e) => { st.juntar = e.target.checked; } }),
+              `juntar las ${st.fotos.length} fotos en una sola cajita (el mismo personaje u objeto)`) : null,
+            el("label", { style: { display: "flex", gap: "6px", alignItems: "center" } },
+              el("input", { type: "checkbox", class: "epl-subir-tapar", checked: st.tapar, onchange: (e) => { st.tapar = e.target.checked; } }),
+              "tapar al subir: cara y pelo, con SAM 3.1 (para que no se cuele quien sale en la foto)"),
+            el("p", { class: "epl-ayuda" }, "Se guardan en input/minimax_h3/ y el RefMod en la carpeta subidas/ (Full Reference, 512; unos 5–10 s cada uno, más unos 15 s si se tapa)."),
+            aviso,
+            el("div", { class: "epl-fila" },
+              el("button", { class: "epl-boton fuerte epl-subir-crear", disabled: !st.fotos.length, onclick: () => crear() },
+                st.fotos.length ? `Subir y crear (${varias && !st.juntar ? st.fotos.length + " referencias" : "1 referencia"})` : "Subir y crear")))));
+    };
+    v.modal.addEventListener("dragover", (e) => { e.preventDefault(); v.modal.classList.add("soltar"); });
+    v.modal.addEventListener("dragleave", () => v.modal.classList.remove("soltar"));
+    v.modal.addEventListener("drop", (e) => { e.preventDefault(); v.modal.classList.remove("soltar"); anadir(e.dataTransfer.files); });
+    async function crear() {
+      if (S.ocupado || !st.fotos.length) return;
+      if (!st.nombre.trim()) { aviso.textContent = "⚠ Ponle un nombre corto"; return; }
+      const juntar = st.juntar && st.fotos.length > 1, cuantas = juntar ? 1 : st.fotos.length;
+      const hay = (leerJSON(W(wf.stack || {}, "stack_state")?.value, {}).picks || []).length;
+      if (hay + cuantas > 12) { aviso.textContent = `⚠ No caben: el Stack tiene ${hay} de 12 tarjetas.`; return; }
+      S.ocupado = true;
+      caja.classList.add("ocupada");
+      const t0 = Date.now();
+      let fase = "Subiendo las fotos…";
+      const reloj = setInterval(() => ctx.avisar(`${fase} ${Math.round((Date.now() - t0) / 1000)} s`, "trabajando"), 500);
+      let creados = [];
+      try {
+        const rels = [];
+        for (const x of st.fotos) rels.push(await ctx.subirFoto(x.f));
+        fase = "Creando la referencia…";
+        const res = await api("subir_refmods", { nombre: st.nombre.trim(), papel: st.papel, fotos: rels, juntar });
+        creados = res.creados;
+        await ctx.cargarBiblioteca();
+        const nombre = st.nombre.trim();
+        for (const n of creados) S.refs[n] = { papel: st.papel, nombre, ficha: "", origen: "subida" };
+        ctx.anadirVariosDeBiblioteca(creados.map((n) => ctx.biblioteca[n]).filter(Boolean), lado);
+        v.cerrar();
+        ctx.avisar(`Creada${creados.length > 1 ? "s" : ""} ${creados.join(", ")} en ${res.segundos} s y añadida${creados.length > 1 ? "s" : ""} al Stack`, "bien");
+      } catch (e) {
+        aviso.textContent = "⚠ " + e.message;
+        ctx.avisar("Subir foto: " + e.message, "mal");
+      } finally {
+        clearInterval(reloj);
+        S.ocupado = false;
+        caja.classList.remove("ocupada");
+      }
+      if (st.tapar && creados.length) {           // tapar cada una ya en el Stack (tapar.js); deja la tarjeta tapada en su sitio
+        for (const n of creados) {
+          const r = wf.items.find((x) => x.clave === n);
+          if (r) await ctx.taparTarjeta(r);
+        }
+      }
+      return creados;
+    }
+    pintar();
+    return v;
   };
 
   // ---- dónde se usa cada referencia
