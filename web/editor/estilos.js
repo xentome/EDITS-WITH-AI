@@ -120,6 +120,12 @@ input.corto{width:70px}
 .epl-hueco{width:44px;flex:none}
 .epl-audio-info{display:flex;gap:12px;justify-content:space-between;align-items:baseline;font:11px ui-monospace,monospace;color:#9aa3b2;margin-top:4px}
 .epl-audio-info .epl-ayuda{font-family:inherit;margin:0;text-align:center;flex:1}
+.epl-canciones{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px;max-height:60vh;overflow:auto;margin-top:6px}
+.epl-cancion{cursor:pointer;border:1px solid #2e3440;padding:6px 8px;background:#15181e;overflow-wrap:anywhere}
+.epl-cancion:hover{border-color:#e0a94c}.epl-cancion.actual{border-color:#5a8fd6;background:#1c2a40}
+.epl-cancion b{display:block;font-size:12px;font-weight:600;color:#e3e7ee}.epl-cancion small{color:#8a93a3;font-size:11px}
+.epl-modal.soltar{outline:3px dashed #e0a94c;outline-offset:-8px}
+.epl-papel.efecto{background:#1f4a3a}
 /* 5 · prompt final */
 .epl-final{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45;
   background:#12151b;border:1px solid #2e3440;border-radius:calc(var(--radio) * 7px);padding:10px;margin:0;width:100%;box-sizing:border-box;

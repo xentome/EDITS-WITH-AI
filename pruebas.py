@@ -334,5 +334,29 @@ comprobar("cambia el length del Text Encode y la duración del Prompt Builder, b
           r.get("enc") == 73 and r.get("pb") == 3.042 and r.get("enlazado") == 124 and r.get("otro") == 50 and
           len(r.get("d", {}).get("cambios", [])) == 2, r)
 
+print("13 · Cambiar la canción: la lista de audios de input/ (rutas.audios, con un folder_paths de prueba)")
+import types  # noqa: E402
+import importlib.util  # noqa: E402
+tmp4 = tempfile.mkdtemp(prefix="epl_audios_")
+try:
+    for a in ("cancion.mp3", "otra.wav", "edit_tramo_abc.wav", "foto.png"):
+        open(os.path.join(tmp4, a), "wb").write(b"x")
+    os.makedirs(os.path.join(tmp4, "sub"))
+    open(os.path.join(tmp4, "sub", "dentro.wav"), "wb").write(b"x")
+    sys.modules["folder_paths"] = types.SimpleNamespace(get_input_directory=lambda: tmp4)
+    paquete = types.ModuleType("epl_paquete")
+    paquete.__path__ = [AQUI]
+    sys.modules["epl_paquete"] = paquete
+    sys.modules["epl_paquete.nucleo"] = N
+    spec = importlib.util.spec_from_file_location("epl_paquete.rutas", os.path.join(AQUI, "rutas.py"))
+    R = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(R)
+    nombres = sorted(x["nombre"] for x in R.audios()["audios"])
+    comprobar("lista los audios de la raíz de input/ (como LoadAudio), sin los recortes ni otras cosas",
+              nombres == ["cancion.mp3", "otra.wav"] and "audios" in R.ACCIONES, nombres)
+finally:
+    sys.modules.pop("folder_paths", None)
+    shutil.rmtree(tmp4, ignore_errors=True)
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

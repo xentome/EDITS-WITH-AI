@@ -34,6 +34,23 @@ def montar(d):
 
 
 # ------------------------------------------------------------------ ventana de audio (planos/4 El editor.md)
+AUDIOS = (".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".opus")
+
+
+def audios(d=None):
+    """Las canciones que puede cargar el LoadAudio: los audios de la raíz de input/ (no mira subcarpetas, como LoadAudio),
+    sin los recortes edit_tramo_*.wav que escribe el editor. De la más nueva a la más vieja."""
+    import folder_paths
+    base, out = folder_paths.get_input_directory(), []
+    for a in os.listdir(base):
+        ruta = os.path.join(base, a)
+        if a.lower().endswith(AUDIOS) and not a.startswith(("edit_tramo_", ".")) and os.path.isfile(ruta):
+            st = os.stat(ruta)
+            out.append({"nombre": a, "mb": round(st.st_size / 2 ** 20, 1), "fecha": time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime)),
+                        "t": st.st_mtime})
+    return {"audios": sorted(out, key=lambda x: -x["t"])}
+
+
 def audio_info(d):
     """Duración y resumen de picos de la canción entera (cacheado en disco)."""
     t = time.time()
@@ -460,6 +477,7 @@ ACCIONES = {
     "tapados": (tapados, False),
     "tapar_previa": (tapar_previa, False),
     "tapar": (tapar, False),
+    "audios": (audios, False),
     "audio_info": (audio_info, False),
     "audio_ventana": (audio_ventana, False),
     "audio_recortar": (audio_recortar, False),

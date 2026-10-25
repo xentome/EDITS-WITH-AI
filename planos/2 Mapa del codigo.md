@@ -19,7 +19,7 @@ Lectura: 3 min
 | `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
 | `web/editor/tapar.js` | «Tapar con SAM 3.1» en la ficha: interruptor, chips de qué tapar, forma, vista previa y el cambio de tarjeta entre original y tapado (`ctx.cambiarTarjeta`). |
 | `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
-| `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre) y la línea de la canción entera; al guardar, el recorte. |
+| `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre), la línea de la canción entera y «Cambiar canción» (elegir o subir); al guardar, el recorte. |
 | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
@@ -53,6 +53,7 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 | `describir` | propone la ficha y los riesgos de una referencia, con visión | sí |
 | `medios` | las fotos de `input/minimax_h3`, para elegirlas en una cajita | no |
 | `cajitas` | las fotos de cada cajita (de los archivos `<RefMod>.cajita.json`) | no |
+| `audios` | las canciones de la raíz de `input/` (las que ve el LoadAudio), para «Cambiar canción» | no |
 | `audio_info` | duración y resumen de picos de la canción entera (caché en disco) | no |
 | `audio_ventana` | picos finos alrededor del tramo y, con `wav`, el tramo en WAV para oírlo | no |
 | `audio_recortar` | escribe el tramo en `input/edit_tramo_<hash>.wav`, sin tocar la original | no |

@@ -8,15 +8,15 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 |---|---|---|
 | 1 | Quitar las recetas y los efectos G/U: personaje con nombre y ficha desde sus referencias, campo «Estilo», efectos como referencias | ✅ hecha · `5589d62` |
 | 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | ✅ hecha · `b002e9d` |
-| 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | ✅ hecha (commit «Duración: …») |
-| 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | 🔄 en curso |
-| 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | ⬜ pendiente |
+| 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | ✅ hecha · `adc3d07` |
+| 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | ✅ hecha (commit «Canción: …») |
+| 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | 🔄 en curso |
 
-## Fase en curso: 4
+## Fase en curso: 5
 
-Fase 3 hecha: `pruebas.py` TODO BIEN (59). Workflow aparte «Prueba duración»: en la ventana, 5,167 s → al guardar, `length` del Text Encode 73 → 124 y duración del Prompt Builder → 5,167, con aviso; desde `duracion_s` del nodo, 3,042 s → 73 y 3,042, con aviso abajo (pestaña nueva tras cambiar `web/editor.js`).
+Fase 4 hecha: `pruebas.py` TODO BIEN (60). En «Prueba duración»: «♫ Cambiar canción» lista 47 audios de input/; elegir `bluefairy_full.mp3` deja el LoadAudio en ella, el tramo en 0 y los beats nuevos; soltar un archivo (DataTransfer) lo sube a input/ y lo usa (el de prueba se borró). Capturas 10 y 11.
 
-Fase 4, falta todo: acción `audios` (lista de input/), botón «Cambiar canción» en `web/editor/audio.js` (lista con buscador y «Subir desde el PC» con `/upload/image`), al elegir: LoadAudio apunta a ella, se recalculan resumen y beats, la ventana vuelve al inicio y se marca tocado (al guardar se escribe el recorte).
+Fase 5, falta todo: en «+ Añadir» la opción «Subir foto» (papel, nombre corto, «tapar al subir», «juntar en una cajita»; input file y soltar), subir a `input/minimax_h3/` con `/upload/image`, acción nueva en `rutas.py` que cree el RefMod con `_crear_refmod` (concepto por papel), añadirlo al Stack; sacar `encender` de `tapar.js` a `ctx` para tapar al subir. Después, el render final (toma alargada a mano + canción cambiada desde el botón).
 
 ## Cómo seguir
 

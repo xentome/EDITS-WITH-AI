@@ -48,6 +48,8 @@ export function instalar(ctx) {
   const boton = el("button", { class: "epl-play", title: "Oír solo el tramo (se para sola al final)", onclick: () => alternar() }, "▶");
   const barra = el("canvas", { class: "epl-barra-cv", title: "La canción entera: arrastra el punto blanco (o toca la línea) para saltar" });
   const datos = el("div", { class: "epl-audio-info" });
+  const cambiar = el("button", { class: "epl-mini epl-cambiar-cancion", title: "Elegir otra canción de input/ o subir una desde el PC",
+                                 onclick: () => ctx.abrirCanciones() }, "♫ Cambiar canción");
 
   ctx.moverAudio = (s, { soltar = true } = {}) => {
     if (!S.audio || !info) return;
@@ -292,7 +294,7 @@ export function instalar(ctx) {
       secAudio.replaceChildren(
         el("div", { class: "epl-audio-fila" }, el("div", { class: "epl-onda" }, onda, etIni, etFin), boton),
         el("div", { class: "epl-audio-fila epl-barra-fila" }, barra, el("span", { class: "epl-hueco" })),
-        datos);
+        datos, el("div", { class: "epl-fila", style: { margin: "4px 0 0" } }, cambiar));
     }
     if (error) datos.replaceChildren(el("span", { class: "epl-aviso" }, error));
     if (info && S.audio.inicio_s > maxInicio()) ctx.moverAudio(S.audio.inicio_s);  // la duración creció: que quepa
@@ -319,6 +321,82 @@ export function instalar(ctx) {
     S.audio.recorte = r.nombre;
     wf.audio = r.nombre;
     return r;
+  };
+
+  /* ---- cambiar la canción: el LoadAudio del workflow pasa a apuntar a ella (la original del estado), se leen su resumen y
+   * sus beats, y la ventana vuelve al inicio. Queda como «tocado»: al guardar se escribe el recorte desde el segundo 0, así
+   * H3 recibe solo el tramo que duran las tomas. */
+  ctx.cambiarCancion = async function cambiarCancion(nombre) {
+    const widget = W(wf.audioNodo || {}, "audio");
+    if (!widget) throw new Error("no encuentro el LoadAudio del workflow");
+    parar(true);
+    const valores = widget.options?.values;
+    if (Array.isArray(valores) && !valores.includes(nombre)) valores.push(nombre);
+    widget.value = nombre;
+    try { widget.callback?.(nombre); } catch { /* el reproductor del LoadAudio no es imprescindible */ }
+    wf.audio = nombre;
+    S.audio = { original: nombre, inicio_s: 0, recorte: "", tocado: true };
+    info = null; fino = null; buffer = null; claveBuf = ""; desplaz = 0; maxPico = 1; error = "";
+    S.cortes = [];
+    await cargar();
+    ctx.pintarAudio();
+    ctx.pedirMontaje();
+    ctx.avisar(`Canción: ${nombre} (${info ? reloj(info.duracion) : "?"}) · el tramo empieza en 0`, "bien");
+  };
+
+  // subir un audio del PC a input/ con la ruta de ComfyUI (/upload/image acepta cualquier archivo); devuelve su nombre
+  ctx.subirCancion = async function subirCancion(archivo) {
+    const fd = new FormData();
+    fd.append("image", archivo, archivo.name);
+    fd.append("type", "input");
+    const r = await fetch("/upload/image", { method: "POST", body: fd });
+    if (!r.ok) throw new Error(`no se pudo subir ${archivo.name} (${r.status})`);
+    return (await r.json()).name;
+  };
+
+  // la ventanita: lista de input/ con buscador, «Subir desde el PC» y soltar un archivo encima
+  ctx.abrirCanciones = async function abrirCanciones() {
+    if (!S.audio) return;
+    let lista = [];
+    const filtro = el("input", { placeholder: "buscar…", style: { flex: 1 }, oninput: () => pintar() });
+    const rejilla = el("div", { class: "epl-canciones" });
+    const aviso = el("p", { class: "epl-aviso" });
+    const elegir = async (nombre) => {
+      try { v.cerrar(); await ctx.cambiarCancion(nombre); } catch (e) { ctx.avisar("Canción: " + e.message, "mal"); }
+    };
+    const subir = async (archivos) => {
+      const a = [...archivos].find((f) => /^audio\//.test(f.type) || /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i.test(f.name));
+      if (!a) { aviso.textContent = "⚠ Eso no es un audio (wav, mp3, flac, ogg, m4a…)"; return; }
+      aviso.textContent = `Subiendo ${a.name}…`;
+      try { await elegir(await ctx.subirCancion(a)); } catch (e) { aviso.textContent = "⚠ " + e.message; }
+    };
+    const archivo = el("input", { type: "file", accept: "audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.opus", style: { display: "none" },
+                                  onchange: (e) => subir(e.target.files) });
+    const pintar = () => {
+      const q = filtro.value.toLowerCase();
+      rejilla.replaceChildren(...lista.filter((x) => x.nombre.toLowerCase().includes(q)).map((x) =>
+        el("div", { class: "epl-cancion" + (x.nombre === S.audio.original ? " actual" : ""), title: x.nombre, "data-nombre": x.nombre,
+                    onclick: () => elegir(x.nombre) },
+          el("b", {}, x.nombre), el("small", {}, `${x.mb.toString().replace(".", ",")} MB · ${x.fecha}` +
+            (x.nombre === S.audio.original ? " · la de ahora" : "")))));
+      if (!rejilla.children.length) rejilla.append(el("p", { class: "epl-vacio" }, lista.length ? "Nada con ese nombre." : "No hay audios en input/."));
+    };
+    const v = ctx.capa("der",
+      el("div", { class: "epl-tit" }, "Cambiar la canción",
+        el("span", { class: "der" }, filtro,
+          el("button", { class: "epl-boton epl-azul", onclick: () => archivo.click() }, "⬆ Subir desde el PC"),
+          el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+      el("p", { class: "epl-ayuda" }, "Los audios de input/ (los que ve el LoadAudio). Toca uno para usarlo, o sube uno: también puedes " +
+        "soltar el archivo encima de esta ventana. Al cambiarla, el tramo vuelve al inicio y los beats son los de la canción nueva."),
+      archivo, aviso, rejilla);
+    v.modal.addEventListener("dragover", (e) => { e.preventDefault(); v.modal.classList.add("soltar"); });
+    v.modal.addEventListener("dragleave", () => v.modal.classList.remove("soltar"));
+    v.modal.addEventListener("drop", (e) => { e.preventDefault(); v.modal.classList.remove("soltar"); subir(e.dataTransfer.files); });
+    rejilla.append(el("p", { class: "epl-vacio" }, "Cargando…"));
+    try { lista = (await api("audios", {})).audios; } catch (e) { aviso.textContent = "⚠ " + e.message; }
+    pintar();
+    filtro.focus();
+    return v;
   };
 
   ctx.audioListo = cargar();

@@ -80,6 +80,7 @@ Lectura: 4 min
 - Arriba de la onda, el inicio y el fin (`m:ss.mmm · f N`); debajo, el tramo, la ayuda y la canción con su duración.
 - **La línea delgada** (10 px, no cuenta como fila) es la **canción entera**, del mismo largo: el segmento azul es el tramo y el **punto blanco** su centro. Tocar la línea salta ahí; arrastrar el punto lo mueve (despacio, menos que el ratón, para afinar). La línea y la ventana se mueven siempre juntas.
 - **Al guardar:** si moviste el audio, se escribe el recorte `input/edit_tramo_<hash>.wav` (el mismo archivo, inicio y duración dan el mismo nombre) y el LoadAudio del workflow pasa a apuntar a él: es lo que reciben H3 (AddGuide) y CreateVideo. La canción original y el inicio quedan en el estado; al reabrir, la ventana vuelve a la original. Si no tocaste el audio, todo sigue como antes. Si el LoadAudio apunta a otra canción, se empieza de cero con ella.
+- **♫ Cambiar canción** (debajo de la onda): una ventanita con los audios de `input/` (los que ve el LoadAudio: solo la raíz, sin los recortes `edit_tramo_*`), de la más nueva a la más vieja, con buscador. Tocar uno lo usa. **⬆ Subir desde el PC** (o soltar el archivo encima de la ventanita) lo sube a `input/` con `/upload/image` de ComfyUI y lo usa. Al cambiarla: el LoadAudio apunta a ella (es la canción original del estado), se leen su resumen y sus beats, y la ventana vuelve al inicio (0:00.000). Queda como «tocada»: al guardar se escribe el recorte desde 0, así H3 recibe solo el tramo.
 - **Beats:** son los de la canción entera (calculados una vez y guardados en `~/Escritorio/experimentos_edit/edit_prompt_llm/cache_audio/`) desplazados al inicio del tramo. Analizar solo el tramo cambiaba el tempo que ve librosa (a veces la mitad de beats).
 
 ### 5 · Prompt final
@@ -104,7 +105,7 @@ Lectura: 4 min
 ## Por dentro
 - **Esquinas rectas en toda la ventana** (cajas, tarjetas, botones, campos, insignias, menús y ventanitas). En `web/editor/estilos.js` cada curva vale `--radio × su tamaño de antes`, con `--radio:0` en `.epl-fondo`; con `--radio:1` vuelven las de antes. La maqueta usa la misma variable en `:root`.
 - **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` junta las piezas de `web/editor/` (plano 2). Todo se vuelve a cargar cada vez que se abre.
-- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (montar, historia, tomas, describir, medios, cajitas, crear_cajita, tapados, tapar_previa, tapar, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita y tapar también exigen la cola vacía.
+- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (montar, historia, tomas, describir, medios, cajitas, crear_cajita, tapados, tapar_previa, tapar, audios, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita y tapar también exigen la cola vacía.
 - Al abrir sin recargar la pestaña: `const m = await import('/extensions/edit_prompt_llm/editor_core.js?v='+Date.now()); await m.abrir(app.graph.getNodeById(74), app)` (devuelve el `ctx`, útil para probar).
 
 ## Límites conocidos

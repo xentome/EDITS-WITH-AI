@@ -17,7 +17,7 @@ Lectura: 2 min
 | Misma semilla | misma respuesta |
 | Qwen3.8 | escribe a 34 tok/s y lee a ~360 tok/s |
 | Prompt final de Teto | ~700 palabras (v3: 1.524) |
-| Comprobaciones de `pruebas.py` | 59 (25 oct: sin recetas, línea de tiempo y duración), unos 5 s |
+| Comprobaciones de `pruebas.py` | 60 (25 oct: sin recetas, línea de tiempo, duración y canciones), unos 5 s |
 | Editor: historia / tomas / una toma / visión | 113 s / 28,7 s / 7 s / 15 s |
 | Visión: riesgos | acertó (cara difuminada, bandas negras, texto) |
 | Visión: objetos pequeños | falla y cambia entre intentos (el chicle salió como «bolso rosa» y como «tira de mochila») |
