@@ -103,9 +103,37 @@ comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "[Shot 3] A
 
 print("6 · Palabras en pantalla")
 comprobar("lee 'TO YOU @1; PEAK @ultima'", N.leer_palabras("TO YOU @1; PEAK @ultima", 6) == {1: "TO YOU", 6: "PEAK"})
-comprobar("el estilo de las palabras sale del campo y, vacío, es neutro",
-          'the words "TO YOU" appear in a bold retro sans-serif font' in prompt and
-          N.perfil_de(menu, {})["texto_estilo"] == N.TEXTO_ESTILO)
+comprobar("formato viejo: «TO YOU @1» pasa a la fila de texto, al lado, 0,15 s tras el corte, con el estilo viejo como frase",
+          'At 00:00.150 the words "TO YOU" appear in a bold retro sans-serif font' in prompt and
+          N.textos_de(ref["entradas"], ref["plan"], ini, 5.167)[0] == {"texto": "TO YOU", "t": 0.15, "fin": None, "k": 1,
+          "sitio": "al_lado", "letra": "", "frase": ref["entradas"]["estilo_palabras"]}, prompt)
+comprobar("las palabras no se anuncian al principio; al final, «No other text appears on screen.»",
+          "The only text on screen" not in prompt and prompt.split("\n\noverall_soundscape")[0].endswith(
+          "\nNo other text appears on screen."), prompt)
+refs6 = {"<Video 1>": {"papel": "personaje", "nombre": "Ren", "pronombre": "he"},
+         "<Picture 1>": {"papel": "letra", "ficha": "SHINE poster"}, "<Picture 2>": {"papel": "letra"}}
+plan6 = N.ajustar_plan(None, 2)
+for t in plan6["tomas"]:
+    t.update(encuadre="close-up", gesto="looks up", camara="holds still", entorno="ninguno", momento="x")
+plan6["arco"], plan6["look"] = "a", "b"
+plan6["textos"] = [{"texto": "FLARE", "t": 1.5, "sitio": "encima", "letra": "<Picture 2>", "frase": "glowing blue neon script"},
+                   {"texto": "RISE", "t": 0.5, "fin": 0.9, "sitio": "encima", "letra": "<Picture 1>"},
+                   {"texto": " ", "t": 0.2}]
+e6 = {"idea": "x", "tomas": 2, "duracion": 2.0, "refs": refs6, "palabras": "VIEJO @1"}
+p6, av6, _ = N.montar_plan(e6, plan6)
+comprobar("encima de la cara, en su momento y en su toma, con su letra y su frase; sin anunciarla antes",
+          'At 00:00.500 the huge word "RISE" slams over the close-up, with <Subject 1>\'s face still visible behind the letters, '
+          "in the lettering style of <Picture 1>. It stays on screen until 00:00.900." in p6.split("[Shot 2]")[0] and
+          'At 00:01.500 the huge word "FLARE" slams over the close-up, with <Subject 1>\'s face still visible behind the letters, '
+          "in the lettering style of <Picture 2>, glowing blue neon script." in p6.split("[Shot 2]")[1] and
+          "VIEJO" not in p6 and p6.index('huge word "RISE"') > p6.index("[Shot 1]") and not av6, p6)
+comprobar("la referencia de la letra se define para su palabra y solo se pasa su estilo de letra",
+          '<Picture 1> is the typography reference for the word "RISE".' in p6 and
+          "<Picture 2>: attribute_transfer - only its lettering style is transferred; the words written in it are not "
+          "reproduced." in p6, p6)
+comprobar("el nodo sin editor lee la fila de texto del estado",
+          N.entradas_de_estado({"plan": {"textos": plan6["textos"]}})["textos"] == plan6["textos"])
+
 
 print("7 · Papeles: personaje en <Video N>, ropa, objeto y lugar")
 refs7 = {"<Video 1>": {"papel": "personaje", "nombre": "Teto", "pronombre": "she",
@@ -270,6 +298,19 @@ except Exception as exc:
     r = {"error": str(exc)}
 comprobar("la ventana tiene los mismos encuadres que el núcleo y la misma compatibilidad del entorno",
           r.get("e") == list(N.ENCUADRES) and r.get("p") == ["manual", "auto", "auto"], r)
+
+js = ("import('" + os.path.join(AQUI, "web", "editor", "textos.js") + "').then(m => console.log(JSON.stringify({"
+      "a: m.moverTexto(1.99, 5, [1.997, 3.994], true), b: m.moverTexto(1.7, 5, [1.997], true), c: m.moverTexto(1.7, 5, [1.997], false),"
+      "d: m.pegarAlBeat(3.1, [1.997, 3.994, 2.9]), e: m.moverTexto(9, 5), f: m.tomaDe(2.0, [0, 0.832, 1.621, 2.829]),"
+      "g: m.finDe({t: 2.0, fin: null}, [0, 0.832, 1.621, 2.829], 5), h: m.finDe({t: 3.9, fin: null}, [0, 0.832, 1.621, 2.829], 5),"
+      "i: m.finDe({t: 2.0, fin: 2.5}, [0, 1.621], 5)})))")
+try:
+    r = json.loads(_sp.run(["node", "--input-type=module", "-e", js], capture_output=True, text=True, timeout=20).stdout)
+except Exception as exc:
+    r = {"error": str(exc)}
+comprobar("fila de texto: mover al fotograma, imán a ±0,15 s del beat (si está encendido), dentro del edit; fin = el de su toma",
+          r.get("a") == 1.997 and r.get("b") == 1.708 and r.get("c") == 1.708 and r.get("d") == 2.9 and r.get("e") == 4.958 and
+          r.get("f") == 3 and r.get("g") == 2.829 and r.get("h") == 5 and r.get("i") == 2.5, r)
 
 print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402
@@ -442,7 +483,7 @@ try:
     open(os.path.join(tmp5, "subidas", "teto_2.safetensors"), "wb").write(b"x")
     comprobar("el concept_type sale del papel (personaje→identity, ropa→clothing, pose→pose_motion, lugar/fondo→background, "
               "objeto→generic, estilo/efecto→style)",
-              R.CONCEPTO_PAPEL == {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background",
+              R.CONCEPTO_PAPEL == {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background", "letra": "style",
                                    "fondo": "background", "objeto": "generic", "estilo": "style", "efecto": "style"})
     comprobar("un nombre que ya existe recibe _2, _3…", R._libre(tmp5, "subidas/teto") == "subidas/teto_3" and
               R._libre(tmp5, "subidas/vera") == "subidas/vera")

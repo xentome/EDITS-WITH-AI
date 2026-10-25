@@ -111,6 +111,21 @@ input.corto{width:70px}
 .epl-regla{display:flex;justify-content:space-between;color:#8a93a3;font-size:10px;margin-top:3px}
 /* 4 · ventana de audio: el tramo (mismo largo que las tomas; el ▶ va debajo del +) y la canción entera en una línea */
 .epl-audio{margin-top:6px}
+.epl-texto{margin-top:6px}
+.epl-texto-cab{display:flex;gap:8px;align-items:center;font-size:11px;color:#9aa3b2;margin-bottom:3px}
+.epl-texto-cab b{color:#cfe0ff;font-size:11px}.epl-texto-cab .epl-ayuda{margin:0}
+.epl-texto-fila{display:flex;gap:4px}
+.epl-texto-pista{position:relative;flex:1;min-width:0;height:24px;border:1px dashed #3d4a5c;border-radius:calc(var(--radio) * 6px);background:#12151b;cursor:copy}
+.epl-texto-et{position:absolute;top:2px;bottom:2px;box-sizing:border-box;min-width:14px;background:#d9d2b8;color:#111;font:600 11px/18px sans-serif;
+  padding:0 8px 0 5px;border:1px solid rgba(0,0,0,.4);border-radius:calc(var(--radio) * 4px);white-space:nowrap;cursor:grab;touch-action:none;z-index:1}
+.epl-texto-et>span:first-child{display:block;overflow:hidden;text-overflow:ellipsis}
+.epl-texto-et.encima{background:#f4d35e}
+.epl-texto-et.arrastrando{cursor:grabbing;box-shadow:0 0 0 2px #e0a94c;z-index:2}
+.epl-texto-et .fin{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:ew-resize;background:rgba(0,0,0,.28)}
+.epl-texto-et .seg{display:none;position:absolute;bottom:100%;left:0;margin-bottom:3px;background:#0f1217;color:#e0a94c;font:11px ui-monospace,monospace;padding:1px 5px}
+.epl-texto-et.arrastrando .seg{display:block}
+.epl-texto-tarjeta{display:grid;gap:6px;max-width:560px}
+.epl-texto-letra{padding:3px 8px;border:1px solid #3d4a5c;font-size:12px}.epl-texto-letra.usada{border:3px double #e0a94c}
 .epl-audio-fila{display:flex;gap:4px;align-items:stretch}
 .epl-onda{position:relative;flex:1;min-width:0;height:72px;border:1px solid #2e3440;border-radius:calc(var(--radio) * 6px);overflow:hidden}
 .epl-onda-cv{display:block;width:100%;height:100%;cursor:grab;touch-action:none;outline:none}

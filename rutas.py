@@ -34,7 +34,9 @@ def montar(d):
     b = beats(d)
     prompt, avisos, ini = nucleo.montar_plan(d["entradas"], d["plan"], b, d.get("idioma"))
     # los beats van a la línea de tiempo: al soltar un borde arrastrado, se pega al más cercano
-    return {"prompt": prompt, "avisos": avisos, "cortes": ini, "beats": b or [], "fijos": nucleo.cortes_validos(
+    # las palabras de la fila de texto (convertidas del formato viejo «TO YOU @1» si el plan aún no las tiene)
+    textos = nucleo.textos_de(d["entradas"], d["plan"] or {}, ini, float(d["entradas"]["duracion"]))
+    return {"prompt": prompt, "avisos": avisos, "cortes": ini, "beats": b or [], "textos": textos, "fijos": nucleo.cortes_validos(
         (d["plan"] or {}).get("cortes"), int(d["entradas"]["tomas"]), float(d["entradas"]["duracion"]))}
 
 
@@ -281,7 +283,7 @@ _DESC_SUBIDA = "Subida desde el editor del edit ({papel})"
 _DESC_TAPADO = "tapado con SAM 3.1: {palabras} ({forma})"
 
 # papel de la mitad → concept_type del RefMod (lo que Fantastic sabe hacer con él)
-CONCEPTO_PAPEL = {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background",
+CONCEPTO_PAPEL = {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background", "letra": "style",
                   "fondo": "background", "objeto": "generic", "estilo": "style", "efecto": "style"}
 
 

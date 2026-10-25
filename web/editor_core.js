@@ -6,6 +6,7 @@
  *                                                                     → editor/referencias.js y editor/cajitas.js
  *       y en la ficha de cada referencia, «tapar con SAM 3.1»        → editor/tapar.js
  *   4 · Línea de tiempo (una cajita por toma, ancho = duración)      → editor/linea.js
+ *       debajo, la fila de texto (las palabras en pantalla, cada una en su momento) → editor/textos.js
  *       y debajo la ventana de audio (el tramo de la canción, y la canción entera en una línea delgada) → editor/audio.js
  *   5 · Prompt final (lo que recibe H3)                              → editor/final.js
  * El trabajo lo hace el servidor (rutas /edit_prompt_llm/*, nucleo.py); aquí solo se muestra, se edita y se guarda.
@@ -19,8 +20,8 @@
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n] = await Promise.all(
-    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion", "i18n"].map(pieza));
+  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n, filaTexto] = await Promise.all(
+    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion", "i18n", "textos"].map(pieza));
   // el idioma: los textos de los dos idiomas y el traductor del elegido; las piezas usan u.t, u.num, u.lista y u.api
   const textos = await i18n.cargarTextos();
   let tr = i18n.traductor(textos, i18n.idiomaElegido(app));
@@ -51,12 +52,13 @@ export async function abrir(node, app) {
   const sec = (clase) => el("section", { class: "epl-sec " + clase });
   const secHistoria = sec("epl-s-historia"), secToma = sec("epl-s-toma"), secRefs = sec("epl-refs"),
         secTiempo = sec("epl-s-linea"), secFinal = sec("epl-s-final");
-  // la parte 4 tiene dos filas: las tomas (linea.js) y, debajo, la ventana de audio (audio.js)
-  const secLinea = el("div", { class: "epl-zona-tomas" }), secAudio = el("div", { class: "epl-audio" });
-  secTiempo.append(secLinea, secAudio);
+  // la parte 4 tiene tres filas: las tomas (linea.js), la fila de texto (textos.js) y la ventana de audio (audio.js)
+  const secLinea = el("div", { class: "epl-zona-tomas" }), secTexto = el("div", { class: "epl-texto" }),
+        secAudio = el("div", { class: "epl-audio" });
+  secTiempo.append(secLinea, secTexto, secAudio);
 
   const ctx = { u, node, app, graph, S, wf, guardado, biblioteca: {}, cajitas: {}, caja,
-                secHistoria, secToma, secRefs, secLinea, secAudio, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
+                secHistoria, secToma, secRefs, secLinea, secTexto, secAudio, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
   ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
   // (los efectos de texto, E1, E2…, van con las referencias, con papel «efecto»)
@@ -78,6 +80,13 @@ export async function abrir(node, app) {
         S.cortes = r.cortes;
         S.beats = r.beats || [];
         S.avisos = r.avisos;
+        // la primera vez, la fila de texto sale del formato viejo («TO YOU @1» y el estilo de las palabras): el servidor
+        // la convierte y desde entonces vive en el plan (plan.textos); los campos viejos se vacían
+        if (!Array.isArray(S.plan.textos) && Array.isArray(r.textos)) {
+          S.plan.textos = r.textos.map(({ k, ...x }, i) => ({ id: x.id || `t${i + 1}`, ...x }));
+          S.palabras = "";
+          S.estilo_palabras = "";
+        }
         if (!S.a_mano) S.prompt = r.prompt;
         ctx.pintarFinal();
         ctx.pintarLinea();
@@ -91,6 +100,7 @@ export async function abrir(node, app) {
   tapar.instalar(ctx);
   plan.instalar(ctx);
   linea.instalar(ctx);
+  filaTexto.instalar(ctx);
   audio.instalar(ctx);
   final.instalar(ctx);
 
@@ -168,6 +178,7 @@ export async function abrir(node, app) {
     ctx.pintarRefs();
     ctx.pintarFinal();
     ctx.pintarAudio();
+    ctx.pintarTexto();
     caja.querySelector(".epl-capa")?.epl?.repintar?.();
     ctx.pedirMontaje();                                    // los huecos del prompt final llegan del servidor, traducidos
     ctx.avisar(t("comun.idioma.listo"), "bien");

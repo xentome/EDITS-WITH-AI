@@ -9,7 +9,8 @@
 
 // papel → mitad. Su letrero: referencias.papel.<papel> (largo) y referencias.papel_corto.<papel> (en la franja)
 export const PAPELES = {
-  personaje: "izq", objeto: "izq", lugar: "izq", ropa: "der", pose: "der", fondo: "der", estilo: "der", efecto: "der", no: "der",
+  personaje: "izq", objeto: "izq", lugar: "izq", ropa: "der", pose: "der", fondo: "der", estilo: "der", efecto: "der", letra: "der",
+  no: "der",
 };
 // campos de la toma que citan una referencia (los mismos que nucleo.CAMPO_PAPEL); «efecto» también puede ser E1, E2…
 export const CAMPOS_REF = ["personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
@@ -17,7 +18,7 @@ export const PRONOMBRES = ["they", "she", "he"];       // van al prompt en ingl�
 const CONCEPTO = { identity: "personaje", clothing: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
                    scene: "fondo", style: "estilo" };
 // los papeles de cada mitad (para elegir al subir o al añadir desde la biblioteca)
-const PAPELES_LADO = { izq: ["personaje", "objeto", "lugar"], der: ["ropa", "pose", "fondo", "estilo", "efecto"] };
+const PAPELES_LADO = { izq: ["personaje", "objeto", "lugar"], der: ["ropa", "pose", "fondo", "estilo", "efecto", "letra"] };
 // al añadir desde una mitad, el papel que toca en ese lado según el concepto del RefMod
 const POR_LADO = { izq: { identity: "personaje", background: "lugar", scene: "lugar", "": "objeto" },
                    der: { clothing: "ropa", identity: "ropa", pose_motion: "pose", pose: "pose", background: "fondo",
@@ -79,6 +80,7 @@ export function instalar(ctx) {
   ctx.remapear = function remapear(antes) {
     const ahora = Object.fromEntries(wf.lista.map((r) => [r.clave, r.tag]));
     for (const t of S.plan.tomas) for (const c of CAMPOS_REF) if ((t[c] || "").startsWith("<")) t[c] = ahora[antes[t[c]]] || "";
+    for (const x of S.plan.textos || []) if ((x.letra || "").startsWith("<")) x.letra = ahora[antes[x.letra]] || "";   // la letra de cada palabra
   };
 
   // ---- cómo se ve cada referencia
@@ -246,9 +248,10 @@ export function instalar(ctx) {
 
   /* biblioteca de RefMods con selección múltiple: tocar una foto la marca o la desmarca (✓); «Añadir (N)» mete todas las
    * marcadas en el Stack, en el orden en que se marcaron, y cierra. Buscar no borra lo marcado. */
-  ctx.abrirBiblioteca = function abrirBiblioteca(lado) {
+  // opciones (la letra de una palabra, textos.js): {papel, alAnadir(nombres)}: el papel elegido y qué hacer al añadir
+  ctx.abrirBiblioteca = function abrirBiblioteca(lado, opciones = {}) {
     const marcadas = [];                                   // nombres, en el orden en que se marcaron
-    let papel = "";                                        // "" = el que ya tenía o el de su concepto
+    let papel = opciones.papel || "";                      // "" = el que ya tenía o el de su concepto
     const filtro = el("input", { oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
     const aviso = el("p", { class: "epl-aviso epl-biblio-aviso" });
@@ -257,6 +260,7 @@ export function instalar(ctx) {
       try {
         ctx.anadirVariosDeBiblioteca(its, lado, papel);
         v.cerrar();
+        opciones.alAnadir?.(its.map((it) => it.name));
         ctx.avisar(its.length === 1 ? t("referencias.biblioteca.anadida", { nombre: its[0].label || its[0].name })
                                     : t("referencias.biblioteca.anadidas", { n: its.length }), "bien");
       } catch (e) { aviso.textContent = "⚠ " + e.message; }
@@ -268,7 +272,7 @@ export function instalar(ctx) {
       v.modal.replaceChildren(
         el("div", { class: "epl-tit" }, t(lado === "izq" ? "referencias.biblioteca.titulo_izq" : "referencias.biblioteca.titulo_der"),
           el("span", { class: "der" }, filtro, ctx.controlTamano((x) => rejilla.style.setProperty("--epl-tam", x + "px"), "epl-tam-biblioteca", 270),
-            el("button", { class: "epl-boton epl-azul", title: t("referencias.subir.tooltip"), onclick: () => ctx.abrirSubir(lado) }, t("referencias.subir")),
+            el("button", { class: "epl-boton epl-azul", title: t("referencias.subir.tooltip"), onclick: () => ctx.abrirSubir(lado, opciones) }, t("referencias.subir")),
             el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
         el("p", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda")),
         rejilla,
@@ -322,8 +326,10 @@ export function instalar(ctx) {
     const j = await r.json();
     return `${j.subfolder ? j.subfolder + "/" : ""}${j.name}`;
   };
-  ctx.abrirSubir = function abrirSubir(lado) {
-    const st = { papel: PAPELES_LADO[lado][0], nombre: "", tapar: lado === "der", juntar: true, fotos: [] };
+  // opciones: {papel, alCrear(nombres)} (la letra de una palabra, textos.js). Una letra no se tapa: se perdería el texto
+  ctx.abrirSubir = function abrirSubir(lado, opciones = {}) {
+    const papel0 = opciones.papel || PAPELES_LADO[lado][0];
+    const st = { papel: papel0, nombre: "", tapar: lado === "der" && papel0 !== "letra", juntar: true, fotos: [] };
     const aviso = el("p", { class: "epl-aviso" });
     const archivo = el("input", { type: "file", accept: "image/*", multiple: true, style: { display: "none" },
                                   onchange: (e) => { anadir(e.target.files); e.target.value = ""; } });
@@ -396,6 +402,7 @@ export function instalar(ctx) {
         v.cerrar();
         ctx.avisar(t(creados.length > 1 ? "referencias.subir.creadas" : "referencias.subir.creada",
                      { nombres: u.lista(creados), s: u.num(res.segundos) }), "bien");
+        opciones.alAnadir?.(creados);
       } catch (e) {
         aviso.textContent = "⚠ " + e.message;
         ctx.avisar(t("referencias.subir.error", { error: e.message }), "mal");
@@ -424,11 +431,13 @@ export function instalar(ctx) {
     if (r.papel === "personaje") tomas.unshift(t(r.atuendo ? "referencias.usada.definicion" : "referencias.usada.definicion_todas"));
     if (r.papel === "objeto") tomas.unshift(t("referencias.usada.definicion"));
     if (r.papel === "estilo") tomas.unshift(t("referencias.usada.todo"));
+    for (const x of S.plan.textos || []) if (x.letra === tag) tomas.push(t("referencias.usada.texto", { texto: x.texto }));
     return tomas.length ? tomas.join(" · ") : t("referencias.usada.sin_usar");
   };
   // lo que usa la toma k: lo que cita, más la identidad (personaje sin nombre) y el estilo, que valen para todas
   ctx.usadasEnToma = function usadasEnToma(k) {
     const toma = S.plan.tomas[k - 1], usadas = new Set(toma ? CAMPOS_REF.map((c) => toma[c]).filter(Boolean) : []);
+    for (const x of ctx.textosDeToma?.(k) || []) if (x.letra) usadas.add(x.letra);     // la letra de sus palabras
     for (const r of wf.lista) {
       const ref = S.refs[r.clave] || {};
       if ((ref.papel === "personaje" && !(ref.atuendo || "").trim()) || ref.papel === "estilo") usadas.add(r.tag);
@@ -564,7 +573,7 @@ export function instalar(ctx) {
             el("select", { class: "epl-papel-sel", onchange: (e) => { cambiar("papel", e.target.value); ctx.pintarRefs(); ctx.pintarPlan(); pintar(); } },
               el("optgroup", { label: t("referencias.mitad.izq") }, ...["personaje", "objeto", "lugar"].map((p) =>
                 el("option", { value: p, selected: ref.papel === p }, papelLargo(p)))),
-              el("optgroup", { label: t("referencias.mitad.der") }, ...["ropa", "pose", "fondo", "estilo", "efecto"].map((p) =>
+              el("optgroup", { label: t("referencias.mitad.der") }, ...PAPELES_LADO.der.map((p) =>
                 el("option", { value: p, selected: ref.papel === p }, papelLargo(p)))),
               el("option", { value: "no", selected: ref.papel === "no" || !PAPELES[ref.papel] }, papelLargo("no"))),
             lleva ? el("label", {}, t(ref.papel === "personaje" ? "referencias.ficha.nombre_personaje" : "referencias.ficha.nombre_prompt")) : null,

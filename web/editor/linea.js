@@ -193,5 +193,6 @@ export function instalar(ctx) {
       el("div", { class: "epl-linea" }, fila,
         el("button", { class: "epl-mas", title: t("linea.anadir.tooltip"), onclick: () => ctx.anadirToma() }, "+")),
       el("div", { class: "epl-regla" }, el("span", {}, t("linea.segundos", { s: u.num(0) })), el("span", {}, t("linea.segundos", { s: u.num(dur, 2) }))));
+    ctx.pintarTexto?.();          // la fila de texto va debajo, con los mismos cortes (textos.js)
   };
 }

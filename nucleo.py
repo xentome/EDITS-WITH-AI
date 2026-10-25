@@ -38,7 +38,7 @@ ENTORNOS = ("auto", "manual", "ninguno")
 # Papeles de una referencia. Lo que no cambia (persistente): personaje, objeto, lugar. Lo que se presta: ropa, pose, fondo,
 # estilo y efecto. "no usar" = cualquier otro valor. planos/1 Como funciona.md y planos/3 Personaje, estilo y efectos.md.
 PERSISTENTES = ("personaje", "objeto", "lugar")
-PRESTADOS = ("ropa", "pose", "fondo", "estilo", "efecto")
+PRESTADOS = ("ropa", "pose", "fondo", "estilo", "efecto", "letra")   # letra: la tipografía de una palabra en pantalla
 PAPELES = PERSISTENTES + PRESTADOS
 INTENTOS_HISTORIA, INTENTOS_TOMA = 3, 4
 REGLA = "Describe solo lo que se ve: sin metáforas, sin negaciones, sin números, medidas ni tiempos."
@@ -144,14 +144,14 @@ def personajes(menu):
 
 def perfil_de(menu, entradas=None):
     """Lo que antes daba la receta, sacado de lo que está a la vista: los personajes (de sus referencias), el pronombre y el
-    nombre del protagonista, el estilo que escribió el usuario y cómo se ven las palabras en pantalla."""
+    nombre del protagonista y el estilo que escribió el usuario (cómo se ven las palabras va en cada una: textos_de)."""
     e, ps = entradas or {}, personajes(menu)
     pron = ps[0]["pronombre"] if ps else "they"
     return {"personajes": ps, "nombre": ps[0]["nombre"] if ps else "", "pronombre": pron,
             "posesivo": PRONOMBRES[pron][1], "Posesivo": PRONOMBRES[pron][2], "lleva": PRONOMBRES[pron][3],
             # el pronombre se revisa solo si hay un único personaje con «she» o «he» (con varios, cada uno tiene el suyo)
             "revisar_pronombre": pron if len(ps) == 1 and pron in CONTRARIO else "",
-            "estilo": (e.get("estilo") or "").strip().rstrip("."), "texto_estilo": (e.get("estilo_palabras") or "").strip() or TEXTO_ESTILO}
+            "estilo": (e.get("estilo") or "").strip().rstrip(".")}
 
 
 def atuendos(menu):
@@ -182,7 +182,11 @@ def entradas_de_estado(estado):
     refs, etiquetas = estado.get("refs") or {}, estado.get("etiquetas") or {}
     por_tag = {tag: refs[clave] for tag, clave in etiquetas.items() if clave in refs}
     por_tag.update({k: {**v, "papel": "efecto"} for k, v in (estado.get("efectos") or {}).items() if EFECTO_TEXTO.fullmatch(k)})
-    return {"refs": por_tag, "estilo": estado.get("estilo") or "", "estilo_palabras": estado.get("estilo_palabras") or ""}
+    out = {"refs": por_tag, "estilo": estado.get("estilo") or "", "estilo_palabras": estado.get("estilo_palabras") or "",
+           "sonido": estado.get("sonido") or ""}
+    if isinstance((estado.get("plan") or {}).get("textos"), list):   # la fila de texto de la línea de tiempo
+        out["textos"] = estado["plan"]["textos"]
+    return out
 
 
 # ------------------------------------------------------------------ reloj (habitación 3)
@@ -438,6 +442,52 @@ def leer_palabras(texto, n):
             raise ErrorUsuario("errores.palabras_no_vale", linea=lin.strip(), n=n)
         out[k] = txt.strip('"«»“”')
     return out
+
+
+SITIOS_TEXTO = ("al_lado", "encima")    # dónde va una palabra respecto a la cara: al lado (Teto) o encima (Ren)
+
+
+def textos_de(entradas, plan, ini, dur):
+    """Las palabras en pantalla de la fila de texto de la línea de tiempo (plan.textos): cada una con su texto, su momento
+    `t` (s), su fin (None = hasta el fin de su toma), `sitio` (al_lado / encima), `letra` (la etiqueta de su referencia de
+    tipografía, o "") y `frase` (cómo se ve, en inglés, opcional). Se añade `k`, la toma que la contiene, ordenadas por `t`.
+    Compatibilidad: sin plan.textos, el formato viejo «TO YOU @1; PEAK @ultima» se convierte (0,15 s después del corte, al
+    lado, con el estilo viejo de las palabras como frase)."""
+    crudos = plan.get("textos")
+    if not isinstance(crudos, list):
+        crudos = entradas.get("textos")
+    if not isinstance(crudos, list):
+        estilo = (entradas.get("estilo_palabras") or "").strip()
+        crudos = [{"texto": w, "t": round(ini[k - 1] + 0.15, 3), "sitio": "al_lado", "letra": "", "frase": estilo}
+                  for k, w in sorted(leer_palabras(entradas.get("palabras"), len(ini)).items())]
+    out = []
+    for x in crudos:
+        w = (x.get("texto") or "").strip().strip('"«»“”').strip()
+        if not w:
+            continue
+        t0 = round(min(max(float(x.get("t") or 0), 0.0), dur), 3)
+        k = max(i for i, a in enumerate(ini, 1) if a <= t0 + 1e-6)
+        fin = x.get("fin")
+        fin = round(float(fin), 3) if fin not in (None, "") and float(fin) > t0 else None
+        out.append({"texto": w, "t": t0, "fin": fin, "k": k, "sitio": x.get("sitio") if x.get("sitio") in SITIOS_TEXTO else "al_lado",
+                    "letra": (x.get("letra") or "").strip(), "frase": (x.get("frase") or "").strip().rstrip("."),
+                    **({"id": x["id"]} if x.get("id") else {})})
+    return sorted(out, key=lambda x: x["t"])
+
+
+def frase_texto(x, t, perfil, menu, encuadre):
+    """La frase de una palabra en su toma. Encima de la cara, como en Ren: «At … the huge word "RISE" slams over the close-up,
+    with <Subject 1>'s face still visible behind the letters, in the lettering style of <Picture 5>». Al lado, la de antes."""
+    letra = x["letra"] if x["letra"] in menu["letra"] else ""
+    estilo = ", ".join(p for p in ([f"in the lettering style of {letra}"] if letra else []) + ([x["frase"]] if x["frase"] else []))
+    varias = len(x["texto"].split()) > 1
+    if x["sitio"] == "encima":
+        s = (f'At {mmss(t)} the huge {"words" if varias else "word"} "{x["texto"]}" {"slam" if varias else "slams"} over the '
+             f"{encuadre or 'shot'}, with <Subject 1>'s face still visible behind the letters" + (f", {estilo}" if estilo else "") + ".")
+    else:
+        s = (f'At {mmss(t)} the words "{x["texto"]}" appear {estilo or TEXTO_ESTILO}, beside <Subject 1>, never covering '
+             f"{perfil['posesivo']} face.")
+    return s + (f" {'They stay' if varias else 'It stays'} on screen until {mmss(x['fin'])}." if x["fin"] else "")
 
 
 # ------------------------------------------------------------------ llamadas al LLM y registro
@@ -846,7 +896,7 @@ def mmss(t):
     return f"00:{t:06.3f}"
 
 
-def definiciones(perfil, menu):
+def definiciones(perfil, menu, textos=()):
     """subject_definitions y la retención de cada personaje, armadas con su nombre, su ficha y sus referencias."""
     ps, sujeto, retencion = perfil["personajes"], [], []
     if not ps:
@@ -867,6 +917,10 @@ def definiciones(perfil, menu):
     for tag, e in efectos_con_imagen(menu).items():
         quien = f"the {e['nombre']} effect reference" if e["nombre"] else "a visual effect reference"
         sujeto.append(f"{tag} is {quien}" + (f": {e['ficha'].rstrip('.')}" if e["ficha"] else "") + ".")
+    for tag in menu["letra"]:   # la tipografía de cada palabra (la que no usa ninguna palabra, sin más)
+        ws = [x["texto"] for x in textos if x["letra"] == tag]
+        sujeto.append(f"{tag} is the typography reference" + (
+            f" for the {'word' if len(ws) == 1 else 'words'} " + lista([f'"{w}"' for w in ws]) if ws else "") + ".")
     return sujeto, retencion
 
 
@@ -886,7 +940,7 @@ def lugar_escrito(t):
     return not sin_entorno(t)
 
 
-def montar(perfil, menu, plan, ini, palabras, idioma="es"):
+def montar(perfil, menu, plan, ini, textos, idioma="es"):
     """Plan → prompt H3 (6 secciones). Devuelve (prompt, avisos); un campo vacío sale como […] y queda en avisos."""
     # un campo vacío sale como […] y su hueco (la clave final.hueco.*) va a los avisos, en el idioma de la ventana
     avisos, falta = [], lambda v, que, **d: v or (avisos.append(i18n.t(que, idioma, **d)) or "[…]")
@@ -920,11 +974,10 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
         s = (f"[Shot {k}] At {mmss(t0)} {encuadre}" + (f", {entorno}" if entorno else "") + ": <Subject 1>" +
              (", " + " and ".join(citas) + "," if citas else "") +
              f" {falta(t['gesto'], 'final.hueco.sin_gesto', k=k)}; the camera {falta(t['camara'], 'final.hueco.sin_camara', k=k)}.")
-        if k in palabras:
-            s += (f' At {mmss(t0 + 0.15)} the words "{palabras[k]}" appear {perfil["texto_estilo"]}, beside <Subject 1>, '
-                  f"never covering {perfil['posesivo']} face.")
+        for x in (x for x in textos if x["k"] == k):   # las palabras van en su toma y en su momento, no antes
+            s += " " + frase_texto(x, x["t"], perfil, menu, ENCUADRE_PROMPT.get(t["encuadre"], t["encuadre"]))
         lineas.append(s)
-    sujeto, retencion = definiciones(perfil, menu)
+    sujeto, retencion = definiciones(perfil, menu, textos)
     for tag, suj in sujetos_objeto(menu).items():  # 💡 frases nuevas, sin probar en un render
         retencion.append(f"{suj}: fully_preserved - the shape, colors, materials and markings of the "
                          f"{nombre_de(menu['objeto'][tag], 'object')} from {tag} wherever it appears.")
@@ -945,9 +998,13 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
         retencion.append(f"{lista(menu['estilo'])}: attribute_transfer - only the visual style is transferred.")
     for tag in efectos_con_imagen(menu):  # una línea por efecto, como en el original de Ren
         retencion.append(f"{tag}: attribute_transfer - only its look is transferred.")
+    for tag in menu["letra"]:
+        retencion.append(f"{tag}: attribute_transfer - only its lettering style is transferred; the words written in it are "
+                         "not reproduced.")
     retencion.append(RETENCION_AUDIO)
-    texto = ("The only text on screen is " + " and ".join(f'"{w}" in shot {k}' for k, w in sorted(palabras.items())) + "."
-             if palabras else "No text on screen.")
+    # sin palabras, se dice arriba; con palabras no se anuncian antes de su momento (H3 las ponía en el segundo 0): al final,
+    # una línea protege contra texto no pedido
+    texto = "" if textos else " No text on screen."
     # la línea de estilo: el estilo del usuario (si lo hay) y el look del LLM; sin estilo no se inventa ninguno
     estilo = (perfil["estilo"] + ". " if perfil["estilo"] else "") + falta(plan["look"], "final.hueco.sin_look") + "."
     if plan["fondo"]:
@@ -961,7 +1018,8 @@ def montar(perfil, menu, plan, ini, palabras, idioma="es"):
               "\n\nsummary:\n[reference generation + audio reference] " + resumen + ": " +
               falta(plan["arco"], "final.hueco.sin_arco").rstrip(".") + "." +
               "\n\nretention_analysis:\n" + "\n".join(retencion) +
-              "\n\ndetailed_description:\n" + estilo + " " + texto + "\n" + "\n".join(lineas) +
+              "\n\ndetailed_description:\n" + estilo + texto + "\n" + "\n".join(lineas) +
+              ("\nNo other text appears on screen." if textos else "") +
               "\n\noverall_soundscape:\nOnly the music of <Audio 1>, unchanged, with no dialogue and no added sound effects."
               "\n\nnon_diegetic_music:\nThe song in <Audio 1> plays unchanged throughout the whole video.")
     return prompt, avisos
@@ -1128,13 +1186,16 @@ def contexto(entradas, plan, beats):
     # los cortes elegidos a mano en la línea de tiempo (plan.cortes) mandan sobre los calculados, si caben
     ini, durs = duraciones(n, dur, beats, [round(float(x), 3) for x in plan["cortes"]] if plan.get("cortes") else None)
     menu = menu_de(entradas.get("refs"))
-    return perfil_de(menu, entradas), menu, plan, ini, durs, leer_palabras(entradas.get("palabras"), n)
+    return perfil_de(menu, entradas), menu, plan, ini, durs, textos_de(entradas, plan, ini, dur)
 
 
 def escribir_historia(entradas, plan, beats=None, semilla=0, reg=None):
     """Historia (1 llamada, razonamiento low): arco, look y, por toma, lugar, momento, referencias y efecto.
     Respeta lo fijado. Devuelve (plan, intentos)."""
-    perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
+    perfil, menu, plan, ini, durs, textos = contexto(entradas, plan, beats)
+    palabras = {}
+    for x in textos:
+        palabras[x["k"]] = " / ".join(filter(None, [palabras.get(x["k"]), x["texto"]]))
     if not (entradas.get("idea") or "").strip():
         raise ErrorUsuario("errores.falta_idea")
     reg = reg or registro_nuevo("historia")
@@ -1149,7 +1210,7 @@ def escribir_historia(entradas, plan, beats=None, semilla=0, reg=None):
 def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, aviso=None, idioma="es"):
     """Encuadre, luz, gesto y cámara (1 llamada por toma, sin razonamiento). `solo`: regenera solo esa toma, mirando a
     sus dos vecinas. Respeta lo fijado. Devuelve (plan, intentos por toma)."""
-    perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
+    perfil, menu, plan, ini, durs, _ = contexto(entradas, plan, beats)
     faltan = [k for k, t in enumerate(plan["tomas"], 1) if (not t["lugar"] and not sin_entorno(t)) or not t["momento"]]
     if faltan:
         raise ErrorUsuario("errores.falta_historia", faltan=faltan)
@@ -1177,8 +1238,8 @@ def escribir_tomas(entradas, plan, beats=None, semilla=0, solo=None, reg=None, a
 
 def montar_plan(entradas, plan, beats=None, idioma="es"):
     """Plan → (prompt, avisos, cortes). Los avisos (huecos) salen en `idioma`; el prompt es siempre el mismo (inglés)."""
-    perfil, menu, plan, ini, durs, palabras = contexto(entradas, plan, beats)
-    prompt, avisos = montar(perfil, menu, plan, ini, palabras, idioma)
+    perfil, menu, plan, ini, durs, textos = contexto(entradas, plan, beats)
+    prompt, avisos = montar(perfil, menu, plan, ini, textos, idioma)
     if plan.get("cortes") and not cortes_validos(plan["cortes"], len(plan["tomas"]), float(entradas["duracion"])):
         avisos.append(i18n.t("final.hueco.cortes_a_mano", idioma))
     return prompt, avisos, ini
