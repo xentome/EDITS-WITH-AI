@@ -8,7 +8,7 @@ Lectura: 3 min
 
 | Archivo | Qué tiene |
 |---|---|
-| `nucleo.py` | Todo el trabajo. Secciones, en orden: plan y referencias · reloj · audio (tramo de la canción) · LLM y registro · revisiones · historia · tomas · montaje · acciones. |
+| `nucleo.py` | Todo el trabajo. Secciones, en orden: plan y referencias · reloj · audio (tramo de la canción) · LLM y registro · revisiones · historia · tomas · montaje · visión · tapar · acciones. |
 | `rutas.py` | Lo que hace cada ruta del editor. Llama a `nucleo`. |
 | `__init__.py` | El nodo, el registro de las rutas y la liberación de la GPU. Es delgado: no decide nada. |
 | `web/editor.js` | El botón «Abrir editor…» del nodo. |
@@ -17,6 +17,7 @@ Lectura: 3 min
 | `web/editor/plan.js` | Partes 1 y 2: historia general y prompt de la toma elegida (campos con candado, frase del efecto, rehacer esta toma) y los botones del LLM. |
 | `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, las dos mitades, la ficha de cada referencia (papel, nombre, ficha, visión, activa, fuerza, quitar), el Stack, la biblioteca y el resaltado. |
 | `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
+| `web/editor/tapar.js` | «Tapar con SAM 3.1» en la ficha: interruptor, chips de qué tapar, forma, vista previa y el cambio de tarjeta entre original y tapado (`ctx.cambiarTarjeta`). |
 | `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre) y la línea de la canción entera; al guardar, el recorte. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
@@ -56,8 +57,11 @@ Hay una sola ruta, `/edit_prompt_llm/<acción>`. Las acciones están en `rutas.A
 | `audio_ventana` | picos finos alrededor del tramo y, con `wav`, el tramo en WAV para oírlo | no |
 | `audio_recortar` | escribe el tramo en `input/edit_tramo_<hash>.wav`, sin tocar la original | no |
 | `crear_cajita` | crea un RefMod con varias fotos: manda a ComfyUI el nodo `MiniMaxH3FantasticRefModCreate` (Full Reference, 512) con un VAELoader, por `/prompt`, y apunta sus fotos | no (usa ComfyUI unos 10 s) |
+| `tapados` | los RefMods tapados y de qué original salen (archivos `<RefMod>.tapado.json`) | no |
+| `tapar_previa` | busca las fotos fuente, hace las máscaras con SAM 3.1 (o las saca de la caché) y guarda la foto tapada en `input/minimax_h3/tapado/`; no crea el RefMod. Si ese tapado ya existe, lo dice sin SAM | no (SAM: 2–8 s) |
+| `tapar` | crea (o reutiliza) el RefMod tapado `<original>__tapado_<huella>`, con el mismo concepto que el original, y escribe su `.tapado.json` | no (RefMod unos 4 s) |
 
-Para añadir una acción basta con escribir su función en `rutas.py` y ponerla en `ACCIONES`: no hace falta reiniciar ComfyUI. Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU, igual que hace `/free`.
+Para añadir una acción basta con escribir su función en `rutas.py` y ponerla en `ACCIONES`: no hace falta reiniciar ComfyUI. Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU, igual que hace `/free`. Crear una cajita y tapar también exigen la cola vacía; SAM, además, espera unos segundos a que llama suelte la VRAM (hasta 3 GB libres).
 
 ## Dónde cambiar cada cosa
 
@@ -72,6 +76,9 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | dónde caen los cortes | `nucleo.cortes` |
 | las dos mitades, la ficha de una referencia, la biblioteca o el resaltado | `web/editor/referencias.js` |
 | las cajitas | `web/editor/cajitas.js` y `rutas.crear_cajita` |
+| tapar: los chips, la forma o el cambio de tarjeta | `web/editor/tapar.js` |
+| tapar: de qué foto se parte | `rutas._fuentes_tapar` |
+| tapar: cómo se tapa (radios, pixelado, color) o el grafo de SAM | `nucleo.py`, sección tapar (`tapar_imagen`, `grafo_sam`, `COSAS_TAPAR`) |
 | la historia general, la toma elegida, los candados | `web/editor/plan.js` |
 | la línea de tiempo | `web/editor/linea.js` |
 | la ventana de audio (arrastre, aceleración, reproducir) | `web/editor/audio.js` (constantes `K` y `GANANCIA_MAX`) |

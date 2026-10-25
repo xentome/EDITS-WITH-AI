@@ -33,6 +33,7 @@ Lectura: 4 min
   - **ficha** en inglés, lo que el LLM sabe de la imagen;
   - **👁 describir con visión** (14–21 s): propone nombre, ficha y riesgos; «usar» o «descartar»;
   - **activa, fuerza y ✕ quitar** del Stack;
+  - **tapar con SAM 3.1** (ver «Tapar», abajo);
   - **usada en** (definición, T1 · T3).
 - **✕ en la esquina de arriba a la izquierda** de cada tarjeta del Stack (también en las cajitas): siempre visible. El primer toque pregunta «¿quitar? sí / no»; «sí» hace lo mismo que «✕ quitar» de la ficha (`ctx.quitarDelStack`). Tocar la ✕ no abre la ficha. Los medios del Media Loader no la tienen, porque no están en el Stack.
 - **+ Añadir** abre la biblioteca de RefMods, con recuadros grandes (unas 4 columnas) y fotos enteras. Con **− / deslizador / +** los haces más grandes o más pequeños; se recuerda el último tamaño en el navegador. Lo que añades toma el papel que toca en esa mitad (por ejemplo, un RefMod de fondo añadido a la izquierda es un lugar).
@@ -44,6 +45,21 @@ Lectura: 4 min
 - **Al tocarla** se abre con todas sus fotos y los mismos controles que una referencia. «✎ Cambiar fotos» abre el creador con esas fotos; al crearla, la nueva ocupa su sitio en el Stack y las tomas que la citaban la siguen citando.
 - **+ Cajita** (en cada mitad) abre el creador: eliges las fotos de las referencias del editor o del Media Loader (`input/minimax_h3`), el nombre, el papel y, si quieres, el nombre en el prompt y la ficha. Sus fotos para elegir también tienen el control de tamaño, que se recuerda aparte. «Crear cajita» tarda unos 10 s. Puede apagar en el Stack las fotos sueltas que metiste.
 - Las fotos de cada cajita se apuntan en `models/refmods/<nombre>.cajita.json`, porque el RefMod solo guarda la primera como vista previa. Las de `personajes/teto_identidad_4` se apuntaron a mano; una cajita sin ese archivo enseña solo su primera foto.
+
+### Tapar (en la ficha de una referencia)
+- **Para qué:** que una ropa, una pose o un fondo prestados no traspasen la cara de quien sale en la foto (plano 5). Se tapa la cara, el pelo o el texto de la foto y H3 recibe la copia tapada.
+- **Dónde:** en la ficha de cada tarjeta del Stack que sea una foto, y en las cajitas que tienen sus fotos apuntadas (se tapan todas). No está en las fotos del Media Loader ni en los videos.
+- **Dos clics:** los chips **cara** y **pelo** vienen marcados; basta con encender **☐ tapar**. También hay **texto** (letras grandes, logos y firmas), un campo libre para otra cosa en inglés (`hat, logo`) y la forma: **difuminado** (por defecto), **pixelado** o **parche de color** (el color medio de la zona).
+- **👁 vista previa** enseña la foto tapada sin crear nada y dice cuánto ocupa cada cosa (`face 4,6 % · hair 3,8 %`; con 0 %, «no encontré…»).
+- **Al encender** se ve el progreso: «Buscando la cara y el pelo… 7 s» y «Creando la referencia tapada… 4 s». El servidor:
+  1. busca la foto fuente: las fotos del `.cajita.json`; si no, la foto de `input/minimax_h3` con el mismo nombre que el RefMod y la misma proporción que su vista previa (`ropa/vera` → `vera.jpg`); si no, la vista previa `.png` junto al `.safetensors` (512 px de alto), copiada a `input/minimax_h3/tapado/fuentes/`, **con un aviso** de que tiene menos resolución (la misma con la que se crea el RefMod, 512);
+  2. hace las máscaras con SAM 3.1 (`CheckpointLoaderSimple` con `sam3.1_multiplex_fp16` → `CLIPTextEncode` con la palabra → `SAM3_Detect`, umbral 0,4) en un solo `/prompt`, y las guarda en la caché `~/Escritorio/experimentos_edit/edit_prompt_llm/cache_tapar/`;
+  3. sin IA, junta las máscaras, las agranda un poco, suaviza el borde y tapa (radios escalados al tamaño de la foto); guarda `input/minimax_h3/tapado/<nombre>__tapado_<huella>.png`;
+  4. crea el RefMod hermano **`<carpeta>/<nombre>__tapado_<huella>`** como una cajita (Full Reference, 512, VAE de H3, el mismo concepto que el original) y escribe al lado su **`.tapado.json`** (original, qué se tapó, forma, fuente, aviso).
+- **La tarjeta del Stack cambia** al tapado en el mismo sitio, con la misma fuerza y el mismo «activa». La etiqueta (`<Picture 6>`) y las tomas que la citan no cambian; el papel, el nombre y la ficha se copian a la clave del tapado.
+- **Apagar** vuelve a la original (lo hecho en la ficha vuelve con ella). **Encender otra vez** con las mismas opciones reutiliza el tapado ya creado: la huella depende del original, del contenido de sus fotos, de lo que se tapa y de la forma, así que da el mismo nombre y no se usa SAM ni la GPU (0,1 s).
+- Si cambias los chips o la forma con el tapado puesto, sale **↻ aplicar estas opciones**: hace otro tapado, siempre desde la original.
+- **Texto:** SAM 3.1 con «text» encuentra bien las letras grandes y los logos (SHINE, BEABADOOBEE, WRAPSTARZ, el usuario de un post), pero no las líneas de letra pequeña.
 
 ### 4 · Línea de tiempo
 - Una cajita de color por toma. **Su ancho es lo que dura**, con los cortes puestos en los beats del audio. Dice su número, su lugar, sus segundos y su efecto.
@@ -75,13 +91,14 @@ Lectura: 4 min
 ## Por dentro
 - **Esquinas rectas en toda la ventana** (cajas, tarjetas, botones, campos, insignias, menús y ventanitas). En `web/editor/estilos.js` cada curva vale `--radio × su tamaño de antes`, con `--radio:0` en `.epl-fondo`; con `--radio:1` vuelven las de antes. La maqueta usa la misma variable en `:root`.
 - **Archivos:** `web/editor.js` es el botón; `web/editor_core.js` junta las piezas de `web/editor/` (plano 2). Todo se vuelve a cargar cada vez que se abre.
-- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (recetas, montar, historia, tomas, describir, medios, cajitas, crear_cajita, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita también exige la cola vacía.
+- **Servidor:** `/edit_prompt_llm/<acción>`; las acciones están en `rutas.ACCIONES` (recetas, montar, historia, tomas, describir, medios, cajitas, crear_cajita, tapados, tapar_previa, tapar, audio_info, audio_ventana, audio_recortar). Antes de usar el LLM, el servidor comprueba que ComfyUI no esté renderizando y le pide que suelte la GPU. Crear una cajita y tapar también exigen la cola vacía.
 - Al abrir sin recargar la pestaña: `const m = await import('/extensions/edit_prompt_llm/editor_core.js?v='+Date.now()); await m.abrir(app.graph.getNodeById(74), app)` (devuelve el `ctx`, útil para probar).
 
 ## Límites conocidos
 - Si una tarjeta del Stack tiene copias, la numeración puede no coincidir con la del Text Encode. El editor avisa. También avisa con más de 9 fotos o 3 videos.
 - Los videos del Media Loader no tienen vista previa en el editor.
 - Sin el editor (el nodo hace todo con el LLM), los beats salen del audio que llega al nodo, o sea del recorte entero, no de la canción desplazada: pueden variar unos ms.
-- Los recortes `edit_tramo_*.wav` se quedan en `input/`; no se borran solos.
+- Los recortes `edit_tramo_*.wav` se quedan en `input/`; no se borran solos. Lo mismo con las fotos de `input/minimax_h3/tapado/` y los RefMods `__tapado_*` que ya no se usan.
+- «Tapar» no está en las fotos del Media Loader (no son tarjetas del Stack) ni en los videos.
 - Las frases fijas de los efectos de la receta pueden chocar con el lugar (U3 habla de «the night city»); hoy lo corrige el usuario (plano 5, fila 29).
 - El `resumen` de la receta de Teto dice «in a Japanese city» aunque el lugar fijo sea otro.

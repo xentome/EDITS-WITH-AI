@@ -17,7 +17,7 @@ Lectura: 2 min
 | Misma semilla | misma respuesta |
 | Qwen3.8 | escribe a 34 tok/s y lee a ~360 tok/s |
 | Prompt final de Teto | ~700 palabras (v3: 1.524) |
-| Comprobaciones de `pruebas.py` | 33 (16 de antes, 8 de los papeles nuevos y 9 de audio), unos 4 s |
+| Comprobaciones de `pruebas.py` | 39 (16 de antes, 8 de los papeles nuevos, 9 de audio y 6 de tapar), unos 4 s |
 | Editor: historia / tomas / una toma / visión | 113 s / 28,7 s / 7 s / 15 s |
 | Visión: riesgos | acertó (cara difuminada, bandas negras, texto) |
 | Visión: objetos pequeños | falla y cambia entre intentos (el chicle salió como «bolso rosa» y como «tira de mochila») |
@@ -35,6 +35,11 @@ Lectura: 2 min
 | ▶ del tramo | suena 5,167 s exactos y se para sola; pausa y sigue desde el mismo punto |
 | Recorte de un mp3 | coincide muestra a muestra con la canción entera (diferencia 0) |
 | Render con tramo (Blue Fairy desde 1:30.500, 3,042 s, 3 tomas, 480p) | 381 s; el audio del video es la canción desde 90,500 s (correlación 0,998). Cortes planeados en los beats 0,917 y 2,124 s; H3 cortó en el fotograma 20 (0,833 s) y en un fundido del 49 al 51 (2,04–2,12 s), es decir 1–2 fotogramas antes |
+| Tapar: máscaras de SAM 3.1 (cara + pelo, un solo `/prompt`) | 2,5–3,4 s con el modelo cargado; 7,4 s desde el editor tras vaciar la caché; 0 s desde la caché |
+| Tapar: encender en el editor (`ropa/vera`, foto de 1200×1799) | 15,3 s en total: SAM 7,4 s y RefMod 4 s; cara 4,6 % y pelo 3,8 % de la foto |
+| Tapar: apagar / volver a encender (reutiliza, sin SAM) | 0,8 s / 0,1 s; ningún `/prompt` nuevo en ComfyUI |
+| Render con la ropa tapada desde el interruptor (Teto + `ropa/vera__tapado_6811477a`, 480p, 3,042 s, 3 tomas) | 377 s; Teto en las 3 tomas con la chaqueta roja, los parches y el reloj de Vera; no se cuela la cara ni el pelo negro de Vera. Igual que la tapada a mano y que `vera_ropa_sam` (`interfaz_nueva/tapar_sam/`) |
+| Tapar: «text» con SAM 3.1 | encuentra letras grandes y logos (SHINE 30 %, BEABADOOBEE 6,5 %, WRAPSTARZ 8 %, el usuario de un post); no las líneas de letra pequeña |
 
 ## Pendientes
 
@@ -48,4 +53,6 @@ Lectura: 2 min
 - ❓ **Si las tomas sin razonamiento salen tan bien como con el método de 3 etapas:** hay que compararlo en renders.
 - ❓ **Edits de 10 s en 2 clips:** un mismo plan para las dos mitades.
 - ❓ **Receta de Vera.**
+- ❓ **Tapar en las fotos del Media Loader:** hoy solo en tarjetas del Stack. Haría falta cambiar el archivo del medio, no una tarjeta.
+- ❓ **Tapar una pose:** sin render. Falta ver si una pose con la cara difuminada sigue dando la pose bien.
 - ❓ **H3 corta 1–2 fotogramas antes del beat** (render del tramo de Blue Fairy). Falta ver si pasa siempre y si conviene adelantar los cortes.

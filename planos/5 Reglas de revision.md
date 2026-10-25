@@ -40,6 +40,8 @@ Lectura: 3 min
 | 28 | Objeto o lugar que no sale nunca | — (regla de diseño) | cada uno sale al menos en una toma (si el LLM podía ponerlo) · REVISIÓN |
 | 29 | Frase fija de un efecto que choca con el lugar | U3 dice «the night city» en una bodega de avión al atardecer (prueba de la interfaz) | todavía ninguna: lo cambió el usuario tocando otro efecto · ❓ |
 
+**Traspaso de identidad.** La retención ya dice que de una ropa o una pose no se pasan «face, hair and body», pero eso es texto: si la foto enseña la cara, H3 puede copiarla igual. La protección de verdad es **tapar** la cara y el pelo de la foto (ficha de la referencia, «tapar con SAM 3.1», plano 4). Recomendado en toda ropa, pose o fondo con una persona real distinta del personaje; probado con la ropa de Vera en Teto (plano 7).
+
 ## Fallos vistos en un render y todavía sin regla
 
 - **Con la pose `<Picture 5>` (saludo), Teto sale de cuerpo entero, con el pelo largo y a veces con uniforme de marinero.** Ha pasado en 3 de 3 renders: la recortada, el nodo y el editor. Las otras 4 poses salen bien. Parece que esa referencia arrastra su propia composición. Hay tres opciones, ninguna probada: nombrar el pelo dentro de la toma, como hacía la v3; rehacer ese RefMod; o no usar esa pose.
