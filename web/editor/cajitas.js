@@ -59,10 +59,14 @@ export function instalar(ctx) {
           texto: `${r.tag || "(apagada)"} ${r.nombre}`, fuente: { refmod: r.ref }, ref: r.ref }))
       : (medios || []).map((m) => ({ clave: "file:" + m.file, src: u.vistaMedio(m.file), texto: `${m.carpeta.replace(/^minimax_h3\/?/, "")}/${m.name}`,
                                     fuente: { file: m.file } }));
+    // tamaño de los recuadros del selector: se recuerda (ctx.controlTamano) y sobrevive a cada repintado
+    let tamElegir = 200;
     const pintar = () => {
       const q = st.filtro.toLowerCase();
       const lista = candidatos().filter((c) => c.texto.toLowerCase().includes(q));
       v.modal.className = "epl-modal " + lado;
+      const rejElegir = el("div", { class: "epl-elegir" }, ...lista.map((c) => el("div", { class: elegida(c.clave) ? "si" : "", title: c.texto,
+                onclick: () => alternar(c) }, el("img", { src: c.src, alt: "", loading: "lazy" }), el("div", { class: "nombre" }, c.texto))));
       v.modal.replaceChildren(
         el("div", { class: "epl-tit" }, desde ? `Cambiar las fotos de «${desde.nombre}» (se crea una cajita nueva)` : "Nueva cajita: varias fotos en una sola referencia",
           el("span", { class: "der" }, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
@@ -77,9 +81,10 @@ export function instalar(ctx) {
                 pintar(); } }, "Del Media Loader (input/minimax_h3)"),
               el("input", { placeholder: "buscar…", value: st.filtro, style: { flex: 1 },
                 oninput: (e) => { st.filtro = e.target.value; clearTimeout(st.t); st.t = setTimeout(() => { pintar(); v.modal.querySelector("input[placeholder='buscar…']")?.focus(); }, 250); } })),
+            el("div", { class: "epl-fila" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, "tamaño de las fotos"),
+              ctx.controlTamano((t) => { tamElegir = t; rejElegir.style.setProperty("--epl-tam", t + "px"); }, "epl-tam-cajita", tamElegir)),
             st.pestaña === "input" && !medios ? el("p", { class: "epl-vacio" }, "Cargando…") : null,
-            el("div", { class: "epl-elegir" }, ...lista.map((c) => el("div", { class: elegida(c.clave) ? "si" : "", title: c.texto,
-                onclick: () => alternar(c) }, el("img", { src: c.src, alt: "", loading: "lazy" }), c.texto))),
+            rejElegir,
             el("p", { class: "epl-ayuda" }, "Toca una foto para meterla o sacarla. La primera marca el tamaño de las demás.")),
           el("div", {},
             el("label", {}, `Fotos dentro (${st.elegidas.length})`),

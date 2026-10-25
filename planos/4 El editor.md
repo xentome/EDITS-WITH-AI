@@ -32,13 +32,14 @@ Lectura: 4 min
   - **👁 describir con visión** (14–21 s): propone nombre, ficha y riesgos; «usar» o «descartar»;
   - **activa, fuerza y ✕ quitar** del Stack;
   - **usada en** (definición, T1 · T3).
-- **+ Añadir** abre la biblioteca de RefMods. Lo que añades toma el papel que toca en esa mitad (por ejemplo, un RefMod de fondo añadido a la izquierda es un lugar).
+- **✕ en la esquina de arriba a la izquierda** de cada tarjeta del Stack (también en las cajitas): siempre visible. El primer toque pregunta «¿quitar? sí / no»; «sí» hace lo mismo que «✕ quitar» de la ficha (`ctx.quitarDelStack`). Tocar la ✕ no abre la ficha. Los medios del Media Loader no la tienen, porque no están en el Stack.
+- **+ Añadir** abre la biblioteca de RefMods, con recuadros grandes (unas 4 columnas) y fotos enteras. Con **− / deslizador / +** los haces más grandes o más pequeños; se recuerda el último tamaño en el navegador. Lo que añades toma el papel que toca en esa mitad (por ejemplo, un RefMod de fondo añadido a la izquierda es un lugar).
 - **Cada referencia se reconoce por su nombre de RefMod, no por su número.** Si añades, quitas o apagas tarjetas, los números cambian, pero el papel, la ficha y las tomas siguen a su imagen.
 
 ### Las cajitas
 - **Una cajita es un RefMod con varias fotos.** Fantastic las junta, una por fotograma, y H3 la recibe como `<Video N>`. Ocupa un solo lugar, enseña un mosaico y la insignia «4 fotos».
 - **Al tocarla** se abre con todas sus fotos y los mismos controles que una referencia. «✎ Cambiar fotos» abre el creador con esas fotos; al crearla, la nueva ocupa su sitio en el Stack y las tomas que la citaban la siguen citando.
-- **+ Cajita** (en cada mitad) abre el creador: eliges las fotos de las referencias del editor o del Media Loader (`input/minimax_h3`), el nombre, el papel y, si quieres, el nombre en el prompt y la ficha. «Crear cajita» tarda unos 10 s. Puede apagar en el Stack las fotos sueltas que metiste.
+- **+ Cajita** (en cada mitad) abre el creador: eliges las fotos de las referencias del editor o del Media Loader (`input/minimax_h3`), el nombre, el papel y, si quieres, el nombre en el prompt y la ficha. Sus fotos para elegir también tienen el control de tamaño, que se recuerda aparte. «Crear cajita» tarda unos 10 s. Puede apagar en el Stack las fotos sueltas que metiste.
 - Las fotos de cada cajita se apuntan en `models/refmods/<nombre>.cajita.json`, porque el RefMod solo guarda la primera como vista previa. Las de `personajes/teto_identidad_4` se apuntaron a mano; una cajita sin ese archivo enseña solo su primera foto.
 
 ### 4 · Línea de tiempo

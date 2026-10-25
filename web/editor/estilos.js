@@ -108,14 +108,33 @@ textarea.epl-final{min-height:40vh}
 .epl-fotos img{width:100%;height:200px;object-fit:contain;display:block}
 .epl-fotos .quitar{position:absolute;top:4px;right:4px}
 .epl-fotos>div.elegida{border-color:#e0a94c}
-.epl-elegir{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:38vh;overflow:auto;margin-top:6px}
-.epl-elegir>div{cursor:pointer;border:1px solid #2e3440;border-radius:7px;padding:4px;background:#15181e;font-size:10px;word-break:break-all}
+.epl-elegir{--epl-tam:200px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--epl-tam),100%),1fr));gap:8px;
+  max-height:52vh;overflow:auto;margin-top:6px}
+.epl-elegir>div{cursor:pointer;border:1px solid #2e3440;border-radius:7px;padding:5px;background:#15181e;font-size:12px;line-height:1.3;
+  color:#d7dbe2;overflow-wrap:anywhere}
 .epl-elegir>div:hover{border-color:#e0a94c}.epl-elegir>div.si{border-color:#e0a94c;background:#3a2f18}
-.epl-elegir img{width:100%;height:110px;object-fit:contain;background:#0d1015;border-radius:4px}
+.epl-elegir img{width:100%;height:calc(var(--epl-tam) * 1.15);object-fit:contain;background:#0d1015;border-radius:4px;display:block}
+.epl-elegir .nombre,.epl-biblio-item .nombre{margin-top:4px}
 .epl-propuesta{font-size:11px;color:#cfe0ff;background:#1c2738;border:1px solid #2b3a52;border-radius:6px;padding:5px;margin-top:4px}
 .epl-usada{font-size:11px;color:#8fb0e0;margin-top:6px}
-.epl-biblio-rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:8px}
-.epl-biblio-item{cursor:pointer;border:1px solid #2e3440;border-radius:7px;padding:6px;background:#15181e;font-size:11px;word-break:break-all}
-.epl-biblio-item:hover{border-color:#e0a94c}.epl-biblio-item img{width:100%;height:120px;object-fit:contain;border-radius:5px;background:#0d1015}
-.epl-biblio-item small{color:#7d8698;display:block}
+.epl-biblio-rejilla{--epl-tam:270px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--epl-tam),100%),1fr));gap:12px;margin-top:8px}
+.epl-biblio-item{cursor:pointer;border:1px solid #2e3440;border-radius:8px;padding:7px;background:#15181e;font-size:13px;line-height:1.3;
+  color:#e3e7ee;overflow-wrap:anywhere}
+.epl-biblio-item:hover{border-color:#e0a94c}
+.epl-biblio-item img{width:100%;height:calc(var(--epl-tam) * 1.15);object-fit:contain;border-radius:5px;background:#0d1015;display:block}
+.epl-biblio-item small{color:#8a93a3;display:block;font-size:11px}
+/* control de tamaño de los recuadros (− deslizador +) */
+.epl-tam{display:inline-flex;align-items:center;gap:4px}
+.epl-tam .epl-mini{min-width:28px;font-size:14px;padding:2px 6px}
+.epl-tam-barra{width:110px;accent-color:#e0a94c}
+/* la ✕ para quitar una tarjeta del Stack: arriba a la izquierda, siempre visible (también en pantallas táctiles) */
+.epl-cruz{position:absolute;top:6px;left:6px;z-index:2;display:flex;align-items:center;gap:6px}
+.epl-cruz .x{width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:rgba(15,17,22,.85);color:#fff;font-size:15px;
+  line-height:1;font-weight:bold;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.7)}
+.epl-cruz .x:hover{background:#b33a3a}
+.epl-cruz .pregunta{display:flex;align-items:center;gap:4px;background:rgba(15,17,22,.92);border:1px solid #fff;border-radius:14px;
+  padding:3px 4px 3px 9px;color:#fff;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.7)}
+.epl-cruz .pregunta button{border:0;border-radius:10px;padding:3px 10px;font-size:12px;cursor:pointer;color:#fff}
+.epl-cruz .pregunta .si{background:#b33a3a}.epl-cruz .pregunta .no{background:#3a4658}
 `;

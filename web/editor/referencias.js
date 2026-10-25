@@ -143,6 +143,11 @@ export function instalar(ctx) {
     if (it.audio) p.audio = canal(it.audio);
     return p;
   };
+  // quitar una tarjeta del Stack: lo usan el botón «✕ quitar» de la ficha y la ✕ de cada tarjeta grande
+  ctx.quitarDelStack = function quitarDelStack(r) {
+    ctx.cambiarStack((p) => { p.splice(r.idx, 1); });
+    ctx.avisar(`Quitada ${r.nombre} del Stack`, "bien");
+  };
   ctx.anadirDeBiblioteca = function anadirDeBiblioteca(it, lado) {
     if (lado && !S.refs[it.name]) {
       S.refs[it.name] = { papel: papelPorLado(lado, it.concept || ""), nombre: "",
@@ -163,12 +168,31 @@ export function instalar(ctx) {
     return { capa: c, modal, cerrar: () => c.remove() };
   };
 
+  /* control − / deslizador / + para el tamaño de los recuadros (biblioteca y creador de cajitas). `aplicar(tam)` lo pone
+   * (la variable --epl-tam de la rejilla). Recuerda el último tamaño en localStorage (si el navegador no deja, no pasa nada). */
+  ctx.controlTamano = function controlTamano(aplicar, clave, defecto, min = 110, max = 520) {
+    let tam = defecto;
+    try { const g = +localStorage.getItem(clave); if (g >= min && g <= max) tam = g; } catch { /* sin localStorage */ }
+    const barra = el("input", { type: "range", min, max, step: 10, value: tam, class: "epl-tam-barra", title: "Tamaño de los recuadros",
+                                oninput: (e) => poner(+e.target.value) });
+    const poner = (t) => {
+      tam = Math.max(min, Math.min(max, Math.round(t)));
+      aplicar(tam);
+      barra.value = tam;
+      try { localStorage.setItem(clave, String(tam)); } catch { /* sin localStorage */ }
+    };
+    poner(tam);
+    return el("span", { class: "epl-tam", title: "Tamaño de los recuadros" },
+      el("button", { class: "epl-mini", title: "Más pequeños", onclick: () => poner(tam - 40) }, "−"), barra,
+      el("button", { class: "epl-mini", title: "Más grandes", onclick: () => poner(tam + 40) }, "+"));
+  };
+
   ctx.abrirBiblioteca = function abrirBiblioteca(lado) {
     const filtro = el("input", { placeholder: "buscar por nombre o carpeta…", oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
     const v = ctx.capa(lado,
       el("div", { class: "epl-tit" }, `Añadir a «${lado === "izq" ? "lo que no cambia" : "lo que se presta"}» desde la biblioteca de RefMods`,
-        el("span", { class: "der" }, filtro, el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
+        el("span", { class: "der" }, filtro, ctx.controlTamano((t) => rejilla.style.setProperty("--epl-tam", t + "px"), "epl-tam-biblioteca", 270), el("button", { class: "epl-mini", onclick: () => v.cerrar() }, "cerrar"))),
       el("p", { class: "epl-ayuda" }, "Para juntar varias fotos en una sola referencia usa «+ Cajita». Para crear un RefMod de una " +
         "sola imagen nueva sigue sirviendo «Create…» en el nodo RefMod Stack."), rejilla);
     const pintar = () => {
@@ -178,7 +202,7 @@ export function instalar(ctx) {
           try { ctx.anadirDeBiblioteca(it, lado); v.cerrar(); ctx.avisar(`Añadida ${it.label || it.name}`, "bien"); }
           catch (e) { ctx.avisar(e.message, "mal"); } } },
           el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
-          el("div", {}, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
+          el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
             (it.visual?.source === "stack" ? ` · cajita de ${it.visual.t}` : "")))));
     };
     pintar();
@@ -226,11 +250,27 @@ export function instalar(ctx) {
                        onmouseenter: () => r.tag && ctx.resaltar(r.tag, true), onmouseleave: () => r.tag && ctx.resaltar(r.tag, false) },
       fondoSrc ? el("div", { class: "fondo", style: { backgroundImage: `url("${fondoSrc}")` } }) : null,
       imagen,
+      r.idx !== undefined ? cruz(r) : null,
       cajita ? el("span", { class: "epl-insignia" }, `${ctx.nFotos(r)} fotos`) : null,
       el("div", { class: "franja" }, el("b", {}, r.tag || "(apagada)"), " ",
         el("span", { class: "epl-papel " + papel }, PAPELES[papel][0].split(" (")[0]),
         ref.nombre ? ` ${ref.nombre}` : "",
         el("small", {}, (cajita ? "cajita · tócala para abrirla · " : "") + r.nombre)));
+  }
+  /* la ✕ de la esquina de cada tarjeta del Stack: el primer toque pide confirmar («¿quitar? sí / no») y «sí» la quita
+   * con ctx.quitarDelStack, lo mismo que «✕ quitar» de la ficha. Ningún toque aquí abre la ficha. */
+  function cruz(r) {
+    const nodo = el("div", { class: "epl-cruz", onclick: (e) => e.stopPropagation() });
+    const normal = () => nodo.replaceChildren(el("button", { class: "x", title: "Quitar del Stack", "aria-label": "Quitar del Stack",
+      onclick: (e) => { e.stopPropagation(); preguntar(); } }, "✕"));
+    const preguntar = () => {
+      nodo.replaceChildren(el("button", { class: "x", title: "No quitar", onclick: (e) => { e.stopPropagation(); normal(); } }, "✕"),
+        el("span", { class: "pregunta" }, "¿quitar?",
+          el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, "sí"),
+          el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, "no")));
+    };
+    normal();
+    return nodo;
   }
   // columnas que dejan las fotos más grandes (retrato 3:4) en el hueco de cada mitad
   function ajustarRejilla(rejilla, n) {
@@ -296,7 +336,7 @@ export function instalar(ctx) {
               const val = Math.max(0, Math.min(10, +e.target.value || 0));
               p[r.idx].visual = { ...(p[r.idx].visual || {}), mode: "weight", w: val };
             }); pintar(); } })),
-        el("button", { class: "epl-mini", title: "Quitar del Stack", onclick: () => { ctx.cambiarStack((p) => { p.splice(r.idx, 1); }); v.cerrar(); } }, "✕ quitar"));
+        el("button", { class: "epl-mini", title: "Quitar del Stack", onclick: () => { v.cerrar(); ctx.quitarDelStack(r); } }, "✕ quitar"));
       const lleva = ["personaje", "objeto", "lugar", "ropa"].includes(ref.papel);
       const izquierda = extra?.izquierda?.(r) || el("div", { class: "grande" },
         src ? el("div", { class: "fondo", style: { backgroundImage: `url("${src}")` } }) : null,
