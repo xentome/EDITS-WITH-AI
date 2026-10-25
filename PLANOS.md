@@ -39,3 +39,4 @@ Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos
 - ✅ **Tapar con SAM 3.1 (24 oct):** en la ficha de cada referencia, un interruptor y unos chips (cara, pelo, texto, otra cosa) crean una copia tapada del RefMod y la ponen en el Stack; apagar vuelve a la original y volver a encender la reutiliza (plano 4).
 - ✅ **Papeles nuevos:** objeto, lugar y ropa; personaje como `<Video N>` (plano 1). 💡 El objeto aún no tiene render.
 - ✅ **Sin recetas (25 oct):** el personaje sale de su referencia (nombre, pronombre, ficha), el estilo es un campo de la historia general y los efectos son referencias o efectos de texto (plano 3). Probado con un render.
+- ✅ **Editor, 25 oct:** quitar tomas y arrastrar el borde entre tomas (cortes a mano, con imán a los beats), la duración manda en todo el workflow (length de H3 y Prompt Builder), «Cambiar canción» y «Subir foto» (plano 4). Probado con un render.

@@ -41,6 +41,10 @@ Lectura: 2 min
 | Render con la ropa tapada desde el interruptor (Teto + `ropa/vera__tapado_6811477a`, 480p, 3,042 s, 3 tomas) | 377 s; Teto en las 3 tomas con la chaqueta roja, los parches y el reloj de Vera; no se cuela la cara ni el pelo negro de Vera. Igual que la tapada a mano y que `vera_ropa_sam` (`interfaz_nueva/tapar_sam/`) |
 | Sin recetas (25 oct): historia / tomas desde la ventana (3 tomas, Teto en cajita con nombre y ficha, ropa de Vera tapada, bodega fija, estilo escrito, efecto de texto E1) | 89 s / 12 s, a la primera |
 | Render sin recetas (480p, 3,042 s, 3 tomas) | 422 s; igual que el de tapar: Teto en las 3 tomas, la chaqueta de Vera sin su cara, la puerta, la ventanilla y los asientos rojos de la bodega. El efecto de texto «golden dust» (toma 1) casi no se ve: unas motas. `interfaz_nueva/mejoras_sin_recetas/` |
+| Duración desde la ventana / desde `duracion_s` del nodo | el Text Encode 73 → 124 y el Prompt Builder → 5,167 s / 124 → 73 y 3,042 s, con aviso de qué cambió |
+| Cambiar canción: lista de input/ / subir un wav soltándolo | 47 audios; elegir Blue Fairy (2:39) y subir, cada uno unos 3 s hasta ver la onda |
+| Subir foto: 1 de ropa con tapar / 2 juntas en una cajita | unos 20 s (RefMod + SAM + tapado) / 4,5 s |
+| Render final (25 oct; 480p, 3,042 s, 3 tomas, Blue Fairy desde 1:30.500 elegida con «Cambiar canción», toma 2 alargada a mano de 1,21 a 1,60 s, pegada al beat de 2,519 s) | 390 s; audio = la canción desde 90,5 s (correlación 0,995); la toma 2 dura lo que se pidió (7 de 12 muestras de la hoja). H3 cortó en los fotogramas 18 y 57 (planeados 22 y 60): 3–4 antes. El chicle de la toma 1 se cuela en la toma 2. `mejoras_sin_recetas/14_*.mp4` y `15_hoja_fotogramas_final.jpg` |
 | Tapar: «text» con SAM 3.1 | encuentra letras grandes y logos (SHINE 30 %, BEABADOOBEE 6,5 %, WRAPSTARZ 8 %, el usuario de un post); no las líneas de letra pequeña |
 
 ## Pendientes
@@ -57,4 +61,5 @@ Lectura: 2 min
 - 💡 **Efectos con imagen (papel efecto) y varios personajes a la vez:** escritos y revisados por `pruebas.py`, sin render.
 - ❓ **Tapar en las fotos del Media Loader:** hoy solo en tarjetas del Stack. Haría falta cambiar el archivo del medio, no una tarjeta.
 - ❓ **Tapar una pose:** sin render. Falta ver si una pose con la cara difuminada sigue dando la pose bien.
-- ❓ **H3 corta 1–2 fotogramas antes del beat** (render del tramo de Blue Fairy). Falta ver si pasa siempre y si conviene adelantar los cortes.
+- ❓ **H3 corta antes del beat:** 1–2 fotogramas en el render del tramo de Blue Fairy, 3–4 en el render final del 25 oct. Falta ver si pasa siempre y si conviene adelantar los cortes.
+- ❓ **Un objeto de una toma se cuela en la siguiente** (el chicle de la toma 1 en la toma 2, render final del 25 oct).

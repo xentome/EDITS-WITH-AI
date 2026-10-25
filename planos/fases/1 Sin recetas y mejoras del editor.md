@@ -10,13 +10,13 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 | 2 | Línea de tiempo: ✕ para quitar tomas y arrastrar el borde entre tomas (cortes fijos en el plan) | ✅ hecha · `b002e9d` |
 | 3 | La duración manda en todo el workflow (length del Text Encode de H3 y duración del Prompt Builder) | ✅ hecha · `adc3d07` |
 | 4 | «Cambiar canción» desde la ventana del audio (elegir de input/ o subir) | ✅ hecha · `5134304` |
-| 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | ✅ hecha (commit «Subir foto: …») |
+| 5 | «Subir foto» en «+ Añadir»: crear RefMods nuevos desde el PC | ✅ hecha · `ac67623` |
 
-## Fase en curso: render final
+## Terminado (25 oct)
 
-Fase 5 hecha: `pruebas.py` TODO BIEN (63). En «Prueba duración»: soltar `vera.jpg` (copia `vera_subida_epl.jpg`) en la mitad azul con papel ropa y «tapar al subir» → `subidas/vera_subida_epl` y su tapado en el Stack; dos fotos de Teto por el input de archivos, juntas → cajita `subidas/teto_subida_epl` (`<Video 2>`, personaje) en 4,5 s. Capturas 12 y 13.
+Las 5 fases y el render final están hechos. Render final: «Prueba final» (copia de «Prueba sin recetas»), Blue Fairy desde 1:30.500 con «♫ Cambiar canción», toma 2 alargada a mano (1,21 → 1,60 s, pegada al beat), «Escribir tomas» 21 s, 480p 3,042 s en 390 s (`mejoras_sin_recetas/14_*.mp4`, `15_hoja_fotogramas_final.jpg`).
 
-Falta: el render final en un workflow aparte («Prueba final», copia de «Prueba sin recetas»): canción cambiada con «♫ Cambiar canción», una toma alargada arrastrando su borde, «Escribir tomas», guardar y render 480p; hoja de fotogramas; anotar en el plano 7 y aquí.
+Pendientes: H3 corta 3–4 fotogramas antes del beat; un objeto de una toma se cuela en la siguiente; efectos con imagen y varios personajes sin render (plano 7). Las pruebas dejaron RefMods en `models/refmods/subidas/` (vera_subida_epl, su tapado y teto_subida_epl) y fotos `*_epl.jpg` en `input/minimax_h3/`; se pueden borrar.
 
 ## Cómo seguir
 
