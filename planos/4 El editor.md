@@ -99,6 +99,13 @@ Lectura: 4 min
   - el `duration` (s) de otros nodos `MiniMaxH3*` que lo tengan, y el `duration` del `builder_state` del Prompt Builder (fotogramas / 24).
 - Un campo que llega enlazado desde otro nodo no se toca. El aviso de la cabecera dice qué cambió: `H3: 124 fotogramas (5,167 s) · cambié #9 … length 73 → 124`.
 
+## Idioma (español / inglés)
+- Arriba a la derecha, **«ES | EN»**: cambia el idioma de toda la ventana al momento, también la ventanita abierta, sin perder lo escrito.
+- Es el mismo ajuste que **Ajustes de ComfyUI › Prompt del edit › Idioma**: *Automático* (sigue al idioma de ComfyUI), *Español* o *English*. Se recuerda.
+- En el nodo siguen ese ajuste el botón «Abrir editor…» y las ayudas de los campos. El nombre del nodo y de sus entradas siguen al idioma de ComfyUI.
+- Los huecos del prompt final, los errores del servidor y el informe del nodo salen en el idioma elegido. El prompt final no cambia: siempre en inglés.
+- Para añadir un letrero: plano 2, «Dos idiomas».
+
 ## Guardar
 - Arriba a la derecha: **«Guardar»** en azul opaco y **«Guardar y cerrar»**, un poco más grande, en verde opaco. Colores lisos, sin degradados.
 - «Guardar» (arriba o en el prompt final) y «Guardar y cerrar» escriben en el nodo: los campos visibles y el campo oculto `estado`. Después guarda el workflow (Ctrl+S).

@@ -23,6 +23,10 @@ Lectura: 3 min
 | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
 | `web/editor/final.js` | Parte 5: el prompt final, resaltado o editado a mano, con Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
+| `web/editor/i18n.js` | Dos idiomas en la ventana: carga `web/i18n/*.json`, elige el idioma (`idiomaElegido`) y da `t`, `num` y `lista` (`traductor`). |
+| `web/i18n/es.json`, `en.json` | Todos los textos que ve el usuario, `{"clave": "texto con {marcadores}"}`. |
+| `i18n.py` | Lo mismo en Python: `t(clave, idioma, **datos)`, `num`, `ErrorUsuario` y el generador de `locales/`. |
+| `locales/{es,en}/` | Los textos del lienzo de ComfyUI (nombre del nodo y de sus entradas, ajuste del idioma). Se generan con `python i18n.py`. |
 | `maqueta/` | El pizarrón donde se diseña la interfaz nueva: `servidor.py`, `index.html` (pizarra), `interfaz.html` (maqueta) y `documentacion/`. |
 | `pruebas.py` y `pruebas/` | Las comprobaciones rápidas y su plan de referencia. |
 | corridas | `~/Escritorio/experimentos_edit/edit_prompt_llm/<fecha>_<paso>/`: cada llamada al LLM con su prompt, su respuesta y `registro.json`. |
@@ -92,6 +96,7 @@ Para añadir una acción basta con escribir su función en `rutas.py` y ponerla 
 | el prompt final y sus botones | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
 | `web/editor/final.js` |
 | colores y tamaños de la ventana | `web/editor/estilos.js` |
+| un texto que ve el usuario (en los dos idiomas) | `web/i18n/es.json` y `en.json` (ver «Dos idiomas») |
 | qué se guarda en el nodo o los botones de arriba | `web/editor_core.js` |
 | los campos del nodo | `__init__.PromptDelEdit.INPUT_TYPES` |
 
@@ -105,3 +110,18 @@ Al ejecutar, el nodo decide así:
 1. si hay `texto_bloqueado`, sale ese texto;
 2. si no, y el editor dejó un prompt, sale ese prompt;
 3. si no hay ninguno de los dos, hace el recorrido completo con el LLM, con las referencias, efectos y estilo del estado si los hay.
+
+## Dos idiomas
+
+- **Regla:** ningún texto para el usuario va escrito en el código. En JS: `u.t("zona.cosa", { n })` (las piezas lo reciben en `ctx.u`; `editor.js` tiene su propio `t`). En Python: `i18n.t("zona.cosa", idioma, n=n)`, y los errores `raise ErrorUsuario("errores.cosa", n=n)`.
+- **Zonas de las claves:** `comun`, `historia`, `toma`, `referencias`, `tapar`, `linea`, `audio`, `final`, `errores`, `nodo`, `ajuste`, `duracion`.
+- **Números:** `u.num(x, decimales)` (coma en español, punto en inglés); listas con `u.lista([...])`. Los tiempos `m:ss.mmm` del audio son un código de tiempo y llevan punto en los dos.
+- **Qué se queda en un idioma:** lo que va al LLM o a H3 (inglés), los problemas de revisión que se le devuelven al LLM (español), las descripciones guardadas en los RefMods y los `.tapado.json` (español, con su clave al lado para volver a enseñarlos).
+- **El idioma:** ajuste de ComfyUI `EditPromptLLM.Idioma` (auto sigue a `Comfy.Locale`). La ventana manda `idioma` en cada llamada al servidor y lo guarda en `estado` para el informe del nodo. El nombre del nodo y de sus entradas los traduce ComfyUI con `locales/` y `Comfy.Locale`.
+
+### Añadir un letrero nuevo
+
+1. Escribe en el código `t("zona.nombre", { dato })` (o `i18n.t(...)` / `ErrorUsuario(...)` en Python).
+2. Añade la clave a **los dos** archivos, `web/i18n/es.json` y `web/i18n/en.json`, con los mismos `{marcadores}`.
+3. Si es del lienzo (nombre o ayuda de una entrada del nodo, el ajuste), corre `python i18n.py` y reinicia ComfyUI.
+4. Corre `pruebas.py`: la sección 15 avisa si falta una clave, si sobra, si los marcadores no coinciden o si quedó un letrero escrito en el código.

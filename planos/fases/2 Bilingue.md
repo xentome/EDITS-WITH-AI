@@ -10,8 +10,8 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 |---|---|---|
 | 1 | Base: las dos trampas, `web/i18n/{es,en}.json`, `t()` en JS y en Python, ajuste de idioma y botón «ES \| EN», comprobaciones nuevas en `pruebas.py` | ✅ hecha · `fc2b5ec` |
 | 2 | La ventana: todos los textos de `web/editor_core.js`, `web/editor.js` y `web/editor/*.js` con `t()`, marcadores, `Intl`, redibujar al cambiar | ✅ hecha · `5a2ab0e` |
-| 3 | El servidor y el nodo: `ErrorUsuario(clave, **datos)`, `idioma` en cada llamada, `locales/{es,en}/nodeDefs.json`, reiniciar ComfyUI | ✅ hecha · ver git log |
-| 4 | Probar en los dos idiomas en el navegador real (workflow «Prueba bilingüe»), capturas y documentar en los planos 2, 4 y 6 | 🔄 en curso |
+| 3 | El servidor y el nodo: `ErrorUsuario(clave, **datos)`, `idioma` en cada llamada, `locales/{es,en}/nodeDefs.json`, reiniciar ComfyUI | ✅ hecha · `da887c6` |
+| 4 | Probar en los dos idiomas en el navegador real (workflow «Prueba bilingüe»), capturas y documentar en los planos 2, 4 y 6 | ✅ hecha · ver git log |
 
 ## A medias
 
@@ -20,7 +20,11 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 - Fase 2 hecha: todas las piezas de `web/editor/` usan `t()`; cada ventanita guarda `v.repintar` y la cabecera redibuja todo al cambiar de idioma (probado en «Prueba bilingüe»: ES → EN sin perder nada). Los avisos del workflow van como `[clave, datos]`; los del servidor de tapar traen `aviso_i18n` / `origen_i18n` (fase 3).
 - Fase 3 hecha: `nucleo.py`, `rutas.py` y `__init__.py` usan `ErrorUsuario(clave, **datos)` e `i18n.t`; `/edit_prompt_llm/*` responde en el `idioma` de cada llamada; los huecos de `montar` salen en ese idioma; el informe del nodo, en el `idioma` guardado en `estado`. Lo guardado en disco (descripción de RefMods, `.tapado.json`) queda en español, con `aviso_i18n` / `origen_i18n` para volver a enseñarlo. `PENDIENTES` ya está vacía. ComfyUI reiniciado y pestaña nueva abierta: el lienzo enseña los nombres de `locales/`.
 - Respaldo de los workflows abiertos con cambios antes de reiniciar: `~/Escritorio/experimentos_edit/edit_prompt_llm/bilingue/respaldo_workflows/` (el de «Prueba final» era igual al guardado).
-- Fase 4: falta recorrer la ventana en los dos idiomas en «Prueba bilingüe», las capturas, el script del DOM y documentar. Ayudante para añadir claves: `~/Escritorio/experimentos_edit/edit_prompt_llm/bilingue/herramientas/claves.py`.
+- Fase 4 hecha: recorrido en «Prueba bilingüe» en los dos idiomas (historia, toma, ficha con tapar y su vista previa, cajita, biblioteca, subir foto, crear cajita, efecto de texto, arrastre de un borde, ✕ de una toma, cambiar canción, prompt final, un error del servidor y el nodo en el lienzo). 28 capturas y la revisión del DOM (`*_revision_dom.json`) en `~/Escritorio/experimentos_edit/edit_prompt_llm/bilingue/capturas/`: ningún texto de la interfaz en el idioma equivocado (solo salen nombres de carpetas y RefMods, que son datos). El prompt final no cambió (`pruebas/prompt_teto.txt`). El ajuste quedó en «auto».
+
+## Terminado (25 oct)
+
+Pendientes: el nombre del nodo y de sus entradas siguen al idioma de ComfyUI, no al botón (lo decide ComfyUI); las fichas, riesgos de visión y problemas de revisión que escribe el LLM salen en el idioma en que los escribe; los `.tapado.json` viejos (de antes de hoy) tienen su aviso solo en español. Ayudante para añadir claves: `~/Escritorio/experimentos_edit/edit_prompt_llm/bilingue/herramientas/claves.py`.
 
 ## Cómo seguir
 

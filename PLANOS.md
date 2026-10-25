@@ -20,7 +20,7 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 6. [Cambiar sin romper](planos/6%20Cambiar%20sin%20romper.md): el procedimiento para modificarlo.
 7. [Medidas y pendientes](planos/7%20Medidas%20y%20pendientes.md): números medidos y lo que aún no sabemos.
 
-Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md) · **en curso:** [2 Bilingüe](planos/fases/2%20Bilingue.md).
+Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md) y [2 Bilingüe](planos/fases/2%20Bilingue.md).
 
 ## Las 5 reglas de la casa
 
@@ -40,3 +40,4 @@ Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos
 - ✅ **Papeles nuevos:** objeto, lugar y ropa; personaje como `<Video N>` (plano 1). 💡 El objeto aún no tiene render.
 - ✅ **Sin recetas (25 oct):** el personaje sale de su referencia (nombre, pronombre, ficha), el estilo es un campo de la historia general y los efectos son referencias o efectos de texto (plano 3). Probado con un render.
 - ✅ **Editor, 25 oct:** quitar tomas y arrastrar el borde entre tomas (cortes a mano, con imán a los beats), la duración manda en todo el workflow (length de H3 y Prompt Builder), «Cambiar canción» y «Subir foto» (plano 4). Probado con un render.
+- ✅ **Bilingüe (25 oct):** la ventana, el nodo y los avisos del servidor en español o inglés; botón «ES | EN» y ajuste «Prompt del edit › Idioma» (plano 4). Los textos están en `web/i18n/`; cómo añadir uno, en el plano 2. Probado en el navegador en los dos idiomas.

@@ -9,12 +9,13 @@ Lectura: 2 min
 1. **Cambia** el archivo que toque (plano 2, «Dónde cambiar cada cosa»).
 2. **Comprueba en segundos:**
    `~/ComfyUI-CLI/.venv/bin/python ~/comfy/ComfyUI/custom_nodes/edit_prompt_llm/pruebas.py`
-   Si sale TODO BIEN, sigue (63 comprobaciones; las 9 de audio usan audios sintéticos en una carpeta temporal y ffmpeg, y las 6 de tapar, máscaras sintéticas, sin GPU). Si cambiaste el montaje **a propósito**, revisa la diferencia y fija la nueva referencia con `pruebas.py --nueva-referencia`.
+   Si sale TODO BIEN, sigue (73 comprobaciones; las 9 de audio usan audios sintéticos en una carpeta temporal y ffmpeg, las 6 de tapar, máscaras sintéticas, sin GPU, y las 10 de dos idiomas miran los textos y el código). Si cambiaste el montaje **a propósito**, revisa la diferencia y fija la nueva referencia con `pruebas.py --nueva-referencia`.
 3. **Si cambiaste lo que se le pide al LLM:** prueba en la terminal (unos 2 min) y mira la carpeta de la corrida, con cada prompt y su respuesta:
    `~/ComfyUI-CLI/.venv/bin/python nucleo.py --idea "…" --tomas 6 --palabras "TO YOU @1" --estilo "flat 2D anime illustration" --audio ~/comfy/ComfyUI/input/stay_0_5s.wav`
    Antes, libera la GPU de ComfyUI (`/free`), porque desde la terminal no se libera sola.
 4. **Si cambió el prompt final:** haz un render de prueba a 480p (unos 9 min) antes de darlo por bueno.
-5. **Anota** en el plano 7 lo que mediste y, si apareció un fallo nuevo, su regla en el plano 5.
+5. **Si añadiste o cambiaste un texto para el usuario:** en los dos idiomas (plano 2, «Dos idiomas»); `pruebas.py` lo comprueba.
+6. **Anota** en el plano 7 lo que mediste y, si apareció un fallo nuevo, su regla en el plano 5.
 
 ## Qué obliga a reiniciar
 
@@ -24,6 +25,8 @@ Lectura: 2 min
 | `web/editor_core.js` o `web/editor/*.js` | nada: se recargan al abrir la ventana |
 | un archivo nuevo en `web/editor/` | nada, si lo cargas desde `editor_core.js` (función `pieza`); solo debe exportar funciones |
 | `web/editor.js` | recargar la pestaña de ComfyUI |
+| un texto de `web/i18n/*.json` | nada para la ventana (se lee al abrirla) y para el servidor (se relee si cambia); el botón del nodo, recargar la pestaña |
+| `locales/` (con `python i18n.py`) | reiniciar ComfyUI y recargar la pestaña |
 | `__init__.py` (campos del nodo, rutas nuevas) | reiniciar ComfyUI y recargar la pestaña |
 
 Antes de reiniciar, mira que la cola esté vacía y que Krita no esté usando ComfyUI. Antes de recargar la pestaña, guarda los workflows con cambios.
