@@ -7,6 +7,30 @@ Lectura: 4 min · Empezada el 26 oct 2026 con las pruebas del usuario y las de l
 - Sirve también para mejorar la interfaz: cada lección lleva al lado qué podría hacer la ventana para ayudar (💡).
 - Símbolos: ✅ confirmado con una prueba controlada · 🟢 visto varias veces · 💡 idea para la interfaz, sin hacer.
 
+## Método: copiar el estilo de un edit ajeno («método del reel») ✅
+
+Sirve para que H3 haga un edit con el estilo, el ritmo y la música de otro edit, pero con tu personaje. Se probó con dos reels de anime muy distintos, y los dos salieron bien:
+
+| Edit | Reel de referencia | Resultado |
+|---|---|---|
+| Ren en el reel de la pareja | `ig_reel_DbOwMf5BMR_` (26,7 s, mixed media pastel y neón) | ✅ aprobado por el usuario («muy muy bien»). 10 s a 1 MP, las 10 tomas en su orden y en sus cortes. `~/Escritorio/experimentos_edit/edit_prompt_llm/prueba_reel/reel_pareja_10s_pod_1mp.mp4`. Receta completa en `~/Escritorio/experimentos_edit/receta_reel_pareja_ren/` |
+| Ren en el reel sucio | `ig_reel_DOF8ai_jlWi` (10,5 s, anime sucio de tinta y sepia) | ✅ «salió algo interesante». 9,4 s a 480p, unos 10 planos con todo el estilo del reel. `~/Escritorio/experimentos_edit/edit_prompt_llm/prueba_reel2/reel_sucio_largo_pod_480p.mp4` |
+
+**Los pasos, todos en la ventana salvo el 1:**
+1. **El reel entero como una sola referencia**, en un RefMod de tipo clip en modo **Compressed**, con unos 6.000 tokens: 384 px, rejilla 16–24 y todos sus fotogramas. Comprimido copia el estilo; sin comprimir, H3 copia trozos tal cual. Hoy se crea fuera de la ventana, con el nodo de Fantastic (💡 hacerlo desde la ventana).
+2. **Papel «efecto»** en la mitad azul, con una ficha que describa el estilo y sus mundos en orden, por ejemplo: «a dreamy mixed-media anime music-video edit that jumps between very different worlds: soft pastel gradients…».
+3. **El mismo estilo escrito en la historia general:** estilo, arco y luz. La imagen y el texto piden lo mismo.
+4. **La canción del propio reel** («♫ Cambiar canción»), desde 0:00.
+5. **Los cortes del reel:** detectarlos (cambios de escena) y arrastrar los bordes de las tomas a esos segundos, con «pegar a los beats» apagado.
+6. **Una frase por toma** con la escena del reel de ese momento y tu personaje dentro, citando el reel como efecto y con «Sin entorno». Por ejemplo: «<Subject 1>'s legs and sneakers walking over swirling psychedelic liquid neon…».
+7. **Personaje en la mitad roja** con su ficha.
+8. **Duración y resolución:** unos 10 s y unas 10 tomas (de 0,4–2 s); a 1 MP en el pod, que mantiene mejor la identidad.
+
+**Lo que se aprendió:**
+- Un reel corto de pocos mundos (el edit de Ren, de 5 s) hace que H3 lo repita entero y en su orden, en vez de seguir tus tomas.
+- Las tomas muy cortas (20 en 9 s) se pierden: H3 hace unas 10.
+- Si una toma se parece mucho a una escena del reel, puede colarse la cara del personaje del reel (más a 480p que a 1 MP).
+
 ## Encuadre y movimiento de cámara
 
 - ✅ **El encuadre pesa más que la cámara.** Si el encuadre dice «extreme close-up» y la cámara «full portrait», gana el encuadre. Encuadre y cámara deben pedir lo mismo.
