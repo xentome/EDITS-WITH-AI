@@ -193,9 +193,15 @@ textarea.epl-final{min-height:40vh}
 .epl-girar{font-size:16px;padding:2px 7px}
 /* subir video: recorte y tramo */
 .epl-sv{display:flex;flex-direction:column;gap:6px;min-width:0}
-.epl-sv-marco{position:relative;align-self:center;max-width:100%;cursor:crosshair;user-select:none;touch-action:none}
+.epl-sv-marco{position:relative;align-self:center;max-width:100%;user-select:none;touch-action:none}
 .epl-sv-video{display:block;max-width:100%;max-height:52vh}
-.epl-sv-rect{position:absolute;border:2px solid #f0ff41;box-shadow:0 0 0 9999px rgba(0,0,0,.55);pointer-events:none}
+.epl-sv-rect{position:absolute;border:2px solid #f0ff41;cursor:move;box-sizing:border-box}
+.epl-sv-h{position:absolute;width:12px;height:12px;background:#f0ff41;border:1px solid #111}
+.epl-sv-h.h-n{top:-7px;left:50%;margin-left:-6px;cursor:ns-resize}.epl-sv-h.h-s{bottom:-7px;left:50%;margin-left:-6px;cursor:ns-resize}
+.epl-sv-h.h-e{right:-7px;top:50%;margin-top:-6px;cursor:ew-resize}.epl-sv-h.h-o{left:-7px;top:50%;margin-top:-6px;cursor:ew-resize}
+.epl-sv-h.h-ne{top:-7px;right:-7px;cursor:nesw-resize}.epl-sv-h.h-so{bottom:-7px;left:-7px;cursor:nesw-resize}
+.epl-sv-h.h-no{top:-7px;left:-7px;cursor:nwse-resize}.epl-sv-h.h-se{bottom:-7px;right:-7px;cursor:nwse-resize}
+.epl-boton.epl-cortar.fijo{background:#4a4f20;border-color:#f0ff41;color:#f4ffb0}
 .epl-sv-linea{position:relative;height:54px;margin:4px 8px;cursor:pointer;user-select:none;touch-action:none}
 .epl-sv-tira{width:100%;height:54px;display:block;background:#0d1015}
 .epl-sv-sel{position:absolute;top:0;bottom:0;background:rgba(240,255,65,.18);border-top:3px solid #f0ff41;border-bottom:3px solid #f0ff41}

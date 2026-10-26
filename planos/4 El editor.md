@@ -123,7 +123,7 @@ Lectura: 4 min
 ## Subir fotos o videos (26 oct)
 - **Un solo botón, «⬆ Subir foto o video»** (en «+ Añadir» y en las mitades vacías), para una o varias fotos o un video, eligiéndolos o soltándolos encima.
 - **Con un video** (uno cada vez):
-  - **Recorte:** arrastra sobre el video un rectángulo (en amarillo) y solo se usa lo de dentro. «↺ cuadro entero» lo quita.
+  - **Recorte (opcional):** «✂ Cortar» enseña un recuadro amarillo con tiradores en cada lado y esquina. Un lado se mueve solo; con Ctrl, el recuadro cambia de tamaño entero (misma proporción); desde dentro, se mueve. «✕ sin recorte» vuelve al cuadro entero. No oscurece nada.
   - **Tramo** (opcional, «elegir un tramo»): una línea con sus fotogramas y dos tiradores (desde / hasta), ajustados al fotograma, y «▶ / ⏸ el tramo».
 - **Cómo se guarda:** «comprimido» (copia el aspecto general y pesa poco: el método del reel, plano 8) o «completo» (guarda el detalle). Un video empieza en comprimido y una foto en completo.
 - `rutas.subir_refmods` crea el RefMod (MiniMaxH3FantasticRefModCreate) con el `trim` y el `crop` de Fantastic. Lo apunta en `<nombre>.fuente.json`: de qué archivo salió, con qué tramo y recorte, y en qué modo.
