@@ -1,5 +1,5 @@
 /* Sección 5 del editor: PROMPT FINAL (lo que recibe H3), resaltado o editado a mano, con los botones que llaman al LLM
- * (Escribir historia, Escribir tomas) y Guardar. Cada trozo se pinta del color de quien lo escribió (nucleo.montar los
+ * (los del LLM están ahora encima de la historia y de la toma; se guarda solo). Cada trozo se pinta del color de quien lo escribió (nucleo.montar los
  * devuelve con su origen): molde de H3, frase del código (frases.json), tú o el LLM. Una frase del código se toca y se
  * cambia en el panel «Frases del código» (S.frases: solo las que cambió el usuario; las demás, las de frases.json).
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u, sin imports, para que
@@ -7,7 +7,7 @@
 
 const ORIGENES = ["molde", "codigo", "tu", "llm"];
 
-/* Añade ctx.pintarFinal y ctx.abrirFrases. Usa de ctx: u, S, secFinal, capa, resaltar, pedirMontaje, conLLM, guardarYAvisar. */
+/* Añade ctx.pintarFinal y ctx.abrirFrases. Usa de ctx: u, S, secFinal, capa, resaltar, pedirMontaje, programarGuardado. */
 export function instalar(ctx) {
   const { u, S, secFinal } = ctx;
   const { el, t } = u;
@@ -22,11 +22,6 @@ export function instalar(ctx) {
     const cab = el("div", { class: "epl-tit" }, t("final.titulo"),
       S.a_mano ? el("span", { class: "epl-marca" }, t("final.a_mano")) : null,
       el("span", { class: "der" },
-        el("button", { class: "epl-boton", title: t("final.escribir_historia.tooltip"),
-          onclick: () => ctx.conLLM("final.escribiendo_historia", "historia") }, t("final.escribir_historia")),
-        el("button", { class: "epl-boton", title: t("final.escribir_tomas.tooltip"),
-          onclick: () => ctx.conLLM("final.escribiendo_tomas", "tomas") }, t("final.escribir_tomas")),
-        el("button", { class: "epl-boton fuerte", onclick: () => ctx.guardarYAvisar() }, t("comun.guardar")),
         el("button", { class: "epl-mini epl-abrir-frases", title: t("final.frases.tooltip"), onclick: () => ctx.abrirFrases() },
           t("final.frases", { n: Object.keys(S.frases).length })),
         el("button", { class: "epl-mini", onclick: () => { editando = !editando; pintarFinal(); } }, t(editando ? "final.ver_resaltado" : "final.editar")),
@@ -41,7 +36,7 @@ export function instalar(ctx) {
       ...ORIGENES.map((o) => el("span", { class: `epl-o epl-o-${o}`, title: t(`final.origen.${o}.tooltip`) }, t(`final.origen.${o}`))));
     let cuerpoFinal;
     if (editando) {
-      cuerpoFinal = el("textarea", { class: "epl-final", oninput: (e) => { S.prompt = e.target.value; S.a_mano = true; } }, S.prompt);
+      cuerpoFinal = el("textarea", { class: "epl-final", oninput: (e) => { S.prompt = e.target.value; S.a_mano = true; ctx.programarGuardado(); } }, S.prompt);
     } else if (colores) {
       cuerpoFinal = el("pre", { class: "epl-final" });
       for (const [texto, origen, clave] of S.trozos) {

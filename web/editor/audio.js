@@ -316,8 +316,11 @@ export function instalar(ctx) {
 
   // ---- al guardar: si el usuario tocó el audio, se escribe el recorte y el LoadAudio pasa a apuntar a él (es lo que llega
   // a H3 y a CreateVideo); la original queda en el estado
+  let ultimoRecorte = "";
   ctx.prepararAudioParaGuardar = async function prepararAudioParaGuardar() {
     if (!S.audio?.tocado || !info) return null;
+    const clave = `${S.audio.original}|${S.audio.inicio_s}|${dur()}`;   // con el guardado automático: solo si cambió el tramo
+    if (clave === ultimoRecorte && S.audio.recorte) return null;
     const widget = W(wf.audioNodo || {}, "audio");
     if (!widget) throw new Error(t("audio.sin_loadaudio"));
     const r = await api("audio_recortar", { audio: S.audio.original, inicio: S.audio.inicio_s, dur: dur() });
@@ -327,6 +330,7 @@ export function instalar(ctx) {
     try { widget.callback?.(r.nombre); } catch { /* el reproductor del LoadAudio no es imprescindible */ }
     S.audio.recorte = r.nombre;
     wf.audio = r.nombre;
+    ultimoRecorte = clave;
     return r;
   };
 

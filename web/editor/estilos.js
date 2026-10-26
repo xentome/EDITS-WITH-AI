@@ -105,7 +105,7 @@ input.corto{width:70px}
   border:1px solid #e0a94c;border-radius:calc(var(--radio) * 4px);padding:1px 6px;font:11px ui-monospace,monospace}
 .epl-borde.arrastrando .epl-borde-et{display:block}
 .epl-pegar{display:inline-flex;align-items:center;gap:3px;margin-right:8px;cursor:pointer}
-.epl-tomab.elegida{border-color:#fff;box-shadow:0 0 0 2px #e0a94c}
+.epl-tomab.elegida{border:5px solid #fff;box-shadow:0 0 0 3px #e0a94c,0 0 14px rgba(255,255,255,.55);z-index:3}
 .epl-tomab b{font-size:12px}.epl-tomab span{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .epl-mas{min-width:44px;width:44px;flex:none;border:1px dashed #3d4a5c;border-radius:calc(var(--radio) * 6px);color:#8a93a3;background:none;cursor:pointer;font-size:18px}
 .epl-regla{display:flex;justify-content:space-between;color:#8a93a3;font-size:10px;margin-top:3px}
@@ -173,6 +173,19 @@ textarea.epl-final{min-height:40vh}
 .epl-boton.epl-verde{background:#2f6b3f;border-color:#3b7f4d;color:#fff}.epl-boton.epl-verde:hover{background:#367a48}
 .epl-boton.epl-azul{background:#2f4f7a;border-color:#3b6090;color:#fff}.epl-boton.epl-azul:hover{background:#365a8a}
 .epl-boton.epl-grande{padding:8px 18px;font-size:14px;font-weight:600}
+/* el amarillo del logo de ComfyUI (aproximado; la guía de marca no publica el código): el prompt de la toma */
+.epl-fondo{--epl-comfy:#f0ff41}
+.epl-s-toma{border:3px solid var(--epl-comfy) !important;box-shadow:0 0 12px rgba(240,255,65,.25)}
+.epl-boton.epl-llm{background:#3b3f1a;border-color:var(--epl-comfy);color:#f4ffb0;font-weight:600;margin-left:10px}.epl-boton.epl-llm:hover{background:#4a4f20}
+.epl-boton.epl-subir{font-size:16px;padding:10px 22px}
+.epl-anadir{padding:6px 16px !important;font-size:14px !important}
+.epl-vacia{flex:1;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+  border:2px dashed rgba(255,255,255,.25);border-radius:calc(var(--radio) * 8px);color:#c8cfda;text-align:center;padding:10px}
+.epl-vacia:hover{border-color:#3b7f4d;background:rgba(47,107,63,.18)}.epl-vacia .mas{font-size:28px}.epl-vacia b{font-size:15px;color:#9be39b}
+.epl-rejilla{cursor:copy}.epl-rejilla>*{cursor:pointer}
+.epl-biblio-rejilla{cursor:copy;min-height:120px}.epl-biblio-rejilla>*{cursor:pointer}
+.epl-auto{margin:0 8px;color:#9be39b}
+.epl-s-toma .epl-linea-toma{margin-top:8px}
 .epl-boton:disabled{opacity:.45;cursor:default;pointer-events:none}
 .epl-mini{background:#232833;color:#c9cfd9;border:1px solid #343b48;border-radius:calc(var(--radio) * 5px);padding:3px 8px;cursor:pointer;font-size:11px}
 .epl-mini.fijo{background:#5a4515;border-color:#a47a2a}

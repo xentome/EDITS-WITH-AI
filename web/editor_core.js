@@ -99,8 +99,28 @@ export async function abrir(node, app) {
         ctx.pintarFinal();
         ctx.pintarLinea();
         ctx.pintarLineaToma();
+        ctx.programarGuardado();
       } catch (e) { ctx.avisar(t("errores.montar", { error: e.message }), "mal"); }
     }, 350);
+  };
+  /* ---- guardado automático: cada cambio vuelve a montar el prompt y, 2 s después del último, se escribe en el nodo (el
+   * estado y los campos visibles; el recorte del audio solo si cambió). Ya no hay botón «Guardar». ctx.guardarYa() lo
+   * hace al momento (al cerrar la ventana). El workflow en disco sigue siendo el Ctrl+S de ComfyUI. */
+  let esperaGuardar = null, guardando = Promise.resolve();
+  ctx.programarGuardado = () => {
+    clearTimeout(esperaGuardar);
+    esperaGuardar = setTimeout(() => { ctx.guardarYa(); }, 2000);
+  };
+  ctx.guardarYa = () => {
+    clearTimeout(esperaGuardar);
+    guardando = guardando.then(async () => {
+      try {
+        const d = await guardar();
+        ctx.avisar(t(S.avisos.length ? "comun.ventana.autoguardado_huecos" : "comun.ventana.autoguardado") + textoDuracion(d),
+                   S.avisos.length ? "mal" : "bien");
+      } catch (e) { ctx.avisar(t("errores.guardar", { error: e.message }), "mal"); }
+    });
+    return guardando;
   };
 
   referencias.instalar(ctx);
@@ -160,14 +180,9 @@ export async function abrir(node, app) {
   const textoDuracion = (d) => !d ? "" : " · " + t("comun.ventana.duracion", { f: d.fotogramas, s: u.num(d.segundos, 3) }) + " · " +
     (d.cambios.length ? t("comun.ventana.duracion_cambios", { cambios: d.cambios.map((c) => duracion.textoCambio(c, tr)).join(" · ") })
                       : t("comun.ventana.duracion_igual"));
-  ctx.guardarYAvisar = async () => {
-    let d;
-    try { d = await guardar(); } catch (e) { return ctx.avisar(t("errores.guardar", { error: e.message }), "mal"); }
-    ctx.avisar(t(S.avisos.length ? "comun.ventana.guardado_huecos" : "comun.ventana.guardado") + textoDuracion(d),
-               S.avisos.length ? "mal" : "bien");
-    return d;
-  };
-  const cerrar = () => {
+  ctx.guardarYAvisar = () => ctx.guardarYa();             // nombre de antes (otras piezas y pruebas)
+  const cerrar = async () => {
+    await ctx.guardarYa();                                 // lo último que se escribió, aunque no hayan pasado los 2 s
     fondo.remove();
     document.removeEventListener("keydown", tecla, true);
     window.removeEventListener(i18n.EVENTO, alAjuste);
@@ -204,11 +219,9 @@ export async function abrir(node, app) {
                                                onclick: () => cambiarIdioma(i) }, texto);
     cabecera.replaceChildren(el("b", {}, t("comun.ventana.titulo")), estado,
       el("span", { class: "epl-idioma", title: t("comun.idioma.tooltip") }, boton("es", "ES"), " | ", boton("en", "EN")),
-      el("button", { class: "epl-boton epl-azul", onclick: () => ctx.guardarYAvisar() }, t("comun.guardar")),
-      el("button", { class: "epl-boton epl-verde epl-grande", onclick: async () => {
-        try { await guardar(); cerrar(); } catch (e) { ctx.avisar(t("errores.guardar", { error: e.message }), "mal"); } } },
-        t("comun.ventana.guardar_cerrar")),
-      el("button", { class: "epl-x", title: t("comun.ventana.cerrar_sin_guardar"), onclick: cerrar }, "✕"));
+      el("span", { class: "epl-ayuda epl-auto", title: t("comun.ventana.autoguardado.tooltip") }, t("comun.ventana.autoguardado.etiqueta")),
+      el("button", { class: "epl-boton epl-verde epl-grande epl-cerrar", onclick: cerrar }, t("comun.cerrar_ventana")),
+      el("button", { class: "epl-x", title: t("comun.cerrar_ventana"), onclick: cerrar }, "✕"));
   }
   pintarCabecera();
   caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secTiempo, secFinal));

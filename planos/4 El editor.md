@@ -120,7 +120,12 @@ Lectura: 4 min
 - Los huecos del prompt final, los errores del servidor y el informe del nodo salen en el idioma elegido. El prompt final no cambia: siempre en inglés.
 - Para añadir un letrero: plano 2, «Dos idiomas».
 
-## Guardar
+## Guardar (automático desde el 26 oct)
+- **Se guarda solo:** cada cambio vuelve a montar el prompt y, 2 s después del último, se escribe en el nodo (el estado y los campos visibles). El recorte del audio solo se vuelve a escribir si cambió el tramo. En la cabecera pone «se guarda solo» y, al guardar, «Guardado ✓».
+- **Ya no hay botón «Guardar».** «Cerrar» (verde) y ✕ guardan lo último y cierran.
+- El workflow en el disco sigue siendo el Ctrl+S de ComfyUI.
+
+## Guardar (antes)
 - Arriba a la derecha: **«Guardar»** en azul opaco y **«Guardar y cerrar»**, un poco más grande, en verde opaco. Colores lisos, sin degradados.
 - «Guardar» (arriba o en el prompt final) y «Guardar y cerrar» escriben en el nodo: los campos visibles y el campo oculto `estado`. Después guarda el workflow (Ctrl+S).
 - ✕ cierra sin guardar. Escape cierra solo la ventana de encima (ficha, cajita o biblioteca).

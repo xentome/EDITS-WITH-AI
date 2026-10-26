@@ -255,7 +255,7 @@ export function instalar(ctx) {
     const filtro = el("input", { oninput: () => pintar(), style: { flex: 1 } });
     const rejilla = el("div", { class: "epl-biblio-rejilla" });
     const aviso = el("p", { class: "epl-aviso epl-biblio-aviso" });
-    const anadir = el("button", { class: "epl-boton epl-azul epl-grande epl-biblio-anadir", onclick: () => {
+    const anadir = el("button", { class: "epl-boton epl-verde epl-grande epl-biblio-anadir", onclick: () => {
       const its = marcadas.map((n) => ctx.biblioteca[n]).filter(Boolean);
       try {
         ctx.anadirVariosDeBiblioteca(its, lado, papel);
@@ -266,13 +266,14 @@ export function instalar(ctx) {
       } catch (e) { aviso.textContent = "⚠ " + e.message; }
     } });
     const v = ctx.capa(lado);
+    rejilla.addEventListener("click", (e) => { if (e.target === rejilla) ctx.abrirSubir(lado, opciones); });   // un hueco vacío
     // toda la ventana (también al cambiar de idioma): lo buscado y lo marcado se conservan
     v.repintar = () => {
       filtro.placeholder = t("referencias.biblioteca.buscar");
       v.modal.replaceChildren(
         el("div", { class: "epl-tit" }, t(lado === "izq" ? "referencias.biblioteca.titulo_izq" : "referencias.biblioteca.titulo_der"),
           el("span", { class: "der" }, filtro, ctx.controlTamano((x) => rejilla.style.setProperty("--epl-tam", x + "px"), "epl-tam-biblioteca", 270),
-            el("button", { class: "epl-boton epl-azul", title: t("referencias.subir.tooltip"), onclick: () => ctx.abrirSubir(lado, opciones) }, t("referencias.subir")),
+            el("button", { class: "epl-boton epl-verde epl-grande epl-subir", title: t("referencias.subir.tooltip"), onclick: () => ctx.abrirSubir(lado, opciones) }, t("referencias.subir")),
             el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
         el("p", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda")),
         rejilla,
@@ -473,20 +474,12 @@ export function instalar(ctx) {
         ref.nombre ? ` ${ref.nombre}` : "",
         el("small", {}, cajita ? t("referencias.tarjeta.cajita", { nombre: r.nombre }) : r.nombre)));
   }
-  /* la ✕ de la esquina de cada tarjeta del Stack: el primer toque pide confirmar («¿quitar? sí / no») y «sí» la quita
-   * con ctx.quitarDelStack, lo mismo que «✕ quitar» de la ficha. Ningún toque aquí abre la ficha. */
+  /* la ✕ de la esquina de cada tarjeta del Stack: la quita al momento (ctx.quitarDelStack), sin preguntar; se puede volver
+   * a añadir desde la biblioteca. Ningún toque aquí abre la ficha. */
   function cruz(r) {
-    const nodo = el("div", { class: "epl-cruz", onclick: (e) => e.stopPropagation() });
-    const normal = () => nodo.replaceChildren(el("button", { class: "x", title: t("referencias.quitar_del_stack"), "aria-label": t("referencias.quitar_del_stack"),
-      onclick: (e) => { e.stopPropagation(); preguntar(); } }, "✕"));
-    const preguntar = () => {
-      nodo.replaceChildren(el("button", { class: "x", title: t("referencias.no_quitar"), onclick: (e) => { e.stopPropagation(); normal(); } }, "✕"),
-        el("span", { class: "pregunta" }, t("referencias.pregunta_quitar"),
-          el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, t("comun.si")),
-          el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, t("comun.no"))));
-    };
-    normal();
-    return nodo;
+    return el("div", { class: "epl-cruz", onclick: (e) => e.stopPropagation() },
+      el("button", { class: "x", title: t("referencias.quitar_del_stack"), "aria-label": t("referencias.quitar_del_stack"),
+        onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, "✕"));
   }
   // columnas que dejan las fotos más grandes (retrato 3:4) en el hueco de cada mitad
   function ajustarRejilla(rejilla, n) {
@@ -500,6 +493,10 @@ export function instalar(ctx) {
     rejilla.style.gridTemplateColumns = `repeat(${mejor}, minmax(0, 1fr))`;
   }
 
+  // una mitad sin referencias: toda la caja es un botón que abre «Subir foto» (sin Stack, solo el aviso)
+  const vacia = (lado) => !wf.stack ? el("p", { class: "epl-vacio" }, t(`referencias.${lado}.vacio`))
+    : el("div", { class: "epl-vacia", title: t("referencias.vacia.tooltip"), onclick: () => ctx.abrirSubir(lado) },
+        el("span", { class: "mas" }, "⬆"), el("b", {}, t("referencias.vacia.subir")), el("span", {}, t(`referencias.${lado}.vacio`)));
   ctx.pintarRefs = function pintarRefs() {
     const usadas = S.elegida ? ctx.usadasEnToma(S.elegida) : null;
     const izq = wf.items.filter((r) => ctx.ladoDe(r) === "izq"), der = wf.items.filter((r) => ctx.ladoDe(r) === "der");
@@ -507,7 +504,7 @@ export function instalar(ctx) {
     const orden = (r) => (!r.tag ? 2 : (S.refs[r.clave]?.papel || "no") === "no" ? 1 : 0);
     der.sort((a, b) => orden(a) - orden(b));
     const botones = (lado) => el("span", { class: "der" },
-      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.abrirBiblioteca(lado) }, t("referencias.anadir")) : null,
+      wf.stack ? el("button", { class: "epl-boton epl-verde epl-grande epl-anadir", onclick: () => ctx.abrirBiblioteca(lado) }, t("referencias.anadir")) : null,
       wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, t("referencias.cajita")) : null);
     const rejIzq = el("div", { class: "epl-rejilla" }, ...izq.map((r) => tile(r, usadas)));
     const rejDer = el("div", { class: "epl-rejilla" }, ...der.map((r) => tile(r, usadas)));
@@ -530,11 +527,14 @@ export function instalar(ctx) {
       el("div", { class: "epl-mitad izq" },
         el("div", { class: "epl-tit" }, t("referencias.izq.titulo"), botones("izq")),
         ...wf.avisos.map(([clave, datos]) => el("p", { class: "epl-aviso" }, "⚠ " + t(clave, datos))),
-        izq.length ? rejIzq : el("p", { class: "epl-vacio" }, t("referencias.izq.vacio"))),
+        izq.length ? rejIzq : vacia("izq")),
       el("div", { class: "epl-mitad der" },
         el("div", { class: "epl-tit" }, t("referencias.der.titulo"), botones("der")),
-        der.length ? rejDer : el("p", { class: "epl-vacio" }, t("referencias.der.vacio")),
+        der.length ? rejDer : vacia("der"),
         fichas)));
+    for (const [rej, lado] of [[rejIzq, "izq"], [rejDer, "der"]]) {   // un hueco de la rejilla sin tarjeta, también
+      rej.addEventListener("click", (e) => { if (e.target === rej && wf.stack) ctx.abrirSubir(lado); });
+    }
     requestAnimationFrame(() => { ajustarRejilla(rejIzq, izq.length); ajustarRejilla(rejDer, der.length); });
   };
 

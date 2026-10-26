@@ -28,10 +28,10 @@ MODELO = "qwen3.8-27b"
 CORRIDAS = os.path.expanduser("~/Escritorio/experimentos_edit/edit_prompt_llm")
 with open(os.path.abspath(__file__), "rb") as _f:
     CODIGO = hashlib.sha1(_f.read()).hexdigest()[:8]  # entra en la huella: si cambia este archivo, la despensa no se reutiliza
-# encuadres cercanos (plano 5, fila 7): el menú del editor y del LLM, tal cual van al prompt (en inglés). El usuario puede
-# escribir el suyo en la ventana («✎ escribir el mío»): se pega igual.
-ENCUADRES = ("extreme close-up", "close-up", "medium close-up", "low-angle close-up", "close detail shot",
-             "extreme close-up of <Subject 1>'s eyes", "dynamic close-up")
+# los encuadres básicos (plano 5, fila 7): el menú del editor y del LLM, tal cual van al prompt (en inglés). El usuario puede
+# escribir el suyo en la ventana («✎ escribir el mío»): se pega igual. Un encuadre de antes que ya no está en el menú se
+# queda como texto propio.
+ENCUADRES = ("extreme close-up", "close-up", "medium shot", "full shot")
 ENCUADRE_VIEJO = {"extreme close-up of the eyes": "extreme close-up of <Subject 1>'s eyes"}   # planes de antes del 25 oct
 # entorno de una toma: «auto» (el LLM escribe el lugar), «manual» (lo escribió el usuario: candado del lugar) o «ninguno»
 # (no se escribe ningún lugar ni fondo: solo se resalta a la persona o al objeto; la luz deja de ser obligatoria)

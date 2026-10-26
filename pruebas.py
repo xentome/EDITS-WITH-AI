@@ -271,9 +271,9 @@ comprobar("el resumen no decide por su cuenta de qué está hecho el edit (ni «
           "A music edit of <Subject 1> (anime), cut on the beat of <Audio 1>: a." in p8 and "close shots" not in prompt, p8)
 pf8 = N.perfil_de(N.menu_de(refs8), e8)
 pt8 = N.prompt_toma(pf8, N.menu_de(refs8), plan8, 1, 1.0, [])
-d8 = N.leer_toma("FRAMING: dynamic close-up\nLIGHT: warm glow\nACTION: raises his chin slowly\nCAMERA: pushes in", pf8, plan8["tomas"][0])
+d8 = N.leer_toma("FRAMING: full shot\nLIGHT: warm glow\nACTION: raises his chin slowly\nCAMERA: pushes in", pf8, plan8["tomas"][0])
 comprobar("sin entorno el LLM no recibe lugar ni se le pide la luz, y la revisión no la exige",
-          "LIGHT:" not in pt8 and "Sin entorno" in pt8 and "dynamic close-up" in pt8 and d8["luz"] == "" and
+          "LIGHT:" not in pt8 and "Sin entorno" in pt8 and "full shot" in pt8 and d8["luz"] == "" and
           not N.revisar_toma(d8, pf8, plan8, 1, [], set(), N.menu_de(refs8)), (d8, pt8[-600:]))
 plan8h = N.ajustar_plan(plan8, 2)
 for t in plan8h["tomas"]:
