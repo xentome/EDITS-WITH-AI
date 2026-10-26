@@ -1,6 +1,6 @@
 # Lo que funciona (guía de uso, en construcción)
 
-Lectura: 4 min · Empezada el 26 oct 2026 con las pruebas del usuario y las de los días 25 y 26.
+Lectura: 5 min · Empezada el 26 oct 2026 con las pruebas del usuario y las de los días 25 y 26.
 
 **En resumen**
 - Es la base de una futura guía: qué escribir en cada campo para que H3 haga lo que quieres.
@@ -59,6 +59,16 @@ Sirve para que H3 haga un edit con el estilo, el ritmo y la música de otro edit
 - 🟢 **Una foto como referencia de letra copia también su texto como marca de agua** si va fuerte, o a 1 MP. A fuerza 0,3 desaparece en fondos lisos, pero vuelve con fondos que H3 no sigue.
   - 💡 Una foto que tenga solo las letras, sin personaje ni fondo, y poder recortarla en la ventana.
 - 🟢 Una palabra con su momento, su sitio («encima» o «al lado») y la frase de su letra sale en su sitio.
+- ✅ **Texto animado copiado de un clip** (26 oct, «MAX EDITOR for MINIMAX H3»). Receta completa en `~/Escritorio/experimentos_edit/receta_texto_animado/`.
+  - El clip de la animación va en papel efecto, con una ficha que cuenta su movimiento paso a paso («slams in letter by letter, then shrinks into a pink pill-shaped tag that slides to the left…»).
+  - El texto empieza con la toma que cita el clip, va «encima» y su frase repite la misma animación.
+  - Esa toma tiene la cámara quieta, descrita con detalle, y deja hueco para las letras.
+  - Salió en local (960×544, semilla 2026102202). En el pod, a 1344×768, la misma receta no salió: fue la tirada. Cambiar la resolución cambia el ruido de partida aunque la semilla sea la misma.
+
+## Semilla
+
+- 🟢 **Antes de culpar al prompt, prueba otra semilla.** Una misma receta sale bien o mal según la tirada (26 oct: texto animado).
+  - 💡 Un botón «probar otra semilla» al lado de Run, o lanzar 2–3 semillas seguidas.
 
 ## Referencias de estilo y de efecto
 

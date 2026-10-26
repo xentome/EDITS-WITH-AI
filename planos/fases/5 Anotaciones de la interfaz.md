@@ -41,6 +41,8 @@ Lectura: 2 min · Empezado el 26 oct 2026, mientras el usuario hace su edit en e
 
 12. ✅ **La línea `[Shot n]` de la toma elegida** (la vista previa de solo lectura de lo que va al prompt) pasa de **arriba** del panel «Prompt de la toma» a **abajo**, justo encima de las referencias.
 
+13. ⬜ **Cambiar el orden de las tomas** en la línea de tiempo (pedido el 26 oct; para después).
+
 ## Vistos al usar la ventana (para comentarlos con el usuario)
 
 - No se puede recortar una foto, ni quitarle el fondo, al subirla.
