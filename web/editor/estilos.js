@@ -185,6 +185,23 @@ textarea.epl-final{min-height:40vh}
 .epl-rejilla{cursor:copy}.epl-rejilla>*{cursor:pointer}
 .epl-biblio-rejilla{cursor:copy;min-height:120px}.epl-biblio-rejilla>*{cursor:pointer}
 .epl-auto{margin:0 8px;color:#9be39b}
+/* resolución, arriba en el centro */
+.epl-resolucion{margin:0 auto;display:flex;align-items:center;gap:6px;background:#12151b;border:1px solid #2e3440;padding:3px 8px;border-radius:calc(var(--radio) * 6px)}
+.epl-res-medidas{display:flex;flex-direction:column;gap:2px}.epl-res-medidas label{display:flex;align-items:center;gap:4px;font-size:10px;color:#8a93a3}
+.epl-res-medidas span{width:34px;text-align:right}.epl-resolucion input.corto{width:64px;padding:1px 4px;font-size:12px}
+.epl-res-mp{display:flex;align-items:center;gap:3px;font-size:12px;color:#f0b866;font-weight:600}.epl-res-mp input.corto{width:52px}
+.epl-girar{font-size:16px;padding:2px 7px}
+/* subir video: recorte y tramo */
+.epl-sv{display:flex;flex-direction:column;gap:6px;min-width:0}
+.epl-sv-marco{position:relative;align-self:center;max-width:100%;cursor:crosshair;user-select:none;touch-action:none}
+.epl-sv-video{display:block;max-width:100%;max-height:52vh}
+.epl-sv-rect{position:absolute;border:2px solid #f0ff41;box-shadow:0 0 0 9999px rgba(0,0,0,.55);pointer-events:none}
+.epl-sv-linea{position:relative;height:54px;margin:4px 8px;cursor:pointer;user-select:none;touch-action:none}
+.epl-sv-tira{width:100%;height:54px;display:block;background:#0d1015}
+.epl-sv-sel{position:absolute;top:0;bottom:0;background:rgba(240,255,65,.18);border-top:3px solid #f0ff41;border-bottom:3px solid #f0ff41}
+.epl-sv-tirador{position:absolute;top:-4px;bottom:-4px;width:10px;margin-left:-5px;background:#f0ff41;cursor:ew-resize;border-radius:calc(var(--radio) * 3px)}
+.epl-sv-cabezal{position:absolute;top:-6px;bottom:-6px;width:2px;background:#fff;pointer-events:none}
+.epl-sv-modos{display:flex;gap:14px;margin:2px 0 6px}.epl-sv-modo{display:flex;align-items:center;gap:4px;cursor:pointer}
 .epl-s-toma .epl-linea-toma{margin-top:8px}
 .epl-boton:disabled{opacity:.45;cursor:default;pointer-events:none}
 .epl-mini{background:#232833;color:#c9cfd9;border:1px solid #343b48;border-radius:calc(var(--radio) * 5px);padding:3px 8px;cursor:pointer;font-size:11px}

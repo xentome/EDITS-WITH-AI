@@ -20,8 +20,9 @@
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n, filaTexto] = await Promise.all(
-    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion", "i18n", "textos"].map(pieza));
+  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n, filaTexto, subir, resolucion] = await Promise.all(
+    ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion", "i18n", "textos", "subir",
+     "resolucion"].map(pieza));
   // el idioma: los textos de los dos idiomas y el traductor del elegido; las piezas usan u.t, u.num, u.lista y u.api
   const textos = await i18n.cargarTextos();
   let tr = i18n.traductor(textos, i18n.idiomaElegido(app));
@@ -124,6 +125,8 @@ export async function abrir(node, app) {
   };
 
   referencias.instalar(ctx);
+  subir.instalar(ctx);
+  resolucion.instalar(ctx);
   cajitas.instalar(ctx);
   tapar.instalar(ctx);
   plan.instalar(ctx);
@@ -217,7 +220,7 @@ export async function abrir(node, app) {
   function pintarCabecera() {
     const boton = (i, texto) => el("button", { class: "epl-mini" + (tr.idioma === i ? " fijo" : ""), "data-idioma": i,
                                                onclick: () => cambiarIdioma(i) }, texto);
-    cabecera.replaceChildren(el("b", {}, t("comun.ventana.titulo")), estado,
+    cabecera.replaceChildren(el("b", {}, t("comun.ventana.titulo")), estado, ctx.panelResolucion(),
       el("span", { class: "epl-idioma", title: t("comun.idioma.tooltip") }, boton("es", "ES"), " | ", boton("en", "EN")),
       el("span", { class: "epl-ayuda epl-auto", title: t("comun.ventana.autoguardado.tooltip") }, t("comun.ventana.autoguardado.etiqueta")),
       el("button", { class: "epl-boton epl-verde epl-grande epl-cerrar", onclick: cerrar }, t("comun.cerrar_ventana")),

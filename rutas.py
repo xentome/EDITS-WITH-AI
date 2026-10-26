@@ -141,15 +141,64 @@ def _comfy(ruta, cuerpo=None, timeout=30):
     return json.loads(urllib.request.urlopen(pet, timeout=timeout).read())
 
 
-def _item_media(rel):
-    """Archivo de input/ (ruta relativa) → item del Media Loader, como los escribe la biblioteca de Fantastic."""
+VIDEOS_SUBIDA = (".mp4", ".webm", ".mov", ".mkv", ".gif")
+
+
+def _item_media(rel, tramo=None, recorte=None):
+    """Archivo de input/ (ruta relativa) → item del Media Loader, como los escribe la biblioteca de Fantastic. Un video
+    lleva su tramo (`trim`: start/end en segundos) y un recorte (`crop`: x, y, w, h de 0 a 1), si se eligieron."""
     import os
     import folder_paths
-    from PIL import Image
     ruta = os.path.join(folder_paths.get_input_directory(), rel)
-    with Image.open(ruta) as im:
-        ancho, alto = im.size
-    return {"kind": "picture", "file": f"{rel} [input]", "name": os.path.basename(rel), "width": ancho, "height": alto}
+    if rel.lower().endswith(VIDEOS_SUBIDA):
+        info = _info_video(ruta)
+        item = {"kind": "video", "file": f"{rel} [input]", "name": os.path.basename(rel), "width": info["ancho"],
+                "height": info["alto"], "has_audio": False, "audio_mode": "off"}
+        if tramo and (tramo.get("desde") or tramo.get("hasta")):
+            item["trim"] = {"start": float(tramo.get("desde") or 0), "end": float(tramo.get("hasta") or info["duracion"])}
+    else:
+        from PIL import Image
+        with Image.open(ruta) as im:
+            ancho, alto = im.size
+        item = {"kind": "picture", "file": f"{rel} [input]", "name": os.path.basename(rel), "width": ancho, "height": alto}
+    if recorte and all(k in recorte for k in "xywh") and (float(recorte["w"]) < 0.999 or float(recorte["h"]) < 0.999):
+        item["crop"] = {k: round(min(1.0, max(0.0, float(recorte[k]))), 4) for k in "xywh"}
+    return item
+
+
+def _info_video(ruta):
+    """Duración (s), fotogramas por segundo y tamaño de un video, con ffprobe."""
+    import json
+    import subprocess
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                        "stream=width,height,r_frame_rate:format=duration", "-of", "json", ruta], capture_output=True, text=True)
+    j = json.loads(r.stdout or "{}")
+    st = (j.get("streams") or [{}])[0]
+    num, _, den = (st.get("r_frame_rate") or "24/1").partition("/")
+    return {"duracion": float((j.get("format") or {}).get("duration") or 0), "fps": float(num) / float(den or 1),
+            "ancho": int(st.get("width") or 0), "alto": int(st.get("height") or 0)}
+
+
+def video_info(d):
+    """Lo que la ventanita de subir necesita de un video ya subido: duración, fps y tamaño."""
+    import os
+    import folder_paths
+    rel = (d.get("file") or "").removesuffix(" [input]")
+    return _info_video(os.path.join(folder_paths.get_input_directory(), rel))
+
+
+def _fotogramas_clip(item):
+    """Los fotogramas de un clip para el RefMod (a 24 fps, desde su tramo): 17·k + 5 hasta 641; una foto, 22."""
+    if item.get("kind") != "video":
+        return 22
+    t = item.get("trim") or {}
+    dur = (t.get("end") or 0) - (t.get("start") or 0) if t else 0
+    if dur <= 0:
+        import os
+        import folder_paths
+        dur = _info_video(os.path.join(folder_paths.get_input_directory(), item["file"].removesuffix(" [input]")))["duracion"]
+    f = int(dur * 24)
+    return max(5, min(641, f - ((f - 5) % 17))) if f >= 5 else max(1, f)
 
 
 def _cola_libre(para):
@@ -178,16 +227,24 @@ def _ejecutar(grafo, tarea, cliente="edit_prompt_llm", max_s=600):
     raise ErrorUsuario(f"errores.tarda.{tarea}", min=max_s // 60)
 
 
+# cómo se guarda una referencia: «completo» (Full Reference, guarda el detalle) o «comprimido» (Compressed Reference,
+# copia el aspecto general y pesa mucho menos: el método del reel, planos/8). Medidas probadas el 25 oct.
+MODOS = {"completo": {"mode": "Full Reference", "ref_resolution": 512, "grid": 16, "max_tokens": 12000},
+         "comprimido": {"mode": "Compressed Reference", "ref_resolution": 384, "grid": 24, "max_tokens": 7100}}
+
+
 def _crear_refmod(nombre, carpeta, items, concepto, descripcion="", sujeto="", apariencia="", tarea="crear_subidas",
-                  cliente="edit_prompt_llm_RefMod"):
-    """RefMod con las fotos `items` (nodo MiniMaxH3FantasticRefModCreate: Full Reference, 512, VAE de H3), por /prompt.
-    `cliente` es el client_id de ComfyUI: va aparte de los textos, que cambian con el idioma."""
+                  cliente="edit_prompt_llm_RefMod", modo="completo", fotogramas=22):
+    """RefMod con las fotos o el clip de `items` (nodo MiniMaxH3FantasticRefModCreate, VAE de H3), por /prompt. `modo`:
+    completo o comprimido (MODOS); `fotogramas`: los de un clip, desde su inicio (tras su tramo). `cliente` es el
+    client_id de ComfyUI: va aparte de los textos, que cambian con el idioma."""
     import json
+    m = MODOS.get(modo, MODOS["completo"])
     grafo = {
         "1": {"class_type": "VAELoader", "inputs": {"vae_name": VAE_H3}},
         "2": {"class_type": "MiniMaxH3FantasticRefModCreate", "inputs": {
-            "name": nombre, "subfolder": carpeta, "mode": "Full Reference", "ref_resolution": 512, "grid": 16,
-            "latent_frames": 22, "refinement_steps": 500, "max_tokens": 5120, "audio_max_seconds": 30.0,
+            "name": nombre, "subfolder": carpeta, "mode": m["mode"], "ref_resolution": m["ref_resolution"], "grid": m["grid"],
+            "latent_frames": max(1, int(fotogramas)), "refinement_steps": 500, "max_tokens": m["max_tokens"], "audio_max_seconds": 30.0,
             "concept_type": concepto, "description": descripcion, "write_preview": True,
             "source": json.dumps(items, ensure_ascii=False), "subject_name": sujeto, "appearance": apariencia,
             "vae": ["1", 0]}}}
@@ -241,7 +298,7 @@ def video_de(d):
         try:
             with open(fuente) as fh:
                 f = json.load(fh).get("file", "")
-            if os.path.isfile(os.path.join(entrada, f.removesuffix(" [input]"))):
+            if f.lower().removesuffix(" [input]").endswith(VIDEOS) and os.path.isfile(os.path.join(entrada, f.removesuffix(" [input]"))):
                 return {"file": f, "como": "fuente"}
         except Exception:
             pass
@@ -346,6 +403,8 @@ def subir_refmods(d):
     rels = list(dict.fromkeys(f.removesuffix(" [input]") for f in d.get("fotos") or [] if f))
     if not rels:
         raise ErrorUsuario("errores.subir_sin_fotos")
+    modo = d.get("modo") if d.get("modo") in MODOS else "completo"
+    ajustes = d.get("ajustes") or {}       # {ruta: {tramo, recorte}}: lo elegido en la ventanita para cada archivo
     concepto = CONCEPTO_PAPEL.get(d.get("papel"), "generic")
     raiz = _raiz_refmods()
     grupos = [rels] if d.get("juntar") or len(rels) == 1 else [[r] for r in rels]
@@ -353,15 +412,65 @@ def subir_refmods(d):
     creados = []
     for i, fotos in enumerate(grupos, 1):
         destino = _libre(raiz, f"{carpeta}/{base}" + ("" if len(grupos) == 1 else f"_{i}"))
-        items = [_item_media(r) for r in fotos]
+        items = [_item_media(r, (ajustes.get(r) or {}).get("tramo"), (ajustes.get(r) or {}).get("recorte")) for r in fotos]
+        if any(x["kind"] == "video" for x in items) and len(items) > 1:
+            raise ErrorUsuario("errores.subir_video_solo")
         _crear_refmod(os.path.basename(destino), os.path.dirname(destino), items, concepto,
                       _DESC_SUBIDA.format(papel=d.get("papel") or "-"), "", "", "crear_subidas",
-                      "edit_prompt_llm_referencia")
+                      "edit_prompt_llm_referencia", modo, _fotogramas_clip(items[0]))
+        _apuntar_fuente(raiz, destino, items, modo, concepto)
         if len(items) > 1:       # una cajita apunta sus fotos, como las de «+ Cajita»
             with open(os.path.join(raiz, destino + ".cajita.json"), "w") as fh:
                 json.dump({"fotos": items, "creada": time.strftime("%Y-%m-%d %H:%M:%S")}, fh, ensure_ascii=False, indent=1)
         creados.append(destino)
-    return {"creados": creados, "concepto": concepto, "segundos": round(time.time() - t0, 1)}
+    return {"creados": creados, "concepto": concepto, "modo": modo, "segundos": round(time.time() - t0, 1)}
+
+
+def _apuntar_fuente(raiz, nombre, items, modo, concepto):
+    """<nombre>.fuente.json: de qué archivo (y con qué tramo y recorte) salió el RefMod y en qué modo; lo usan la ficha
+    (ver el clip en movimiento, rutas.video_de) y «cambiar a comprimido / completo» (rutas.cambiar_modo)."""
+    import json
+    import os
+    with open(os.path.join(raiz, nombre + ".fuente.json"), "w") as fh:
+        json.dump({"file": items[0]["file"], "items": items, "modo": modo, "concepto": concepto,
+                   "creada": time.strftime("%Y-%m-%d %H:%M:%S")}, fh, ensure_ascii=False, indent=1)
+
+
+def fuente(d):
+    """El .fuente.json de un RefMod (modo, tramo, recorte), o {} si no tiene."""
+    import json
+    import os
+    f = os.path.join(_raiz_refmods(), (d.get("nombre") or "") + ".fuente.json")
+    try:
+        with open(f) as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def cambiar_modo(d):
+    """Rehace un RefMod en el otro modo (completo ↔ comprimido) con su misma fuente: crea «<nombre>__comprimido» o
+    «<nombre>__completo» (o lo reutiliza si ya existe) y devuelve su nombre; el editor cambia la tarjeta del Stack."""
+    import os
+    import re
+    nombre, modo = d.get("nombre") or "", d.get("modo")
+    if modo not in MODOS:
+        raise ErrorUsuario("errores.modo_no_vale")
+    f = fuente({"nombre": nombre})
+    if not f.get("items"):
+        raise ErrorUsuario("errores.sin_fuente", nombre=nombre)
+    raiz = _raiz_refmods()
+    base = re.sub(r"__(comprimido|completo)$", "", nombre)
+    destino = base if f.get("modo") == modo else f"{base}__{modo}"
+    if f.get("modo") != modo and fuente({"nombre": base}).get("modo") == modo:
+        destino = base                                   # el original ya estaba en ese modo
+    if not os.path.exists(os.path.join(raiz, destino + ".safetensors")):
+        _cola_libre("crear_subidas")
+        _crear_refmod(os.path.basename(destino), os.path.dirname(destino), f["items"], f.get("concepto") or "style",
+                      _DESC_SUBIDA.format(papel=modo), "", "", "crear_subidas", "edit_prompt_llm_referencia", modo,
+                      _fotogramas_clip(f["items"][0]))
+        _apuntar_fuente(raiz, destino, f["items"], modo, f.get("concepto") or "style")
+    return {"nombre": destino, "modo": modo}
 
 
 # ------------------------------------------------------------------ tapar: la referencia sin cara, pelo o texto (SAM 3.1)
@@ -579,6 +688,9 @@ ACCIONES = {
     "medios": (medios, False),
     "cajitas": (cajitas, False),
     "video_de": (video_de, False),
+    "video_info": (video_info, False),
+    "fuente": (fuente, False),
+    "cambiar_modo": (cambiar_modo, False),
     "crear_cajita": (crear_cajita, False),
     "subir_refmods": (subir_refmods, False),
     "tapados": (tapados, False),

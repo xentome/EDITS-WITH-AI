@@ -563,6 +563,8 @@ EXCEPCIONES = {
     ("editor_core.js", "ES"), ("editor_core.js", "EN"),   # el botón de idioma: los nombres de los idiomas no se traducen
     ("audio.js", "audio"), ("referencias.js", "audio"),   # el nombre del campo del LoadAudio (W(nodo, "audio"))
     ("referencias.js", "RefMod"),           # de dónde salió una ficha: un dato del estado (se enseña con referencias.origen.*)
+    ("referencias.js", "completo"),         # el modo de una referencia: un dato (rutas.MODOS); se enseña con referencias.subir.modo.*
+    ("resolucion.js", "MP"),                # la unidad de los megapíxeles: igual en los dos idiomas
 }
 # piezas que aún no pasaron a t(): se vacía al terminar las fases 2 (ventana) y 3 (servidor y nodo)
 PENDIENTES = set()  # (vacía: todo pasa por t())

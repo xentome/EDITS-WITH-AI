@@ -120,6 +120,23 @@ Lectura: 4 min
 - Los huecos del prompt final, los errores del servidor y el informe del nodo salen en el idioma elegido. El prompt final no cambia: siempre en inglés.
 - Para añadir un letrero: plano 2, «Dos idiomas».
 
+## Subir fotos o videos (26 oct)
+- **Un solo botón, «⬆ Subir foto o video»** (en «+ Añadir» y en las mitades vacías), para una o varias fotos o un video, eligiéndolos o soltándolos encima.
+- **Con un video** (uno cada vez):
+  - **Recorte:** arrastra sobre el video un rectángulo (en amarillo) y solo se usa lo de dentro. «↺ cuadro entero» lo quita.
+  - **Tramo** (opcional, «elegir un tramo»): una línea con sus fotogramas y dos tiradores (desde / hasta), ajustados al fotograma, y «▶ / ⏸ el tramo».
+- **Cómo se guarda:** «comprimido» (copia el aspecto general y pesa poco: el método del reel, plano 8) o «completo» (guarda el detalle). Un video empieza en comprimido y una foto en completo.
+- `rutas.subir_refmods` crea el RefMod (MiniMaxH3FantasticRefModCreate) con el `trim` y el `crop` de Fantastic. Lo apunta en `<nombre>.fuente.json`: de qué archivo salió, con qué tramo y recorte, y en qué modo.
+- **En la ficha:** «Guardada en modo …» y «pasar a comprimido / completo». `rutas.cambiar_modo` crea `<nombre>__completo` o `__comprimido` (o lo reutiliza) y la tarjeta del Stack cambia sola. Un clip se ve en movimiento: es el video original, sin el recorte.
+
+## Resolución (26 oct)
+- **Arriba en el centro de la ventana:**
+  - el ancho y el alto, uno encima del otro;
+  - a la izquierda, **⇅**, que los intercambia (horizontal ↔ vertical);
+  - a la derecha, los **MP**, de 0,1 a 2.
+- Escribir los MP calcula el ancho y el alto con la misma proporción, en múltiplos de 32. Por ejemplo, desde 480×864, 1 MP da 736×1344; para 768×1344 escribe esas medidas.
+- Se pone al momento en todos los nodos `MiniMaxH3*` con `width` y `height` (el Text Encode), salvo los enlazados (`web/editor/resolucion.js`).
+
 ## Guardar (automático desde el 26 oct)
 - **Se guarda solo:** cada cambio vuelve a montar el prompt y, 2 s después del último, se escribe en el nodo (el estado y los campos visibles). El recorte del audio solo se vuelve a escribir si cambió el tramo. En la cabecera pone «se guarda solo» y, al guardar, «Guardado ✓».
 - **Ya no hay botón «Guardar».** «Cerrar» (verde) y ✕ guardan lo último y cierran.

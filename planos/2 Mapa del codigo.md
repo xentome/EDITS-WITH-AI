@@ -23,6 +23,8 @@ Lectura: 3 min
 | `web/editor/textos.js` | Parte 4, entre las tomas y la onda: la fila de texto (palabras en pantalla), su arrastre al beat y su tarjetita (texto, encima / al lado, letra, frase). |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre), la línea de la canción entera y «Cambiar canción» (elegir o subir); al guardar, el recorte. |
 | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
+| `web/editor/subir.js` | «⬆ Subir foto o video»: la ventanita, con el recorte y el tramo de un video y el modo (comprimido / completo). |
+| `web/editor/resolucion.js` | El ancho, el alto y los MP del video, arriba en el centro; los pone en el Text Encode. |
 | `web/editor/final.js` | Parte 5: el prompt final pintado por quién escribió cada trozo (o editado a mano), el panel «Frases del código», Escribir historia, Escribir tomas y Guardar. |
 | `web/editor/estilos.js` | El CSS de la ventana. |
 | `web/editor/i18n.js` | Dos idiomas en la ventana: carga `web/i18n/*.json`, elige el idioma (`idiomaElegido`) y da `t`, `num` y `lista` (`traductor`). |
