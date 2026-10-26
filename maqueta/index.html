@@ -17,6 +17,10 @@
   #estado { margin-left: auto; color: #8a93a3; font-size: 12px; }
   #tablero { position: relative; flex: 1; margin: 10px; border-radius: 8px; overflow: hidden; background: #fff; }
   #interfaz { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+  /* ?proporcion=ancho/alto: la interfaz es una captura alta; el tablero toma su proporción y la página se desplaza */
+  html.larga, html.larga body { height: auto; }
+  html.larga #barra { position: sticky; top: 0; z-index: 5; }
+  html.larga #tablero { flex: none; aspect-ratio: var(--proporcion); }
   #capa { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   #capa.usar { pointer-events: none; }
   .asa { fill: #fff; stroke: #2c7be5; stroke-width: 1.5; }
@@ -54,6 +58,8 @@ let formas = [], historial = [], herramienta = "lapiz", relleno = false, elegida
 let gesto = null;  // lo que se está haciendo con el puntero ahora mismo
 
 // ---- coordenadas: se guardan de 0 a 1 respecto al tablero, para que PC y celular coincidan
+const proporcion = new URLSearchParams(location.search).get("proporcion");
+if (proporcion) { document.documentElement.classList.add("larga"); document.documentElement.style.setProperty("--proporcion", proporcion); }
 const caja = () => tablero.getBoundingClientRect();
 const aRel = (e) => { const c = caja(); return [(e.clientX - c.left) / c.width, (e.clientY - c.top) / c.height]; };
 const color = () => document.getElementById("color").value;

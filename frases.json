@@ -44,5 +44,7 @@
  "texto.hasta": " It stays on screen until {fin}.",
  "texto.hasta_varias": " They stay on screen until {fin}.",
  "sonido": "Only the music of <Audio 1>, unchanged, with no dialogue and no added sound effects.",
- "musica": "The song in <Audio 1> plays unchanged throughout the whole video."
+ "musica": "The song in <Audio 1> plays unchanged throughout the whole video.",
+ "toma.accion": "{accion}.",
+ "toma.efecto_ref": "{frase}."
 }

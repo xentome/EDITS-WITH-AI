@@ -73,8 +73,18 @@ ULTIMA_LLAMADA = [0.0]  # cuándo terminó la última llamada al LLM (el nodo es
 
 # ------------------------------------------------------------------ plan y referencias
 def toma_vacia():
-    return {**{c: "" for c in list(HISTORIA.values()) + list(DIRECCION.values())}, "efecto_frase": "", "entorno": "auto",
-            "fijos": []}
+    return {**{c: "" for c in list(HISTORIA.values()) + list(DIRECCION.values())}, "efectos": [], "efecto_frase": "",
+            "entorno": "auto", "fijos": []}
+
+
+def con_efectos(t):
+    """Las referencias que la toma conecta (efectos, una lista; desde el 26 oct se pueden conectar varias). «efecto» queda
+    como la primera, que es lo que lee y escribe el LLM: si el usuario no fijó el efecto, la lista sigue a lo que dejó el
+    LLM; si lo fijó, manda la lista."""
+    lista = [x for x in (t.get("efectos") or []) if x]
+    if "efecto" not in t.get("fijos", []) or not lista:
+        lista = [t["efecto"]] if t.get("efecto") else []
+    return {**t, "efectos": lista, "efecto": lista[0] if lista else ""}
 
 
 def con_entorno(t):
@@ -109,7 +119,7 @@ def ajustar_plan(plan, n):
     p.setdefault("fijos", [])
     if len(p.get("cortes") or []) != n:  # cortes a mano de otro número de tomas: ya no valen
         p.pop("cortes", None)
-    p["tomas"] = [con_entorno({**toma_vacia(), **t, "entorno": t.get("entorno")}) for t in p.get("tomas", [])][:n]
+    p["tomas"] = [con_efectos(con_entorno({**toma_vacia(), **t, "entorno": t.get("entorno")})) for t in p.get("tomas", [])][:n]
     for t in p["tomas"]:
         t["encuadre"] = ENCUADRE_VIEJO.get(t["encuadre"], t["encuadre"])
     p["tomas"] += [toma_vacia() for _ in range(n - len(p["tomas"]))]
@@ -967,6 +977,15 @@ def mmss(t):
     return f"00:{t:06.3f}"
 
 
+def ficha_conectada(menu, tag):
+    """La ficha de una referencia conectada a una toma: de papel efecto, un efecto de texto (E1…) o, desde el 26 oct,
+    cualquier otra referencia del Stack."""
+    if tag in menu["efecto"]:
+        return menu["efecto"][tag].get("ficha", "")
+    return next((r.get("ficha", "") for papel in menu.values() if isinstance(papel, dict)
+                 for k, r in papel.items() if k == tag and isinstance(r, dict)), "")
+
+
 def efectos_con_imagen(menu):
     """Las referencias de papel efecto que son una imagen o un clip (<Picture N>, <Video N>); los efectos de texto (E1…) no."""
     return {t: e for t, e in menu["efecto"].items() if t.startswith("<")}
@@ -1059,14 +1078,21 @@ def montar(perfil, menu, plan, ini, textos, idioma="es", frases=None):
             fondo_ref = C.pegar("toma.fondo_ref", tag=t["fondo_ref"]) if t["fondo_ref"] else []
             entorno = C.pegar("toma.entorno", lugar=falta(campo("lugar"), "final.hueco.sin_lugar", k=k), lugar_ref=lugar_ref,
                               fondo_ref=fondo_ref, luz=falta(campo("luz"), "final.hueco.sin_luz", k=k))
-        # el efecto (la transformación) va justo después del encuadre, como en el edit de Ren que funcionó
-        frase = campo("efecto_frase") if (t.get("efecto_frase") or "").strip() else de_usuario(frase_efecto(menu, t))
-        efecto = C.pegar("toma.efecto", frase=frase, tag=t["efecto"] if t["efecto"] in efectos_con_imagen(menu) else "") \
-            if texto_de(frase) else []
+        # las referencias conectadas: sin «efecto de la referencia», la ficha de cada una va justo después del encuadre,
+        # como en el edit de Ren que funcionó; con él, esa frase (con sus <Picture N> dentro) va al final de la toma, para
+        # que no pase en el primer fotograma (26 oct: el título animado salía desde el segundo 0)
+        propia = (t.get("efecto_frase") or "").strip()
+        efecto = [] if propia else unir(C, [C.pegar("toma.efecto", frase=de_usuario(ficha_conectada(menu, x)),
+                                                    tag=x if x.startswith("<") else "")
+                                           for x in con_efectos(t)["efectos"] if ficha_conectada(menu, x)], "toma.citas.y")
         s = trozo(f"[Shot {k}] At {mmss(ini[k - 1])}") + C.pegar(
             "toma.linea", encuadre=falta(campo("encuadre"), "final.hueco.sin_encuadre", k=k), efecto=efecto, entorno=entorno,
             citas=unir(C, citas, "toma.citas.y"), gesto=falta(campo("gesto"), "final.hueco.sin_gesto", k=k),
             camara=falta(campo("camara"), "final.hueco.sin_camara", k=k))
+        if "momento" in t.get("fijos", []) and (t.get("momento") or "").strip():   # la acción, si la escribiste tú
+            s += trozo(" ") + C.pegar("toma.accion", accion=campo("momento"))
+        if propia:
+            s += trozo(" ") + C.pegar("toma.efecto_ref", frase=campo("efecto_frase"))
         for x in (x for x in textos if x["k"] == k):   # las palabras van en su toma y en su momento, no antes
             s += trozo(" ") + frase_texto(C, x, perfil, menu, campo("encuadre"))
         lineas.append(s)

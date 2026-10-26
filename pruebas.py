@@ -91,15 +91,24 @@ print("5 · Frase de efecto escrita por el usuario")
 plan3 = N.ajustar_plan(ref["plan"], 6)
 plan3["tomas"][0].update(efecto_frase="pink heart confetti falling around <Subject 1>.", fijos=["efecto_frase"])
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("la frase propia sustituye a la ficha del efecto",
-          "At 00:00.000 close-up, pink heart confetti falling around <Subject 1>. a neon-lit crosswalk" in p3
+# desde el 26 oct el «efecto de la referencia» escrito va al final de la toma (no tras el encuadre: pasaba en el segundo 0)
+comprobar("la frase propia sustituye a la ficha del efecto y va al final de la toma",
+          "At 00:00.000 close-up. a neon-lit crosswalk" in p3 and "the camera holds still. pink heart confetti falling around <Subject 1>." in p3
           and "hand-drawn white and colored doodles" not in p3.split("[Shot 2]")[0].split("[Shot 1]")[1])
 plan3["tomas"][1].update(efecto="", efecto_frase="soft film grain")
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
-comprobar("efecto solo de texto escrito en la toma", "medium close-up, soft film grain. a night train platform" in p3)
+comprobar("efecto solo de texto escrito en la toma", "medium close-up. a night train platform" in p3
+          and "the camera drifts sideways. soft film grain." in p3)
 plan3["tomas"][2].update(efecto="U3", efecto_frase="")
 p3, _, _ = N.montar_plan(ref["entradas"], plan3, ref["beats"])
 comprobar("un efecto viejo de receta (U3) ya no pega ninguna frase", "[Shot 3] At 00:01.846 extreme close-up. a rooftop" in p3)
+plan5 = N.ajustar_plan(ref["plan"], 6)
+plan5["tomas"][2].update(momento="she spins around as the lights flicker", efectos=["<Picture 5>", "E1"], efecto="<Picture 5>",
+                         fijos=["momento", "efecto"])
+p5, _, _ = N.montar_plan(ref["entradas"], plan5, ref["beats"])
+s5 = p5.split("[Shot 3]")[1].split("[Shot 4]")[0]
+comprobar("varias referencias conectadas: la ficha de cada una tras el encuadre; la acción escrita va al final",
+          " and " in s5 and "she spins around as the lights flicker." in s5, s5)
 
 print("6 · Palabras en pantalla")
 comprobar("lee 'TO YOU @1; PEAK @ultima'", N.leer_palabras("TO YOU @1; PEAK @ultima", 6) == {1: "TO YOU", 6: "PEAK"})

@@ -21,8 +21,15 @@ export const ENTORNOS = ["auto", "manual", "ninguno"];
 const HISTORIA = ["lugar", "momento", "personaje", "ropa", "pose", "objeto", "lugar_ref", "fondo_ref", "efecto"];
 const DIRECCION = ["encuadre", "luz", "gesto", "camara"];
 
-const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), efecto_frase: "", entorno: "auto",
-                           fijos: [] });
+const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), efectos: [], efecto_frase: "",
+                           entorno: "auto", fijos: [] });
+// las referencias que conecta la toma (como nucleo.con_efectos): «efecto» es la primera, la que lee y escribe el LLM; si
+// el usuario no fijó el efecto, la lista sigue al LLM
+function conEfectos(t) {
+  let lista = (t.efectos || []).filter(Boolean);
+  if (!(t.fijos || []).includes("efecto") || !lista.length) lista = t.efecto ? [t.efecto] : [];
+  return { ...t, efectos: lista, efecto: lista[0] || "" };
+}
 // compatibilidad (como nucleo.con_entorno): sin entorno guardado, con el lugar fijado es «manual» y si no, «auto».
 // «manual» y el candado del lugar van siempre juntos.
 function conEntorno(t) {
@@ -35,7 +42,7 @@ export function ajustarPlan(plan, n) {
   for (const c of ["arco", "look", "fondo"]) p[c] = p[c] || "";
   p.fijos = p.fijos || [];
   if ((p.cortes || []).length !== n) delete p.cortes;   // cortes a mano de otro número de tomas: ya no valen
-  p.tomas = (p.tomas || []).slice(0, n).map((t) => conEntorno({ ...tomaVacia(), ...t, entorno: t.entorno, fijos: t.fijos || [] }));
+  p.tomas = (p.tomas || []).slice(0, n).map((t) => conEfectos(conEntorno({ ...tomaVacia(), ...t, entorno: t.entorno, fijos: t.fijos || [] })));
   for (const t of p.tomas) t.encuadre = ENCUADRE_VIEJO[t.encuadre] || t.encuadre;
   while (p.tomas.length < n) p.tomas.push(tomaVacia());
   return p;
@@ -81,15 +88,18 @@ export function instalar(ctx) {
   let refrescoRefs = null;
   const pintarRefsSuave = () => { clearTimeout(refrescoRefs); refrescoRefs = setTimeout(() => { ctx.pintarRefs(); ctx.pintarLinea(); }, 600); };
 
+  // un letrero de campo; los importantes llevan su icono y su color (clase epl-et-…), y los destacados un degradado
+  const letrero = (texto, clase = "", icono = "") => el("span", { class: clase }, icono ? el("i", { class: "epl-icono" }, icono) : null, texto);
   function campoTexto(obj, campo, etiqueta, lista, opciones = {}) {
     const entrada = el(opciones.largo ? "textarea" : "input", {
-      rows: opciones.largo ? 2 : undefined, placeholder: opciones.ayuda || "", "data-campo": campo,
+      rows: opciones.largo ? (opciones.filas || 2) : undefined, placeholder: opciones.ayuda || "", "data-campo": campo,
       oninput: (e) => { obj[campo] = e.target.value; fijar(lista, campo); botonCandado.replaceWith(botonCandado = hacer()); ctx.pedirMontaje(); pintarRefsSuave(); },
     });
     if (opciones.largo) entrada.textContent = obj[campo] || ""; else entrada.value = obj[campo] || "";
     const hacer = () => candado(lista, campo, () => { botonCandado.replaceWith(botonCandado = hacer()); });
     let botonCandado = hacer();
-    return el("label", { class: "epl-campo" }, el("span", {}, etiqueta), entrada, botonCandado);
+    return el("label", { class: "epl-campo" + (opciones.clase ? " " + opciones.clase : "") },
+      typeof etiqueta === "string" ? el("span", {}, etiqueta) : etiqueta, entrada, botonCandado);
   }
   function campoMenu(obj, campo, etiqueta, lista, opciones) {
     const sel = el("select", { "data-campo": campo, onchange: (e) => { obj[campo] = e.target.value; fijar(lista, campo); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
@@ -107,38 +117,113 @@ export function instalar(ctx) {
   // la ficha del efecto elegido (referencia o efecto de texto): es la frase que va al prompt
   ctx.fichaEfecto = (id) => !id ? "" : /^E\d+$/.test(id) ? S.efectos[id]?.ficha || "" : ctx.refDe(id).papel === "efecto" ? ctx.refDe(id).ficha || "" : "";
 
-  /* frase del efecto: se ve la ficha del efecto elegido; si la escribes, queda fija y es la que va al prompt (↺ vuelve a la
-   * ficha). Escrita sin elegir efecto, es un efecto solo de texto para esta toma; «guardar como efecto» la convierte en un
-   * efecto de texto reutilizable (E1, E2…), que sale en la mitad azul y el LLM puede elegir en otras tomas. */
-  function campoFrase(toma) {
+  /* REFERENCIAS de la toma: las que conecta (toma.efectos, una o varias; «+» añade otra). Pueden ser referencias de
+   * papel efecto, efectos de texto (E1…) o cualquier otra del Stack. Sin «efecto de la referencia», la ficha de cada una
+   * va al prompt tras el encuadre; con él, manda lo que escribiste. */
+  function opcionesConectar() {
+    const ops = wf.lista.map((r) => [r.tag, `${r.tag} ${S.refs[r.clave]?.nombre || r.nombre}`]);
+    ops.push(...Object.entries(S.efectos).map(([k, e]) => [k, `${k} ${e.nombre || t("toma.efecto_texto")}`]));
+    return ops.length ? [["", t("toma.sin_efecto")], ...ops] : null;
+  }
+  const nombreDe = (tag) => /^E\d+$/.test(tag) ? S.efectos[tag]?.nombre || tag
+    : S.refs[wf.lista.find((r) => r.tag === tag)?.clave]?.nombre || wf.lista.find((r) => r.tag === tag)?.nombre || tag;
+  const conectar = (toma, lista) => {
+    toma.efectos = lista;
+    toma.efecto = lista.find(Boolean) || "";
+    fijar(toma.fijos, "efecto");
+    ctx.pintarToma(); ctx.pintarRefs(); ctx.pedirMontaje();
+  };
+  function campoReferencias(toma) {
+    const ops = opcionesConectar();
+    const lista = toma.efectos?.length ? toma.efectos : [toma.efecto || ""];
+    const filas = !ops ? [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))] : lista.map((v, i) => el("div", { class: "epl-ref-fila" },
+      el("select", { "data-campo": "efecto", "data-i": i, onchange: (e) => conectar(toma, lista.map((x, j) => j === i ? e.target.value : x)) },
+        ops.map(([val, txt]) => el("option", { value: val, selected: (v || "") === val }, txt))),
+      lista.length > 1 ? el("button", { class: "epl-mini", title: t("toma.efecto.quitar.tooltip"),
+        onclick: () => conectar(toma, lista.filter((_, j) => j !== i)) }, "✕") : null));
+    return el("div", { class: "epl-campo epl-destacado epl-g-refs" },
+      el("span", {}, el("i", { class: "epl-icono" }, "🔗"), t("toma.efecto"),
+        ops ? el("button", { class: "epl-mini epl-mas-ref", title: t("toma.efecto.mas.tooltip"),
+          onclick: () => conectar(toma, [...lista, ""]) }, "+") : null),
+      el("div", { class: "epl-ref-lista" }, ...filas),
+      candado(toma.fijos, "efecto", () => ctx.pintarToma()));
+  }
+
+  /* EFECTO DE LA REFERENCIA: lo que hace cada referencia conectada, con tus palabras (en inglés). Las referencias van
+   * dentro como etiquetas: escribe @ (o toca una de abajo) y sale su nombre; en el prompt es su <Picture N>/<Video N>.
+   * Si la escribes queda fija y va al final de la toma (↺ vuelve a las fichas); «guardar como efecto» la convierte en un
+   * efecto de texto reutilizable (E1, E2…). */
+  const ETIQUETA = /(<(?:Picture|Video) \d+>)/;
+  function campoEfectoRef(toma) {
     const propia = toma.fijos.includes("efecto_frase") && (toma.efecto_frase || "").trim();
-    const deFicha = ctx.fichaEfecto(toma.efecto);
-    const marca = el("span", { class: "epl-ayuda" }, propia ? t("toma.frase.propia") : deFicha ? t("toma.frase.de_ficha") : "");
-    const area = el("textarea", { rows: 2, placeholder: t("toma.frase.placeholder"), "data-campo": "efecto_frase",
-      oninput: (e) => { toma.efecto_frase = e.target.value; fijar(toma.fijos, "efecto_frase"); marca.textContent = t("toma.frase.propia"); ctx.pedirMontaje(); } },
-      propia ? toma.efecto_frase : deFicha);
+    const conectadas = (toma.efectos || []).filter((x) => x && x.startsWith("<"));
+    const fichas = (toma.efectos || []).filter(Boolean).map((x) => ctx.fichaEfecto(x) || ctx.refDe(x)?.ficha || "").filter(Boolean).join(" · ");
+    const marca = el("span", { class: "epl-ayuda" }, propia ? t("toma.frase.propia") : fichas ? t("toma.frase.de_ficha") : "");
+    const cita = (tag) => el("span", { class: "epl-cita", contenteditable: "false", "data-tag": tag, title: tag,
+      onmouseenter: () => ctx.resaltar(tag, true), onmouseleave: () => ctx.resaltar(tag, false) }, nombreDe(tag));
+    const caja3 = el("div", { class: "epl-citas", contenteditable: "true", "data-campo": "efecto_frase",
+      "data-placeholder": fichas || t("toma.frase.placeholder") });
+    for (const trozo of (propia ? toma.efecto_frase : "").split(ETIQUETA)) {
+      if (ETIQUETA.test(trozo)) caja3.append(cita(trozo)); else if (trozo) caja3.append(document.createTextNode(trozo));
+    }
+    // el texto de la caja, con las etiquetas como <Picture N>
+    const leer = (n) => [...n.childNodes].map((x) => x.nodeType === 3 ? x.textContent : x.dataset?.tag ? x.dataset.tag
+      : x.nodeName === "BR" ? "\n" : (x.nodeName === "DIV" ? "\n" : "") + leer(x)).join("");
+    const guardar = () => {
+      toma.efecto_frase = leer(caja3).replace(/\u00a0/g, " ");
+      fijar(toma.fijos, "efecto_frase"); marca.textContent = t("toma.frase.propia"); ctx.pedirMontaje();
+    };
+    let rango = null;
+    const recordar = () => { const sel = getSelection(); if (sel.rangeCount && caja3.contains(sel.anchorNode)) rango = sel.getRangeAt(0).cloneRange(); };
+    // mete la etiqueta donde está el cursor (o al final); `borrar`: caracteres a quitar antes (la @ que abrió el menú)
+    const meter = (tag, borrar = 0) => {
+      caja3.focus();
+      const sel = getSelection();
+      let r = rango && caja3.contains(rango.startContainer) ? rango : null;
+      if (!r) { r = document.createRange(); r.selectNodeContents(caja3); r.collapse(false); }
+      if (borrar && r.startContainer.nodeType === 3 && r.startOffset >= borrar) r.setStart(r.startContainer, r.startOffset - borrar);
+      r.deleteContents();
+      const nodo = cita(tag), espacio = document.createTextNode("\u00a0");
+      r.insertNode(espacio); r.insertNode(nodo);
+      r.setStartAfter(espacio); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+      rango = r.cloneRange(); menu.hidden = true; guardar();
+    };
+    const menu = el("div", { class: "epl-menu-citas", hidden: true }, ...conectadas.map((tag) =>
+      el("button", { class: "epl-mini", onmousedown: (e) => { e.preventDefault(); meter(tag, 1); } }, `${tag} ${nombreDe(tag)}`)));
+    caja3.addEventListener("input", (e) => {
+      recordar(); guardar();
+      if (e.data === "@") menu.hidden = !conectadas.length; else if (!e.data?.trim()) menu.hidden = true;
+      if (e.data === "@" && !conectadas.length) ctx.avisar(t("toma.frase.sin_conectadas"), "mal");
+    });
+    caja3.addEventListener("keyup", recordar);
+    caja3.addEventListener("mouseup", recordar);
+    caja3.addEventListener("keydown", (e) => { if (e.key === "Escape") menu.hidden = true; });
+    caja3.addEventListener("blur", () => setTimeout(() => { menu.hidden = true; }, 150));
     const guardarComo = el("button", { class: "epl-mini", title: t("toma.frase.guardar_como.tooltip"),
       onclick: () => {
-        const frase = (area.value || "").trim();
+        const frase = (toma.efecto_frase || "").trim();
         if (!frase) return ctx.avisar(t("toma.frase.vacia"), "mal");
-        const id = ctx.nuevoEfecto({ nombre: frase.split(/\s+/).slice(0, 4).join(" "), ficha: frase });
-        toma.efecto = id;
+        const id = ctx.nuevoEfecto({ nombre: frase.replace(ETIQUETA, "").split(/\s+/).filter(Boolean).slice(0, 4).join(" "), ficha: frase });
         toma.efecto_frase = "";
-        toma.fijos = [...toma.fijos.filter((f) => f !== "efecto_frase"), ...(toma.fijos.includes("efecto") ? [] : ["efecto"])];
+        toma.fijos = toma.fijos.filter((f) => f !== "efecto_frase");
+        conectar(toma, [id]);
         ctx.avisar(t("toma.frase.creado", { id }), "bien");
-        ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje();
       } }, t("toma.frase.guardar_como"));
-    return el("div", {},
-      el("label", { class: "epl-campo" }, el("span", {}, t("toma.frase")), area,
-        el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: t("toma.frase.volver"),
-          onclick: () => { toma.efecto_frase = ""; toma.fijos = toma.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, "↺")),
-      el("div", { class: "epl-marca-frase" }, marca, propia && !/^E\d+$/.test(toma.efecto) ? guardarComo : null));
+    return el("div", { class: "epl-campo epl-destacado epl-g-efref" },
+      el("span", {}, el("i", { class: "epl-icono" }, "✨"), t("toma.frase")),
+      el("div", { class: "epl-citas-caja" }, caja3, menu,
+        el("div", { class: "epl-citas-ayuda" }, el("span", { class: "epl-ayuda" }, t(conectadas.length ? "toma.frase.arroba" : "toma.frase.sin_conectadas")),
+          ...conectadas.map((tag) => el("button", { class: "epl-mini epl-citar", onmousedown: (e) => { e.preventDefault(); meter(tag); } }, "@ " + nombreDe(tag)))),
+        el("div", { class: "epl-marca-frase" }, marca, propia ? guardarComo : null)),
+      el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: t("toma.frase.volver"),
+        onclick: () => { toma.efecto_frase = ""; toma.fijos = toma.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, "↺"));
   }
 
   /* el encuadre: el menú (ENCUADRES) o, con «✎ escribir el mío», un texto propio (queda fijo y se pega tal cual). Un
    * encuadre que no está en el menú se enseña ya como texto; «≡ menú» vuelve al menú. */
   let encuadrePropio = false, tomaPintada = null;   // (camaraPropia, más abajo, se olvida igual al cambiar de toma)
   function campoEncuadre(toma) {
+    const et = () => letrero(t("toma.encuadre"), "", "🖼️");
     const propio = encuadrePropio || (toma.encuadre && !ENCUADRES.includes(toma.encuadre));
     if (!propio) {
       const ops = [["", "—"], ...ENCUADRES.map((e, i) => [e, t(`toma.encuadre_op.${i}`)]), ["__mio", t("toma.encuadre.mio")]];
@@ -146,11 +231,11 @@ export function instalar(ctx) {
         if (e.target.value === "__mio") { encuadrePropio = true; ctx.pintarToma(); return; }
         toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pintarPlan(); ctx.pedirMontaje(); } },
         ops.map(([v, txt]) => el("option", { value: v, selected: (toma.encuadre || "") === v }, txt)));
-      return el("label", { class: "epl-campo" }, el("span", {}, t("toma.encuadre")), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
+      return el("label", { class: "epl-campo epl-et-encuadre" }, et(), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
     }
-    const entrada = el("input", { "data-campo": "encuadre", value: toma.encuadre || "", placeholder: t("toma.encuadre.mio.placeholder"),
-      oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pedirMontaje(); } });
-    return el("label", { class: "epl-campo" }, el("span", {}, t("toma.encuadre")), entrada,
+    const entrada = el("textarea", { rows: 2, "data-campo": "encuadre", placeholder: t("toma.encuadre.mio.placeholder"),
+      oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pedirMontaje(); } }, toma.encuadre || "");
+    return el("label", { class: "epl-campo epl-et-encuadre" }, et(), entrada,
       el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
         onclick: () => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
         t("toma.encuadre.menu")));
@@ -160,18 +245,18 @@ export function instalar(ctx) {
   let camaraPropia = false;
   function campoCamara(toma) {
     const propia = camaraPropia || (toma.camara && !MOVIMIENTOS.includes(toma.camara));
-    const et = el("span", {}, t("toma.camara"));
+    const et = letrero(t("toma.camara"), "", "🎥");
     if (!propia) {
       const ops = [["", "—"], ...MOVIMIENTOS.map((m, i) => [m, t(`toma.camara_op.${i}`)]), ["__mio", t("toma.encuadre.mio")]];
       const sel = el("select", { "data-campo": "camara", onchange: (e) => {
         if (e.target.value === "__mio") { camaraPropia = true; ctx.pintarToma(); return; }
         toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pintarToma(); ctx.pedirMontaje(); } },
         ops.map(([v, txt]) => el("option", { value: v, selected: (toma.camara || "") === v }, txt)));
-      return el("label", { class: "epl-campo" }, et, sel, candado(toma.fijos, "camara", () => ctx.pintarToma()));
+      return el("label", { class: "epl-campo epl-et-camara" }, et, sel, candado(toma.fijos, "camara", () => ctx.pintarToma()));
     }
-    const entrada = el("input", { "data-campo": "camara", value: toma.camara || "", placeholder: t("toma.camara.mio.placeholder"),
-      oninput: (e) => { toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pedirMontaje(); } });
-    return el("label", { class: "epl-campo" }, et, entrada,
+    const entrada = el("textarea", { rows: 2, "data-campo": "camara", placeholder: t("toma.camara.mio.placeholder"),
+      oninput: (e) => { toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pedirMontaje(); } }, toma.camara || "");
+    return el("label", { class: "epl-campo epl-et-camara" }, et, entrada,
       el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
         onclick: () => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
         t("toma.encuadre.menu")));
@@ -187,13 +272,13 @@ export function instalar(ctx) {
       ctx.pintarToma(); ctx.pintarRefs(); ctx.pintarLinea(); ctx.pedirMontaje();
     };
     const ninguno = toma.entorno === "ninguno";
-    const entrada = el("input", { "data-campo": "lugar", value: toma.lugar || "", disabled: ninguno,
+    const entrada = el("textarea", { rows: 2, "data-campo": "lugar", disabled: ninguno,
       placeholder: ninguno ? t("toma.entorno.ninguno.ayuda") : "",
       oninput: (e) => {
         toma.lugar = e.target.value;
         if (toma.entorno !== "manual") { toma.entorno = "manual"; fijar(toma.fijos, "lugar"); botones.replaceWith(botones = selector()); }
         ctx.pedirMontaje(); pintarRefsSuave();
-      } });
+      } }, toma.lugar || "");
     const selector = () => el("span", { class: "epl-entorno" }, ...ENTORNOS.map((e) =>
       el("button", { class: "epl-mini" + (toma.entorno === e ? " fijo" : ""), "data-entorno": e, title: t(`toma.entorno.${e}.tooltip`),
                      onclick: () => poner(e) }, t(`toma.entorno.${e}`))));
@@ -253,10 +338,11 @@ export function instalar(ctx) {
   ctx.pintarToma = function pintarToma() {
     const k = S.elegida, toma = k ? S.plan.tomas[k - 1] : null;
     if (k !== tomaPintada) { encuadrePropio = false; camaraPropia = false; tomaPintada = k; }   // en otra toma lo decide su valor
-    const botonTomas = el("button", { class: "epl-boton epl-llm", title: t("final.escribir_tomas.tooltip"),
+    const botonTomas = el("button", { class: "epl-boton epl-llm epl-azul-osc", title: t("final.escribir_tomas.tooltip"),
       onclick: () => ctx.conLLM("final.escribiendo_tomas", "tomas") }, t("final.escribir_tomas"));
     if (!toma) {
-      secToma.replaceChildren(el("div", { class: "epl-tit" }, t("toma.titulo_vacio"), el("span", { class: "der" }, botonTomas)),
+      secToma.replaceChildren(el("div", { class: "epl-tit epl-tit-izq" }, el("span", { class: "epl-botones-toma" }, botonTomas),
+        el("span", { class: "epl-tit-toma" }, t("toma.titulo_vacio"))),
         el("div", { class: "epl-vacio" }, t("toma.vacio")));
       return;
     }
@@ -270,26 +356,29 @@ export function instalar(ctx) {
                   menu("pose", "toma.pose", "pose", t("toma.sin_pose")), menu("objeto", "toma.objeto", "objeto", t("toma.sin_objeto")),
                   ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
                   ninguno ? null : menu("fondo_ref", "toma.fondo", "fondo", t("toma.sin_fondo"))].filter(Boolean);
-    const efectos = opcionesDe("efecto", t("toma.sin_efecto"));
+    const titulo = el("span", { class: "epl-tit-toma" }, a === undefined ? t("toma.titulo", { k })
+      : t("toma.titulo_tiempo", { k, a: u.num(a, 3), z: u.num(+z, 3) }));
     secToma.replaceChildren(
-      el("div", { class: "epl-tit" }, a === undefined ? t("toma.titulo", { k })
-        : t("toma.titulo_tiempo", { k, a: u.num(a, 3), z: u.num(+z, 3) }),
-        el("span", { class: "der" }, botonTomas,
+      // los botones a la izquierda (se lee de izquierda a derecha) y el título después
+      el("div", { class: "epl-tit epl-tit-izq" },
+        el("span", { class: "epl-botones-toma" }, botonTomas,
           el("button", { class: "epl-mini", title: t("toma.rehacer.tooltip"),
             onclick: () => ctx.conLLM("toma.rehaciendo", "tomas", { solo: k }, { k }) }, t("toma.rehacer")),
           S.tomas > 1 ? el("button", { class: "epl-mini", title: t("toma.quitar.tooltip"), onclick: () => ctx.quitarToma(k) }, t("toma.quitar")) : null,
-          el("button", { class: "epl-mini", onclick: () => ctx.elegir(null) }, t("comun.cerrar")))),
+          el("button", { class: "epl-mini", onclick: () => ctx.elegir(null) }, t("comun.cerrar"))),
+        titulo),
       el("div", { class: "epl-tres" },
         el("div", {}, el("b", {}, t("toma.direccion")),
           campoEncuadre(toma),
           campoCamara(toma),
-          campoTexto(toma, "luz", t(ninguno ? "toma.luz_opcional" : "toma.luz"), toma.fijos)),
+          campoTexto(toma, "luz", t(ninguno ? "toma.luz_opcional" : "toma.luz"), toma.fijos, { largo: true }),
+          campoTexto(toma, "momento", el("span", {}, el("i", { class: "epl-icono" }, "🎬"), t("toma.momento")), toma.fijos,
+                     { largo: true, filas: 4, clase: "epl-destacado epl-g-accion", ayuda: t("toma.momento.ayuda") }),
+          campoReferencias(toma),
+          campoEfectoRef(toma)),
         el("div", {}, el("b", {}, t("toma.que_pasa")),
           campoLugar(toma),
-          campoTexto(toma, "momento", t("toma.momento"), toma.fijos, { largo: true }),
-          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true }),
-          efectos ? campoMenu(toma, "efecto", t("toma.efecto"), toma.fijos, efectos) : null,
-          campoFrase(toma)),
+          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true })),
         el("div", {}, el("b", {}, t("toma.refs")),
           ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))]),
           el("p", { class: "epl-ayuda" }, t("toma.refs.ayuda")))),

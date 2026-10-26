@@ -42,6 +42,12 @@ Lectura: 2 min · Empezado el 26 oct 2026, mientras el usuario hace su edit en e
 12. ✅ **La línea `[Shot n]` de la toma elegida** (la vista previa de solo lectura de lo que va al prompt) pasa de **arriba** del panel «Prompt de la toma» a **abajo**, justo encima de las referencias.
 
 13. ⬜ **Cambiar el orden de las tomas** en la línea de tiempo (pedido el 26 oct; para después).
+14. ✅ **Panel «Prompt de la toma» nuevo** (26 oct, dibujado en el pizarrón):
+   - fondo violeta oscuro y sin marco amarillo; los botones («Escribir tomas» en azul oscuro, rehacer, quitar, cerrar) a la izquierda y el título después;
+   - columnas más estrechas y pegadas a la izquierda (82 % del ancho); todos los campos de texto, de al menos dos renglones;
+   - Encuadre 🖼️ y Movimiento de cámara 🎥 con su color;
+   - en Dirección, con título en degradado: **Acción / movimiento** 🎬 (antes «Qué pasa», el más grande; si lo escribes tú va al prompt, al final de la línea de la toma), **Referencias** 🔗 (antes «Efecto»; «+» conecta varias, de cualquier papel) y **Efecto de la referencia** ✨ (antes «Frase del efecto»; las referencias van dentro como etiquetas con su nombre: escribe @ o toca una; va al final de la toma);
+   - la columna del medio se llama «Escena» (lugar y gesto).
 
 ## Vistos al usar la ventana (para comentarlos con el usuario)
 
