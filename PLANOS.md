@@ -19,6 +19,7 @@ Símbolos: ✅ comprobado · 💡 sin probar · ❓ pendiente.
 5. [Reglas de revisión](planos/5%20Reglas%20de%20revision.md): los fallos que ya vimos y cómo se evitan.
 6. [Cambiar sin romper](planos/6%20Cambiar%20sin%20romper.md): el procedimiento para modificarlo.
 7. [Medidas y pendientes](planos/7%20Medidas%20y%20pendientes.md): números medidos y lo que aún no sabemos.
+8. [Lo que funciona](planos/8%20Lo%20que%20funciona.md): qué escribir en cada campo para que H3 obedezca (base de la guía de uso) y qué podría mejorar la interfaz con eso.
 
 Trabajo en curso, por fases (para retomarlo si se corta): [planos/fases/](planos/fases/1%20Sin%20recetas%20y%20mejoras%20del%20editor.md), [2 Bilingüe](planos/fases/2%20Bilingue.md), [3 Carta, entorno y texto](planos/fases/3%20Carta,%20entorno%20y%20texto.md) y [4 El código solo pega](planos/fases/4%20El%20codigo%20solo%20pega.md).
 
