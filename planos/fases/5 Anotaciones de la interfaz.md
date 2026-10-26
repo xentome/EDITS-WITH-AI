@@ -56,3 +56,5 @@ Lectura: 2 min · Empezado el 26 oct 2026, mientras el usuario hace su edit en e
 - No avisa cuando una toma está vacía, ni cuando el encuadre y la cámara se contradicen.
 - La frase de la letra dice «the words written in it are not reproduced», aunque se quieran esas mismas palabras.
 - El nodo podría avisar si su salida va a una entrada del Prompt Builder que no es `prompt_text`.
+- Al mover un corte, los textos no se mueven con él: un texto puede seguir «hasta» un segundo que ya es de la toma siguiente (26 oct).
+- La frase del efecto va al principio de la toma («At 00:00… a motion-graphics title…»): un efecto que debe pasar a mitad de toma sale desde el primer fotograma. Para un título animado, mejor citar el clip en la frase del texto (26 oct).
