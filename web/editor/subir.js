@@ -16,6 +16,76 @@ export function instalar(ctx) {
   const { u, S, wf, caja } = ctx;
   const { el, W, leerJSON, api, t } = u;
 
+  /* el recorte de un video, reutilizable (la ventanita de subir y la ficha de un clip): `video` es el elemento <video> y
+   * `x.recorte` el recuadro ({x, y, w, h} de 0 a 1, o null = el cuadro entero); `alCambiar()` se llama al soltar. Es
+   * opcional: «✂ Cortar» enseña el recuadro y «✕ sin recorte» lo quita. Devuelve {marco, botonCortar, infoRecorte}. */
+  ctx.editorRecorte = function editorRecorte(video, x, alCambiar = () => {}) {
+    const lados = ["n", "s", "e", "o", "ne", "no", "se", "so"];
+    const rect = el("div", { class: "epl-sv-rect" }, ...lados.map((l) => el("div", { class: `epl-sv-h h-${l}`, "data-lado": l })));
+    const marco = el("div", { class: "epl-sv-marco" }, video, rect);
+    const cortando = () => !!x.recorte;
+    const ponerRect = () => {
+      rect.style.display = cortando() ? "" : "none";
+      if (cortando()) Object.assign(rect.style, { left: `${x.recorte.x * 100}%`, top: `${x.recorte.y * 100}%`,
+                                                  width: `${x.recorte.w * 100}%`, height: `${x.recorte.h * 100}%` });
+    };
+    /* arrastrar: un lado o una esquina mueve solo esos bordes; con Ctrl, el recuadro crece o encoge entero desde su
+     * centro, con su misma proporción; desde dentro, se mueve sin cambiar de tamaño */
+    let arrR = null;
+    const pos = (e) => { const b = video.getBoundingClientRect(); return [(e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height]; };
+    const lim = (v) => Math.min(1, Math.max(0, v));
+    rect.addEventListener("pointerdown", (e) => {
+      if (e.button > 0 || !cortando()) return;
+      arrR = { lado: e.target.dataset.lado || "mover", ini: pos(e), r: { ...x.recorte } };
+      try { rect.setPointerCapture(e.pointerId); } catch { /* sintético */ }
+      e.preventDefault(); e.stopPropagation();
+    });
+    rect.addEventListener("pointermove", (e) => {
+      if (!arrR) return;
+      const [px, py] = pos(e), dx = px - arrR.ini[0], dy = py - arrR.ini[1], r0 = arrR.r;
+      let x0 = r0.x, y0 = r0.y, x1 = r0.x + r0.w, y1 = r0.y + r0.h;
+      if (arrR.lado === "mover") {
+        const mx = Math.min(1 - r0.w, Math.max(0, r0.x + dx)), my = Math.min(1 - r0.h, Math.max(0, r0.y + dy));
+        x.recorte = { x: mx, y: my, w: r0.w, h: r0.h };
+      } else if (e.ctrlKey) {                         // todo junto, desde el centro, con la misma proporción
+        const cx = r0.x + r0.w / 2, cy = r0.y + r0.h / 2;
+        const k = Math.max(MIN / Math.min(r0.w, r0.h), Math.hypot(px - cx, py - cy) / Math.max(1e-6, Math.hypot(arrR.ini[0] - cx, arrR.ini[1] - cy)));
+        const w = Math.min(r0.w * k, 2 * Math.min(cx, 1 - cx)), h = w * r0.h / r0.w;
+        const h2 = Math.min(h, 2 * Math.min(cy, 1 - cy)), w2 = h2 * r0.w / r0.h;
+        x.recorte = { x: cx - w2 / 2, y: cy - h2 / 2, w: w2, h: h2 };
+      } else {                                        // lado por lado
+        if (arrR.lado.includes("o")) x0 = Math.min(lim(r0.x + dx), x1 - MIN);
+        if (arrR.lado.includes("e")) x1 = Math.max(lim(r0.x + r0.w + dx), x0 + MIN);
+        if (arrR.lado.includes("n")) y0 = Math.min(lim(r0.y + dy), y1 - MIN);
+        if (arrR.lado.includes("s")) y1 = Math.max(lim(r0.y + r0.h + dy), y0 + MIN);
+        x.recorte = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+      ponerRect(); textoRecorte();
+    });
+    const soltar = () => { if (arrR) alCambiar(); arrR = null; };
+    rect.addEventListener("pointerup", soltar);
+    rect.addEventListener("pointercancel", soltar);
+    ponerRect();
+    const infoRecorte = el("span", { class: "epl-ayuda" });
+    const textoRecorte = () => {
+      const W0 = video.videoWidth || 0, H0 = video.videoHeight || 0, r = x.recorte;
+      infoRecorte.textContent = !r ? t("referencias.subir.video.sin_recorte", { W: W0, H: H0 })
+        : t("referencias.subir.video.recorte_info", { w: Math.round(r.w * W0), h: Math.round(r.h * H0), W: W0, H: H0 });
+    };
+    const botonCortar = el("button", { class: "epl-boton epl-cortar" });
+    const pintarCortar = () => {
+      botonCortar.textContent = t(cortando() ? "referencias.subir.video.quitar_recorte" : "referencias.subir.video.cortar");
+      botonCortar.classList.toggle("fijo", cortando());
+    };
+    botonCortar.addEventListener("click", () => {
+      x.recorte = cortando() ? null : { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+      ponerRect(); textoRecorte(); pintarCortar(); alCambiar();
+    });
+    pintarCortar();
+    video.addEventListener("loadedmetadata", textoRecorte);
+    return { marco, botonCortar, infoRecorte };
+  };
+
   ctx.subirFoto = async function subirFoto(archivo) {
     const fd = new FormData();
     fd.append("image", archivo, archivo.name);
@@ -61,69 +131,7 @@ export function instalar(ctx) {
       const x = st.video;
       const video = el("video", { src: x.url, muted: true, playsinline: true, loop: false, class: "epl-sv-video" });
       video.muted = true;
-      // el recorte es opcional: «✂ Cortar» enseña el recuadro (x.recorte) y «✕ sin recorte» lo quita (todo el cuadro)
-      const lados = ["n", "s", "e", "o", "ne", "no", "se", "so"];
-      const rect = el("div", { class: "epl-sv-rect" }, ...lados.map((l) => el("div", { class: `epl-sv-h h-${l}`, "data-lado": l })));
-      const marco = el("div", { class: "epl-sv-marco" }, video, rect);
-      const cortando = () => !!x.recorte;
-      const ponerRect = () => {
-        rect.style.display = cortando() ? "" : "none";
-        if (cortando()) Object.assign(rect.style, { left: `${x.recorte.x * 100}%`, top: `${x.recorte.y * 100}%`,
-                                                    width: `${x.recorte.w * 100}%`, height: `${x.recorte.h * 100}%` });
-      };
-      /* arrastrar: un lado o una esquina mueve solo esos bordes; con Ctrl, el recuadro crece o encoge entero desde su
-       * centro, con su misma proporción; desde dentro, se mueve sin cambiar de tamaño */
-      let arrR = null;
-      const pos = (e) => { const b = video.getBoundingClientRect(); return [(e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height]; };
-      const lim = (v) => Math.min(1, Math.max(0, v));
-      rect.addEventListener("pointerdown", (e) => {
-        if (e.button > 0 || !cortando()) return;
-        arrR = { lado: e.target.dataset.lado || "mover", ini: pos(e), r: { ...x.recorte } };
-        try { rect.setPointerCapture(e.pointerId); } catch { /* sintético */ }
-        e.preventDefault(); e.stopPropagation();
-      });
-      rect.addEventListener("pointermove", (e) => {
-        if (!arrR) return;
-        const [px, py] = pos(e), dx = px - arrR.ini[0], dy = py - arrR.ini[1], r0 = arrR.r;
-        let x0 = r0.x, y0 = r0.y, x1 = r0.x + r0.w, y1 = r0.y + r0.h;
-        if (arrR.lado === "mover") {
-          const mx = Math.min(1 - r0.w, Math.max(0, r0.x + dx)), my = Math.min(1 - r0.h, Math.max(0, r0.y + dy));
-          x.recorte = { x: mx, y: my, w: r0.w, h: r0.h };
-        } else if (e.ctrlKey) {                         // todo junto, desde el centro, con la misma proporción
-          const cx = r0.x + r0.w / 2, cy = r0.y + r0.h / 2;
-          const k = Math.max(MIN / Math.min(r0.w, r0.h), Math.hypot(px - cx, py - cy) / Math.max(1e-6, Math.hypot(arrR.ini[0] - cx, arrR.ini[1] - cy)));
-          const w = Math.min(r0.w * k, 2 * Math.min(cx, 1 - cx)), h = w * r0.h / r0.w;
-          const h2 = Math.min(h, 2 * Math.min(cy, 1 - cy)), w2 = h2 * r0.w / r0.h;
-          x.recorte = { x: cx - w2 / 2, y: cy - h2 / 2, w: w2, h: h2 };
-        } else {                                        // lado por lado
-          if (arrR.lado.includes("o")) x0 = Math.min(lim(r0.x + dx), x1 - MIN);
-          if (arrR.lado.includes("e")) x1 = Math.max(lim(r0.x + r0.w + dx), x0 + MIN);
-          if (arrR.lado.includes("n")) y0 = Math.min(lim(r0.y + dy), y1 - MIN);
-          if (arrR.lado.includes("s")) y1 = Math.max(lim(r0.y + r0.h + dy), y0 + MIN);
-          x.recorte = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-        }
-        ponerRect(); textoRecorte();
-      });
-      const soltar = () => { arrR = null; };
-      rect.addEventListener("pointerup", soltar);
-      rect.addEventListener("pointercancel", soltar);
-      ponerRect();
-      const infoRecorte = el("span", { class: "epl-ayuda" });
-      const textoRecorte = () => {
-        const W0 = video.videoWidth || 0, H0 = video.videoHeight || 0, r = x.recorte;
-        infoRecorte.textContent = !r ? t("referencias.subir.video.sin_recorte", { W: W0, H: H0 })
-          : t("referencias.subir.video.recorte_info", { w: Math.round(r.w * W0), h: Math.round(r.h * H0), W: W0, H: H0 });
-      };
-      const botonCortar = el("button", { class: "epl-boton epl-cortar" });
-      const pintarCortar = () => {
-        botonCortar.textContent = t(cortando() ? "referencias.subir.video.quitar_recorte" : "referencias.subir.video.cortar");
-        botonCortar.classList.toggle("fijo", cortando());
-      };
-      botonCortar.addEventListener("click", () => {
-        x.recorte = cortando() ? null : { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
-        ponerRect(); textoRecorte(); pintarCortar();
-      });
-      pintarCortar();
+      const { marco, botonCortar, infoRecorte } = ctx.editorRecorte(video, x);
       // el tramo: una línea con los fotogramas del video y dos tiradores
       const tira = el("canvas", { class: "epl-sv-tira", width: 640, height: 54 });
       const sel = el("div", { class: "epl-sv-sel" });

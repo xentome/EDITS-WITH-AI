@@ -548,6 +548,10 @@ export function instalar(ctx) {
   ctx.clips = ctx.clips || {};
   function clipDe(r, src, repintar) {
     if (r.kind !== "video" || !r.ref || ctx.esCajita(r)) return null;
+    if (ctx.fuentes[r.ref] === undefined) {
+      ctx.fuentes[r.ref] = null;
+      api("fuente", { nombre: r.ref }).then((x) => { ctx.fuentes[r.ref] = x || {}; repintar(); }).catch(() => { ctx.fuentes[r.ref] = {}; });
+    }
     const ya = ctx.clips[r.ref];
     if (ya === undefined) {
       ctx.clips[r.ref] = null;
@@ -558,9 +562,33 @@ export function instalar(ctx) {
       return el("div", { class: "epl-clip" }, src ? el("img", { src, alt: "" }) : null,
         el("span", { class: "epl-clip-nota" }, t(ya === "" ? "referencias.clip.sin_video" : "referencias.clip.buscando")));
     }
-    const v = el("video", { src: u.vistaMedio(ya), autoplay: true, loop: true, playsinline: true, controls: true, class: "epl-clip-video" });
+    const v = el("video", { src: u.vistaMedio(ya), autoplay: true, loop: true, playsinline: true, class: "epl-clip-video" });
     v.muted = true;
-    return el("div", { class: "epl-clip" }, v, el("span", { class: "epl-clip-nota" }, t("referencias.clip.de", { file: ya.replace(/ \[input\]$/, "") })));
+    const nota = el("span", { class: "epl-clip-nota" }, t("referencias.clip.de", { file: ya.replace(/ \[input\]$/, "") }));
+    // una referencia subida desde esta ventana (con .fuente.json): su recorte se puede cambiar aquí mismo, sobre el video
+    // original; «Aplicar recorte» aparece al cambiarlo y rehace el RefMod con el mismo nombre (rutas.recortar)
+    const f = ctx.fuentes[r.ref];
+    if (!f?.items?.length || !ctx.editorRecorte) return el("div", { class: "epl-clip" }, v, nota);
+    const x = { recorte: f.items[0].crop ? { ...f.items[0].crop } : null };
+    const antes = JSON.stringify(x.recorte);
+    const aplicar = el("button", { class: "epl-boton epl-verde epl-aplicar-recorte", style: { display: "none" }, onclick: async () => {
+      if (S.ocupado) return;
+      S.ocupado = true; caja.classList.add("ocupada");
+      ctx.avisar(t("referencias.recorte.aplicando"), "trabajando");
+      try {
+        const res = await api("recortar", { nombre: r.ref, recorte: x.recorte });
+        ctx.fuentes[r.ref] = undefined;
+        await ctx.cargarBiblioteca();
+        ctx.pintarRefs(); ctx.pedirMontaje();
+        ctx.avisar(t("referencias.recorte.aplicado", { nombre: r.ref, s: u.num(res.segundos) }), "bien");
+        repintar();
+      } catch (e) { ctx.avisar(t("referencias.recorte.error", { error: e.message }), "mal"); }
+      finally { S.ocupado = false; caja.classList.remove("ocupada"); }
+    } }, t("referencias.recorte.aplicar"));
+    const { marco, botonCortar, infoRecorte } = ctx.editorRecorte(v, x, () => {
+      aplicar.style.display = JSON.stringify(x.recorte) === antes ? "none" : "";
+    });
+    return el("div", { class: "epl-clip editable" }, marco, el("div", { class: "epl-fila" }, botonCortar, infoRecorte, aplicar), nota);
   }
 
   /* los dos renglones de arriba del prompt de esta referencia (subject_definitions y retention_analysis): vacíos, la frase

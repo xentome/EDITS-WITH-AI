@@ -161,6 +161,7 @@ textarea.epl-final{min-height:40vh}
 .epl-frase b{font-family:ui-monospace,monospace;font-size:11.5px;color:#f0b866}.epl-frase textarea{width:100%;font-family:ui-monospace,monospace;font-size:11.5px}
 .epl-clip{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:center}
 .epl-clip video,.epl-clip img{max-width:100%;max-height:62vh;object-fit:contain}
+.epl-clip.editable{overflow:hidden;justify-content:center;padding:6px;gap:6px}.epl-clip.editable video{max-height:calc(min(62vh,640px) - 90px);max-width:100%;display:block}
 .epl-clip-nota{font-size:11px;color:#cfe0ff;background:#12151bcc;padding:2px 6px;margin-top:4px}
 .epl-renglones{margin:6px 0}.epl-renglones summary{cursor:pointer;color:#cfe0ff;font-size:12px}
 .epl-renglones textarea{width:100%;font-family:ui-monospace,monospace;font-size:11.5px}

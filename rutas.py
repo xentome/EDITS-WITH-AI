@@ -448,6 +448,30 @@ def fuente(d):
         return {}
 
 
+def recortar(d):
+    """Cambia el recorte de una referencia subida (con su .fuente.json): parte del archivo original, no del recortado, y
+    rehace el RefMod con el mismo nombre, modo y tramo (Fantastic lo sobrescribe y su caché lo nota por la fecha). `recorte`:
+    {x, y, w, h} de 0 a 1, o null para el cuadro entero."""
+    import os
+    nombre = d.get("nombre") or ""
+    f = fuente({"nombre": nombre})
+    if not f.get("items"):
+        raise ErrorUsuario("errores.sin_fuente", nombre=nombre)
+    items = [dict(x) for x in f["items"]]
+    r = d.get("recorte")
+    for x in items:
+        x.pop("crop", None)
+        if r and all(k in r for k in "xywh") and (float(r["w"]) < 0.999 or float(r["h"]) < 0.999):
+            x["crop"] = {k: round(min(1.0, max(0.0, float(r[k]))), 4) for k in "xywh"}
+    _cola_libre("crear_subidas")
+    t0 = time.time()
+    _crear_refmod(os.path.basename(nombre), os.path.dirname(nombre), items, f.get("concepto") or "style",
+                  _DESC_SUBIDA.format(papel=f.get("modo") or "-"), "", "", "crear_subidas", "edit_prompt_llm_referencia",
+                  f.get("modo") or "completo", _fotogramas_clip(items[0]))
+    _apuntar_fuente(_raiz_refmods(), nombre, items, f.get("modo") or "completo", f.get("concepto") or "style")
+    return {"nombre": nombre, "recorte": items[0].get("crop"), "segundos": round(time.time() - t0, 1)}
+
+
 def cambiar_modo(d):
     """Rehace un RefMod en el otro modo (completo ↔ comprimido) con su misma fuente: crea «<nombre>__comprimido» o
     «<nombre>__completo» (o lo reutiliza si ya existe) y devuelve su nombre; el editor cambia la tarjeta del Stack."""
@@ -691,6 +715,7 @@ ACCIONES = {
     "video_info": (video_info, False),
     "fuente": (fuente, False),
     "cambiar_modo": (cambiar_modo, False),
+    "recortar": (recortar, False),
     "crear_cajita": (crear_cajita, False),
     "subir_refmods": (subir_refmods, False),
     "tapados": (tapados, False),

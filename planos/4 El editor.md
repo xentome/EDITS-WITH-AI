@@ -127,6 +127,7 @@ Lectura: 4 min
   - **Tramo** (opcional, «elegir un tramo»): una línea con sus fotogramas y dos tiradores (desde / hasta), ajustados al fotograma, y «▶ / ⏸ el tramo».
 - **Cómo se guarda:** «comprimido» (copia el aspecto general y pesa poco: el método del reel, plano 8) o «completo» (guarda el detalle). Un video empieza en comprimido y una foto en completo.
 - `rutas.subir_refmods` crea el RefMod (MiniMaxH3FantasticRefModCreate) con el `trim` y el `crop` de Fantastic. Lo apunta en `<nombre>.fuente.json`: de qué archivo salió, con qué tramo y recorte, y en qué modo.
+- **Cambiar el recorte después:** al abrir la ficha de un clip subido desde la ventana, se ve el video **original** con el recuadro de su recorte (o sin recorte), listo para moverlo con los mismos tiradores. Al cambiarlo aparece **«Aplicar recorte»**, que rehace el RefMod con el mismo nombre, modo y tramo (`rutas.recortar`, unos 11 s). Así la tarjeta del Stack y las tomas no cambian.
 - **En la ficha:** «Guardada en modo …» y «pasar a comprimido / completo». `rutas.cambiar_modo` crea `<nombre>__completo` o `__comprimido` (o lo reutiliza) y la tarjeta del Stack cambia sola. Un clip se ve en movimiento: es el video original, sin el recorte.
 
 ## Resolución (26 oct)
