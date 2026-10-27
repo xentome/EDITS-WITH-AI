@@ -142,7 +142,9 @@ body.tema-casete .max-fase{position:relative;min-height:64px;border-radius:6px;b
 body.tema-casete .max-fase:hover{border-color:var(--k-linea2);color:var(--k-texto)}
 body.tema-casete .max-fase.activa{background:var(--k-naranja);border-color:var(--k-naranja);color:var(--k-tinta);padding-right:88px}
 /* las dos rayas de la J-card (rosa y cobalto), a la derecha de la banda */
-body.tema-casete .max-fase.activa::after{content:"";position:absolute;top:0;bottom:0;right:24px;width:0;border-left:20px solid var(--k-rosa);border-right:20px solid var(--k-cobalto)}
+body.tema-casete .max-fase.activa::before,body.tema-casete .max-fase.activa::after{content:"";position:absolute;top:0;bottom:0;width:20px}
+body.tema-casete .max-fase.activa::before{right:44px;background:var(--k-rosa)}
+body.tema-casete .max-fase.activa::after{right:24px;background:var(--k-cobalto)}
 body.tema-casete .max-fase-cab{gap:10px}
 body.tema-casete .max-fase-cara,body.tema-casete .max-fase-num,body.tema-casete .max-fase-nombre{font:800 26px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
 body.tema-casete .max-fase-num{width:auto;height:auto;border:0}

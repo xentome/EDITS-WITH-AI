@@ -11,10 +11,11 @@ Lectura: 2 min · 27 oct 2026 · Para los ayudantes y para retomar si se corta.
 ## Fases (✅ al terminar, con commit)
 
 1. ✅ **El tema y sus detalles** (`temas/casete.css`, `index.html`, `linea.js`, `plan.js`, `referencias.js`, `app.js`, i18n): paleta, letras (Big Shoulders Display, Barlow Condensed, Barlow, JetBrains Mono), pistas, caras, «recién pegada», la onda como cinta marrón.
-2. **La comprobación:** Tomas, la toma elegida, el arrastre y «recién pegada», la ficha, Retocar, el LLM caído, 1440 de ancho; `impeccable detect`.
+2. ✅ **La comprobación:** Tomas, la toma elegida, el arrastre y «recién pegada», la ficha, Retocar, el LLM caído, 1440 de ancho; `impeccable detect`.
 
 ## Comprobado (27 oct) ✅
 
 - En 2548×1284 CSS la pestaña «Tomas y referencias» cabe sin bajar (sobran unos 39 px; con una referencia conectada en la toma, unos 25).
 - «Conectar a…» a la toma 2 deja la pegatina con anillo y «recién pegada»; el LLM caído sale en rojo en la cabecera.
 - La ficha (modal centrado), Retocar (cara B) y 1440×900 (ahí la página baja: no se pidió que quepa).
+- `impeccable detect`: arreglado el «side-tab» de las rayas de la J-card (ahora son dos bloques, no bordes). Queda un aviso suave en `index.html`: las marcas repetidas de la línea de Retocar (de antes; el tema casete las tapa con su color liso).
