@@ -68,3 +68,13 @@ body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-histo
 body.tema-azul .epl-s-historia .epl-boton.epl-llm{background:var(--c-oscuro) !important;color:var(--c-blanco) !important}
 body.tema-azul .epl-texto-pista{background:var(--c-campo) !important;border-color:#444 !important;border-radius:999px !important}
 body.tema-azul .epl-texto-et{background:var(--c-blanco) !important;color:var(--c-oscuro) !important;border:0 !important;border-radius:999px !important}
+/* (26 oct) campos de texto: azul oscuro con letra muy clara, en vez de blancos o con borde gris */
+body.tema-azul{--c-campo-azul:#13264d;--c-borde-azul:#24457f;--c-letra-clara:#f1f5ff}
+body.tema-azul .epl-sec input,body.tema-azul .epl-sec textarea,body.tema-azul .epl-sec select,body.tema-azul .epl-citas,
+body.tema-azul .epl-modal input,body.tema-azul .epl-modal textarea,body.tema-azul .epl-modal select,body.tema-azul .epl-final,
+body.tema-azul .max-cab select,body.tema-azul .max-cab input,body.tema-azul .epl-cabecera input{
+  background:var(--c-campo-azul) !important;border:1.5px solid var(--c-borde-azul) !important;color:var(--c-letra-clara) !important}
+body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-historia textarea,body.tema-azul .epl-sec.epl-s-historia select{
+  background:var(--c-campo-azul) !important;border:1.5px solid #1b3566 !important;color:var(--c-letra-clara) !important}
+body.tema-azul .epl-sec input::placeholder,body.tema-azul .epl-sec textarea::placeholder,body.tema-azul .epl-citas:empty::before{color:#8fa3c9 !important}
+body.tema-azul .epl-sec.epl-s-historia input::placeholder,body.tema-azul .epl-sec.epl-s-historia textarea::placeholder{color:#9db0d6 !important}
