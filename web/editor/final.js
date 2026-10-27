@@ -18,10 +18,18 @@ export function instalar(ctx) {
       onmouseenter: () => ctx.resaltar(trozo, true), onmouseleave: () => ctx.resaltar(trozo, false) }, trozo) : trozo);
 
   let editando = false;
+  // el prompt completo va oculto (26 oct): se ve con «mostrar prompt completo»; se recuerda en este navegador
+  let visible = false;
+  try { visible = localStorage.getItem("epl-prompt-visible") === "1"; } catch { /* sin almacenamiento */ }
   ctx.pintarFinal = function pintarFinal() {
-    const cab = el("div", { class: "epl-tit" }, t("final.titulo"),
+    const mostrar = el("button", { class: "epl-mini epl-mostrar-prompt", title: t("final.mostrar.tooltip"), onclick: () => {
+      visible = !visible;
+      try { localStorage.setItem("epl-prompt-visible", visible ? "1" : "0"); } catch { /* sin almacenamiento */ }
+      pintarFinal();
+    } }, t(visible ? "final.ocultar" : "final.mostrar"));
+    const cab = el("div", { class: "epl-tit" }, t("final.titulo"), mostrar,
       S.a_mano ? el("span", { class: "epl-marca" }, t("final.a_mano")) : null,
-      el("span", { class: "der" },
+      !visible ? null : el("span", { class: "der" },
         el("button", { class: "epl-mini epl-abrir-frases", title: t("final.frases.tooltip"), onclick: () => ctx.abrirFrases() },
           t("final.frases", { n: Object.keys(S.frases).length })),
         el("button", { class: "epl-mini", onclick: () => { editando = !editando; pintarFinal(); } }, t(editando ? "final.ver_resaltado" : "final.editar")),
@@ -48,7 +56,8 @@ export function instalar(ctx) {
     } else {
       cuerpoFinal = el("pre", { class: "epl-final" }, ...conEtiquetas(S.prompt));
     }
-    secFinal.replaceChildren(...[cab, el("p", { class: "epl-ayuda" }, t("final.ayuda")), leyenda, avisos, cuerpoFinal].filter(Boolean));
+    secFinal.replaceChildren(...(visible ? [cab, el("p", { class: "epl-ayuda" }, t("final.ayuda")), leyenda, avisos, cuerpoFinal]
+                                         : [cab, avisos]).filter(Boolean));
   };
 
   /* panel «Frases del código»: todas las frases de unión de frases.json (S.frasesBase, las manda el servidor al montar),
