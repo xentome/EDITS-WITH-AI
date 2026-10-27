@@ -22,5 +22,5 @@ Lectura: 3 min · Empezada el 27 oct 2026 · Para los ayudantes y para retomar s
 
 1. ✅ **El núcleo** (`nucleo.py`, `frases.json`, `pruebas.py`): estilo por toma, `en_todas`, sin huecos de arco ni look, «Escribir tomas» sin historia.
 2. ✅ **El panel y la línea** (`plan.js`, `linea.js`, `editor_core.js`, `estilos.js`, i18n): sin Historia, panel compacto con «Estilo», sonido abajo, duración arrastrable, migración de proyectos viejos.
-3. **El estante y la ficha** (`referencias.js`, `linea.js`, `estilos.js`, i18n): Principal | Secundarias con pósters de 160×170, color fijo y sello Im/V, arrastre y «Conectar a…», puntos en las tomas y la ficha en un modal centrado con pestañas.
+3. ✅ **El estante y la ficha** (`referencias.js`, `linea.js`, `estilos.js`, i18n): Principal | Secundarias con pósters de 160×170, color fijo y sello Im/V, arrastre y «Conectar a…», puntos en las tomas y la ficha en un modal centrado con pestañas.
 4. **La barra de fases y la comprobación** (`app/web/app.js`, `index.html`, `temas/azul.css`): «1 Tomas y referencias | 2 Retocar» a todo el ancho, con mini estado; todo cabe sin scroll en 2548×1284; prueba en el navegador y del prompt que recibe H3.

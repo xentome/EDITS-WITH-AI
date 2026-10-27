@@ -595,6 +595,7 @@ EXCEPCIONES = {
     ("referencias.js", "RefMod"),           # de dónde salió una ficha: un dato del estado (se enseña con referencias.origen.*)
     ("referencias.js", "completo"),         # el modo de una referencia: un dato (rutas.MODOS); se enseña con referencias.subir.modo.*
     ("resolucion.js", "MP"),                # la unidad de los megapíxeles: igual en los dos idiomas
+    ("referencias.js", "V"), ("referencias.js", "Im"),   # el sello corto de una referencia (V1, Im2): sale de su <Video N>/<Picture N>
 }
 # piezas que aún no pasaron a t(): se vacía al terminar las fases 2 (ventana) y 3 (servidor y nodo)
 PENDIENTES = set()  # (vacía: todo pasa por t())

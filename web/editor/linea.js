@@ -206,13 +206,20 @@ export function instalar(ctx) {
       const efecto = toma.efecto ? ` · ${/^E\d+$/.test(toma.efecto) ? S.efectos?.[toma.efecto]?.nombre || toma.efecto : toma.efecto}` : "";
       const tiempo = el("span", { class: "epl-tomab-t" });
       tiempos.push([tiempo, efecto]);
-      return el("div", {
+      // los puntos de color de lo que lleva la toma (las de Principal con anillo blanco), con su sello Im1 / V1 (27 oct)
+      const lleva = ctx.refsDeToma?.(i + 1) || [];
+      const puntos = el("span", { class: "epl-puntos", title: t("linea.puntos", { lista: lleva.map((x) => ctx.selloDe(x)).join(" · ") || "—" }) },
+        ...lleva.map((x) => ctx.punto(x, ctx.claveDe(x) && ctx.enTodas(ctx.claveDe(x)) ? " epl-en-todas" : "")));
+      const bloque = el("div", {
         class: "epl-tomab" + (S.elegida === i + 1 ? " elegida" : ""), id: `epl-tomab-${i + 1}`,
         style: { background: COLORES[i % COLORES.length] },
         title: [toma.lugar, toma.momento].filter(Boolean).join(" — ") || t("linea.toma_sin_historia"),
         onclick: () => ctx.elegir(i + 1) },
         n > 1 ? cruz : null,
-        el("b", {}, t("linea.toma", { k: i + 1 })), el("span", {}, toma.entorno === "ninguno" ? t("toma.entorno.ninguno") : toma.lugar || t("linea.sin_lugar")), tiempo);
+        el("span", { class: "epl-tomab-cab" }, el("b", {}, t("linea.toma", { k: i + 1 })), puntos),
+        el("span", {}, toma.momento || (toma.entorno === "ninguno" ? t("toma.entorno.ninguno") : toma.lugar || t("linea.sin_lugar"))), tiempo);
+      ctx.zonaToma?.(bloque, i + 1);    // soltar aquí un póster del estante lo conecta a esta toma (referencias.js)
+      return bloque;
     });
     // cada toma va donde empieza y dura lo que dura (posición absoluta: los bordes caen justo en los cortes)
     const colocar = (c) => bloques.forEach((b, i) => {

@@ -305,4 +305,63 @@ textarea.epl-final{min-height:40vh}
 .epl-sonido{margin-top:6px}
 .epl-sonido-campo{grid-template-columns:110px minmax(0,1fr) !important;align-items:center}
 .epl-sonido-campo>span{padding-top:0 !important}
+/* ---- Interfaz P10: el estante de referencias (Principal | Secundarias), pósters de 160×170 con su color, los puntos de
+ * cada toma, el arrastre y la ficha en una ventana centrada con pestañas */
+.epl-refs{height:auto;display:block;overflow:visible;padding:6px 10px}
+.epl-estante{display:flex;gap:12px;align-items:stretch;min-width:0}
+.epl-estante-barra{width:2px;flex:none;background:rgba(170,130,255,.45);border-radius:2px}
+.epl-grupo{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;padding:4px 8px 6px;border-radius:calc(var(--radio) * 14px)}
+.epl-grupo-principal{flex:0 1 auto;max-width:45%;background:rgba(47,98,196,.12)}
+.epl-grupo-secundarias{flex:1 1 0}
+.epl-grupo>.epl-tit{margin:0}
+.epl-grupo .epl-tit-txt{font-weight:700;color:#e3ecff}
+.epl-grupo .epl-anadir{padding:3px 12px !important;font-size:12px !important}
+.epl-posters{display:flex;gap:10px;overflow-x:auto;align-items:flex-start;padding:3px;min-width:0}
+.epl-posters .epl-vacia{min-height:170px;min-width:220px}
+.epl-poster{position:relative;flex:none;width:160px;height:170px;border-radius:calc(var(--radio) * 12px);background:#0b0b10;
+  box-shadow:0 0 0 2px var(--c);cursor:grab}
+.epl-poster-abrir{display:block;position:relative;width:100%;height:100%;padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;
+  text-align:left;cursor:pointer;border-radius:calc(var(--radio) * 12px);overflow:hidden}
+.epl-poster-abrir:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.epl-poster-abrir img{width:100%;height:100%;object-fit:cover;display:block}
+.epl-poster .sinfoto{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#7d8698;font-size:11px;padding:8px;text-align:center}
+.epl-poster-pie{position:absolute;left:0;right:0;bottom:0;padding:20px 8px 6px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  background:linear-gradient(transparent,rgba(0,0,0,.92) 55%)}
+.epl-poster-pie b{max-width:100%;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.epl-poster-pie small{font-size:10px;color:#cfd6e4}
+.epl-poster .epl-sello{position:absolute;top:6px;left:6px}
+.epl-poster-botones{position:absolute;top:4px;right:4px;display:flex;gap:4px}
+.epl-fondo .epl-poster .epl-poster-botones .epl-mini{width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;font-size:13px;
+  background:rgba(0,0,0,.72) !important;border-color:rgba(255,255,255,.6) !important;color:#fff !important}
+.epl-poster.usada{box-shadow:0 0 0 2px var(--c),0 0 0 5px #e0a94c}
+.epl-poster.apagada{opacity:.45;filter:grayscale(.8)}
+.epl-arrastrado{opacity:.45}
+.epl-punto{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:18px;height:18px;padding:0 3px;
+  border-radius:999px;font:700 10px/1 system-ui,sans-serif;color:#111 !important;opacity:1 !important;box-shadow:0 0 0 2px rgba(0,0,0,.65);flex:none}
+.epl-punto.epl-en-todas{box-shadow:0 0 0 2px #000,0 0 0 3px rgba(255,255,255,.8)}
+.epl-punto.apagado{background:#555;color:#ddd !important}
+.epl-sello{min-width:24px;height:20px;font-size:11px}
+.epl-sello-ficha{min-width:26px;height:22px;font-size:12px}
+.epl-tomab-cab{display:flex;align-items:center;gap:6px;min-width:0}
+.epl-puntos{display:inline-flex;gap:4px;flex-wrap:wrap;overflow:visible !important;opacity:1 !important}
+.epl-efecto .epl-punto{margin-right:4px}
+/* arrastrar un póster: borde discontinuo donde se puede soltar; grueso y con «Soltar en la toma N» donde está encima */
+.epl-s-toma{position:relative}
+.epl-puede{outline:2px dashed #8fb3ff !important;outline-offset:2px}
+.epl-encima{outline:4px solid #ffd166 !important;outline-offset:2px}
+.epl-encima::after{content:attr(data-soltar);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;
+  background:#ffd166;color:#1a1200;font:700 13px system-ui,sans-serif;padding:6px 14px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.epl-s-toma.epl-encima::after{top:60px}
+.epl-menu-conectar{position:absolute;z-index:30;min-width:200px;display:flex;flex-direction:column;gap:4px;padding:8px;background:#1d1530;
+  border:1px solid rgba(170,130,255,.35);border-radius:calc(var(--radio) * 12px);box-shadow:0 12px 32px rgba(0,0,0,.6)}
+.epl-menu-conectar .epl-mini{min-height:34px;text-align:left}
+/* la ficha: ventana centrada de tamaño medio, con la foto a la izquierda y tres pestañas */
+.epl-modal.epl-ficha-modal{width:min(720px,94%);max-height:min(760px,92%)}
+.epl-ficha-modal .epl-ficha{grid-template-columns:240px minmax(0,1fr)}
+.epl-ficha-modal .epl-ficha .grande{height:400px}
+.epl-ficha-modal .epl-clip video,.epl-ficha-modal .epl-clip img{max-height:330px}
+.epl-pestanas-ficha{display:flex;gap:4px;margin-bottom:6px}
+.epl-pestanas-ficha .epl-mini{min-height:32px;padding:3px 14px;font-size:12px}
+.epl-ficha-tomas{display:flex;flex-direction:column;gap:2px}
+.epl-ficha .epl-ficha-toma{display:flex;align-items:center;gap:6px;min-height:32px;margin:0;color:#d7dbe2;cursor:pointer}
 `;

@@ -380,6 +380,7 @@ export function instalar(ctx) {
       el("details", { class: "epl-linea-plegable", open: lineaAbierta, ontoggle: (e) => { lineaAbierta = e.target.open; } },
         el("summary", { title: t("toma.linea.tooltip") }, el("span", { class: "epl-linea-et" }, t("toma.linea")), el("span", { class: "epl-linea-toma" }))));
     ctx.pintarLineaToma();
+    ctx.zonaToma(secToma, k);     // soltar aquí un póster del estante lo conecta a esta toma (referencias.js)
   };
 
   ctx.pintarPlan = function pintarPlan() {
