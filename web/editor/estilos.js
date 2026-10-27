@@ -366,4 +366,6 @@ textarea.epl-final{min-height:40vh}
 .epl-ficha .epl-ficha-toma{display:flex;align-items:center;gap:6px;min-height:32px;margin:0;color:#d7dbe2;cursor:pointer}
 /* los iconos de trazo (util.icono), del tamaño y del color de la letra */
 .epl-ic{display:inline-flex;vertical-align:-0.15em}.epl-ic svg{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* una opción de un grupo segmentado (entorno, qué tapar, pestañas de la ficha): los temas la distinguen del resto */
+.epl-seg{white-space:nowrap}
 `;

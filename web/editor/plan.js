@@ -282,7 +282,7 @@ export function instalar(ctx) {
         ctx.pedirMontaje(); pintarRefsSuave();
       } }, toma.lugar || "");
     const selector = () => el("span", { class: "epl-entorno" }, ...ENTORNOS.map((e) =>
-      el("button", { class: "epl-mini" + (toma.entorno === e ? " fijo" : ""), "data-entorno": e, title: t(`toma.entorno.${e}.tooltip`),
+      el("button", { class: "epl-mini epl-seg" + (toma.entorno === e ? " fijo" : ""), "data-entorno": e, title: t(`toma.entorno.${e}.tooltip`),
                      onclick: () => poner(e) }, t(`toma.entorno.${e}`))));
     let botones = selector();
     return el("div", { class: "epl-campo-lugar" },

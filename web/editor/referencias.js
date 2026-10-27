@@ -716,7 +716,7 @@ export function instalar(ctx) {
         el("div", { class: "epl-ficha" }, izquierda,
           el("div", { class: "epl-ficha-der" },
             el("div", { class: "epl-pestanas-ficha", role: "tablist" }, ...Object.keys(PESTANAS).map((k) =>
-              el("button", { class: "epl-mini" + (pestana === k ? " fijo" : ""), role: "tab", "aria-selected": String(pestana === k), "data-pestana": k,
+              el("button", { class: "epl-mini epl-seg" + (pestana === k ? " fijo" : ""), role: "tab", "aria-selected": String(pestana === k), "data-pestana": k,
                              onclick: () => { pestana = k; pintar(); } }, t(`referencias.ficha.pestana.${k}`)))),
             el("div", { class: "epl-pestana-ficha", role: "tabpanel" }, ...PESTANAS[pestana]().filter(Boolean)))));
     };

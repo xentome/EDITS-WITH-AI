@@ -4,7 +4,9 @@
  * Jerarquía por peso de color: 1 Generar (naranja, con sombra rosa desplazada); 2 la fase activa (banda naranja de J-card con
  * dos rayas, rosa y cobalto); 3 la toma elegida y su ACCIÓN (borde naranja, letra más grande); 4 las referencias (estante
  * teñido de cobalto, rótulos crema y pegatinas de color); 5 lo demás, callado sobre tinta #17121C.
- * El naranja #FF7A1A es el ÚNICO color de acción: solo en lo que se pulsa o está activo. El crema #F6EAD2, solo en rótulos.
+ * El naranja #FF7A1A es el ÚNICO color de acción y solo va en: Generar (y Retocar en la cara B), la banda de la cara activa, la
+ * pista elegida con su chip A1, el campo ACCIÓN y, en contorno, las opciones segmentadas (.epl-seg: entorno, qué tapar, pestañas
+ * de la ficha). Lo demás que está activo o elegido va en crema sobre tinta. El crema #F6EAD2, además, en los rótulos.
  * Letras: Big Shoulders Display (títulos y Generar), Barlow Condensed (rótulos), Barlow (texto), JetBrains Mono (cifras y prompt).
  * Sin brillos ni barras arcoíris; la única sombra dura es la de Generar. Solo colores, bordes y letra: la colocación es la de P10
  * (index.html y web/editor/estilos.js). Se activa con <body class="tema-casete">; trama y azul siguen en temas/ (?tema=…). */
@@ -19,13 +21,13 @@ body.tema-casete{--k-tinta:#17121C;--k-tinta2:#211A29;--k-tinta3:#2C2336;--k-lin
   --onda-fondo:#2E190E;--onda-barra:#C08A55;--onda-corte:rgba(246,234,210,.7);--onda-cabezal:#FF7A1A;
   --barra-fondo:#3E3349;--barra-tramo:#8A5A34;--barra-asa:#F6EAD2;
   background:var(--k-tinta) !important;color:var(--k-texto);font-family:var(--k-texto-f);font-weight:500}
-body.tema-casete ::selection{background:var(--k-naranja);color:var(--k-tinta)}
+body.tema-casete ::selection{background:var(--k-crema);color:var(--k-tinta)}
 body.tema-casete *{scrollbar-color:var(--k-linea2) var(--k-tinta);scrollbar-width:thin}
 body.tema-casete ::-webkit-scrollbar{width:10px;height:10px}
 body.tema-casete ::-webkit-scrollbar-track{background:var(--k-tinta)}
 body.tema-casete ::-webkit-scrollbar-thumb{background:var(--k-linea2);border:2px solid var(--k-tinta);border-radius:6px}
 body.tema-casete :focus-visible{outline:2px solid var(--k-crema) !important;outline-offset:2px;box-shadow:none !important}
-body.tema-casete input,body.tema-casete textarea,body.tema-casete [contenteditable]{caret-color:var(--k-naranja)}
+body.tema-casete input,body.tema-casete textarea,body.tema-casete [contenteditable]{caret-color:var(--k-crema)}
 body.tema-casete .epl-fondo{--radio:.6;font-family:var(--k-texto-f)}
 body.tema-casete .epl-caja,body.tema-casete .epl-cuerpo{background:transparent !important;border:0 !important;box-shadow:none !important;color:var(--k-texto)}
 body.tema-casete .epl-tag,body.tema-casete .epl-linea-toma,body.tema-casete .epl-final,body.tema-casete .epl-dur-num,body.tema-casete .epl-dur-entrada,
@@ -51,13 +53,13 @@ body.tema-casete .epl-estado{flex:0 1 auto;max-width:60%;overflow:hidden;text-ov
   border:1px solid var(--k-linea);color:var(--k-suave)}
 body.tema-casete .epl-estado.bien{color:var(--k-texto)}
 body.tema-casete .epl-estado.mal{color:var(--k-aviso);border-color:#5E4A1C}
-body.tema-casete .epl-estado.trabajando{color:var(--k-naranja2);border-color:#5E3A1C}
+body.tema-casete .epl-estado.trabajando{color:var(--k-aviso);border-color:#5E4A1C}
 
 /* ---------------------------------------------------------------- paneles sobre tinta */
 body.tema-casete .epl-sec{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;border-radius:6px !important;
   box-shadow:none !important;color:var(--k-texto) !important}
-/* la toma elegida: su panel lleva el borde naranja entero (no una pestaña lateral) */
-body.tema-casete .epl-s-toma{background:var(--k-tinta2) !important;border:1px solid var(--k-naranja) !important}
+/* la toma elegida: su panel no lleva borde naranja (ACCIÓN es el único campo con borde naranja; revisión final 27 oct) */
+body.tema-casete .epl-s-toma{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important}
 
 /* ---------------------------------------------------------------- campos */
 body.tema-casete .epl-sec input,body.tema-casete .epl-sec textarea,body.tema-casete .epl-sec select,body.tema-casete .epl-citas,
@@ -71,7 +73,7 @@ body.tema-casete .epl-sec input:focus,body.tema-casete .epl-sec textarea:focus,b
 body.tema-casete .epl-modal input:focus,body.tema-casete .epl-modal textarea:focus,body.tema-casete .epl-modal select:focus{border-color:var(--k-crema) !important;outline:none}
 body.tema-casete input::placeholder,body.tema-casete textarea::placeholder,body.tema-casete .epl-citas:empty::before{color:#958AA2 !important;font-style:italic}
 body.tema-casete input:disabled,body.tema-casete textarea:disabled{opacity:.55}
-body.tema-casete input[type=checkbox]{accent-color:var(--k-naranja)}
+body.tema-casete input[type=checkbox]{accent-color:var(--k-crema)}
 /* ACCIÓN / MOVIMIENTO: el campo que manda; borde naranja y letra más grande */
 body.tema-casete .epl-g-accion>span:first-child{color:var(--k-naranja) !important}
 body.tema-casete .epl-g-accion textarea{border:2px solid var(--k-naranja) !important;background:#1E1710 !important;font:600 17px/1.3 var(--k-texto-f) !important;
@@ -86,7 +88,7 @@ body.tema-casete .epl-mini{min-height:26px;padding:4px 9px;font-size:12px !impor
 body.tema-casete .epl-boton:hover,body.tema-casete .epl-mini:hover,body.tema-casete .epl-candado:hover,body.tema-casete .max-boton:hover,
 body.tema-casete .epl-mas:hover{border-color:var(--k-crema) !important;background:var(--k-tinta3) !important}
 body.tema-casete .epl-mini.fijo,body.tema-casete .epl-candado.fijo,body.tema-casete .max-idioma .max-boton.fijo,body.tema-casete .epl-mini[aria-pressed="true"]{
-  background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-color:var(--k-naranja) !important}
+  background:var(--k-tinta3) !important;color:var(--k-crema) !important;border-color:var(--k-crema) !important}
 body.tema-casete .epl-candado{min-width:26px;min-height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0}
 body.tema-casete .epl-candado:not(.fijo){color:var(--k-suave) !important}
 body.tema-casete .epl-boton:disabled,body.tema-casete .max-boton:disabled{opacity:.45}
@@ -101,7 +103,7 @@ body.tema-casete .max-generar:disabled{background:#6E4A33 !important;color:var(-
 /* ---------------------------------------------------------------- la cabecera de la app y la del editor */
 body.tema-casete .max-cab,body.tema-casete .epl-cabecera{background:var(--k-tinta) !important;border-bottom:1px solid var(--k-linea) !important}
 body.tema-casete .max-nombre{font:900 26px/1 var(--k-titulo) !important;letter-spacing:.02em;color:var(--k-texto)}
-body.tema-casete .max-nombre i{color:var(--k-naranja) !important}
+body.tema-casete .max-nombre i{color:var(--k-crema) !important}
 body.tema-casete .max-sep{background:var(--k-linea)}
 /* el proyecto: un rótulo crema, como la etiqueta de una cinta */
 body.tema-casete .max-cab select{background:var(--k-crema) !important;color:var(--k-tinta) !important;border:0 !important;border-radius:3px !important;
@@ -121,13 +123,13 @@ body.tema-casete .epl-cabecera b{font:800 15px/1 var(--k-titulo);letter-spacing:
 body.tema-casete .epl-auto{color:var(--k-suave) !important;font-family:var(--k-rotulo)}
 body.tema-casete .max-avance{background:var(--k-tinta);border-color:var(--k-linea)}
 body.tema-casete .max-barra{background:var(--k-tinta3)}
-body.tema-casete .max-barra b{background:var(--k-naranja) !important}
+body.tema-casete .max-barra b{background:var(--k-crema) !important}
 body.tema-casete .max-avance.mal .max-barra b{background:var(--k-error) !important}
 body.tema-casete .max-avance .max-texto{font-family:var(--k-rotulo);font-size:13px}
 body.tema-casete .max-avance.mal .max-texto{color:var(--k-error)}
 body.tema-casete .max-pop,body.tema-casete .max-videos{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;box-shadow:0 16px 40px rgba(0,0,0,.55)}
 body.tema-casete .max-video:hover{background:var(--k-tinta3)}
-body.tema-casete .max-video.actual{border-color:var(--k-naranja)}
+body.tema-casete .max-video.actual{border-color:var(--k-crema)}
 body.tema-casete .max-video small,body.tema-casete .max-vacio{color:var(--k-suave)}
 body.tema-casete .max-cargando{color:var(--k-suave)}
 body.tema-casete .epl-resolucion{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;padding:2px 8px !important}
@@ -183,7 +185,7 @@ body.tema-casete .epl-grupo{border:0;background:transparent !important}
 body.tema-casete .epl-grupo .epl-ayuda{color:#A9B1E0 !important;text-transform:none;letter-spacing:0;font-family:var(--k-rotulo);font-size:12px}
 body.tema-casete .epl-estante-barra{background:none;border-left:1px dashed var(--k-estante-linea);width:0}
 body.tema-casete .epl-poster{background:var(--k-tinta) !important;box-shadow:none !important;outline:0;border:1px solid var(--k-estante-linea);border-radius:6px !important;overflow:visible}
-body.tema-casete .epl-poster.usada{outline:2px solid var(--k-naranja);outline-offset:2px}
+body.tema-casete .epl-poster.usada{outline:2px solid var(--k-crema);outline-offset:2px}
 body.tema-casete .epl-poster-abrir{border-radius:5px !important}
 body.tema-casete .epl-poster-pie{left:6px !important;right:6px !important;bottom:6px !important;background:var(--k-crema) !important;color:var(--k-tinta) !important;
   border-radius:2px;padding:4px 7px !important;flex-direction:row !important;align-items:center !important;justify-content:space-between;gap:6px !important}
@@ -205,15 +207,15 @@ body.tema-casete .epl-punto{border-radius:50% !important;min-width:22px;height:2
   box-shadow:0 0 0 2px var(--k-tinta),0 1px 0 3px rgba(0,0,0,.35)}
 body.tema-casete .epl-punto.epl-en-todas{box-shadow:0 0 0 2px var(--k-tinta),0 0 0 3.5px var(--k-crema)}
 body.tema-casete .epl-efecto{background:var(--k-tinta) !important;border:1px solid var(--k-estante-linea) !important;border-radius:5px !important}
-body.tema-casete .epl-efecto.usada{outline:0;border-color:var(--k-naranja) !important}
+body.tema-casete .epl-efecto.usada{outline:0;border-color:var(--k-crema) !important}
 body.tema-casete .epl-efecto b{color:var(--k-crema)}
 body.tema-casete .epl-menu-conectar{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;border-radius:6px !important;
   box-shadow:0 16px 40px rgba(0,0,0,.55) !important}
 body.tema-casete .epl-menu-conectar .epl-mini{min-height:36px}
-/* arrastrar: borde discontinuo crema donde se puede soltar; naranja y con «Soltar en la toma N» donde está encima */
+/* arrastrar: borde discontinuo crema donde se puede soltar; crema grueso y con «Soltar en la toma N» donde está encima */
 body.tema-casete .epl-puede{outline:2px dashed var(--k-crema) !important;outline-offset:3px}
-body.tema-casete .epl-encima{outline:3px solid var(--k-naranja) !important;outline-offset:3px}
-body.tema-casete .epl-encima::after{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-radius:4px !important;box-shadow:none !important;
+body.tema-casete .epl-encima{outline:3px solid var(--k-crema) !important;outline-offset:3px}
+body.tema-casete .epl-encima::after{background:var(--k-crema) !important;color:var(--k-tinta) !important;border-radius:4px !important;box-shadow:none !important;
   font:700 14px/1 var(--k-rotulo) !important;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px !important}
 
 /* ---------------------------------------------------------------- la línea de tiempo: las pistas de la cara A */
@@ -237,8 +239,8 @@ body.tema-casete .epl-recien-et{font:700 11px/1 var(--k-rotulo);letter-spacing:.
 body.tema-casete .epl-tomab-x .x{background:rgba(23,18,28,.85) !important;border:1px solid var(--k-tinta) !important;color:var(--k-crema) !important}
 body.tema-casete .epl-tomab-x .x:hover{background:var(--k-tinta) !important}
 body.tema-casete .epl-borde::after{background:rgba(246,234,210,.4)}
-body.tema-casete .epl-borde:hover::after,body.tema-casete .epl-borde.arrastrando::after{background:var(--k-naranja)}
-body.tema-casete .epl-borde-et{background:var(--k-tinta);color:var(--k-crema);border-color:var(--k-naranja)}
+body.tema-casete .epl-borde:hover::after,body.tema-casete .epl-borde.arrastrando::after{background:var(--k-crema)}
+body.tema-casete .epl-borde-et{background:var(--k-tinta);color:var(--k-crema);border-color:var(--k-crema)}
 body.tema-casete .epl-mas{border-style:dashed !important;color:var(--k-suave) !important}
 body.tema-casete .epl-regla,body.tema-casete .epl-audio-info{color:var(--k-suave) !important}
 body.tema-casete .epl-texto-cab{color:var(--k-suave);font-family:var(--k-rotulo)}
@@ -248,12 +250,12 @@ body.tema-casete .epl-texto-pista{background:var(--k-tinta2) !important;border:1
 body.tema-casete .epl-texto-et{background:var(--k-cobalto) !important;color:var(--k-crema) !important;border:0 !important;border-radius:4px !important;
   font:600 13px/18px var(--k-rotulo) !important;letter-spacing:.06em}
 body.tema-casete .epl-texto-et.encima{background:#3A5BE8 !important}
-body.tema-casete .epl-texto-et.arrastrando{box-shadow:none;outline:2px solid var(--k-naranja)}
+body.tema-casete .epl-texto-et.arrastrando{box-shadow:none;outline:2px solid var(--k-crema)}
 body.tema-casete .epl-duracion{background:transparent !important;border:1px solid var(--k-linea) !important;border-radius:5px !important;color:var(--k-texto);
   text-transform:none}
 body.tema-casete .epl-dur-et,body.tema-casete .epl-dur-igual{font-family:var(--k-texto-f);color:var(--k-suave)}
-body.tema-casete .epl-dur-num{background:transparent !important;border-radius:0 !important;border-bottom:1px dashed var(--k-naranja);color:var(--k-texto) !important}
-body.tema-casete .epl-dur-num:hover,body.tema-casete .epl-dur-num.arrastrando,body.tema-casete .epl-dur-num:focus-visible{background:var(--k-naranja) !important;color:var(--k-tinta) !important}
+body.tema-casete .epl-dur-num{background:transparent !important;border-radius:0 !important;border-bottom:1px dashed var(--k-crema);color:var(--k-texto) !important}
+body.tema-casete .epl-dur-num:hover,body.tema-casete .epl-dur-num.arrastrando,body.tema-casete .epl-dur-num:focus-visible{background:var(--k-crema) !important;color:var(--k-tinta) !important}
 body.tema-casete .epl-pegar{font-family:var(--k-rotulo)}
 body.tema-casete .epl-onda{border:1px solid #4A2C1A !important;border-radius:4px !important}
 body.tema-casete .epl-onda-et{background:rgba(23,18,28,.8) !important;color:var(--k-crema) !important}
@@ -262,7 +264,7 @@ body.tema-casete .epl-play{background:var(--k-tinta3) !important;border:1px soli
 body.tema-casete .epl-play:hover{border-color:var(--k-crema) !important}
 body.tema-casete .epl-sonido-campo>span{color:var(--k-suave) !important}
 body.tema-casete .epl-cancion{background:var(--k-tinta);border-color:var(--k-linea)}
-body.tema-casete .epl-cancion:hover,body.tema-casete .epl-cancion.actual{border-color:var(--k-naranja);background:var(--k-tinta3)}
+body.tema-casete .epl-cancion:hover,body.tema-casete .epl-cancion.actual{border-color:var(--k-crema);background:var(--k-tinta3)}
 body.tema-casete .epl-cancion small{color:var(--k-suave)}
 
 /* ---------------------------------------------------------------- el prompt final */
@@ -292,20 +294,20 @@ body.tema-casete .epl-renglones summary,body.tema-casete .avanzado summary{color
 body.tema-casete .epl-clip-nota{background:rgba(23,18,28,.85);color:var(--k-crema)}
 body.tema-casete .epl-biblio-item,body.tema-casete .epl-elegir>div,body.tema-casete .epl-fotos>div{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;color:var(--k-texto)}
 body.tema-casete .epl-biblio-item:hover,body.tema-casete .epl-elegir>div:hover{border-color:var(--k-crema) !important}
-body.tema-casete .epl-biblio-item.marcada,body.tema-casete .epl-elegir>div.si,body.tema-casete .epl-fotos>div.elegida{border-color:var(--k-naranja) !important;
-  outline:2px solid var(--k-naranja) !important;background:var(--k-tinta3) !important}
+body.tema-casete .epl-biblio-item.marcada,body.tema-casete .epl-elegir>div.si,body.tema-casete .epl-fotos>div.elegida{border-color:var(--k-crema) !important;
+  outline:2px solid var(--k-crema) !important;background:var(--k-tinta3) !important}
 body.tema-casete .epl-biblio-item img,body.tema-casete .epl-elegir img,body.tema-casete .epl-fotos img{background:var(--k-tinta3) !important}
 body.tema-casete .epl-biblio-item small{color:var(--k-suave)}
-body.tema-casete .epl-check{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-color:var(--k-tinta) !important;box-shadow:none !important}
+body.tema-casete .epl-check{background:var(--k-crema) !important;color:var(--k-tinta) !important;border-color:var(--k-tinta) !important;box-shadow:none !important}
 body.tema-casete .epl-biblio-pie{background:var(--k-tinta2) !important;border-color:var(--k-linea) !important}
 body.tema-casete .epl-soltar{border-color:var(--k-linea2) !important}
-body.tema-casete .epl-tam-barra{accent-color:var(--k-naranja)}
-body.tema-casete .epl-sv-rect,body.tema-casete .epl-sv-sel{border-color:var(--k-naranja) !important}
+body.tema-casete .epl-tam-barra{accent-color:var(--k-crema)}
+body.tema-casete .epl-sv-rect,body.tema-casete .epl-sv-sel{border-color:var(--k-crema) !important}
 body.tema-casete .epl-sv-sel{background:rgba(255,122,26,.14) !important}
-body.tema-casete .epl-sv-h,body.tema-casete .epl-sv-tirador{background:var(--k-naranja) !important}
-body.tema-casete .epl-boton.epl-cortar.fijo{background:var(--k-naranja) !important;color:var(--k-tinta) !important}
+body.tema-casete .epl-sv-h,body.tema-casete .epl-sv-tirador{background:var(--k-crema) !important}
+body.tema-casete .epl-boton.epl-cortar.fijo{background:var(--k-crema) !important;color:var(--k-tinta) !important}
 body.tema-casete .epl-tapar{border-top-color:var(--k-linea) !important}
-body.tema-casete .epl-tapar.encendido{border-top-color:var(--k-naranja) !important}
+body.tema-casete .epl-tapar.encendido{border-top-color:var(--k-crema) !important}
 body.tema-casete .epl-tapar .epl-interruptor{color:var(--k-texto)}
 
 /* ---------------------------------------------------------------- Retocar (cara B) */
@@ -314,11 +316,11 @@ body.tema-casete .max-rt-tit .max-rt-nombre{color:var(--k-crema);font-family:var
 body.tema-casete .max-rt-etiqueta{font:700 13px/1 var(--k-rotulo);letter-spacing:.08em;color:var(--k-crema)}
 body.tema-casete .max-rt-marco{background:var(--k-tinta) !important;border:1px solid var(--k-linea);border-radius:6px !important}
 body.tema-casete .max-rt-linea{background:#2E190E !important;border:1px solid #4A2C1A !important;border-radius:4px !important}
-body.tema-casete .max-rt-tramo{background:rgba(255,122,26,.3) !important;border:2px solid var(--k-naranja) !important;border-radius:4px !important}
+body.tema-casete .max-rt-tramo{background:rgba(246,234,210,.3) !important;border:2px solid var(--k-crema) !important;border-radius:4px !important}
 body.tema-casete .max-rt-asa{background:var(--k-crema) !important;border-radius:3px !important}
 body.tema-casete .max-rt-cursor{background:var(--k-crema) !important}
-body.tema-casete .max-rt-rect{border-color:var(--k-naranja) !important;background:rgba(255,122,26,.16) !important;border-radius:2px !important}
-body.tema-casete .max-rt-esq{background:var(--k-naranja) !important;border-color:var(--k-tinta) !important}
+body.tema-casete .max-rt-rect{border-color:var(--k-crema) !important;background:rgba(246,234,210,.16) !important;border-radius:2px !important}
+body.tema-casete .max-rt-esq{background:var(--k-crema) !important;border-color:var(--k-tinta) !important}
 body.tema-casete .max-rt-ref img,body.tema-casete .max-rt-opcion img{border-radius:5px !important;background:var(--k-tinta3)}
 body.tema-casete .max-rt-ref small,body.tema-casete .max-rt-opcion small{color:var(--k-crema);font-family:var(--k-rotulo)}
 body.tema-casete .max-rt-opcion{border:1px solid var(--k-linea) !important;border-radius:6px !important}
@@ -328,3 +330,7 @@ body.tema-casete .max-rt-error{color:var(--k-error)}
 body.tema-casete .max-rt-avance .max-texto{font-family:var(--k-rotulo)}
 body.tema-casete .max-rt-recorte .epl-sv-marco{background:var(--k-tinta)}
 body.tema-casete .epl-fondo .epl-cerrar,body.tema-casete .epl-fondo .epl-x{display:none !important}
+
+/* las opciones segmentadas activas (entorno, qué tapar, pestañas de la ficha): contorno naranja, no relleno, para no competir con Generar */
+body.tema-casete .epl-mini.epl-seg.fijo,body.tema-casete .epl-mini.epl-seg[aria-pressed="true"]{background:rgba(255,122,26,.12) !important;
+  color:#FFB37A !important;border-color:var(--k-naranja) !important}

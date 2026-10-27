@@ -344,7 +344,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     pintarBajo();
     pintarAvance();
     const ocupado = enMarcha();
-    const modoBoton = (m, claveT) => el("button", { class: "epl-mini" + (R.modo === m ? " fijo" : ""), disabled: ocupado,
+    const modoBoton = (m, claveT) => el("button", { class: "epl-mini epl-seg" + (R.modo === m ? " fijo" : ""), disabled: ocupado,
       onclick: () => { R.modo = m; guardar(); pintar(); } }, t(claveT));
     const tarjetas = R.refs.map((r, i) => el("div", { class: "max-rt-ref" },
       el("img", { src: r.vista || "", alt: r.nombre || "" }),
