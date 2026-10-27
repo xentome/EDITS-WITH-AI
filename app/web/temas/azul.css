@@ -90,6 +90,6 @@ body.tema-azul .epl-s-toma{background:rgba(38,24,62,.78) !important}
 body.tema-azul .epl-sec.epl-s-historia{background:var(--c-coral) !important}
 body.tema-azul .max-videos{background:rgba(16,11,26,.97) !important}
 /* (26 oct) la tarjeta de la historia general, en un azul más oscuro que el de los botones; sus campos, un poco más oscuros */
-body.tema-azul .epl-sec.epl-s-historia{background:#1d3f86 !important}
+body.tema-azul .epl-sec.epl-s-historia{background:#132b5e !important}
 body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-historia textarea,body.tema-azul .epl-sec.epl-s-historia select{
-  background:#0f1f42 !important;border-color:#2a4c90 !important}
+  background:#0a1630 !important;border-color:#24427e !important}
