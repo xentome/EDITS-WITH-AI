@@ -342,3 +342,8 @@ body.tema-casete .epl-tit-nombre{font:700 24px/1 var(--k-mano);color:var(--k-cre
 body.tema-casete .epl-tit-cifras{font:500 14px/1 var(--k-mono);font-variant-numeric:tabular-nums;color:var(--k-suave);letter-spacing:0}
 /* el nombre de cada pista, rotulado a mano como en el boceto; A1/A2 y las cifras siguen en mono */
 body.tema-casete .epl-tomab b{font:700 17px/1 var(--k-mano) !important;letter-spacing:0}
+/* Retocar sin video: el estado vacío dentro del lienzo, con su rótulo crema y la acción */
+body.tema-casete .max-rt-vacio-rotulo{background:var(--k-crema);color:var(--k-tinta);font:800 22px/1 var(--k-titulo);letter-spacing:.04em;
+  text-transform:uppercase;padding:8px 14px;border-radius:3px}
+body.tema-casete .max-rt-vacio .epl-ayuda{font-size:14px;max-width:44ch}
+body.tema-casete .max-rt-vacio-cargar{min-height:40px !important;padding:8px 18px !important}

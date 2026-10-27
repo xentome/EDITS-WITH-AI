@@ -104,6 +104,7 @@
  "app.retocar.sin_video": "No video yet: press Generate, or pick one in «Videos» › «Send to Retouch».",
  "app.retocar.titulo": "Retouch the video",
  "app.retocar.tramo": "{n} frames · {s} s  ({a}–{b} s)",
+ "app.retocar.vacio": "Side B has no tape: no video yet",
  "app.retocar.video": "{video}",
  "app.salud.comfyui": "ComfyUI",
  "app.salud.llm": "LLM",

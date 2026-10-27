@@ -26,7 +26,9 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const sec = el("section", { class: "epl-sec max-rt" });
   const video = el("video", { class: "max-rt-video", playsinline: true, preload: "auto" });
   const capa = el("div", { class: "max-rt-capa" });
-  const marco = el("div", { class: "max-rt-marco" }, video, capa);
+  // sin video, el lienzo enseña su estado vacío: un rótulo y «Cargar video» (27 oct, revisión del tema casete)
+  const vacio = el("div", { class: "max-rt-vacio", hidden: true });
+  const marco = el("div", { class: "max-rt-marco" }, video, capa, vacio);
   const linea = el("div", { class: "max-rt-linea" });
   const lado = el("div", { class: "max-rt-lado" });
   const cabeza = el("div", { class: "epl-tit max-rt-tit" });
@@ -182,9 +184,18 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     capa.addEventListener("pointercancel", soltar);
   });
 
+  function pintarVacio() {
+    vacio.hidden = !!R.info;
+    if (R.info) return vacio.replaceChildren();
+    vacio.replaceChildren(el("span", { class: "max-rt-vacio-rotulo" }, t("app.retocar.vacio")),
+      el("span", { class: "epl-ayuda" }, t("app.retocar.sin_video")),
+      el("button", { class: "epl-boton max-rt-vacio-cargar", title: t("app.retocar.cargar.tooltip"), disabled: enMarcha(),
+                     onclick: () => archivoVideo.click() }, icono("subir"), " " + t("app.retocar.cargar")));
+  }
+
   // ---- debajo del video: reproducir el tramo, cuánto mide y cuánto tardará
   function pintarBajo() {
-    if (!R.info) return bajoVideo.replaceChildren(el("span", { class: "epl-ayuda" }, t("app.retocar.sin_video")));
+    if (!R.info) return bajoVideo.replaceChildren();      // el aviso va dentro del lienzo (pintarVacio)
     const lo = Math.max(1, Math.round(MIN_POR_39[0] * R.n / 39)), hi = Math.max(lo + 1, Math.round(MIN_POR_39[1] * R.n / 39));
     bajoVideo.replaceChildren(
       el("button", { class: "epl-mini", title: t("app.retocar.reproducir.tooltip"), onclick: () => (video.paused ? reproducirTramo() : video.pause()) },
@@ -338,6 +349,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     const [w, h] = R.info ? [R.info.ancho, R.info.alto] : [16, 9];
     marco.style.aspectRatio = `${w} / ${h}`;
     marco.style.width = `min(100%, calc(62vh * ${w} / ${h}))`;   // cabe a lo ancho y a lo alto sin deformarse
+    pintarVacio();
     pintarTramo();
     pintarCursor();
     pintarRect();
