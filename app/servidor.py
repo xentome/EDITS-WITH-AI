@@ -217,6 +217,7 @@ async def ver_plantilla(peticion):
 
 # ------------------------------------------------------------------ proyectos: app/proyectos/<nombre>.json
 NOMBRE = re.compile(r"^[\w][\w .-]{0,79}$")
+EJEMPLO = "ejemplo"        # va en git: es de solo lectura; la app lo abre como plantilla de un proyecto nuevo (app.js)
 
 
 def ruta_proyecto(nombre):
@@ -255,6 +256,8 @@ async def guardar_proyecto(peticion):
     ruta = ruta_proyecto(nombre)
     if not ruta:
         return error("app.error.nombre", peticion)
+    if nombre == EJEMPLO:                                      # que abrirlo o tocarlo nunca cambie el archivo del repo
+        return error("app.error.solo_lectura", peticion, 403, nombre=nombre)
     datos = await peticion.json()
     if not isinstance(datos.get("valores"), dict):
         return error("app.error.sin_valores", peticion)
@@ -377,6 +380,9 @@ def crear_app():
 
 
 if __name__ == "__main__":
+    if "--config" in sys.argv:                                # para arrancar.sh y parar.sh: la misma configuración, en JSON
+        print(json.dumps({**CONFIG, "python_trabajador": python_comfyui()}))
+        sys.exit(0)
     print(f"[MAX EDITOR] http://127.0.0.1:{CONFIG['puerto']}  ·  ComfyUI {CONFIG['comfyui_url']}  ·  "
           f"proxy {CONFIG['proxy_url']}  ·  LLM {CONFIG['llm_url']}  ·  trabajador {python_comfyui()}", flush=True)
     web.run_app(crear_app(), host="127.0.0.1", port=int(CONFIG["puerto"]), print=None)

@@ -3,7 +3,9 @@
  * Plano: ../../planos/fases/6 La app MAX EDITOR.md. Todo texto pasa por t() con los mismos web/i18n/*.json del nodo.
  *   - Proyecto = app/proyectos/<nombre>.json con {valores: {id: {campo: valor}}} (solo lo que cambia respecto a la plantilla).
  *   - El autoguardado de la ventana escribe en los widgets del nodo de mentira; al terminar, la app guarda el proyecto.
- *   - Generar: POST /app/generar con todos los valores y la semilla; el avance se pide cada segundo a /app/trabajo/<id>. */
+ *   - Generar: POST /app/generar con todos los valores y la semilla; el avance se pide cada segundo a /app/trabajo/<id>.
+ *   - El ejemplo (app/proyectos/ejemplo.json) va en git y es de solo lectura: elegirlo crea una copia («mi ejemplo») y abre
+ *     esa. Así abrirlo nunca reescribe el archivo (el estado lleva la hora de guardado). */
 import { construir, valoresDe, nodoDelEdit, nodoPorTipo, campo } from "./grafo_falso.js";
 
 const NODO = "/edit_prompt_llm/web/";
@@ -13,6 +15,7 @@ const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
 const GUARDA_IDIOMA = "max-editor-idioma", GUARDA_PROYECTO = "max-editor-proyecto";
+const EJEMPLO = "ejemplo";                                 // el proyecto de ejemplo del repo: solo se lee (servidor.py)
 const leerLocal = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const ponerLocal = (k, x) => { try { localStorage.setItem(k, x); } catch { /* sin almacenamiento: solo esta sesión */ } };
 const ajustes = {
@@ -55,7 +58,8 @@ function pintarCabecera() {
   const s = A.salud, punto = (k, clave) => el("span", { class: s[k] === undefined ? "" : s[k] ? "si" : "no",
     title: t(s[k] ? "app.salud.responde" : "app.salud.no_responde", { url: s[k + "_url"] || "" }) }, t(clave));
   const lista = el("select", { title: t("app.proyecto.abrir"), onchange: (e) => abrirProyecto(e.target.value) },
-    ...A.proyectos.map((p) => el("option", { value: p.nombre, selected: p.nombre === A.proyecto }, p.nombre)));
+    ...A.proyectos.map((p) => el("option", { value: p.nombre, selected: p.nombre === A.proyecto },
+      p.nombre === EJEMPLO ? t("app.proyecto.ejemplo_opcion", { nombre: p.nombre }) : p.nombre)));
   if (A.proyecto && !A.proyectos.some((p) => p.nombre === A.proyecto)) lista.prepend(el("option", { value: A.proyecto, selected: true }, A.proyecto));
   const w = semillaW();
   const semilla = el("input", { type: "number", min: 0, step: 1, value: w ? w.value : "", disabled: !w,
@@ -132,6 +136,7 @@ async function guardarProyecto(nombre = A.proyecto, nuevo = false) {
 }
 
 async function abrirProyecto(nombre, valores = null) {
+  if (nombre === EJEMPLO) return abrirEjemplo();
   try {
     if (A.ctx) await A.ctx.guardarYa();                   // lo último del proyecto que se deja
     if (valores === null) valores = (await pedir("/app/proyecto/" + encodeURIComponent(nombre))).valores || {};
@@ -153,6 +158,24 @@ async function abrirProyecto(nombre, valores = null) {
     await cargarVideos();
   } catch (e) {
     avisar(t("app.proyecto.error_abrir", { nombre, error: e.message }), "mal");
+  }
+}
+
+// el ejemplo se abre como plantilla: una copia nueva con nombre libre («mi ejemplo», «mi ejemplo 2»…); el original no se toca
+async function abrirEjemplo() {
+  try {
+    if (A.ctx) await A.ctx.guardarYa();
+    const valores = (await pedir("/app/proyecto/" + EJEMPLO)).valores || {};
+    const base = t("app.proyecto.copia_ejemplo"), usados = new Set(A.proyectos.map((p) => p.nombre));
+    let nombre = base;
+    for (let i = 2; usados.has(nombre); i++) nombre = `${base} ${i}`;
+    await pedir("/app/proyecto/" + encodeURIComponent(nombre), { valores, nuevo: true });
+    await cargarProyectos();
+    await abrirProyecto(nombre, valores);
+    avisar(t("app.proyecto.ejemplo_copiado", { nombre }), "bien");
+  } catch (e) {
+    avisar(t("app.proyecto.error_abrir", { nombre: EJEMPLO, error: e.message }), "mal");
+    pintarCabecera();
   }
 }
 

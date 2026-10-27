@@ -1,0 +1,7 @@
+# MAX EDITOR: lo que necesita el «trabajador» de la app (app/trabajador.py) en el Python de tu ComfyUI.
+# Casi siempre ComfyUI ya los trae (numpy y Pillow); librosa suele faltar. Mínimos, no fijos: así no se cambia la
+# versión de numpy que usa tu ComfyUI. Instalar con el Python de ComfyUI, por ejemplo:
+#   <ComfyUI>/.venv/bin/python -m pip install -r app/requirements-comfyui.txt
+numpy>=1.25
+Pillow>=10.0
+librosa>=0.10

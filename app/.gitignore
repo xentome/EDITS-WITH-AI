@@ -4,3 +4,5 @@ salidas/
 config.local.json
 __pycache__/
 servidor.log
+.venv
+.servidor_*.pid
