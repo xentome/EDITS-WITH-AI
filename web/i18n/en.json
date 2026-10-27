@@ -694,7 +694,7 @@
  "toma.sin_refs": "No per-shot references to pick (identity and style apply to every shot).",
  "toma.sin_ropa": "no borrowed clothes",
  "toma.titulo": "Shot {k} prompt",
- "toma.titulo_tiempo": "Shot {k} prompt · {a}–{z} s · {f} f",
+ "toma.titulo_cifras": "{a}–{z} s · {f} f",
  "toma.titulo_vacio": "Shot prompt",
  "toma.vacio": "Pick a shot on the timeline to see and edit its prompt."
 }

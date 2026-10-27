@@ -694,7 +694,7 @@
  "toma.sin_refs": "No hay referencias que elegir por toma (la identidad y el estilo valen para todas).",
  "toma.sin_ropa": "sin ropa prestada",
  "toma.titulo": "Prompt de la toma {k}",
- "toma.titulo_tiempo": "Prompt de la toma {k} · {a}–{z} s · {f} f",
+ "toma.titulo_cifras": "{a}–{z} s · {f} f",
  "toma.titulo_vacio": "Prompt de la toma",
  "toma.vacio": "Selecciona una toma en la línea de tiempo para ver su prompt y cambiarlo."
 }

@@ -16,6 +16,7 @@ body.tema-casete{--k-tinta:#17121C;--k-tinta2:#211A29;--k-tinta3:#2C2336;--k-lin
   --k-titulo:"Big Shoulders Display","Oswald","Arial Narrow",Impact,sans-serif;
   --k-rotulo:"Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif;
   --k-texto-f:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --k-mano:"Kalam","Comic Neue","Segoe Print",cursive;
   --k-mono:"JetBrains Mono",ui-monospace,"DejaVu Sans Mono","Cascadia Mono",Menlo,Consolas,monospace;
   /* la onda como cinta marrón y la barra de la canción (audio.js lee estas variables) */
   --onda-fondo:#2E190E;--onda-barra:#C08A55;--onda-corte:rgba(246,234,210,.7);--onda-cabezal:#FF7A1A;
@@ -334,3 +335,10 @@ body.tema-casete .epl-fondo .epl-cerrar,body.tema-casete .epl-fondo .epl-x{displ
 /* las opciones segmentadas activas (entorno, qué tapar, pestañas de la ficha): contorno naranja, no relleno, para no competir con Generar */
 body.tema-casete .epl-mini.epl-seg.fijo,body.tema-casete .epl-mini.epl-seg[aria-pressed="true"]{background:rgba(255,122,26,.12) !important;
   color:#FFB37A !important;border-color:var(--k-naranja) !important}
+
+/* el título de la toma: «Toma 1» rotulado a mano (Kalam: su «1» no se confunde) y sus cifras en mono tabular */
+body.tema-casete .epl-tit-toma{display:inline-flex;align-items:baseline;gap:12px}
+body.tema-casete .epl-tit-nombre{font:700 24px/1 var(--k-mano);color:var(--k-crema);letter-spacing:0}
+body.tema-casete .epl-tit-cifras{font:500 14px/1 var(--k-mono);font-variant-numeric:tabular-nums;color:var(--k-suave);letter-spacing:0}
+/* el nombre de cada pista, rotulado a mano como en el boceto; A1/A2 y las cifras siguen en mono */
+body.tema-casete .epl-tomab b{font:700 17px/1 var(--k-mano) !important;letter-spacing:0}

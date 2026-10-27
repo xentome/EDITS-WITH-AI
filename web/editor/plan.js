@@ -300,12 +300,14 @@ export function instalar(ctx) {
 
   // ---- 2 · prompt de la toma elegida
   const lineaDe = (k) => (S.prompt.match(new RegExp(`^\\[Shot ${k}\\].*$`, "m")) || [""])[0];
+  // los segundos y los fotogramas de la toma, para su título (van en letra de cifras; el nombre, en la de título)
+  const cifrasToma = (a, z) => t("toma.titulo_cifras", { a: u.num(a, 3), z: u.num(+z, 3), f: Math.round((+z - a) * 24) });
   ctx.pintarLineaToma = function pintarLineaToma() {
     const caja2 = secToma.querySelector(".epl-linea-toma");   // dentro de un <details>: plegada, una sola línea
     if (!caja2 || !S.elegida) return;
     // el título lleva los segundos de la toma, que llegan con el montaje (al abrir aún no estaban)
-    const tit = secToma.querySelector(".epl-tit-toma"), a = S.cortes[S.elegida - 1], z = S.cortes[S.elegida] ?? S.duracion;
-    if (tit && a !== undefined) tit.textContent = t("toma.titulo_tiempo", { k: S.elegida, a: u.num(a, 3), z: u.num(+z, 3), f: Math.round((+z - a) * 24) });
+    const tit = secToma.querySelector(".epl-tit-cifras"), a = S.cortes[S.elegida - 1], z = S.cortes[S.elegida] ?? S.duracion;
+    if (tit && a !== undefined) tit.textContent = cifrasToma(a, z);
     const linea = lineaDe(S.elegida);
     caja2.replaceChildren(...(linea ? linea.split(/(<(?:Picture|Video|Audio|Subject) \d+>)/).map((s) =>
       /^<(Picture|Video) \d+>$/.test(s) ? el("span", { class: "epl-tag", "data-tag": s, onmouseenter: () => ctx.resaltar(s, true),
@@ -346,8 +348,9 @@ export function instalar(ctx) {
                   menu("pose", "toma.pose", "pose", t("toma.sin_pose")), menu("objeto", "toma.objeto", "objeto", t("toma.sin_objeto")),
                   ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
                   ninguno ? null : campoFondo(toma)].filter(Boolean);
-    const titulo = el("span", { class: "epl-tit-toma" }, a === undefined ? t("toma.titulo", { k })
-      : t("toma.titulo_tiempo", { k, a: u.num(a, 3), z: u.num(+z, 3), f: Math.round((+z - a) * 24) }));
+    // el título: «Toma 1» (rotulado, como en la etiqueta de una cinta) y, aparte, sus segundos y fotogramas
+    const titulo = el("span", { class: "epl-tit-toma", title: t("toma.titulo", { k }) }, el("span", { class: "epl-tit-nombre" }, t("linea.toma", { k })),
+      el("span", { class: "epl-tit-cifras" }, a === undefined ? "" : cifrasToma(a, z)));
     secToma.replaceChildren(
       // los botones a la izquierda (se lee de izquierda a derecha) y el título después
       el("div", { class: "epl-tit epl-tit-izq" },
