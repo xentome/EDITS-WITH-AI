@@ -1,0 +1,70 @@
+/* Tema de prueba «azul» (26 oct): el de «coral» con un azul medio oscuro como acento (letra blanca encima); el que eligió el usuario.
+ * Original:: solo colores y bordes, copiando la imagen de referencia del usuario (~/Descargas/UI.jpg):
+ * fondo carbón con grano, tarjetas gris oscuro muy redondeadas, píldoras blancas con letra oscura, contornos blancos finos
+ * y un acento coral. No cambia la colocación de nada. Se activa con la clase «tema-azul» en <body>. */
+body.tema-azul{--c-fondo:#242424;--c-tarjeta:#2f2f2f;--c-tarjeta2:#383838;--c-campo:#1e1e1e;--c-linea:#4a4a4a;--c-texto:#ececec;
+  --c-suave:#a8a8a8;--c-blanco:#f3f1f0;--c-oscuro:#1f1f1f;--c-coral:#2f62c4;--c-coral2:#3a71d8;--c-coral-osc:#1b2f57}
+body.tema-azul,body.tema-azul .epl-caja,body.tema-azul .epl-cuerpo{
+  background:var(--c-fondo) radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px) 0 0/4px 4px !important;color:var(--c-texto) !important}
+body.tema-azul .epl-caja{border:0 !important;box-shadow:none !important}
+body.tema-azul .epl-fondo :where(*){border-radius:12px}
+/* cabeceras */
+body.tema-azul .max-cab,body.tema-azul .epl-cabecera{background:#1c1c1c !important;border-color:#333 !important}
+body.tema-azul .max-cab select,body.tema-azul .max-cab input{background:var(--c-campo) !important;border:1.5px solid var(--c-linea) !important;
+  border-radius:999px !important;color:var(--c-texto) !important}
+body.tema-azul .max-boton{background:transparent !important;border:1.5px solid var(--c-blanco) !important;color:var(--c-blanco) !important;border-radius:999px !important}
+body.tema-azul .max-generar{background:var(--c-coral) !important;border:0 !important;color:#ffffff !important;border-radius:999px !important;
+  box-shadow:0 6px 18px rgba(47,98,196,.4) !important}
+body.tema-azul .max-generar:hover{background:var(--c-coral2) !important}
+body.tema-azul .max-nombre i{color:var(--c-coral) !important}
+body.tema-azul .max-barra b{background:var(--c-coral) !important}
+/* secciones: tarjetas gris oscuro, muy redondeadas, sin marco de color */
+body.tema-azul .epl-sec{background:var(--c-tarjeta) !important;border:0 !important;border-radius:26px !important;padding:14px 18px !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.35) !important;color:var(--c-texto) !important}
+body.tema-azul .epl-sec.epl-s-historia{background:var(--c-coral) !important;color:#ffffff !important}
+body.tema-azul .epl-s-historia .epl-tit,body.tema-azul .epl-s-historia .epl-ajustes,body.tema-azul .epl-s-historia .epl-campo>span{color:#ffffff !important}
+body.tema-azul .epl-s-historia input,body.tema-azul .epl-s-historia textarea,body.tema-azul .epl-s-historia select{
+  background:var(--c-blanco) !important;color:#222 !important;border:0 !important}
+body.tema-azul .epl-s-historia input::placeholder,body.tema-azul .epl-s-historia textarea::placeholder{color:#6d7a90 !important}
+body.tema-azul .epl-s-toma{background:var(--c-tarjeta2) !important;border:0 !important}
+body.tema-azul .epl-tit{color:var(--c-suave) !important}
+body.tema-azul .epl-ayuda{color:#8d8d8d !important}
+/* campos */
+body.tema-azul .epl-sec input,body.tema-azul .epl-sec textarea,body.tema-azul .epl-sec select,body.tema-azul .epl-citas,
+body.tema-azul .epl-modal input,body.tema-azul .epl-modal textarea,body.tema-azul .epl-modal select{
+  background:var(--c-campo) !important;color:var(--c-texto) !important;border:1.5px solid var(--c-linea) !important;border-radius:14px !important}
+body.tema-azul .epl-sec input:focus,body.tema-azul .epl-sec textarea:focus,body.tema-azul .epl-citas:focus{border-color:var(--c-coral) !important;outline:none}
+body.tema-azul .epl-campo>span{color:var(--c-suave)}
+/* botones: píldoras blancas (fuertes), contorno blanco (suaves) y coral (los del LLM) */
+body.tema-azul .epl-boton{background:var(--c-blanco) !important;color:var(--c-oscuro) !important;border:0 !important;border-radius:999px !important;font-weight:600}
+body.tema-azul .epl-boton:hover{background:#fff !important}
+body.tema-azul .epl-boton.epl-llm,body.tema-azul .epl-boton.epl-verde,body.tema-azul .epl-boton.epl-anadir,body.tema-azul .epl-boton.epl-subir{
+  background:var(--c-coral) !important;color:#ffffff !important}
+body.tema-azul .epl-mini,body.tema-azul .epl-candado{background:transparent !important;color:var(--c-blanco) !important;
+  border:1.5px solid #6a6a6a !important;border-radius:999px !important}
+body.tema-azul .epl-mini.fijo,body.tema-azul .epl-candado.fijo{background:var(--c-coral) !important;color:#ffffff !important;border-color:var(--c-coral) !important}
+/* títulos con degradado del panel de la toma: el degradado se queda, con esquinas de píldora */
+body.tema-azul .epl-destacado>span:first-child{border-radius:999px !important}
+body.tema-azul .epl-cita{background:var(--c-coral) !important;border:0 !important;color:#ffffff !important;border-radius:999px !important}
+/* referencias: las dos mitades como tarjetas; tarjetas de foto redondeadas con contorno blanco o coral */
+body.tema-azul .epl-refs{background:var(--c-tarjeta) !important}
+body.tema-azul .epl-refs *{border-color:#555 !important}
+body.tema-azul .epl-refs [class*="tarjeta"],body.tema-azul .epl-refs [class*="tile"]{border-radius:22px !important;overflow:hidden}
+/* línea de tiempo: tomas como píldoras blancas; la elegida, coral */
+body.tema-azul .epl-tomab{background:var(--c-blanco) !important;color:var(--c-oscuro) !important;border:0 !important;border-radius:18px !important}
+body.tema-azul .epl-tomab.elegida,body.tema-azul .epl-tomab.sel{background:var(--c-coral) !important;color:#ffffff !important;box-shadow:none !important}
+body.tema-azul .epl-final{background:var(--c-campo) !important;border:1.5px solid var(--c-linea) !important;border-radius:18px !important;color:var(--c-texto) !important}
+body.tema-azul .epl-mitad.izq,body.tema-azul .epl-mitad.der{background:transparent !important;border:0 !important}
+body.tema-azul .epl-mitad.izq{border-right:1.5px solid #4a4a4a !important}
+body.tema-azul .epl-mitad.izq .epl-tit{color:var(--c-coral) !important}
+body.tema-azul .epl-mitad.der .epl-tit{color:var(--c-blanco) !important}
+body.tema-azul .epl-tile{border-radius:22px !important;background:var(--c-campo) !important}
+body.tema-azul .epl-mitad.izq .epl-tile{border:2px solid var(--c-coral) !important}
+body.tema-azul .epl-mitad.der .epl-tile{border:2px solid var(--c-blanco) !important}
+body.tema-azul .epl-tile.usada,body.tema-azul .epl-tile.en-toma{box-shadow:0 0 0 3px var(--c-coral) !important}
+/* (al final, para ganar a la regla general de los campos) la historia: campos blancos sobre coral */
+body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-historia textarea,body.tema-azul .epl-sec.epl-s-historia select{
+  background:var(--c-blanco) !important;color:#222 !important;border:0 !important}
+body.tema-azul .epl-s-historia .epl-boton.epl-llm{background:var(--c-oscuro) !important;color:var(--c-blanco) !important}
+body.tema-azul .epl-texto-pista{background:var(--c-campo) !important;border-color:#444 !important;border-radius:999px !important}
+body.tema-azul .epl-texto-et{background:var(--c-blanco) !important;color:var(--c-oscuro) !important;border:0 !important;border-radius:999px !important}
