@@ -57,10 +57,10 @@ export async function abrir(node, app) {
   const sec = (clase) => el("section", { class: "epl-sec " + clase });
   const secHistoria = sec("epl-s-historia"), secToma = sec("epl-s-toma"), secRefs = sec("epl-refs"),
         secTiempo = sec("epl-s-linea"), secFinal = sec("epl-s-final");
-  // la parte 4 tiene tres filas: las tomas (linea.js), la fila de texto (textos.js) y la ventana de audio (audio.js)
+  // la parte 4 tiene tres filas: la fila de texto (textos.js), las tomas (linea.js) y la ventana de audio (audio.js)
   const secLinea = el("div", { class: "epl-zona-tomas" }), secTexto = el("div", { class: "epl-texto" }),
         secAudio = el("div", { class: "epl-audio" });
-  secTiempo.append(secLinea, secTexto, secAudio);
+  secTiempo.append(secTexto, secLinea, secAudio);   // la fila de texto, encima de las tomas (26 oct)
 
   const ctx = { u, node, app, graph, S, wf, guardado, biblioteca: {}, cajitas: {}, caja,
                 secHistoria, secToma, secRefs, secLinea, secTexto, secAudio, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
