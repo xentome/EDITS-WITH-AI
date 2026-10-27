@@ -12,5 +12,5 @@ Lectura: 2 min · 27 oct 2026 · Para los ayudantes y para retomar si se corta.
 ## Fases (✅ al terminar, con commit)
 
 1. ✅ **El tema** (`app/web/temas/trama.css`, `index.html`, `audio.js`, `util.js`): paleta, letras (Schibsted Grotesk y Spline Sans Mono, de Google Fonts, con respaldo), etiquetas en caja con ●, cruces de registro, la onda en gris, el cambio de tema por parámetro y la colocación de P10 sacada de `azul.css` a `index.html`.
-2. **Los iconos** (`util.icono`, `plan.js`, `referencias.js`, `linea.js`, `audio.js`, `app.js`, `retocar.js`, i18n): iconos de trazo en SVG en lugar de emojis.
+2. ✅ **Los iconos** (`util.icono`, `plan.js`, `referencias.js`, `linea.js`, `audio.js`, `app.js`, `retocar.js`, i18n): iconos de trazo en SVG en lugar de emojis.
 3. **La comprobación:** Tomas, Retocar, la ficha, el arrastre, los avisos; sin scroll en 2548×1284; `impeccable detect`.

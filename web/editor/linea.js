@@ -198,7 +198,7 @@ export function instalar(ctx) {
     const bloques = S.plan.tomas.slice(0, n).map((toma, i) => {
       const cruz = el("span", { class: "epl-tomab-x", onclick: (e) => e.stopPropagation() });
       const normal = () => cruz.replaceChildren(el("button", { class: "x", title: t("toma.quitar.tooltip"), "aria-label": t("toma.quitar.tooltip"),
-        onclick: (e) => { e.stopPropagation(); preguntar(); } }, "✕"));
+        onclick: (e) => { e.stopPropagation(); preguntar(); } }, u.icono("x")));
       const preguntar = () => cruz.replaceChildren(el("span", { class: "pregunta" }, t("referencias.pregunta_quitar"),
         el("button", { class: "si", onclick: (e) => { e.stopPropagation(); ctx.quitarToma(i + 1); } }, t("comun.si")),
         el("button", { class: "no", onclick: (e) => { e.stopPropagation(); normal(); } }, t("comun.no"))));
@@ -269,7 +269,7 @@ export function instalar(ctx) {
           el("label", { class: "epl-pegar", title: t("linea.pegar.tooltip") },
             el("input", { type: "checkbox", checked: S.pegarBeats, onchange: (e) => { S.pegarBeats = e.target.checked; } }), " " + t("linea.pegar")),
           manual ? el("button", { class: "epl-mini", title: t("linea.cortes_auto.tooltip"),
-                                  onclick: () => ctx.cortesAuto() }, t("linea.cortes_auto")) : null,
+                                  onclick: () => ctx.cortesAuto() }, u.icono("volver"), " " + t("linea.cortes_auto")) : null,
           " " + t("linea.ayuda"))),
       el("div", { class: "epl-linea" }, fila,
         el("button", { class: "epl-mas", title: t("linea.anadir.tooltip"), onclick: () => ctx.anadirToma() }, "+")),

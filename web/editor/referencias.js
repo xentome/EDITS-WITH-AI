@@ -534,7 +534,7 @@ export function instalar(ctx) {
    * todas; una toma que ya la lleva sale marcada y, al tocarla, se quita. */
   function botonConectar(tag) {
     return el("button", { class: "epl-mini epl-conectar", title: t("referencias.conectar.tooltip", { tag }), "aria-haspopup": "menu",
-                          onclick: (e) => { e.stopPropagation(); menuConectar(e.currentTarget, tag); } }, "🔗");
+                          onclick: (e) => { e.stopPropagation(); menuConectar(e.currentTarget, tag); } }, u.icono("enlace"));
   }
   function menuConectar(boton, tag) {
     caja.querySelector(".epl-menu-conectar")?.remove();
@@ -548,7 +548,7 @@ export function instalar(ctx) {
         return el("button", { class: "epl-mini" + (ya ? " fijo" : ""), role: "menuitem", "data-k": k,
                               title: t(ya ? "referencias.conectar.quitar" : "referencias.conectar.poner", { k }),
                               onclick: () => { cerrar(); ya ? ctx.desconectarRef(tag, k) : ctx.conectarRef(tag, k); } },
-          t("linea.toma", { k }) + (ya ? " ✓" : ""));
+          t("linea.toma", { k }));
       })));
     const r = boton.getBoundingClientRect(), c = caja.getBoundingClientRect();
     m.style.left = Math.max(4, Math.min(r.left - c.left, c.width - 240)) + "px";
@@ -562,13 +562,13 @@ export function instalar(ctx) {
    * la biblioteca. Ningún toque aquí abre la ficha. */
   function cruz(r) {
     return el("button", { class: "epl-mini epl-quitar-poster", title: t("referencias.quitar_del_stack"), "aria-label": t("referencias.quitar_del_stack"),
-      onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, "✕");
+      onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, u.icono("x"));
   }
 
   // un grupo sin referencias: toda la caja es un botón que abre «Subir foto» (sin Stack, solo el aviso)
   const vacia = (lado) => !wf.stack ? el("p", { class: "epl-vacio" }, t(`referencias.${lado}.vacio`))
     : el("div", { class: "epl-vacia", title: t("referencias.vacia.tooltip"), onclick: () => ctx.abrirSubir(lado) },
-        el("span", { class: "mas" }, "⬆"), el("b", {}, t("referencias.vacia.subir")), el("span", {}, t(`referencias.${lado}.vacio`)));
+        el("span", { class: "mas" }, u.icono("subir")), el("b", {}, t("referencias.vacia.subir")), el("span", {}, t(`referencias.${lado}.vacio`)));
   ctx.pintarRefs = function pintarRefs() {
     const usadas = S.elegida ? new Set(ctx.refsDeToma(S.elegida)) : null;
     const principal = wf.items.filter((r) => r.tag && ctx.enTodas(r.clave)), resto = wf.items.filter((r) => !(r.tag && ctx.enTodas(r.clave)));
@@ -592,7 +592,7 @@ export function instalar(ctx) {
                        if (!toma) return ctx.abrirEfecto(c);
                        if (puesta) ctx.desconectarRef(c, S.elegida); else ctx.conectarRef(c, S.elegida); } },
           ctx.punto(c), e.nombre || e.ficha.split(/\s+/).slice(0, 4).join(" "),
-          toma ? el("button", { class: "epl-mini", title: t("referencias.efecto.editar.tooltip"), onclick: (x) => { x.stopPropagation(); ctx.abrirEfecto(c); } }, "✎") : null);
+          toma ? el("button", { class: "epl-mini", title: t("referencias.efecto.editar.tooltip"), onclick: (x) => { x.stopPropagation(); ctx.abrirEfecto(c); } }, u.icono("lapiz")) : null);
       }),
       el("button", { class: "epl-mini", title: t("referencias.efecto.anadir.tooltip"), onclick: () => ctx.abrirEfecto(null) }, t("referencias.efecto.anadir")));
     const grupo = (g, lado, lista, extra) => {
@@ -664,7 +664,7 @@ export function instalar(ctx) {
             ref.papel !== "no" ? el("textarea", { class: "epl-ficha-txt", rows: 3, oninput: (e) => cambiar("ficha", e.target.value) }, ref.ficha || "") : null,
             ref.papel !== "no" && r.preview ? el("div", { class: "epl-fila" },
               el("button", { class: "epl-mini", title: t("referencias.ficha.describir.tooltip"),
-                onclick: () => describir(r, ref, pintar) }, t("referencias.ficha.describir")),
+                onclick: () => describir(r, ref, pintar) }, u.icono("ojo"), " " + t("referencias.ficha.describir")),
               ref.origen ? el("span", { class: "epl-ayuda" }, t("referencias.ficha.origen", { origen: origen(ref.origen) })) : null) : null,
             ref.propuesta ? el("div", { class: "epl-propuesta" }, t("referencias.propuesta", { nombre: ref.propuesta.nombre, ficha: ref.propuesta.ficha }),
               el("div", { class: "epl-fila" },
@@ -707,7 +707,7 @@ export function instalar(ctx) {
         el("div", { class: "epl-tit" }, r.tag ? ctx.punto(r.tag, " epl-sello-ficha") : null,
           el("b", { style: { color: "#cfe0ff" } }, apagada(r)), r.nombre,
           el("span", { class: "der" }, el("button", { class: "epl-mini epl-cerrar-ficha", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"),
-                                                       onclick: () => v.cerrar() }, "✕"))),
+                                                       onclick: () => v.cerrar() }, u.icono("x")))),
         el("div", { class: "epl-ficha" }, izquierda,
           el("div", { class: "epl-ficha-der" },
             el("div", { class: "epl-pestanas-ficha", role: "tablist" }, ...Object.keys(PESTANAS).map((k) =>

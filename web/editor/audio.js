@@ -45,7 +45,7 @@ export function instalar(ctx) {
   // ---- elementos: se crean una vez (la onda no se vuelve a crear al repintar); sus textos los pone rotular()
   const onda = el("canvas", { class: "epl-onda-cv", tabindex: "0" });
   const etIni = el("span", { class: "epl-onda-et izq" }), etFin = el("span", { class: "epl-onda-et der" });
-  const boton = el("button", { class: "epl-play", onclick: () => alternar() }, "▶");
+  const boton = el("button", { class: "epl-play", "aria-label": t("audio.reproducir"), onclick: () => alternar() }, u.icono("play"));
   const barra = el("canvas", { class: "epl-barra-cv" });
   const datos = el("div", { class: "epl-audio-info" });
   const cambiar = el("button", { class: "epl-mini epl-cambiar-cancion", onclick: () => ctx.abrirCanciones() });
@@ -54,7 +54,7 @@ export function instalar(ctx) {
     boton.title = t("audio.play.tooltip");
     barra.title = t("audio.barra.tooltip");
     cambiar.title = t("audio.cambiar.tooltip");
-    cambiar.textContent = t("audio.cambiar");
+    cambiar.replaceChildren(u.icono("musica"), " " + t("audio.cambiar"));
   }
 
   ctx.moverAudio = (s, { soltar = true } = {}) => {
@@ -271,7 +271,8 @@ export function instalar(ctx) {
     if (sonando || p > 0) { c.fillStyle = color("--onda-cabezal", "#e0a94c"); c.fillRect(Math.round(p / d * w), 0, 2 * r, h); }
     etIni.textContent = t("audio.etiqueta", { reloj: reloj(a), f: fotograma(a) });
     etFin.textContent = t("audio.etiqueta", { reloj: reloj(a + d), f: fotograma(a + d) });
-    boton.textContent = sonando ? "⏸" : "▶";
+    const ICONO_PLAY = { true: "pausa", false: "play" };          // el icono del botón (util.icono), no un texto
+    boton.replaceChildren(u.icono(ICONO_PLAY[sonando]));
     dibujarBarra();
     datos.replaceChildren(
       el("span", {}, t("audio.tramo", { a: reloj(a), fa: fotograma(a), b: reloj(a + d), fb: fotograma(a + d), d: u.num(d, 3) })),

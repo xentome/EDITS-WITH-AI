@@ -214,7 +214,7 @@ export function instalar(ctx) {
             : el("div", { class: "epl-soltar", onclick: () => archivo.click() },
               st.fotos.length ? el("div", { class: "epl-fotos" }, ...st.fotos.map((x, i) => el("div", {},
                 el("img", { src: x.url, alt: "" }), x.f.name,
-                el("button", { class: "epl-mini quitar", title: t("referencias.cajita.sacar"), onclick: (e) => { e.stopPropagation(); st.fotos.splice(i, 1); pintar(); } }, "✕"))))
+                el("button", { class: "epl-mini quitar", title: t("referencias.cajita.sacar"), onclick: (e) => { e.stopPropagation(); st.fotos.splice(i, 1); pintar(); } }, u.icono("x")))))
                 : el("p", { class: "epl-vacio" }, t("referencias.subir.vacio"))),
           el("div", {},
             st.video ? el("button", { class: "epl-mini", onclick: () => { st.video = null; st.modo = "completo"; pintar(); } }, t("referencias.subir.video.otro")) : null,

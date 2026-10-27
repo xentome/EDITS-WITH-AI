@@ -44,7 +44,7 @@ const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", g
             fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas" };
 
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
-const retoque = retocarJS.crear({ el, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
+const retoque = retocarJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
                                   alTerminar: () => cargarVideos() });
 
 // ---- la cabecera
@@ -86,11 +86,11 @@ function pintarCabecera() {
     el("span", { class: "max-sep" }),
     el("label", { class: "max-grupo max-semilla", title: t("app.semilla.tooltip") }, el("span", {}, t("app.semilla")), semilla,
       el("button", { class: "max-boton", disabled: !w, title: t("app.semilla.otra.tooltip"), onclick: () => ponerSemilla(semillaNueva()) },
-        t("app.semilla.otra"))),
+        util.icono("semilla"), " " + t("app.semilla.otra"))),
     el("button", { class: "max-generar", disabled: !!ocupado || !A.node, title: t("app.generar.tooltip"), onclick: () => generar() },
       t(ocupado ? "app.generar.generando" : "app.generar")),
     el("button", { class: "max-boton", title: t("app.videos.tooltip"), onclick: () => { A.verVideos = !A.verVideos; pintarVideos(); } },
-      t("app.videos.boton", { n: A.videos.length })),
+      util.icono("video"), " " + t("app.videos.boton", { n: A.videos.length })),
     el("span", { class: "max-grupo max-idioma", title: t("comun.idioma.tooltip") }, idioma("es", "ES"), idioma("en", "EN")));
   pintarAvance();
   pintarFases();
@@ -340,7 +340,7 @@ function pintarVideos() {
                                                                                      s: tr.num(actual.segundos || 0, 0) }))) : null,
     el("div", { class: "max-lista" }, A.videos.length ? A.videos.map((x) =>
       el("div", { class: "max-video" + (x.archivo === A.videoActual ? " actual" : ""), onclick: () => { A.videoActual = x.archivo; pintarVideos(); } },
-        el("span", {}, x.tipo === "retoque" ? "🩹" : "🎬"),
+        util.icono(x.tipo === "retoque" ? "retoque" : "video"),
         el("div", {}, el("div", {}, fecha(x)), el("small", {}, x.tipo === "retoque"
           ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
           : t("app.videos.semilla", { semilla: x.semilla ?? "?" }))),

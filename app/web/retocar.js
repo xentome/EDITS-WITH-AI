@@ -12,7 +12,7 @@ const MAX_REFS = 4;
 const MIN_POR_39 = [3, 4];                    // minutos por cada 39 fotogramas (pruebas del 27 oct: 3–3,5 min)
 const SUBCARPETA = "max_editor/retocar/refs"; // las imágenes subidas desde aquí, en ComfyUI/input/
 
-export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
+export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "",
               semilla: Math.floor(Math.random() * 2 ** 32), trabajo: null, avance: null, error: "", elegir: false };
   const clave = () => "max-editor-retocar:" + (A.proyecto || "");
@@ -353,9 +353,9 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
       el("button", { class: "epl-mini max-rt-cortar", title: t("app.retocar.recortar.tooltip"), disabled: ocupado,
                      onclick: () => recortarYSubir(r.refmod ? "/app/foto_referencia?refmod=" + encodeURIComponent(r.refmod)
                        : r.imagen ? "/app/foto_referencia?imagen=" + encodeURIComponent(r.imagen) : r.vista,
-                       r.nombre || "ref", (nueva) => { R.refs[i] = { ...nueva, nombre: (r.nombre || nueva.nombre) + " ✂" }; }) }, "✂"),
+                       r.nombre || "ref", (nueva) => { R.refs[i] = { ...nueva, nombre: r.nombre || nueva.nombre }; }) }, icono("tijeras")),
       el("button", { class: "epl-mini max-rt-quitar", title: t("app.retocar.quitar.tooltip"), disabled: ocupado,
-                     onclick: () => { R.refs.splice(i, 1); guardar(); pintar(); } }, "✕")));
+                     onclick: () => { R.refs.splice(i, 1); guardar(); pintar(); } }, icono("x"))));
     const archivo = el("input", { type: "file", accept: "image/*", style: { display: "none" }, onchange: async (e) => {
       const f = e.target.files?.[0];
       e.target.value = "";
@@ -398,7 +398,7 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
           el("input", { type: "number", min: 0, step: 1, value: R.semilla, disabled: ocupado,
                         onchange: (e) => { R.semilla = Math.max(0, Math.round(+e.target.value || 0)); guardar(); } }),
           el("button", { class: "epl-mini", disabled: ocupado, title: t("app.semilla.otra.tooltip"),
-                         onclick: () => { R.semilla = Math.floor(Math.random() * 2 ** 32); guardar(); pintar(); } }, "🎲")),
+                         onclick: () => { R.semilla = Math.floor(Math.random() * 2 ** 32); guardar(); pintar(); } }, icono("semilla"))),
         el("button", { class: "max-generar max-rt-boton", disabled: ocupado || !R.info, title: t("app.retocar.boton.tooltip"), onclick: retocar },
           t(ocupado ? "app.retocar.boton.trabajando" : "app.retocar.boton"))),
       ...(R.error ? [el("div", { class: "max-rt-error" }, R.error)] : []),   // replaceChildren escribiría «null»

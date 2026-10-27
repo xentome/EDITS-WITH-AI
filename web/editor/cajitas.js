@@ -93,7 +93,7 @@ export function instalar(ctx) {
             el("label", {}, t("referencias.cajita.dentro", { n: st.elegidas.length })),
             el("div", { class: "epl-fotos" }, ...st.elegidas.map((e, i) => el("div", {},
               el("img", { src: e.src, alt: "", style: { height: "120px" } }), `${i + 1}. ${e.texto}`,
-              el("button", { class: "epl-mini quitar", title: t("referencias.cajita.sacar"), onclick: () => { st.elegidas.splice(i, 1); pintar(); } }, "✕")))),
+              el("button", { class: "epl-mini quitar", title: t("referencias.cajita.sacar"), onclick: () => { st.elegidas.splice(i, 1); pintar(); } }, u.icono("x"))))),
             el("label", {}, t("referencias.cajita.nombre_refmod")),
             el("input", { value: st.nombre, placeholder: t("referencias.cajita.nombre_refmod.placeholder"), oninput: (e) => { st.nombre = e.target.value; } }),
             el("label", {}, t("referencias.ficha.papel")),

@@ -70,7 +70,7 @@ export function instalar(ctx) {
         const propia = clave in S.frases;
         const marca = el("span", { class: "epl-ayuda" }, propia ? t("final.frases.cambiada") : "");
         const volver = el("button", { class: "epl-mini epl-frase-volver", title: t("final.frases.volver.tooltip"), disabled: !propia,
-          onclick: () => { delete S.frases[clave]; ctx.pedirMontaje(); pintar(); } }, "↺");
+          onclick: () => { delete S.frases[clave]; ctx.pedirMontaje(); pintar(); } }, u.icono("volver"));
         const entrada = el("textarea", { rows: 2, class: "epl-frase-txt", "data-clave": clave,
           oninput: (e) => { S.frases[clave] = e.target.value; marca.textContent = t("final.frases.cambiada"); volver.disabled = false;
                             ctx.pedirMontaje(); } },
