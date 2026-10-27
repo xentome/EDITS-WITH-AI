@@ -275,11 +275,31 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
   }
 
   // ---- pintar la sección
+  // cargar un video ya hecho (de cualquier carpeta del PC): se sube a ComfyUI input/max_editor/videos y se pone aquí
+  const archivoVideo = el("input", { type: "file", accept: "video/*", style: { display: "none" }, onchange: async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    avisar(t("app.retocar.cargando", { nombre: f.name }));
+    try {
+      const fd = new FormData();
+      fd.append("image", f, f.name);
+      fd.append("type", "input");
+      fd.append("subfolder", "max_editor/videos");
+      const r = await fetch("/upload/image", { method: "POST", body: fd });
+      if (!r.ok) throw new Error(t("comun.no_se_pudo_subir", { nombre: f.name, estado: r.status }));
+      const j = await r.json(), sub = j.subfolder || "";
+      await cargar(`${sub ? sub + "/" : ""}${j.name} [input]`);
+      avisar(t("app.retocar.cargado", { nombre: j.name }), "bien");
+    } catch (err) { avisar(err.message, "mal"); }
+  } });
   function pintar() {
     const nombre = R.video ? R.video.replace(/ \[(input|output)\]$/, "") : "";
     cabeza.replaceChildren(el("span", {}, t("app.retocar.titulo")),
       el("span", { class: "max-rt-nombre", title: nombre }, nombre ? t("app.retocar.video", { video: nombre }) : ""),
-      el("span", { class: "der" }, el("span", { class: "epl-ayuda" }, t("app.retocar.desde_videos"))));
+      el("span", { class: "der" }, el("span", { class: "epl-ayuda" }, t("app.retocar.desde_videos")),
+        el("button", { class: "epl-boton epl-azul max-rt-cargar", title: t("app.retocar.cargar.tooltip"), disabled: enMarcha(),
+          onclick: () => archivoVideo.click() }, t("app.retocar.cargar"))));
     const [w, h] = R.info ? [R.info.ancho, R.info.alto] : [16, 9];
     marco.style.aspectRatio = `${w} / ${h}`;
     marco.style.width = `min(100%, calc(62vh * ${w} / ${h}))`;   // cabe a lo ancho y a lo alto sin deformarse
