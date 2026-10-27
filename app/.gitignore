@@ -1,0 +1,5 @@
+proyectos/*
+!proyectos/ejemplo.json
+salidas/
+config.local.json
+__pycache__/
