@@ -451,11 +451,11 @@ export function instalar(ctx) {
       el("button", { class: "epl-mini", title: t("referencias.efecto.anadir.tooltip"), onclick: () => ctx.abrirEfecto(null) }, t("referencias.efecto.anadir")));
     secRefs.replaceChildren(el("div", { class: "epl-mitades" },
       el("div", { class: "epl-mitad izq" },
-        el("div", { class: "epl-tit" }, t("referencias.izq.titulo"), botones("izq")),
+        el("div", { class: "epl-tit" }, el("span", { class: "epl-tit-txt" }, t("referencias.izq.titulo")), botones("izq")),
         ...wf.avisos.map(([clave, datos]) => el("p", { class: "epl-aviso" }, "⚠ " + t(clave, datos))),
         izq.length ? rejIzq : vacia("izq")),
       el("div", { class: "epl-mitad der" },
-        el("div", { class: "epl-tit" }, t("referencias.der.titulo"), botones("der")),
+        el("div", { class: "epl-tit" }, el("span", { class: "epl-tit-txt" }, t("referencias.der.titulo")), botones("der")),
         der.length ? rejDer : vacia("der"),
         fichas)));
     for (const [rej, lado] of [[rejIzq, "izq"], [rejDer, "der"]]) {   // un hueco de la rejilla sin tarjeta, también

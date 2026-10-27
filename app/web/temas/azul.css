@@ -109,3 +109,6 @@ body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-histo
   background:#2a0811 !important;border-color:#76203a !important;color:#fff0f2 !important}
 body.tema-azul .epl-sec.epl-s-historia input::placeholder,body.tema-azul .epl-sec.epl-s-historia textarea::placeholder{color:#c68f99 !important}
 body.tema-azul .epl-s-historia .epl-boton.epl-llm{background:#7a2236 !important;color:#fff !important}
+/* (26 oct) «Lo que no cambia · persistente» no se veía (azul sobre oscuro): píldora con borde y letra clara */
+body.tema-azul .epl-mitad.izq .epl-tit-txt{color:#e3ecff !important;border:1.5px solid #5b8fe8;border-radius:999px;padding:4px 14px;
+  background:rgba(47,98,196,.18);font-weight:600}
