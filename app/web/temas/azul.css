@@ -125,4 +125,4 @@ body.tema-azul .max-rt-elegir{border-radius:16px !important}
 body.tema-azul .max-rt-boton{font-size:16px !important;padding:9px 30px !important}
 body.tema-azul .max-rt-quitar{background:rgba(0,0,0,.72) !important;border-color:#fff !important;color:#fff !important}
 /* (27 oct) la ventana para recortar una referencia de Retocar */
-.max-rt-recorte{max-width:min(80vw,900px);margin:0 auto}.max-rt-recorte img{display:block;max-width:100%;max-height:70vh}
+.max-rt-recorte{display:flex;justify-content:center}.max-rt-recorte .epl-sv-marco{display:inline-block;width:auto !important;max-width:min(80vw,900px);position:relative;line-height:0}.max-rt-recorte img{display:block;max-width:min(80vw,900px);max-height:70vh;width:auto;height:auto}
