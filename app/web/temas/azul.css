@@ -93,10 +93,10 @@ body.tema-azul .max-videos{background:rgba(16,11,26,.97) !important}
 body.tema-azul .epl-sec.epl-s-historia{background:#183572 !important}
 body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-historia textarea,body.tema-azul .epl-sec.epl-s-historia select{
   background:#0c1a38 !important;border-color:#274888 !important}
-/* (26 oct) las tomas de la línea de tiempo: rojo muy oscuro en diagonal hacia negro, casi todo negro, con letra clara;
+/* (26 oct) las tomas de la línea de tiempo: rojo muy oscuro en dos esquinas (arriba a la izquierda y abajo a la derecha) y negro en medio, con letra clara;
  * la elegida se distingue con un borde azul */
-body.tema-azul .epl-tomab{background:linear-gradient(to bottom right,#4a0b12 0%,#200608 30%,#0d0a0b 60%,#080808 100%) !important;
+body.tema-azul .epl-tomab{background:linear-gradient(to bottom right,#4a0b12 0%,#1c0608 28%,#080808 50%,#1c0608 72%,#4a0b12 100%) !important;
   color:#f1f1f1 !important;border:1.5px solid #2a1416 !important}
 body.tema-azul .epl-tomab *{color:inherit}
-body.tema-azul .epl-tomab.elegida{background:linear-gradient(to bottom right,#5c0e17 0%,#26070a 30%,#0e0a0b 60%,#080808 100%) !important;
+body.tema-azul .epl-tomab.elegida{background:linear-gradient(to bottom right,#5c0e17 0%,#220709 28%,#080808 50%,#220709 72%,#5c0e17 100%) !important;
   color:#ffffff !important;border:2px solid var(--c-coral) !important}
