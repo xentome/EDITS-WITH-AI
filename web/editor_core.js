@@ -47,7 +47,9 @@ export async function abrir(node, app) {
     // las frases de unión que cambió el usuario (panel «Frases del código»); las demás, las de frases.json (frasesBase).
     // trozos: el prompt por trozos con su origen; lineasRef: los dos renglones de arriba de cada referencia (su ficha)
     frases: guardado.frases || {}, frasesBase: {}, trozos: [], lineasRef: {},
-    prompt: guardado.prompt || "", a_mano: !!guardado.a_mano, cortes: [], avisos: [], ocupado: false, elegida: null,
+    prompt: guardado.prompt || "", a_mano: !!guardado.a_mano, cortes: [], avisos: [], ocupado: false,
+    // siempre hay una toma elegida (26 oct): la última que se eligió (la última que editaste) o, si no, la última creada
+    elegida: Math.min(Math.max(1, +guardado.toma_elegida || +W(node, "tomas").value || 1), Math.max(1, +W(node, "tomas").value || 1)),
   };
 
   const fondo = el("div", { class: "epl-fondo" });
@@ -172,7 +174,7 @@ export async function abrir(node, app) {
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
                                                estilo: S.estilo, estilo_palabras: S.estilo_palabras, sonido: S.sonido, frases: S.frases, plan: S.plan, prompt: S.prompt,
-                                               a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, idioma: tr.idioma,
+                                               a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, idioma: tr.idioma, toma_elegida: S.elegida,
                                                guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);
     graph.setDirtyCanvas?.(true, true);

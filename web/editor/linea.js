@@ -41,8 +41,10 @@ export function instalar(ctx) {
   const { el, t } = u;
   S.pegarBeats = ctx.guardado?.pegar_beats ?? true;
 
+  // siempre hay una toma elegida: elegir(null) o una que no existe deja la que había (o la última)
   ctx.elegir = function elegir(k) {
-    S.elegida = k && k <= S.tomas ? k : null;
+    S.elegida = k && k <= S.tomas ? k : Math.min(S.elegida || S.tomas, S.tomas);
+    ctx.programarGuardado?.();
     ctx.pintarToma();
     ctx.pintarRefs();
     ctx.pintarLinea();
@@ -52,7 +54,7 @@ export function instalar(ctx) {
     if (n * MIN_TOMA > S.duracion) return ctx.avisar(t("errores.tomas_no_caben", { n, dur: u.num(S.duracion) }), "mal");
     S.tomas = n;
     S.plan = ctx.ajustarPlan(S.plan, n);
-    if (S.elegida > n) S.elegida = null;
+    if (!S.elegida || S.elegida > n) S.elegida = n;
     S.cortes = S.plan.cortes?.length === n ? S.plan.cortes.slice() : [];
     ctx.pintarPlan();
     ctx.pintarRefs();
@@ -74,7 +76,7 @@ export function instalar(ctx) {
     if (S.tomas <= 1) return;
     if (S.plan.cortes?.length === S.tomas) S.plan.cortes = quitarDeCortes(S.plan.cortes, S.duracion, k);
     S.plan.tomas.splice(k - 1, 1);
-    S.elegida = null;
+    S.elegida = Math.max(1, Math.min(k, S.tomas - 1));
     ctx.cambiarTomas(S.tomas - 1);
     ctx.avisar(t("linea.quitada", { k }), "bien");
   };
@@ -136,7 +138,7 @@ export function instalar(ctx) {
         class: "epl-tomab" + (S.elegida === i + 1 ? " elegida" : ""), id: `epl-tomab-${i + 1}`,
         style: { background: COLORES[i % COLORES.length] },
         title: [toma.lugar, toma.momento].filter(Boolean).join(" — ") || t("linea.toma_sin_historia"),
-        onclick: () => ctx.elegir(S.elegida === i + 1 ? null : i + 1) },
+        onclick: () => ctx.elegir(i + 1) },
         n > 1 ? cruz : null,
         el("b", {}, t("linea.toma", { k: i + 1 })), el("span", {}, toma.entorno === "ninguno" ? t("toma.entorno.ninguno") : toma.lugar || t("linea.sin_lugar")), tiempo);
     });

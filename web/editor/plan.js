@@ -329,6 +329,9 @@ export function instalar(ctx) {
   ctx.pintarLineaToma = function pintarLineaToma() {
     const caja2 = secToma.querySelector(".epl-linea-toma");
     if (!caja2 || !S.elegida) return;
+    // el título lleva los segundos de la toma, que llegan con el montaje (al abrir aún no estaban)
+    const tit = secToma.querySelector(".epl-tit-toma"), a = S.cortes[S.elegida - 1], z = S.cortes[S.elegida] ?? S.duracion;
+    if (tit && a !== undefined) tit.textContent = t("toma.titulo_tiempo", { k: S.elegida, a: u.num(a, 3), z: u.num(+z, 3) });
     const linea = lineaDe(S.elegida);
     caja2.replaceChildren(...(linea ? linea.split(/(<(?:Picture|Video|Audio|Subject) \d+>)/).map((s) =>
       /^<(Picture|Video) \d+>$/.test(s) ? el("span", { class: "epl-tag", "data-tag": s, onmouseenter: () => ctx.resaltar(s, true),
@@ -377,8 +380,7 @@ export function instalar(ctx) {
         el("span", { class: "epl-botones-toma" }, botonTomas,
           el("button", { class: "epl-mini", title: t("toma.rehacer.tooltip"),
             onclick: () => ctx.conLLM("toma.rehaciendo", "tomas", { solo: k }, { k }) }, t("toma.rehacer")),
-          S.tomas > 1 ? el("button", { class: "epl-mini", title: t("toma.quitar.tooltip"), onclick: () => ctx.quitarToma(k) }, t("toma.quitar")) : null,
-          el("button", { class: "epl-mini", onclick: () => ctx.elegir(null) }, t("comun.cerrar"))),
+          S.tomas > 1 ? el("button", { class: "epl-mini", title: t("toma.quitar.tooltip"), onclick: () => ctx.quitarToma(k) }, t("toma.quitar")) : null),
         titulo),
       el("div", { class: "epl-tres" },
         el("div", {}, el("b", {}, t("toma.direccion")),
@@ -394,7 +396,7 @@ export function instalar(ctx) {
                      toma.fijos, { largo: true, clase: "epl-medio epl-et-luz" }),
           campoLugar(toma),
           campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true })),
-        el("div", {}, el("b", {}, t("toma.refs")),
+        el("div", { class: "epl-col-refs" }, el("b", {}, t("toma.refs")),
           ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))]),
           el("p", { class: "epl-ayuda" }, t("toma.refs.ayuda")))),
       el("div", { class: "epl-linea-toma" }));
