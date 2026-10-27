@@ -115,7 +115,7 @@ export function instalar(ctx) {
     secTexto.replaceChildren(
       el("div", { class: "epl-texto-cab" }, el("b", {}, t("texto.rotulo")),
         el("button", { class: "epl-mini", title: t("texto.anadir.tooltip"),
-          onclick: () => anadir(S.elegida ? cortes()[S.elegida - 1] ?? 0 : 0) }, t("texto.anadir")),
+          onclick: () => anadir(S.elegida ? cortes()[S.elegida - 1] ?? 0 : 0) }, u.icono("mas"), " " + t("texto.anadir")),
         el("span", { class: "epl-ayuda" }, t("texto.ayuda"))),
       el("div", { class: "epl-texto-fila" }, pista, el("span", { class: "epl-hueco" })));
   };

@@ -146,7 +146,7 @@ export function instalar(ctx) {
     return el("div", { class: "epl-campo epl-destacado epl-g-refs" },
       el("span", {}, el("i", { class: "epl-icono" }, u.icono("enlace")), t("toma.efecto"),
         ops ? el("button", { class: "epl-mini epl-mas-ref", title: t("toma.efecto.mas.tooltip"),
-          onclick: () => conectar(toma, [...lista, ""]) }, "+") : null),
+          "aria-label": t("toma.efecto.mas.tooltip"), onclick: () => conectar(toma, [...lista, ""]) }, u.icono("mas")) : null),
       el("div", { class: "epl-ref-lista" }, ...filas),
       candado(toma.fijos, "efecto", () => ctx.pintarToma()));
   }
@@ -240,7 +240,7 @@ export function instalar(ctx) {
     return el("label", { class: "epl-campo epl-medio epl-et-encuadre" }, et(), entrada,
       el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
         onclick: () => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
-        t("toma.encuadre.menu")));
+        u.icono("menu"), " " + t("toma.encuadre.menu")));
   }
   /* el movimiento de cámara: el menú (MOVIMIENTOS) o un texto propio, como el encuadre. Lo que escribió el LLM y no está
    * en el menú se enseña como texto. */
@@ -261,7 +261,7 @@ export function instalar(ctx) {
     return el("label", { class: "epl-campo epl-medio epl-et-camara" }, et, entrada,
       el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
         onclick: () => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
-        t("toma.encuadre.menu")));
+        u.icono("menu"), " " + t("toma.encuadre.menu")));
   }
   /* el lugar de la toma con su selector de entorno (en lugar del candado): «Entorno auto» (lo escribe el LLM; si lo
    * escribes tú, pasa a manual), «Entorno manual» (fijo) o «Sin entorno» (no se escribe ningún lugar ni fondo, y la luz

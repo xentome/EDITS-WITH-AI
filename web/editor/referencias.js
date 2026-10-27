@@ -584,8 +584,8 @@ export function instalar(ctx) {
     const botones = (lado) => el("span", { class: "der" },
       wf.stack ? el("button", { class: "epl-boton epl-verde epl-anadir", onclick: () => ctx.abrirBiblioteca(lado, {
         alAnadir: (nombres) => { for (const n of nombres) if (S.refs[n]) S.refs[n].en_todas = lado === "izq"; ctx.pintarRefs(); ctx.pintarLinea(); ctx.pedirMontaje(); } }) },
-        t("referencias.anadir")) : null,
-      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, t("referencias.cajita")) : null);
+        u.icono("mas"), " " + t("referencias.anadir")) : null,
+      wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, u.icono("mas"), " " + t("referencias.cajita")) : null);
     // efectos de texto: tocar uno lo pone o lo quita en la toma elegida; sin toma elegida, se abre para cambiarlo
     const toma = S.elegida ? S.plan.tomas[S.elegida - 1] : null;
     const fichas = el("div", { class: "epl-efectos" }, el("span", { class: "epl-ayuda", style: { margin: 0 } }, t("referencias.efectos")),
@@ -599,7 +599,7 @@ export function instalar(ctx) {
           ctx.punto(c), e.nombre || e.ficha.split(/\s+/).slice(0, 4).join(" "),
           toma ? el("button", { class: "epl-mini", title: t("referencias.efecto.editar.tooltip"), onclick: (x) => { x.stopPropagation(); ctx.abrirEfecto(c); } }, u.icono("lapiz")) : null);
       }),
-      el("button", { class: "epl-mini", title: t("referencias.efecto.anadir.tooltip"), onclick: () => ctx.abrirEfecto(null) }, t("referencias.efecto.anadir")));
+      el("button", { class: "epl-mini", title: t("referencias.efecto.anadir.tooltip"), onclick: () => ctx.abrirEfecto(null) }, u.icono("mas"), " " + t("referencias.efecto.anadir")));
     const grupo = (g, lado, lista, extra) => {
       const caja2 = el("div", { class: "epl-grupo epl-grupo-" + g, "data-soltar-grupo": g, "data-soltar": t("referencias.pasar_a", { grupo: t(`referencias.${g}`) }) },
         el("div", { class: "epl-tit" }, el("span", { class: "epl-tit-txt" }, t(`referencias.${g}`)),

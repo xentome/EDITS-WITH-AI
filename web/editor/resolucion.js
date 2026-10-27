@@ -63,7 +63,7 @@ export function instalar(ctx) {
     iAlto.addEventListener("change", () => aplicar(ancho, iAlto.value));
     iMp.addEventListener("change", () => { const m = medidas(iMp.value, ancho / alto); aplicar(m.ancho, m.alto); });
     return el("div", { class: "epl-resolucion", title: t("resolucion.tooltip") },
-      el("button", { class: "epl-mini epl-girar", title: t("resolucion.girar.tooltip"), onclick: () => aplicar(alto, ancho) }, "⇅"),
+      el("button", { class: "epl-mini epl-girar", title: t("resolucion.girar.tooltip"), "aria-label": t("resolucion.girar.tooltip"), onclick: () => aplicar(alto, ancho) }, u.icono("girar")),
       el("div", { class: "epl-res-medidas" },
         el("label", {}, el("span", {}, t("resolucion.ancho")), iAncho),
         el("label", {}, el("span", {}, t("resolucion.alto")), iAlto)),
