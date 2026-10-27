@@ -104,8 +104,8 @@ body.tema-azul .epl-tomab.elegida{background:linear-gradient(to bottom right,#5c
 body.tema-azul .epl-fondo-grande{border-radius:22px !important;border-color:rgba(170,130,255,.14) !important;background:rgba(255,255,255,.02) !important}
 body.tema-azul .epl-fondo-vista{border-radius:18px !important}
 /* (26 oct) la historia general, completamente morado oscuro (más rojizo que el violeta): la tarjeta y sus campos */
-body.tema-azul .epl-sec.epl-s-historia{background:#441238 !important}
+body.tema-azul .epl-sec.epl-s-historia{background:#3a0c26 !important}
 body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-historia textarea,body.tema-azul .epl-sec.epl-s-historia select{
-  background:#270920 !important;border-color:#6a2258 !important;color:#fff0f8 !important}
-body.tema-azul .epl-sec.epl-s-historia input::placeholder,body.tema-azul .epl-sec.epl-s-historia textarea::placeholder{color:#c991b4 !important}
-body.tema-azul .epl-s-historia .epl-boton.epl-llm{background:#6c1f5e !important;color:#fff !important}
+  background:#210614 !important;border-color:#62183f !important;color:#fff0f5 !important}
+body.tema-azul .epl-sec.epl-s-historia input::placeholder,body.tema-azul .epl-sec.epl-s-historia textarea::placeholder{color:#c48fa6 !important}
+body.tema-azul .epl-s-historia .epl-boton.epl-llm{background:#651a42 !important;color:#fff !important}
