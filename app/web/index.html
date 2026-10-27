@@ -127,9 +127,23 @@ body .epl-sec{padding:10px 16px !important}
 body .epl-sec.epl-s-final{padding:6px 16px !important}
 .epl-s-final:not(:has(.epl-final)){display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .epl-s-final:not(:has(.epl-final))>*{margin:0}
-.epl-onda{height:60px}
+.epl-onda{height:50px}
+.epl-linea{height:66px}
+.epl-tomab{padding:4px 7px}
 .epl-audio>.epl-fila{margin:2px 0 0 !important}
-.epl-s-toma .epl-citas{max-height:4.8em;overflow:auto}
+.epl-s-toma .epl-citas{max-height:2.7em;overflow:auto}.epl-s-toma .epl-citas:focus{max-height:8em}
+.epl-s-toma .epl-g-accion textarea{min-height:2.7em}
+.epl-s-toma .epl-citas-caja{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px}.epl-s-toma .epl-citas{flex:1 0 100%}
+.epl-s-toma .epl-citas-caja .epl-marca-frase{margin:0}
+/* la cabecera en pantallas más estrechas (1440…): antes de que los botones salten de fila, se pliegan el aviso de guardado
+ * (con «…») y los estados (solo sus puntos, con el nombre en su título) y la etiqueta de la semilla */
+.max-cab>.max-fila{flex-wrap:nowrap}
+.max-cab .max-aviso{flex:1 1 0;min-width:40px;max-width:none}
+@media (max-width:1900px){
+  .max-salud span{font-size:0;gap:0}.max-salud span::before{font-size:12px;margin:0}
+  .max-semilla>span{display:none}
+}
+@media (max-width:1200px){.max-cab>.max-fila{flex-wrap:wrap}}
 /* la cara de cada fase, la etiqueta de pista (A1, A2…) y «recién pegada»: lo mínimo en todos los temas (casete.css las viste) */
 .max-fase-cara{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 .epl-pista{display:inline-flex;align-items:center;font:700 11px/1 ui-monospace,monospace;padding:2px 5px;border:1px solid currentColor;margin-right:6px}
@@ -147,7 +161,7 @@ body .epl-sec.epl-s-final{padding:6px 16px !important}
 <script>
   (() => {
     const LETRAS = {
-      casete: "family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Kalam:wght@700",
+      casete: "family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Gochi+Hand",
       trama: "family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600",
       azul: "",
     };
