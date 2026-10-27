@@ -1,13 +1,13 @@
-/* Editor de «Prompt del edit (LLM)»: la interfaz nueva (maqueta/interfaz.html). Planos: ../planos/4 El editor.md.
- * Una sola pantalla con 5 partes, de arriba abajo:
- *   1 · Historia general (idea, estilo, arco, luz y ambiente, fondo) → editor/plan.js
- *   2 · Prompt de la toma elegida (su línea [Shot n] y sus campos)   → editor/plan.js
+/* Editor de «Prompt del edit (LLM)»: la interfaz P10 (27 oct; planos/fases/8 Interfaz P10.md). Planos: ../planos/4 El editor.md.
+ * Una sola pantalla, de arriba abajo (ya no hay Historia general: la idea, el arco, la luz y el fondo general salieron):
+ *   2 · Prompt de la toma elegida (su línea [Shot n], sus campos y su estilo) → editor/plan.js
  *   3 · Referencias en dos mitades: lo que no cambia (rojo) y lo que se presta (azul), con cajitas
  *                                                                     → editor/referencias.js y editor/cajitas.js
  *       y en la ficha de cada referencia, «tapar con SAM 3.1»        → editor/tapar.js
- *   4 · Línea de tiempo (una cajita por toma, ancho = duración)      → editor/linea.js
+ *   4 · Línea de tiempo (una cajita por toma, ancho = duración; la duración del edit, en su título) → editor/linea.js
  *       debajo, la fila de texto (las palabras en pantalla, cada una en su momento) → editor/textos.js
  *       y debajo la ventana de audio (el tramo de la canción, y la canción entera en una línea delgada) → editor/audio.js
+ *       y abajo del todo, el sonido de todo el edit (overall_soundscape) → editor/plan.js (pintarSonido)
  *   5 · Prompt final (lo que recibe H3)                              → editor/final.js
  * El trabajo lo hace el servidor (rutas /edit_prompt_llm/*, nucleo.py); aquí solo se muestra, se edita y se guarda.
  * Este archivo solo junta las piezas de editor/. Todas comparten un objeto «ctx» con el estado (S), las referencias del
@@ -57,15 +57,16 @@ export async function abrir(node, app) {
   fondo.append(caja);
   const estado = el("span", { class: "epl-estado" });
   const sec = (clase) => el("section", { class: "epl-sec " + clase });
-  const secHistoria = sec("epl-s-historia"), secToma = sec("epl-s-toma"), secRefs = sec("epl-refs"),
+  const secToma = sec("epl-s-toma"), secRefs = sec("epl-refs"),
         secTiempo = sec("epl-s-linea"), secFinal = sec("epl-s-final");
-  // la parte 4 tiene tres filas: la fila de texto (textos.js), las tomas (linea.js) y la ventana de audio (audio.js)
+  // la parte 4 tiene cuatro filas: la fila de texto (textos.js), las tomas (linea.js), la ventana de audio (audio.js) y el
+  // sonido de todo el edit (plan.js), abajo del todo (27 oct)
   const secLinea = el("div", { class: "epl-zona-tomas" }), secTexto = el("div", { class: "epl-texto" }),
-        secAudio = el("div", { class: "epl-audio" });
-  secTiempo.append(secTexto, secLinea, secAudio);   // la fila de texto, encima de las tomas (26 oct)
+        secAudio = el("div", { class: "epl-audio" }), secSonido = el("div", { class: "epl-sonido" });
+  secTiempo.append(secTexto, secLinea, secAudio, secSonido);   // la fila de texto, encima de las tomas (26 oct)
 
   const ctx = { u, node, app, graph, S, wf, guardado, biblioteca: {}, cajitas: {}, caja,
-                secHistoria, secToma, secRefs, secLinea, secTexto, secAudio, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
+                secToma, secRefs, secLinea, secTexto, secAudio, secSonido, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
   ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
   // (los efectos de texto, E1, E2…, van con las referencias, con papel «efecto»)
@@ -140,6 +141,7 @@ export async function abrir(node, app) {
   await ctx.cargarBiblioteca();
   ctx.prepararRefs(guardado);
   migrarSinRecetas();
+  migrarP10();
   document.body.append(fondo);
 
   /* Estados guardados antes de quitar las recetas (v < 4): la receta se ignora (se avisa), los efectos G1–G4 / U3–U5 de
@@ -160,6 +162,19 @@ export async function abrir(node, app) {
       }
     });
     if (vaciadas.length) wf.avisos.push(["comun.migracion.efectos", { tomas: u.lista(vaciadas) }]);
+  }
+
+  /* Interfaz P10 (27 oct), sin Historia: el estilo general pasa a cada toma que no tenga el suyo; el arco, la luz y el
+   * fondo generales (ya no se ven) se vacían para que el prompt sea lo que se ve; el personaje empieza en «Principal»
+   * (en_todas) si nadie lo movió. */
+  function migrarP10() {
+    if ((S.estilo || "").trim()) {
+      for (const toma of S.plan.tomas) if (!(toma.estilo || "").trim()) toma.estilo = S.estilo.trim();
+      S.estilo = "";
+    }
+    for (const c of ["arco", "look", "fondo"]) S.plan[c] = "";
+    S.plan.fijos = (S.plan.fijos || []).filter((c) => !["arco", "look", "fondo"].includes(c));
+    for (const r of Object.values(S.refs)) if (r && r.en_todas === undefined) r.en_todas = r.papel === "personaje";
   }
 
   // ---- guardar en el nodo (si se eligió un tramo del audio, antes se escribe su recorte y el LoadAudio apunta a él)
@@ -229,7 +244,7 @@ export async function abrir(node, app) {
       el("button", { class: "epl-x", title: t("comun.cerrar_ventana"), onclick: cerrar }, "✕"));
   }
   pintarCabecera();
-  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secHistoria, secToma, secRefs, secTiempo, secFinal));
+  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secToma, secRefs, secTiempo, secFinal));
   ctx.pintarPlan();
   ctx.pintarRefs();
   ctx.pintarFinal();

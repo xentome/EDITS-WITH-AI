@@ -25,12 +25,6 @@ export const CSS = `
   border:1px solid #2e3440;border-radius:calc(var(--radio) * 5px);padding:4px 6px;font:inherit}
 .epl-sec textarea,.epl-modal textarea{resize:vertical}
 input.corto{width:70px}
-/* 1 · historia general: rojo oscuro opaco con letras blancas, para que resalte */
-.epl-sec.epl-s-historia{background:#5a1a1a;border-color:#7a2c2c;color:#fff}
-.epl-s-historia .epl-tit,.epl-s-historia .epl-ajustes,.epl-s-historia .epl-campo>span{color:#fff}
-.epl-s-historia input,.epl-s-historia textarea,.epl-s-historia select{background:#2a0e0e;color:#fff;border-color:#8a3a3a}
-.epl-s-historia input::placeholder,.epl-s-historia textarea::placeholder{color:#c9a3a3}
-.epl-historia{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
 .epl-ajustes{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;color:#9aa3b2}
 .epl-ajustes input.palabras{width:200px}
 /* campos con candado */
@@ -275,4 +269,40 @@ textarea.epl-final{min-height:40vh}
   padding:3px 4px 3px 9px;color:#fff;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.7)}
 .epl-cruz .pregunta button{border:0;border-radius:calc(var(--radio) * 10px);padding:3px 10px;font-size:12px;cursor:pointer;color:#fff}
 .epl-cruz .pregunta .si{background:#b33a3a}.epl-cruz .pregunta .no{background:#3a4658}
+/* ---- Interfaz P10 (27 oct, planos/fases/8): sin Historia, todo en una pantalla. El panel de la toma, compacto: textos de
+ * 1–2 filas, las etiquetas de Escena al lado de su campo, la vista del fondo de 200 px y su línea del prompt plegada */
+.epl-cuerpo{gap:8px;padding:8px 1.5%}
+.epl-s-toma .epl-tit{margin-bottom:4px}
+.epl-s-toma .epl-tres>div>b{margin:0 0 2px}
+.epl-s-toma textarea,.epl-s-toma .epl-citas{min-height:2.3em}
+.epl-campo{margin:2px 0}
+.epl-destacado{margin:3px 0}
+.epl-destacado>span:first-child{padding:4px 10px !important}
+.epl-g-accion>span:first-child{font-size:13px;padding:5px 12px !important}
+.epl-g-accion textarea{font-size:13px;min-height:3.2em}
+.epl-medio{grid-template-columns:148px minmax(0,1fr) 26px !important;margin:3px 0;align-items:center}
+.epl-medio>span:first-child{grid-column:auto;font-size:12px;padding:2px 10px !important}
+.epl-s-toma .epl-campo>span{padding-top:3px}
+.epl-campo-lugar .epl-entorno{margin:0 0 2px 92px}
+.epl-fondo-grande{margin:2px 0 4px;padding:8px}
+.epl-fondo-vista{min-height:120px;max-height:200px}
+.epl-linea-plegable{margin-top:4px;background:#12151b;border:1px solid #2e3440;border-radius:calc(var(--radio) * 6px)}
+.epl-linea-plegable>summary{display:flex;align-items:baseline;gap:10px;cursor:pointer;padding:4px 8px;list-style:none;min-width:0}
+.epl-linea-plegable>summary::-webkit-details-marker{display:none}
+.epl-linea-et{flex:none;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8a93a3}
+.epl-linea-plegable .epl-linea-toma{flex:1;min-width:0;margin:0 !important;padding:0;border:0;background:none}
+.epl-linea-plegable:not([open]) .epl-linea-toma{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* la duración, en el título de la línea de tiempo: segundos = fotogramas, los dos arrastrables (↔) o escribibles */
+.epl-duracion{display:inline-flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:12px;color:#cfd6e4;
+  background:#12151b;border:1.5px solid #3d4a5c;border-radius:calc(var(--radio) * 8px);padding:2px 8px}
+.epl-dur-et{color:#8a93a3}
+.epl-dur-num{cursor:ew-resize;user-select:none;touch-action:none;font:600 13px ui-monospace,monospace;color:#fff;padding:1px 6px;
+  border-radius:calc(var(--radio) * 5px);background:rgba(255,255,255,.06)}
+.epl-dur-num:hover,.epl-dur-num.arrastrando,.epl-dur-num:focus-visible{background:#2f62c4;outline:none}
+.epl-dur-igual{color:#8a93a3}
+.epl-dur-entrada{width:72px;font:600 13px ui-monospace,monospace}
+/* el sonido de todo el edit, abajo del todo */
+.epl-sonido{margin-top:6px}
+.epl-sonido-campo{grid-template-columns:110px minmax(0,1fr) !important;align-items:center}
+.epl-sonido-campo>span{padding-top:0 !important}
 `;

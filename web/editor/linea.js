@@ -3,11 +3,19 @@
  * iluminan sus referencias); el + añade una toma y la ✕ de cada toma la quita (pide confirmar). El borde entre dos tomas
  * se arrastra: una se alarga y la otra se acorta (mínimo 0,4 s, al fotograma) y, con «pegar a los beats», al soltar se va
  * al beat más cercano (±0,15 s). Los cortes movidos a mano se guardan en el plan (plan.cortes) y el montaje los usa.
+ * La duración del edit se decide aquí (27 oct): junto al título, los segundos y los fotogramas de H3. Los dos se arrastran
+ * (↔: a la derecha alarga, a la izquierda acorta, de un valor válido de H3 al siguiente, 17·k + 5) y, con un clic sin
+ * arrastrar, se escriben a mano (se ponen en el valor válido más cercano).
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Planos: ../../planos/4 El editor.md. */
 
 export const COLORES = ["#f4d35e", "#7bd389", "#6ec5e9", "#f28f8f", "#c39bd3", "#f5b971", "#9ad1c9", "#e6a0c4"];
 export const MIN_TOMA = 0.4, FPS = 24, IMAN = 0.15, MAX_TOMAS = 24;   // MAX_TOMAS: el mismo máximo que el campo «tomas» del nodo
 export const alFotograma = (t) => Math.round(Math.round(t * FPS) / FPS * 1000) / 1000;
+// la duración en la línea de tiempo: fotogramas válidos de H3 (17·k + 5) entre 22 (0,917 s) y 277 (11,542 s, por debajo de
+// los 12 s del campo duracion_s del nodo); cada paso del arrastre (PASO_PX píxeles) es un valor válido más o menos
+export const F_MIN = 22, F_MAX = 277, PASO_F = 17, PASO_PX = 10;
+export const fValido = (f) => Math.max(F_MIN, Math.min(F_MAX, 17 * Math.max(0, Math.round((f - 5) / 17)) + 5));
+export const segundosDe = (f) => Math.round(f / FPS * 1000) / 1000;
 
 /* El borde i (entre la toma i y la i+1) puesto en t: dentro de sus vecinos con 0,4 s a cada lado, al fotograma y, si
  * «pegar» y hay un beat a ±0,15 s que quepa, en ese beat. Devuelve los cortes nuevos (no cambia los de entrada). */
@@ -37,7 +45,7 @@ export function quitarDeCortes(cortes, dur, k) {
 /* Añade ctx.pintarLinea, ctx.elegir, ctx.cambiarTomas, ctx.anadirToma, ctx.quitarToma, ctx.moverCorte, ctx.cortesAuto.
  * Usa de ctx: u, S, secLinea, guardado, ajustarPlan, avisar, pedirMontaje, pintarPlan, pintarToma, pintarRefs. */
 export function instalar(ctx) {
-  const { u, S, secLinea } = ctx;
+  const { u, S, secLinea, caja } = ctx;
   const { el, t } = u;
   S.pegarBeats = ctx.guardado?.pegar_beats ?? true;
 
@@ -100,8 +108,8 @@ export function instalar(ctx) {
       if (caben) S.plan.cortes = nuevos; else delete S.plan.cortes;
     }
     S.cortes = [];
-    ctx.pintarHistoria?.();
     ctx.pintarLinea();
+    ctx.pintarAudio?.();          // el tramo de la canción dura lo mismo que el edit
     ctx.pedirMontaje();
   };
   ctx.cortesAuto = function cortesAuto() {
@@ -116,6 +124,70 @@ export function instalar(ctx) {
     return S.cortes.length === n ? S.cortes.slice() : Array.from({ length: n }, (_, i) => alFotograma(S.duracion * i / n));
   };
   const seg = (x) => u.num(x, 2);
+
+  /* el recuadro de la duración: los segundos y los fotogramas. Pulsar y arrastrar cambia de un valor válido al siguiente
+   * (cursor ↔); soltar lo aplica. Un clic sin arrastrar (o Intro con el foco) lo vuelve un campo para escribir. */
+  function recuadroDuracion() {
+    const f0 = fValido(ctx.duracion.fotogramasH3(S.duracion));
+    const numero = (tipo) => {
+      const texto = (f) => tipo === "s" ? t("linea.duracion.s", { s: u.num(segundosDe(f), 3) }) : t("linea.duracion.f", { f });
+      const b = el("span", { class: "epl-dur-num", tabindex: 0, role: "spinbutton", "data-dur": tipo, "aria-valuenow": tipo === "s" ? segundosDe(f0) : f0,
+                             title: t("linea.duracion.tooltip") }, texto(f0));
+      let arr = null;
+      b.addEventListener("pointerdown", (e) => {
+        if (e.button > 0) return;
+        try { b.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
+        arr = { id: e.pointerId, x: e.clientX, f: f0, movido: false };
+        e.preventDefault();
+      });
+      b.addEventListener("pointermove", (e) => {
+        if (!arr || e.pointerId !== arr.id) return;
+        const pasos = Math.trunc((e.clientX - arr.x) / PASO_PX);
+        if (!arr.movido && Math.abs(e.clientX - arr.x) < 4) return;
+        arr.movido = true;
+        b.classList.add("arrastrando");
+        arr.f = fValido(f0 + pasos * PASO_F);
+        caja.querySelectorAll(".epl-dur-num").forEach((x) => { x.textContent = x.dataset.dur === "s"
+          ? t("linea.duracion.s", { s: u.num(segundosDe(arr.f), 3) }) : t("linea.duracion.f", { f: arr.f }); });
+      });
+      const soltar = (e) => {
+        if (!arr || e.pointerId !== arr.id) return;
+        const { movido, f } = arr;
+        arr = null;
+        b.classList.remove("arrastrando");
+        if (movido) { if (f !== f0) ctx.cambiarDuracion(segundosDe(f)); }
+        else escribir(b, tipo);
+      };
+      b.addEventListener("pointerup", soltar);
+      b.addEventListener("pointercancel", soltar);
+      b.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); escribir(b, tipo); }
+        if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); ctx.cambiarDuracion(segundosDe(fValido(f0 + PASO_F))); }
+        if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); ctx.cambiarDuracion(segundosDe(fValido(f0 - PASO_F))); }
+      });
+      return b;
+    };
+    // escribir el número a mano: segundos (con coma o punto) o fotogramas; Intro o salir lo aplica, Escape lo deja
+    const escribir = (b, tipo) => {
+      const entrada = el("input", { class: "epl-dur-entrada", "data-dur": tipo, inputmode: "decimal",
+                                    value: tipo === "s" ? u.num(segundosDe(f0), 3) : String(f0) });
+      let hecho = false;
+      const aplicar = (si) => {
+        if (hecho) return;
+        hecho = true;
+        const x = parseFloat(entrada.value.replace(",", "."));
+        const f = !si || !(x > 0) ? f0 : fValido(tipo === "s" ? x * FPS : x);
+        if (f !== f0) ctx.cambiarDuracion(segundosDe(f)); else ctx.pintarLinea();
+      };
+      entrada.addEventListener("keydown", (e) => { if (e.key === "Enter") aplicar(true); if (e.key === "Escape") aplicar(false); });
+      entrada.addEventListener("blur", () => aplicar(true));
+      b.replaceWith(entrada);
+      entrada.focus();
+      entrada.select();
+    };
+    return el("span", { class: "epl-duracion", title: t("linea.duracion.tooltip") },
+      el("span", { class: "epl-dur-et" }, t("linea.duracion")), numero("s"), el("span", { class: "epl-dur-igual" }, "="), numero("f"));
+  }
 
   ctx.pintarLinea = function pintarLinea() {
     const n = S.tomas, dur = +S.duracion;
@@ -184,7 +256,7 @@ export function instalar(ctx) {
     colocar(ini);
     const manual = S.plan.cortes?.length === n;
     secLinea.replaceChildren(
-      el("div", { class: "epl-tit" }, t(n === 1 ? "linea.titulo_una" : "linea.titulo_varias", { n, dur: u.num(dur, 2) }),
+      el("div", { class: "epl-tit" }, t(n === 1 ? "linea.titulo_una" : "linea.titulo_varias", { n }), recuadroDuracion(),
         manual ? el("span", { class: "epl-marca" }, t("linea.a_mano")) : null,
         el("span", { class: "der epl-ayuda", style: { margin: 0 } },
           el("label", { class: "epl-pegar", title: t("linea.pegar.tooltip") },

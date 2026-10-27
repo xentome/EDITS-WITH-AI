@@ -1,8 +1,10 @@
 /* Secciones 1 y 2 del editor: el PLAN (lo que lee y extiende el LLM).
- * 1 · Historia general: idea, estilo, arco, luz y ambiente, fondo general y los campos del nodo (tomas, duración…).
- * 2 · Prompt de la toma elegida en la línea de tiempo: su línea [Shot n] y todos sus campos, con candado, el efecto (de
- *     las referencias de papel efecto o de los efectos de texto) y su frase (↺ vuelve a la ficha del efecto), las
- *     referencias que usa y «rehacer esta toma».
+ * Desde el 27 oct (interfaz P10, planos/fases/8) ya no hay Historia general: la idea, el arco, la luz general, el fondo
+ * general, el número de tomas y la semilla del LLM salieron de la ventana; la duración va en la línea de tiempo (linea.js),
+ * el estilo es de cada toma y el sonido va abajo del todo (ctx.pintarSonido).
+ * Prompt de la toma elegida en la línea de tiempo: su línea [Shot n] (plegada en una línea) y todos sus campos, con
+ *     candado, el efecto (de las referencias de papel efecto o de los efectos de texto) y su frase (↺ vuelve a la ficha del
+ *     efecto), su estilo, las referencias que usa y «rehacer esta toma».
  * También los botones que llaman al LLM (ctx.conLLM). Solo exporta funciones (ComfyUI importa todos los .js de web/).
  * Las utilidades llegan en ctx.u, sin imports, para que este archivo también se recargue al abrir la ventana. Los textos,
  * con u.t("clave") (web/i18n/*.json); cada pintar… los vuelve a escribir en el idioma de ahora.
@@ -22,7 +24,7 @@ const HISTORIA = ["lugar", "momento", "personaje", "ropa", "pose", "objeto", "lu
 const DIRECCION = ["encuadre", "luz", "gesto", "camara"];
 
 const tomaVacia = () => ({ ...Object.fromEntries([...HISTORIA, ...DIRECCION].map((c) => [c, ""])), efectos: [], efecto_frase: "",
-                           entorno: "auto", fijos: [] });
+                           estilo: "", entorno: "auto", fijos: [] });
 // las referencias que conecta la toma (como nucleo.con_efectos): «efecto» es la primera, la que lee y escribe el LLM; si
 // el usuario no fijó el efecto, la lista sigue al LLM
 function conEfectos(t) {
@@ -48,14 +50,14 @@ export function ajustarPlan(plan, n) {
   return p;
 }
 
-/* Añade a ctx: conLLM, pintarHistoria, pintarToma, pintarLineaToma, pintarPlan. Usa de ctx: u, S, wf, caja, secHistoria,
+/* Añade a ctx: conLLM, pintarSonido, pintarToma, pintarLineaToma, pintarPlan. Usa de ctx: u, S, wf, caja, secSonido,
  * secToma, avisar, cuerpo, pedirMontaje, pintarRefs, pintarLinea, quitarToma, elegir, resaltar. */
 export function instalar(ctx) {
-  const { u, S, wf, caja, secHistoria, secToma } = ctx;
+  const { u, S, wf, caja, secSonido, secToma } = ctx;
   const { el, api, t } = u;
 
   // ---- acciones con el LLM (Escribir historia, Escribir tomas, rehacer una toma)
-  // `tarea` es la clave del texto («final.escribiendo_historia») y `datos` sus marcadores
+  // `tarea` es la clave del texto («final.escribiendo_tomas») y `datos` sus marcadores
   ctx.conLLM = async function conLLM(tarea, ruta, extra, datos = {}) {
     if (S.ocupado) return;
     S.ocupado = true;
@@ -221,7 +223,7 @@ export function instalar(ctx) {
 
   /* el encuadre: el menú (ENCUADRES) o, con «✎ escribir el mío», un texto propio (queda fijo y se pega tal cual). Un
    * encuadre que no está en el menú se enseña ya como texto; «≡ menú» vuelve al menú. */
-  let encuadrePropio = false, tomaPintada = null;   // (camaraPropia, más abajo, se olvida igual al cambiar de toma)
+  let encuadrePropio = false, tomaPintada = null, lineaAbierta = false;   // (camaraPropia, más abajo, se olvida igual al cambiar de toma)
   function campoEncuadre(toma) {
     const et = () => letrero(t("toma.encuadre"), "", "🖼️");
     const propio = encuadrePropio || (toma.encuadre && !ENCUADRES.includes(toma.encuadre));
@@ -287,47 +289,19 @@ export function instalar(ctx) {
       el("label", { class: "epl-campo" }, el("span", {}, t("toma.lugar")), entrada), botones);
   }
 
-  // ---- 1 · historia general
-  ctx.pintarHistoria = function pintarHistoria() {
-    const p = S.plan;
-    const f = ctx.duracion.fotogramasH3(S.duracion), sH3 = ctx.duracion.segundosH3(S.duracion);
-    secHistoria.replaceChildren(
-      el("div", { class: "epl-tit" }, t("historia.titulo"),
-        el("button", { class: "epl-boton epl-llm", title: t("final.escribir_historia.tooltip"),
-          onclick: () => ctx.conLLM("final.escribiendo_historia", "historia") }, t("final.escribir_historia")),
-        el("span", { class: "der epl-ajustes" },
-          el("label", {}, t("historia.tomas") + " ", el("input", { type: "number", min: 1, max: 24, value: S.tomas, class: "corto",
-            onchange: (e) => ctx.cambiarTomas(+e.target.value) })),
-          el("label", { title: t("historia.duracion.tooltip") },
-            t("historia.duracion") + " ", el("input", { type: "number", step: 0.001, value: S.duracion, class: "corto", "data-campo": "duracion",
-              onchange: (e) => ctx.cambiarDuracion(+e.target.value) }),
-            el("span", { class: "epl-h3-f" }, " " + (Math.abs(sH3 - S.duracion) > 1 / 48
-              ? t("historia.h3_f_aviso", { f, s: u.num(sH3, 3) }) : t("historia.h3_f", { f })))),
-          el("label", {}, t("historia.semilla") + " ", el("input", { type: "number", value: S.semilla, class: "corto",
-            onchange: (e) => { S.semilla = +e.target.value; ctx.programarGuardado(); } })))),
-      el("div", { class: "epl-historia" },
-        el("div", {},
-          el("label", { class: "epl-campo ancho" }, el("span", {}, t("historia.idea")),
-            el("textarea", { rows: 3, "data-campo": "idea", placeholder: t("comun.idea_ayuda"),
-              oninput: (e) => { S.idea = e.target.value; ctx.programarGuardado(); } }, S.idea)),
-          el("label", { class: "epl-campo ancho", title: t("historia.estilo.tooltip") },
-            el("span", {}, t("historia.estilo")),
-            el("textarea", { rows: 2, "data-campo": "estilo", placeholder: t("historia.estilo.placeholder"),
-              oninput: (e) => { S.estilo = e.target.value; ctx.pedirMontaje(); } }, S.estilo)),
-          el("label", { class: "epl-campo ancho", title: t("historia.sonido.tooltip") },
-            el("span", {}, t("historia.sonido")),
-            el("textarea", { rows: 1, "data-campo": "sonido", placeholder: t("historia.sonido.placeholder"),
-              oninput: (e) => { S.sonido = e.target.value; ctx.pedirMontaje(); } }, S.sonido))),
-        el("div", {},
-          campoTexto(p, "arco", t("historia.arco"), p.fijos, { ayuda: t("historia.arco.ayuda") }),
-          campoTexto(p, "look", t("historia.look"), p.fijos, { ayuda: t("historia.look.ayuda") }),
-          campoTexto(p, "fondo", t("historia.fondo"), p.fijos, { ayuda: t("historia.fondo.ayuda") }))));
+  // ---- el sonido de todo el edit: un renglón al final de la pestaña (27 oct). Va tal cual a overall_soundscape; vacío,
+  // la frase «sonido» de frases.json
+  ctx.pintarSonido = function pintarSonido() {
+    secSonido?.replaceChildren(el("label", { class: "epl-campo ancho epl-sonido-campo", title: t("linea.sonido.tooltip") },
+      el("span", {}, el("i", { class: "epl-icono" }, "🔊"), t("linea.sonido")),
+      el("input", { "data-campo": "sonido", placeholder: t("linea.sonido.placeholder"), value: S.sonido,
+                    oninput: (e) => { S.sonido = e.target.value; ctx.pedirMontaje(); } })));
   };
 
   // ---- 2 · prompt de la toma elegida
   const lineaDe = (k) => (S.prompt.match(new RegExp(`^\\[Shot ${k}\\].*$`, "m")) || [""])[0];
   ctx.pintarLineaToma = function pintarLineaToma() {
-    const caja2 = secToma.querySelector(".epl-linea-toma");
+    const caja2 = secToma.querySelector(".epl-linea-toma");   // dentro de un <details>: plegada, una sola línea
     if (!caja2 || !S.elegida) return;
     // el título lleva los segundos de la toma, que llegan con el montaje (al abrir aún no estaban)
     const tit = secToma.querySelector(".epl-tit-toma"), a = S.cortes[S.elegida - 1], z = S.cortes[S.elegida] ?? S.duracion;
@@ -385,7 +359,7 @@ export function instalar(ctx) {
       el("div", { class: "epl-tres" },
         el("div", {}, el("b", {}, t("toma.direccion")),
           campoTexto(toma, "momento", el("span", {}, el("i", { class: "epl-icono" }, "🎬"), t("toma.momento")), toma.fijos,
-                     { largo: true, filas: 4, clase: "epl-destacado epl-g-accion", ayuda: t("toma.momento.ayuda") }),
+                     { largo: true, filas: 2, clase: "epl-destacado epl-g-accion", ayuda: t("toma.momento.ayuda") }),
           campoReferencias(toma),
           campoEfectoRef(toma)),
         // encuadre, cámara y luz, a la derecha de la acción (26 oct), con un título intermedio: borde de color
@@ -393,18 +367,23 @@ export function instalar(ctx) {
           campoEncuadre(toma),
           campoCamara(toma),
           campoTexto(toma, "luz", el("span", {}, el("i", { class: "epl-icono" }, "💡"), t(ninguno ? "toma.luz_opcional" : "toma.luz")),
-                     toma.fijos, { largo: true, clase: "epl-medio epl-et-luz" }),
+                     toma.fijos, { largo: true, filas: 1, clase: "epl-medio epl-et-luz" }),
           campoLugar(toma),
-          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true })),
+          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true, filas: 1 }),
+          // el estilo de esta toma (27 oct): vacío = el de las referencias de papel estilo
+          campoTexto(toma, "estilo", letrero(t("toma.estilo"), "", "🎨"), toma.fijos,
+                     { largo: true, filas: 1, clase: "epl-medio epl-et-estilo", ayuda: t("toma.estilo.placeholder") })),
         el("div", { class: "epl-col-refs" }, el("b", {}, t("toma.refs")),
           ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))]),
           el("p", { class: "epl-ayuda" }, t("toma.refs.ayuda")))),
-      el("div", { class: "epl-linea-toma" }));
+      // la línea de la toma en el prompt, plegada en una línea (se abre al tocarla); se recuerda abierta o cerrada
+      el("details", { class: "epl-linea-plegable", open: lineaAbierta, ontoggle: (e) => { lineaAbierta = e.target.open; } },
+        el("summary", { title: t("toma.linea.tooltip") }, el("span", { class: "epl-linea-et" }, t("toma.linea")), el("span", { class: "epl-linea-toma" }))));
     ctx.pintarLineaToma();
   };
 
   ctx.pintarPlan = function pintarPlan() {
-    ctx.pintarHistoria();
+    ctx.pintarSonido();
     ctx.pintarToma();
     ctx.pintarLinea();
   };
