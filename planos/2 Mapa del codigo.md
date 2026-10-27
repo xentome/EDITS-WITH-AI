@@ -37,6 +37,27 @@ Lectura: 3 min
 
 Las piezas de `web/editor/` comparten un objeto `ctx` (estado, referencias y funciones). No se importan entre sí: `editor_core.js` las carga todas. ComfyUI importa también cada `.js` de `web/` al abrir la página, así que una pieza solo puede exportar funciones; nada se ejecuta al importarla.
 
+## La app MAX EDITOR (`app/`)
+
+La ventana de arriba, a pantalla completa y sin ComfyUI abierto; el video sale por el SDK de Comfy. Plano: [fase 6](fases/6%20La%20app%20MAX%20EDITOR.md). Instalar y usar: `app/LEEME.md`.
+
+| Archivo | Qué tiene |
+|---|---|
+| `app/servidor.py` | El servidor (aiohttp, 127.0.0.1:8300): la página, los archivos de `web/` sin copiarlos, las acciones del editor (por el trabajador), reenvíos a ComfyUI (`/view`, `/upload/image`, `/minimax_h3/*`) y las rutas `/app/*` (plantilla, proyectos, generar, trabajo, videos, salud). Lee la configuración; `--config` la imprime en JSON. El proyecto `ejemplo` es de solo lectura (403). |
+| `app/trabajador.py` | Proceso aparte con el Python de ComfyUI: hace `rutas.ACCIONES` sin cargar ComfyUI. Habla con el servidor por stdin/stdout en JSON. |
+| `app/carpetas.py` | El `folder_paths` de la app: input, output, temp y models de ComfyUI. |
+| `app/generar.py` | Copia los valores en la plantilla, pone el prompt, quita el nodo PromptDelEdit y lo lanza con `comfy-sdk`; avance, cancelar e historial. |
+| `app/plantillas/edit_h3.api.json` y `LEEME.md` | El workflow H3 en formato API; el LEEME lista sus nodos, custom nodes y modelos. |
+| `app/web/index.html`, `app.js` | La página: cabecera (proyecto, salud, semilla, Generar, videos, idioma) y la ventana del nodo debajo. Elegir el ejemplo crea una copia («mi ejemplo»). |
+| `app/web/grafo_falso.js` | El «grafo de mentira» que la ventana lee como si fuera el lienzo: `construir`, `valoresDe`, `ponerValores`. |
+| `app/config.json` | Valores por defecto; encima `config.local.json` (no va a git) y las variables `MAX_EDITOR_<CLAVE>`. |
+| `app/proyectos/` | Un JSON por proyecto. Solo `ejemplo.json` va a git. |
+| `app/salidas/` | Los videos (no van a git). |
+| `app/instalar.sh` | Crea `app/.venv` (uv o `python3 -m venv`) con `requirements.txt` y comprueba el Python de ComfyUI y ffmpeg. `--comfyui DIR`, `--escritorio`. |
+| `app/arrancar.sh`, `parar.sh`, `_comun.sh` | Arrancar con un clic (mira ComfyUI y el LLM, arranca proxy y servidor, abre el navegador; `--reiniciar`, `--sin-navegador`) y parar (servidor y proxy; `--solo-app`). `_comun.sh` es lo que comparten. |
+| `app/requirements.txt`, `requirements-comfyui.txt` | El entorno de la app (versiones fijas) y lo que necesita el trabajador en el Python de ComfyUI (mínimos). |
+| `app/pruebas/prueba_generar.py` | Prueba de `generar.py` por línea de órdenes (seca o con render). |
+
 ## Las funciones de entrada
 
 - `escribir_historia(entradas, plan, beats, semilla)` → plan con la historia escrita.

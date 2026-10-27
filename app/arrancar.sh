@@ -69,7 +69,9 @@ else
     exit 1
   fi
   decir "… arrancando la app (log: app/servidor.log)" "… starting the app (log: app/servidor.log)"
-  (cd "$REPO" && nohup "$PY" "$APP/servidor.py" >> "$APP/servidor.log" 2>&1 & echo $! > "$PID_SERVIDOR")
+  cd "$REPO" || exit 1
+  nohup "$PY" "$APP/servidor.py" >> "$APP/servidor.log" 2>&1 &
+  echo $! > "$PID_SERVIDOR"                                  # el pid del propio servidor (para parar.sh)
   for _ in $(seq 1 40); do responde "$APP_URL/app/salud" && break; sleep 0.5; done
   if responde "$APP_URL/app/salud"; then
     decir "✓ La app corre en $APP_URL" "✓ The app is running at $APP_URL"
