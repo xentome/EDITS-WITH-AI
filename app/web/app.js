@@ -4,6 +4,8 @@
  *   - Proyecto = app/proyectos/<nombre>.json con {valores: {id: {campo: valor}}} (solo lo que cambia respecto a la plantilla).
  *   - El autoguardado de la ventana escribe en los widgets del nodo de mentira; al terminar, la app guarda el proyecto.
  *   - Generar: POST /app/generar con todos los valores y la semilla; el avance se pide cada segundo a /app/trabajo/<id>.
+ *   - La barra de fases (27 oct, interfaz P10): «1 Tomas y referencias | 2 Retocar», a todo el ancho encima de la ventana,
+ *     cada una con su mini estado; la elegida se ve (la otra se oculta) y se recuerda en este navegador.
  *   - El ejemplo (app/proyectos/ejemplo.json) va en git y es de solo lectura: elegirlo crea una copia («mi ejemplo») y abre
  *     esa. Así abrirlo nunca reescribe el archivo (el estado lleva la hora de guardado). */
 import { construir, valoresDe, nodoDelEdit, nodoPorTipo, campo } from "./grafo_falso.js";
@@ -15,7 +17,7 @@ const retocarJS = await import("./retocar.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
-const GUARDA_IDIOMA = "max-editor-idioma", GUARDA_PROYECTO = "max-editor-proyecto";
+const GUARDA_IDIOMA = "max-editor-idioma", GUARDA_PROYECTO = "max-editor-proyecto", GUARDA_FASE = "max-editor-fase";
 const EJEMPLO = "ejemplo";                                 // el proyecto de ejemplo del repo: solo se lee (servidor.py)
 const leerLocal = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const ponerLocal = (k, x) => { try { localStorage.setItem(k, x); } catch { /* sin almacenamiento: solo esta sesión */ } };
@@ -38,7 +40,8 @@ async function pedir(ruta, cuerpo) {
 
 // ---- estado de la app
 const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", guardadoJSON: "", proyectos: [], salud: {},
-            trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null };
+            trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null,
+            fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas" };
 
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
 const retoque = retocarJS.crear({ el, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
@@ -90,6 +93,40 @@ function pintarCabecera() {
       t("app.videos.boton", { n: A.videos.length })),
     el("span", { class: "max-grupo max-idioma", title: t("comun.idioma.tooltip") }, idioma("es", "ES"), idioma("en", "EN")));
   pintarAvance();
+  pintarFases();
+}
+
+/* ---- la barra de fases: dos bloques a todo el ancho. «Tomas y referencias» cuenta tomas, referencias y conexiones (con
+ * los puntos de color de cada referencia y cuántas secundarias no van en ninguna toma); «Retocar», los retoques hechos.
+ * La activa es más ancha y dice «estás aquí»; la otra parte de la ventana se oculta (clase fase-… en .epl-cuerpo). */
+const barraFases = el("nav", { class: "max-fases" });
+function ponerFase(f) {
+  A.fase = f;
+  ponerLocal(GUARDA_FASE, f);
+  pintarFases();
+  if (f === "retocar") retoque.pintar();
+}
+function pintarFases() {
+  const ctx = A.ctx, cuerpo = document.querySelector(".epl-fondo .epl-cuerpo");
+  barraFases.setAttribute("aria-label", t("app.fases.titulo"));
+  if (!ctx || !cuerpo) return barraFases.replaceChildren();
+  if (barraFases.parentNode !== cuerpo || cuerpo.firstChild !== barraFases) cuerpo.prepend(barraFases);
+  cuerpo.classList.toggle("fase-tomas", A.fase === "tomas");
+  cuerpo.classList.toggle("fase-retocar", A.fase === "retocar");
+  const S = ctx.S, lista = ctx.wf.lista, n = S.plan.tomas.length;
+  const conexiones = S.plan.tomas.reduce((x, _, i) => x + (ctx.refsDeToma?.(i + 1) || []).length, 0);
+  const sinToma = lista.filter((r) => !ctx.enTodas?.(r.clave) && !S.plan.tomas.some((_, i) => (ctx.refsDeToma?.(i + 1) || []).includes(r.tag))).length;
+  const retoques = A.videos.filter((x) => x.tipo === "retoque").length;
+  const bloque = (f, num, estado) => el("button", { class: "max-fase" + (A.fase === f ? " activa" : ""), "aria-current": A.fase === f ? "step" : null,
+                                                    "data-fase": f, onclick: () => ponerFase(f) },
+    el("span", { class: "max-fase-cab" }, el("span", { class: "max-fase-num" }, num), el("span", { class: "max-fase-nombre" }, t(`app.fases.${f}`)),
+      A.fase === f ? el("span", { class: "max-fase-aqui" }, t("app.fases.aqui")) : null),
+    el("span", { class: "max-fase-estado" }, ...estado));
+  barraFases.replaceChildren(
+    bloque("tomas", "1", [el("span", {}, t("app.fases.estado_tomas", { n, r: lista.length, c: conexiones })),
+      el("span", { class: "max-fase-puntos" }, ...lista.map((r) => ctx.punto ? ctx.punto(r.tag) : null)),
+      sinToma ? el("span", { class: "max-fase-aviso" }, t("app.fases.sin_toma", { n: sinToma })) : null]),
+    bloque("retocar", "2", [el("span", {}, t("app.fases.retoques", { n: retoques }))]));
 }
 
 async function cambiarIdioma(i) {
@@ -159,10 +196,12 @@ async function abrirProyecto(nombre, valores = null) {
     const ctx = A.ctx;
     ctx.guardarYa = () => guardarVentana().then(() => ctx === A.ctx && guardarProyecto())
       .catch((e) => avisar(t("app.proyecto.error_guardar", { error: e.message }), "mal"));
+    ctx.alMontar = () => { if (ctx === A.ctx) pintarFases(); };
     document.getElementById("cargando")?.remove();
     avisar(t("app.proyecto.abierto", { nombre }), "bien");
     await cargarVideos();
     retoque.colocar();                                    // debajo de «Prompt final», en la ventana nueva
+    pintarFases();                                        // la barra de fases, arriba del todo de la ventana
     await retoque.alAbrirProyecto();
   } catch (e) {
     avisar(t("app.proyecto.error_abrir", { nombre, error: e.message }), "mal");
@@ -252,7 +291,8 @@ async function seguir(id) {
       await cargarVideos();
       A.videoActual = A.avance.video;
       pintarVideos();
-      await retoque.cargar(A.avance.video);               // el clip nuevo, en la línea de tiempo de «Retocar» (abajo del todo)
+      await retoque.cargar(A.avance.video);               // el clip nuevo, en la línea de tiempo de «Retocar»
+      ponerFase("retocar");
       retoque.ver();
       return;
     }
@@ -308,6 +348,7 @@ function pintarVideos() {
           e.stopPropagation();
           A.verVideos = false;
           pintarVideos();
+          ponerFase("retocar");
           retoque.cargar(x.archivo).then(retoque.ver);
         } }, t("app.videos.retocar"))))
       : el("div", { class: "max-vacio" }, t("app.videos.vacio"))));

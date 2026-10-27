@@ -15,11 +15,11 @@ Lectura: 3 min
 | `web/editor.js` | El botón «Abrir editor…» del nodo. |
 | `web/editor_core.js` | La ventana: solo junta las piezas de `web/editor/`, guarda en el nodo y pinta. Se vuelve a cargar cada vez que se abre, con todas sus piezas. |
 | `web/editor/util.js` | Ayudas comunes: crear elementos, leer campos del nodo, seguir enlaces, llamar al servidor, direcciones de las fotos. |
-| `web/editor/plan.js` | Partes 1 y 2: historia general (idea, estilo, estilo de las palabras) y prompt de la toma elegida (campos con candado, efecto y su frase, rehacer esta toma) y los botones del LLM. |
-| `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, las dos mitades, la ficha de cada referencia (papel, nombre, pronombre y atuendo del personaje, ficha, visión, activa, fuerza, quitar), los efectos de texto, el Stack, la biblioteca y el resaltado. |
+| `web/editor/plan.js` | El prompt de la toma elegida (campos con candado, efecto y su frase, su estilo, rehacer esta toma; su línea del prompt, plegada), el sonido de todo el edit (abajo) y los botones del LLM. Desde el 27 oct no hay Historia general ([fase 8](fases/8%20Interfaz%20P10.md)). |
+| `web/editor/referencias.js` | Parte 3: leer las referencias del workflow, el estante «Principal | Secundarias» (pósters con color y sello Im1/V1, arrastre a las tomas, «Conectar a…», `en_todas`), la ficha de cada referencia (papel, nombre, pronombre y atuendo del personaje, ficha, visión, activa, fuerza, quitar), los efectos de texto, el Stack, la biblioteca y el resaltado. |
 | `web/editor/cajitas.js` | Abrir una cajita (sus fotos) y crear una nueva. |
 | `web/editor/tapar.js` | «Tapar con SAM 3.1» en la ficha: interruptor, chips de qué tapar, forma, vista previa y el cambio de tarjeta entre original y tapado (`ctx.cambiarTarjeta`). |
-| `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas. |
+| `web/editor/linea.js` | Parte 4: la línea de tiempo, elegir toma, añadir y quitar tomas, los puntos de color de lo que lleva cada toma y la duración del edit (arrastrable, 17·k + 5 fotogramas). |
 | `web/editor/textos.js` | Parte 4, entre las tomas y la onda: la fila de texto (palabras en pantalla), su arrastre al beat y su tarjetita (texto, encima / al lado, letra, frase). |
 | `web/editor/audio.js` | Parte 4, debajo de las tomas: la ventana de audio (el tramo, ▶/⏸, arrastre), la línea de la canción entera y «Cambiar canción» (elegir o subir); al guardar, el recorte. |
 | `web/editor/duracion.js` | La duración manda en todo el workflow: fotogramas válidos de H3 y `aplicarDuracion` (length del Text Encode, Prompt Builder…), al guardar y al cambiar `duracion_s` en el nodo. |
@@ -48,7 +48,7 @@ La ventana de arriba, a pantalla completa y sin ComfyUI abierto; el video sale p
 | `app/carpetas.py` | El `folder_paths` de la app: input, output, temp y models de ComfyUI. |
 | `app/generar.py` | Copia los valores en la plantilla, pone el prompt, quita el nodo PromptDelEdit y lo lanza con `comfy-sdk`; avance, cancelar e historial. |
 | `app/plantillas/edit_h3.api.json` y `LEEME.md` | El workflow H3 en formato API; el LEEME lista sus nodos, custom nodes y modelos. |
-| `app/web/index.html`, `app.js` | La página: cabecera (proyecto, salud, semilla, Generar, videos, idioma) y la ventana del nodo debajo. Elegir el ejemplo crea una copia («mi ejemplo»). |
+| `app/web/index.html`, `app.js` | La página: cabecera (proyecto, salud, semilla, Generar, videos, idioma), la barra de fases («1 Tomas y referencias | 2 Retocar», con su mini estado) y la ventana del nodo debajo. Elegir el ejemplo crea una copia («mi ejemplo»). |
 | `app/web/grafo_falso.js` | El «grafo de mentira» que la ventana lee como si fuera el lienzo: `construir`, `valoresDe`, `ponerValores`. |
 | `app/config.json` | Valores por defecto; encima `config.local.json` (no va a git) y las variables `MAX_EDITOR_<CLAVE>`. |
 | `app/proyectos/` | Un JSON por proyecto. Solo `ejemplo.json` va a git. |

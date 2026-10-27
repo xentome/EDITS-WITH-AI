@@ -103,6 +103,7 @@ export async function abrir(node, app) {
         ctx.pintarFinal();
         ctx.pintarLinea();
         ctx.pintarLineaToma();
+        ctx.alMontar?.();                                  // la app pone al día su barra de fases (app/web/app.js)
         ctx.programarGuardado();
       } catch (e) { ctx.avisar(t("errores.montar", { error: e.message }), "mal"); }
     }, 350);
