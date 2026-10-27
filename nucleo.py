@@ -25,7 +25,12 @@ ErrorUsuario = i18n.ErrorUsuario    # los errores que ve el usuario llevan su cl
 
 URL = "http://127.0.0.1:8080/v1/chat/completions"
 MODELO = "qwen3.8-27b"
-CORRIDAS = os.path.expanduser("~/Escritorio/experimentos_edit/edit_prompt_llm")
+# registros y cachés de cada corrida: EDIT_PROMPT_LLM_CORRIDAS manda; si no, la carpeta de experimentos de este PC si
+# existe y, en otro PC, una carpeta de datos del usuario (así una instalación nueva no crea nada en el Escritorio)
+_EXPERIMENTOS = os.path.expanduser("~/Escritorio/experimentos_edit")
+CORRIDAS = os.environ.get("EDIT_PROMPT_LLM_CORRIDAS") or (
+    os.path.join(_EXPERIMENTOS, "edit_prompt_llm") if os.path.isdir(_EXPERIMENTOS)
+    else os.path.expanduser("~/.local/share/max_editor/corridas"))
 with open(os.path.abspath(__file__), "rb") as _f:
     CODIGO = hashlib.sha1(_f.read()).hexdigest()[:8]  # entra en la huella: si cambia este archivo, la despensa no se reutiliza
 # los encuadres básicos (plano 5, fila 7): el menú del editor y del LLM, tal cual van al prompt (en inglés). El usuario puede
