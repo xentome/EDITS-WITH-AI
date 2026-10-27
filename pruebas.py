@@ -326,6 +326,26 @@ comprobar("lo que escribe el usuario va tal cual a overall_soundscape; vacío, e
           "overall_soundscape:\nwhooshes and impact hits accent each cut and word\n\nnon_diegetic_music:" in p8s and
           "overall_soundscape:\n" + N.FRASES["sonido"] + "\n" in prompt and N.entradas_de_estado({"sonido": "x"})["sonido"] == "x", p8s[-300:])
 
+print("8e · Interfaz P10 (27 oct): estilo por toma, «Principal» en todas las tomas y sin historia")
+plan8e = N.ajustar_plan(None, 2)
+for t8e in plan8e["tomas"]:
+    t8e.update(encuadre="close-up", luz="neon glow", gesto="looks up", camara="holds still", lugar="a dark void")
+plan8e["tomas"][0]["estilo"] = "flat 2D anime illustration."
+refs8e = {**refs8, "<Video 2>": {**refs8["<Video 2>"], "en_todas": True},
+          "<Picture 2>": {"papel": "fondo", "nombre": "neon street", "ficha": "a neon street", "en_todas": True}}
+p8e, av8e, _ = N.montar_plan({**e8, "estilo": "", "refs": refs8e}, plan8e)
+l8e = [x for x in p8e.split("\n") if x.startswith("[Shot ")]
+comprobar("el estilo de una toma va en su línea, tras el encuadre; la otra toma no lo lleva",
+          l8e[0].startswith("[Shot 1] At 00:00.000 close-up, in the style of flat 2D anime illustration, ") and "style of" not in l8e[1], l8e)
+comprobar("una referencia en «Principal» (en_todas) se cita en cada toma: el efecto se suma y el fondo va en su sitio",
+          all("<Video 2>" in x and "<Picture 2>" in x for x in l8e) and N.menu_de(refs8e)["fondo"]["<Picture 2>"]["en_todas"], l8e)
+comprobar("sin arco ni look (ya no hay Historia) no hay huecos ni restos en el prompt",
+          not av8e and "[[" not in p8e and ": ." not in p8e and "()" not in p8e, (av8e, p8e[:400]))
+pt8e = N.prompt_toma(N.perfil_de(N.menu_de(refs8e), e8), N.menu_de(refs8e),
+                     {**N.ajustar_plan(None, 2), "arco": "", "look": ""}, 1, 1.0, [])
+comprobar("«Escribir tomas» sin historia: el LLM recibe la toma sin lugar ni momento, sin ARC ni LOOK vacíos",
+          "ARC:" not in pt8e and "(sin decidir" in pt8e, pt8e[:600])
+
 print("9 · Audio: tramo de una canción larga (ventana de audio del editor)")
 import shutil  # noqa: E402
 import subprocess  # noqa: E402
