@@ -250,11 +250,13 @@ export function instalar(ctx) {
   function dibujar() {
     if (!onda.isConnected) return;
     const [c, w, h, r] = lienzo(onda);
-    c.fillStyle = "#0f1217";
+    // los colores salen del tema (variables --onda-*; temas/trama.css), con los de siempre si el tema no los pone
+    const color = (v, otro) => getComputedStyle(onda).getPropertyValue(v).trim() || otro;
+    c.fillStyle = color("--onda-fondo", "#0f1217");
     c.fillRect(0, 0, w, h);
     if (!info) return;
     const a = S.audio.inicio_s, d = dur(), escala = (h / 2 - 3 * r) / maxPico;
-    c.fillStyle = "#8fb6f0";
+    c.fillStyle = color("--onda-barra", "#8fb6f0");
     for (let x = 0; x < w; x++) {
       const t0 = a + x / w * d, t1 = a + (x + 1) / w * d;
       if (t0 >= info.duracion) break;
@@ -262,11 +264,11 @@ export function instalar(ctx) {
       c.fillRect(x, h / 2 - y, 1, 2 * y);
     }
     // los cortes de las tomas (deberían caer en los beats del tramo)
-    c.fillStyle = "rgba(255,255,255,.55)";
+    c.fillStyle = color("--onda-corte", "rgba(255,255,255,.55)");
     for (const t of (S.cortes || []).slice(1)) c.fillRect(Math.round(t / d * w), 0, Math.max(1, r), h);
     // el cabezal
     const p = posicion();
-    if (sonando || p > 0) { c.fillStyle = "#e0a94c"; c.fillRect(Math.round(p / d * w), 0, 2 * r, h); }
+    if (sonando || p > 0) { c.fillStyle = color("--onda-cabezal", "#e0a94c"); c.fillRect(Math.round(p / d * w), 0, 2 * r, h); }
     etIni.textContent = t("audio.etiqueta", { reloj: reloj(a), f: fotograma(a) });
     etFin.textContent = t("audio.etiqueta", { reloj: reloj(a + d), f: fotograma(a + d) });
     boton.textContent = sonando ? "⏸" : "▶";
@@ -281,11 +283,12 @@ export function instalar(ctx) {
     c.clearRect(0, 0, w, h);
     const T = info.duracion, a = S.audio.inicio_s / T * w, b = Math.max(a + 2 * r, (S.audio.inicio_s + dur()) / T * w);
     const alto = Math.round(h * 0.6), y = Math.round((h - alto) / 2);
-    c.fillStyle = "#2e3440";
+    const color = (v, otro) => getComputedStyle(barra).getPropertyValue(v).trim() || otro;
+    c.fillStyle = color("--barra-fondo", "#2e3440");
     c.fillRect(0, y, w, alto);
-    c.fillStyle = "#3a5f9a";
+    c.fillStyle = color("--barra-tramo", "#3a5f9a");
     c.fillRect(Math.floor(a), y, Math.ceil(b - a), alto);
-    c.fillStyle = "#fff";
+    c.fillStyle = color("--barra-asa", "#fff");
     c.beginPath();
     c.arc(Math.min(w - h / 2, Math.max(h / 2, (a + b) / 2)), h / 2, h / 2, 0, 2 * Math.PI);
     c.fill();

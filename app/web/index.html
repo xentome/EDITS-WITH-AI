@@ -105,11 +105,51 @@ body .epl-fondo .epl-cerrar,body .epl-fondo .epl-x{display:none}
 .max-rt-avance.mal .max-texto{color:var(--max-rojo)}.max-rt-avance.mal .max-barra b{background:var(--max-rojo)}
 .max-rt-avance .max-texto{font-size:12px;min-width:200px}
 @media (max-width:900px){.max-rt-cuerpo{grid-template-columns:1fr}}
+/* (27 oct) interfaz P10 (planos/fases/8): la barra de fases a todo el ancho y lo justo para que «Tomas y referencias» quepa sin
+ * bajar en 2548×1284; vale en todos los temas (sus colores, en temas/*.css) */
+.max-fases{display:flex;gap:12px;flex:none}
+.max-fase{flex:1;min-height:76px;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:8px 24px;text-align:left;cursor:pointer;
+  font:inherit;transition:flex .2s}
+.max-fase:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.max-fase.activa{flex:1.6}
+.max-fase-cab{display:flex;align-items:center;gap:12px}
+.max-fase-num{width:32px;height:32px;flex:none;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.max-fase-nombre{font-size:18px;font-weight:700}
+.max-fase-aqui{margin-left:auto;font-size:12px;font-weight:600;padding:2px 10px}
+.max-fase-estado{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
+.max-fase-puntos{display:inline-flex;gap:4px}
+.max-fase-aviso{font-size:12px;padding:0 8px}
+.epl-cuerpo.fase-tomas>.max-rt{display:none}
+.epl-cuerpo.fase-retocar>.epl-sec:not(.max-rt){display:none}
+body .epl-cabecera{padding:4px 16px !important}
+body .epl-sec{padding:10px 16px !important}
+body .epl-sec.epl-s-final{padding:6px 16px !important}
+.epl-s-final:not(:has(.epl-final)){display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.epl-s-final:not(:has(.epl-final))>*{margin:0}
+.epl-onda{height:60px}
+.epl-audio>.epl-fila{margin:2px 0 0 !important}
+.epl-s-toma .epl-citas{max-height:4.8em;overflow:auto}
+/* los iconos de trazo (util.icono): del tamaño de la letra y del color del texto */
+.epl-ic{display:inline-flex;vertical-align:-0.15em}.epl-ic svg{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 </style>
-<!-- tema elegido por el usuario el 26 oct (azul medio oscuro); los demás, de prueba, en temas/ -->
-<link rel="stylesheet" href="/app/web/temas/azul.css">
+<!-- El tema (27 oct): «trama» (negro, gris y blanco; el color solo en las referencias y los avisos) es el de siempre. Para volver
+     al azul: abrir la app con ?tema=azul (se recuerda en este navegador; ?tema=trama vuelve). Los demás, de prueba, en temas/.
+     Las letras (Schibsted Grotesk y Spline Sans Mono) llegan de Google Fonts; sin internet, las de respaldo de temas/trama.css. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<script>
+  (() => {
+    const TEMAS = ["trama", "azul"];
+    let tema = new URLSearchParams(location.search).get("tema");
+    try { if (TEMAS.includes(tema)) localStorage.setItem("max-editor-tema", tema); else tema = localStorage.getItem("max-editor-tema"); } catch { /* sin almacenamiento */ }
+    window.maxTema = TEMAS.includes(tema) ? tema : "trama";
+    document.write(`<link rel="stylesheet" href="/app/web/temas/${window.maxTema}.css">`);
+  })();
+</script>
 </head>
-<body class="tema-azul">
+<body>
+<script>document.body.className = "tema-" + window.maxTema;</script>
 <div class="max-cargando" id="cargando">…</div>
 <script type="module" src="/app/web/app.js"></script>
 </body>
