@@ -231,11 +231,11 @@ export function instalar(ctx) {
         if (e.target.value === "__mio") { encuadrePropio = true; ctx.pintarToma(); return; }
         toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pintarPlan(); ctx.pedirMontaje(); } },
         ops.map(([v, txt]) => el("option", { value: v, selected: (toma.encuadre || "") === v }, txt)));
-      return el("label", { class: "epl-campo epl-et-encuadre" }, et(), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
+      return el("label", { class: "epl-campo epl-medio epl-et-encuadre" }, et(), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
     }
     const entrada = el("textarea", { rows: 2, "data-campo": "encuadre", placeholder: t("toma.encuadre.mio.placeholder"),
       oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pedirMontaje(); } }, toma.encuadre || "");
-    return el("label", { class: "epl-campo epl-et-encuadre" }, et(), entrada,
+    return el("label", { class: "epl-campo epl-medio epl-et-encuadre" }, et(), entrada,
       el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
         onclick: () => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
         t("toma.encuadre.menu")));
@@ -252,11 +252,11 @@ export function instalar(ctx) {
         if (e.target.value === "__mio") { camaraPropia = true; ctx.pintarToma(); return; }
         toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pintarToma(); ctx.pedirMontaje(); } },
         ops.map(([v, txt]) => el("option", { value: v, selected: (toma.camara || "") === v }, txt)));
-      return el("label", { class: "epl-campo epl-et-camara" }, et, sel, candado(toma.fijos, "camara", () => ctx.pintarToma()));
+      return el("label", { class: "epl-campo epl-medio epl-et-camara" }, et, sel, candado(toma.fijos, "camara", () => ctx.pintarToma()));
     }
     const entrada = el("textarea", { rows: 2, "data-campo": "camara", placeholder: t("toma.camara.mio.placeholder"),
       oninput: (e) => { toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pedirMontaje(); } }, toma.camara || "");
-    return el("label", { class: "epl-campo epl-et-camara" }, et, entrada,
+    return el("label", { class: "epl-campo epl-medio epl-et-camara" }, et, entrada,
       el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
         onclick: () => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
         t("toma.encuadre.menu")));
@@ -369,14 +369,16 @@ export function instalar(ctx) {
         titulo),
       el("div", { class: "epl-tres" },
         el("div", {}, el("b", {}, t("toma.direccion")),
-          campoEncuadre(toma),
-          campoCamara(toma),
-          campoTexto(toma, "luz", t(ninguno ? "toma.luz_opcional" : "toma.luz"), toma.fijos, { largo: true }),
           campoTexto(toma, "momento", el("span", {}, el("i", { class: "epl-icono" }, "🎬"), t("toma.momento")), toma.fijos,
                      { largo: true, filas: 4, clase: "epl-destacado epl-g-accion", ayuda: t("toma.momento.ayuda") }),
           campoReferencias(toma),
           campoEfectoRef(toma)),
+        // encuadre, cámara y luz, a la derecha de la acción (26 oct), con un título intermedio: borde de color
         el("div", {}, el("b", {}, t("toma.que_pasa")),
+          campoEncuadre(toma),
+          campoCamara(toma),
+          campoTexto(toma, "luz", el("span", {}, el("i", { class: "epl-icono" }, "💡"), t(ninguno ? "toma.luz_opcional" : "toma.luz")),
+                     toma.fijos, { largo: true, clase: "epl-medio epl-et-luz" }),
           campoLugar(toma),
           campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true })),
         el("div", {}, el("b", {}, t("toma.refs")),
