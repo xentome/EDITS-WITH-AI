@@ -368,4 +368,9 @@ textarea.epl-final{min-height:40vh}
 .epl-ic{display:inline-flex;vertical-align:-0.15em}.epl-ic svg{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 /* una opción de un grupo segmentado (entorno, qué tapar, pestañas de la ficha): los temas la distinguen del resto */
 .epl-seg{white-space:nowrap}
+/* (27 oct) el póster enseña la imagen entera: la foto arriba, contenida, y su rótulo debajo (no encima de la foto) */
+.epl-poster-abrir{display:flex;flex-direction:column}
+.epl-poster-abrir img{flex:1 1 0;min-height:0;width:100%;height:auto;object-fit:contain;background:#0d1015}
+.epl-poster-pie{position:static;flex:none;background:#0b0b10;padding:5px 8px 6px}
+.epl-poster .sinfoto{position:static;flex:1}
 `;

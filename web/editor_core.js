@@ -245,7 +245,9 @@ export async function abrir(node, app) {
       el("button", { class: "epl-x", title: t("comun.cerrar_ventana"), onclick: cerrar }, "✕"));
   }
   pintarCabecera();
-  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secToma, secRefs, secTiempo, secFinal));
+  // el orden (27 oct, lo pidió el usuario): arriba las referencias, después la línea de tiempo entera (texto, tomas, audio y
+  // sonido) y abajo del todo el prompt de la toma elegida y el prompt final
+  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secRefs, secTiempo, secToma, secFinal));
   ctx.pintarPlan();
   ctx.pintarRefs();
   ctx.pintarFinal();

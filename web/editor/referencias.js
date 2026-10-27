@@ -524,7 +524,8 @@ export function instalar(ctx) {
                        if (S.recien?.tag === r.tag) { S.recien = null; ctx.pintarLinea(); }   // tocar la referencia quita «recién pegada»
                        return cajita ? ctx.abrirCajita(r) : ctx.abrirFicha(r);
                      } },
-        src ? el("img", { src, alt: "", loading: "lazy", draggable: false })
+        // la imagen entera, sin recortes (27 oct): el póster mide 170 px de alto y su ancho sigue la proporción de la foto
+        src ? el("img", { src, alt: "", loading: "lazy", draggable: false, onload: (e) => ajustarPoster(p, e.target) })
             : el("span", { class: "sinfoto" }, t(r.kind === "video" ? "referencias.tarjeta.video" : "comun.sin_vista_previa")),
         el("span", { class: "epl-poster-pie" },
           el("b", {}, ref.nombre || r.nombre),
@@ -534,6 +535,12 @@ export function instalar(ctx) {
       el("span", { class: "epl-poster-botones" }, r.tag ? botonConectar(r.tag) : null, r.idx !== undefined ? cruz(r) : null));
     if (r.tag) fuente(p, r.tag, r.clave);
     return p;
+  }
+  // el ancho del póster según la proporción de su foto (alto fijo: el del hueco de la imagen), entre 150 y 320 px (el rótulo necesita sitio)
+  function ajustarPoster(p, img) {
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    const hueco = img.clientHeight || 130;
+    p.style.width = Math.round(Math.max(150, Math.min(320, hueco * img.naturalWidth / img.naturalHeight + 12))) + "px";
   }
   /* «Conectar a…»: un menú con las tomas (la alternativa sin ratón al arrastre). Una de Principal solo dice que ya está en
    * todas; una toma que ya la lleva sale marcada y, al tocarla, se quita. */
