@@ -1,0 +1,328 @@
+/* Tema «casete» (27 oct; mundo «Mixtape de casete», elegido por el usuario en la ronda r3; contrato:
+ * .impeccable/surfaces/app-web-index-html.md). El edit es una cinta: cada toma es una pista de la cara A (A1, A2…) y cada
+ * referencia una pegatina redonda de su color pegada en las pistas donde suena.
+ * Jerarquía por peso de color: 1 Generar (naranja, con sombra rosa desplazada); 2 la fase activa (banda naranja de J-card con
+ * dos rayas, rosa y cobalto); 3 la toma elegida y su ACCIÓN (borde naranja, letra más grande); 4 las referencias (estante
+ * teñido de cobalto, rótulos crema y pegatinas de color); 5 lo demás, callado sobre tinta #17121C.
+ * El naranja #FF7A1A es el ÚNICO color de acción: solo en lo que se pulsa o está activo. El crema #F6EAD2, solo en rótulos.
+ * Letras: Big Shoulders Display (títulos y Generar), Barlow Condensed (rótulos), Barlow (texto), JetBrains Mono (cifras y prompt).
+ * Sin brillos ni barras arcoíris; la única sombra dura es la de Generar. Solo colores, bordes y letra: la colocación es la de P10
+ * (index.html y web/editor/estilos.js). Se activa con <body class="tema-casete">; trama y azul siguen en temas/ (?tema=…). */
+body.tema-casete{--k-tinta:#17121C;--k-tinta2:#211A29;--k-tinta3:#2C2336;--k-linea:#3E3349;--k-linea2:#54465F;--k-suave:#A99DB5;--k-texto:#EFE6F2;
+  --k-naranja:#FF7A1A;--k-naranja2:#FF9140;--k-cobalto:#2546D6;--k-rosa:#FF3E8A;--k-crema:#F6EAD2;--k-crema-txt:#4A3E36;
+  --k-estante:#18183A;--k-estante-linea:#2B2F66;--k-aviso:#F7C83A;--k-error:#FF6B6B;--k-ok:#3FC46E;
+  --k-titulo:"Big Shoulders Display","Oswald","Arial Narrow",Impact,sans-serif;
+  --k-rotulo:"Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif;
+  --k-texto-f:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --k-mono:"JetBrains Mono",ui-monospace,"DejaVu Sans Mono","Cascadia Mono",Menlo,Consolas,monospace;
+  /* la onda como cinta marrón y la barra de la canción (audio.js lee estas variables) */
+  --onda-fondo:#2E190E;--onda-barra:#C08A55;--onda-corte:rgba(246,234,210,.7);--onda-cabezal:#FF7A1A;
+  --barra-fondo:#3E3349;--barra-tramo:#8A5A34;--barra-asa:#F6EAD2;
+  background:var(--k-tinta) !important;color:var(--k-texto);font-family:var(--k-texto-f);font-weight:500}
+body.tema-casete ::selection{background:var(--k-naranja);color:var(--k-tinta)}
+body.tema-casete *{scrollbar-color:var(--k-linea2) var(--k-tinta);scrollbar-width:thin}
+body.tema-casete ::-webkit-scrollbar{width:10px;height:10px}
+body.tema-casete ::-webkit-scrollbar-track{background:var(--k-tinta)}
+body.tema-casete ::-webkit-scrollbar-thumb{background:var(--k-linea2);border:2px solid var(--k-tinta);border-radius:6px}
+body.tema-casete :focus-visible{outline:2px solid var(--k-crema) !important;outline-offset:2px;box-shadow:none !important}
+body.tema-casete input,body.tema-casete textarea,body.tema-casete [contenteditable]{caret-color:var(--k-naranja)}
+body.tema-casete .epl-fondo{--radio:.6;font-family:var(--k-texto-f)}
+body.tema-casete .epl-caja,body.tema-casete .epl-cuerpo{background:transparent !important;border:0 !important;box-shadow:none !important;color:var(--k-texto)}
+body.tema-casete .epl-tag,body.tema-casete .epl-linea-toma,body.tema-casete .epl-final,body.tema-casete .epl-dur-num,body.tema-casete .epl-dur-entrada,
+body.tema-casete .epl-onda-et,body.tema-casete .epl-regla,body.tema-casete .epl-audio-info,body.tema-casete .max-semilla input,body.tema-casete .epl-resolucion input,
+body.tema-casete .epl-tomab-t,body.tema-casete .epl-pista,body.tema-casete .epl-punto{font-family:var(--k-mono) !important;font-variant-numeric:tabular-nums}
+
+/* ---------------------------------------------------------------- rótulos (Barlow Condensed, mayúsculas) y títulos */
+body.tema-casete .epl-tit{font:700 12px/1.3 var(--k-rotulo) !important;letter-spacing:.08em;text-transform:uppercase;color:var(--k-suave) !important}
+body.tema-casete .epl-tres>div>b,body.tema-casete .epl-grupo .epl-tit-txt{font:700 12px/1.2 var(--k-rotulo) !important;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--k-crema) !important;margin:0 0 4px !important}
+body.tema-casete .epl-tit-toma{font:800 22px/1 var(--k-titulo) !important;letter-spacing:.02em;text-transform:none;color:var(--k-crema) !important}
+body.tema-casete .epl-pista{display:inline-flex;align-items:center;font:700 13px/1 var(--k-mono);padding:3px 7px;border-radius:3px;
+  background:var(--k-naranja);color:var(--k-tinta)}
+body.tema-casete .epl-ayuda,body.tema-casete .epl-vacio{color:var(--k-suave) !important}
+body.tema-casete .epl-aviso{color:var(--k-aviso) !important}
+body.tema-casete .epl-usada{color:var(--k-suave) !important}
+body.tema-casete .epl-campo>span{color:var(--k-suave) !important;font:700 12px/1.25 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase}
+body.tema-casete .epl-marca{font:700 11px/1 var(--k-rotulo);letter-spacing:.08em;text-transform:uppercase;color:var(--k-crema) !important;
+  border:1px solid var(--k-linea2) !important;border-radius:3px;padding:3px 7px}
+/* el estado de la ventana (guardado, huecos, trabajando, error) */
+body.tema-casete .epl-estado{flex:0 1 auto;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:600 12px/1 var(--k-rotulo);letter-spacing:.04em;text-transform:uppercase;padding:4px 8px;border-radius:3px;
+  border:1px solid var(--k-linea);color:var(--k-suave)}
+body.tema-casete .epl-estado.bien{color:var(--k-texto)}
+body.tema-casete .epl-estado.mal{color:var(--k-aviso);border-color:#5E4A1C}
+body.tema-casete .epl-estado.trabajando{color:var(--k-naranja2);border-color:#5E3A1C}
+
+/* ---------------------------------------------------------------- paneles sobre tinta */
+body.tema-casete .epl-sec{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;border-radius:6px !important;
+  box-shadow:none !important;color:var(--k-texto) !important}
+/* la toma elegida: su panel lleva el borde naranja entero (no una pestaña lateral) */
+body.tema-casete .epl-s-toma{background:var(--k-tinta2) !important;border:1px solid var(--k-naranja) !important}
+
+/* ---------------------------------------------------------------- campos */
+body.tema-casete .epl-sec input,body.tema-casete .epl-sec textarea,body.tema-casete .epl-sec select,body.tema-casete .epl-citas,
+body.tema-casete .epl-modal input,body.tema-casete .epl-modal textarea,body.tema-casete .epl-modal select,body.tema-casete .epl-cabecera input,
+body.tema-casete .max-cab input,body.tema-casete .max-pop input{
+  background:var(--k-tinta) !important;color:var(--k-texto) !important;border:1px solid var(--k-linea) !important;border-radius:5px !important;
+  font-family:var(--k-texto-f) !important;box-shadow:none !important}
+body.tema-casete .epl-sec input:hover,body.tema-casete .epl-sec textarea:hover,body.tema-casete .epl-sec select:hover,body.tema-casete .epl-citas:hover,
+body.tema-casete .epl-modal input:hover,body.tema-casete .epl-modal textarea:hover,body.tema-casete .epl-modal select:hover{border-color:var(--k-linea2) !important}
+body.tema-casete .epl-sec input:focus,body.tema-casete .epl-sec textarea:focus,body.tema-casete .epl-sec select:focus,body.tema-casete .epl-citas:focus,
+body.tema-casete .epl-modal input:focus,body.tema-casete .epl-modal textarea:focus,body.tema-casete .epl-modal select:focus{border-color:var(--k-crema) !important;outline:none}
+body.tema-casete input::placeholder,body.tema-casete textarea::placeholder,body.tema-casete .epl-citas:empty::before{color:#958AA2 !important;font-style:italic}
+body.tema-casete input:disabled,body.tema-casete textarea:disabled{opacity:.55}
+body.tema-casete input[type=checkbox]{accent-color:var(--k-naranja)}
+/* ACCIÓN / MOVIMIENTO: el campo que manda; borde naranja y letra más grande */
+body.tema-casete .epl-g-accion>span:first-child{color:var(--k-naranja) !important}
+body.tema-casete .epl-g-accion textarea{border:2px solid var(--k-naranja) !important;background:#1E1710 !important;font:600 17px/1.3 var(--k-texto-f) !important;
+  padding:8px 12px !important;min-height:3.2em}
+
+/* ---------------------------------------------------------------- botones: callados; el naranja, solo en lo activo */
+body.tema-casete .epl-boton,body.tema-casete .epl-mini,body.tema-casete .epl-candado,body.tema-casete .max-boton,body.tema-casete .epl-mas,body.tema-casete .epl-x{
+  background:transparent !important;color:var(--k-texto) !important;border:1px solid var(--k-linea) !important;border-radius:6px !important;
+  font:600 13px/1 var(--k-rotulo) !important;letter-spacing:.04em;text-transform:uppercase;box-shadow:none !important;opacity:1;filter:none}
+body.tema-casete .epl-boton{min-height:32px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px}
+body.tema-casete .epl-mini{min-height:26px;padding:4px 9px;font-size:12px !important;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+body.tema-casete .epl-boton:hover,body.tema-casete .epl-mini:hover,body.tema-casete .epl-candado:hover,body.tema-casete .max-boton:hover,
+body.tema-casete .epl-mas:hover{border-color:var(--k-crema) !important;background:var(--k-tinta3) !important}
+body.tema-casete .epl-mini.fijo,body.tema-casete .epl-candado.fijo,body.tema-casete .max-idioma .max-boton.fijo,body.tema-casete .epl-mini[aria-pressed="true"]{
+  background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-color:var(--k-naranja) !important}
+body.tema-casete .epl-candado{min-width:26px;min-height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0}
+body.tema-casete .epl-candado:not(.fijo){color:var(--k-suave) !important}
+body.tema-casete .epl-boton:disabled,body.tema-casete .max-boton:disabled{opacity:.45}
+/* Generar (y Retocar): lo más visible de la pantalla */
+body.tema-casete .max-generar{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border:0 !important;border-radius:8px !important;
+  box-shadow:3px 3px 0 var(--k-rosa) !important;font:900 21px/1 var(--k-titulo) !important;letter-spacing:.06em;text-transform:uppercase;
+  padding:10px 24px;min-height:42px;display:inline-flex;align-items:center;gap:8px}
+body.tema-casete .max-generar:hover{background:var(--k-naranja2) !important}
+body.tema-casete .max-generar:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--k-rosa) !important}
+body.tema-casete .max-generar:disabled{background:#6E4A33 !important;color:var(--k-tinta) !important;box-shadow:none !important}
+
+/* ---------------------------------------------------------------- la cabecera de la app y la del editor */
+body.tema-casete .max-cab,body.tema-casete .epl-cabecera{background:var(--k-tinta) !important;border-bottom:1px solid var(--k-linea) !important}
+body.tema-casete .max-nombre{font:900 26px/1 var(--k-titulo) !important;letter-spacing:.02em;color:var(--k-texto)}
+body.tema-casete .max-nombre i{color:var(--k-naranja) !important}
+body.tema-casete .max-sep{background:var(--k-linea)}
+/* el proyecto: un rótulo crema, como la etiqueta de una cinta */
+body.tema-casete .max-cab select{background:var(--k-crema) !important;color:var(--k-tinta) !important;border:0 !important;border-radius:3px !important;
+  font:600 15px/1 var(--k-rotulo) !important;padding:5px 8px !important}
+body.tema-casete .max-aviso{font:600 13px/1.2 var(--k-rotulo);color:var(--k-suave)}
+body.tema-casete .max-aviso.bien{color:var(--k-texto)}
+body.tema-casete .max-aviso.mal{color:var(--k-error)}
+body.tema-casete .max-boton{min-height:34px;padding:4px 12px;display:inline-flex;align-items:center;gap:6px}
+body.tema-casete .max-salud{gap:12px;font:700 12px/1 var(--k-rotulo);letter-spacing:.05em;text-transform:uppercase;color:var(--k-suave)}
+body.tema-casete .max-salud span::before{color:var(--k-linea2)}
+body.tema-casete .max-salud .si::before{color:var(--k-ok)}
+body.tema-casete .max-salud .no{color:var(--k-error)}
+body.tema-casete .max-salud .no::before{color:var(--k-error)}
+body.tema-casete .max-semilla span{font:500 13px/1 var(--k-texto-f);color:var(--k-suave)}
+body.tema-casete .max-semilla input{background:var(--k-tinta3) !important;border-color:var(--k-tinta3) !important}
+body.tema-casete .epl-cabecera b{font:800 15px/1 var(--k-titulo);letter-spacing:.04em;text-transform:uppercase;color:var(--k-suave)}
+body.tema-casete .epl-auto{color:var(--k-suave) !important;font-family:var(--k-rotulo)}
+body.tema-casete .max-avance{background:var(--k-tinta);border-color:var(--k-linea)}
+body.tema-casete .max-barra{background:var(--k-tinta3)}
+body.tema-casete .max-barra b{background:var(--k-naranja) !important}
+body.tema-casete .max-avance.mal .max-barra b{background:var(--k-error) !important}
+body.tema-casete .max-avance .max-texto{font-family:var(--k-rotulo);font-size:13px}
+body.tema-casete .max-avance.mal .max-texto{color:var(--k-error)}
+body.tema-casete .max-pop,body.tema-casete .max-videos{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;box-shadow:0 16px 40px rgba(0,0,0,.55)}
+body.tema-casete .max-video:hover{background:var(--k-tinta3)}
+body.tema-casete .max-video.actual{border-color:var(--k-naranja)}
+body.tema-casete .max-video small,body.tema-casete .max-vacio{color:var(--k-suave)}
+body.tema-casete .max-cargando{color:var(--k-suave)}
+body.tema-casete .epl-resolucion{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;padding:2px 8px !important}
+body.tema-casete .epl-res-medidas label{color:var(--k-suave);font-family:var(--k-rotulo);height:18px;line-height:18px}
+body.tema-casete .epl-res-medidas{gap:1px}
+body.tema-casete .epl-resolucion input{height:18px !important;min-height:0 !important;font-size:11px !important;padding:0 4px !important;box-sizing:border-box}
+body.tema-casete .epl-res-mp{color:var(--k-crema) !important;font-family:var(--k-mono)}
+body.tema-casete .max-cab .max-fila{padding:5px 14px}
+
+/* ---------------------------------------------------------------- la barra de fases: la cara activa es la banda naranja de la J-card */
+body.tema-casete .max-fase{position:relative;min-height:64px;border-radius:6px;background:var(--k-tinta2);border:1px solid var(--k-linea);color:var(--k-suave)}
+body.tema-casete .max-fase:hover{border-color:var(--k-linea2);color:var(--k-texto)}
+body.tema-casete .max-fase.activa{background:var(--k-naranja);border-color:var(--k-naranja);color:var(--k-tinta);padding-right:88px}
+/* las dos rayas de la J-card (rosa y cobalto), a la derecha de la banda */
+body.tema-casete .max-fase.activa::after{content:"";position:absolute;top:0;bottom:0;right:24px;width:0;border-left:20px solid var(--k-rosa);border-right:20px solid var(--k-cobalto)}
+body.tema-casete .max-fase-cab{gap:10px}
+body.tema-casete .max-fase-cara,body.tema-casete .max-fase-num,body.tema-casete .max-fase-nombre{font:800 26px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
+body.tema-casete .max-fase-num{width:auto;height:auto;border:0}
+body.tema-casete .max-fase-num::before,body.tema-casete .max-fase-num::after{content:"·";margin:0 8px}
+body.tema-casete .max-fase-aqui{margin-left:6px;background:var(--k-tinta);color:var(--k-naranja);font:700 12px/1 var(--k-rotulo);letter-spacing:.1em;
+  text-transform:uppercase;padding:4px 8px;border-radius:3px}
+body.tema-casete .max-fase-estado{font:600 14px/1.2 var(--k-rotulo);letter-spacing:.02em}
+body.tema-casete .max-fase.activa .max-fase-estado{color:var(--k-tinta)}
+body.tema-casete .max-fase.activa .epl-punto{box-shadow:0 0 0 2px var(--k-naranja)}
+body.tema-casete .max-fase-aviso{background:var(--k-tinta);color:var(--k-crema);font:600 13px/1 var(--k-rotulo);padding:4px 8px;border-radius:3px}
+
+/* ---------------------------------------------------------------- el panel de la toma */
+body.tema-casete .epl-destacado>span:first-child,body.tema-casete .epl-g-refs>span:first-child,body.tema-casete .epl-g-efref>span:first-child,
+body.tema-casete .epl-g-accion>span:first-child{background:none !important;font:700 12px/1.2 var(--k-rotulo) !important;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 0 !important;border:0 !important}
+body.tema-casete .epl-g-refs>span:first-child,body.tema-casete .epl-g-efref>span:first-child{color:var(--k-suave) !important}
+body.tema-casete .epl-medio>span:first-child{border:0 !important;background:none !important;color:var(--k-suave) !important;padding:2px 0 !important;
+  font:700 12px/1.2 var(--k-rotulo) !important;letter-spacing:.06em;text-transform:uppercase}
+body.tema-casete .epl-icono{color:inherit;font-style:normal}
+body.tema-casete .epl-cita{background:var(--k-cobalto) !important;color:var(--k-crema) !important;border:0 !important;border-radius:3px !important;font-family:var(--k-rotulo);font-weight:600}
+body.tema-casete .epl-citar{color:var(--k-crema) !important}
+body.tema-casete .epl-menu-citas{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important}
+body.tema-casete .epl-fondo-grande{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;border-radius:6px !important}
+body.tema-casete .epl-fondo-grande .epl-campo>span{color:var(--k-crema) !important;font:700 12px/1 var(--k-rotulo) !important}
+body.tema-casete .epl-fondo-vista{background:var(--k-tinta3) !important;border:1px solid var(--k-linea) !important;border-radius:4px !important}
+body.tema-casete .epl-fondo-vista img{opacity:1}
+body.tema-casete .epl-linea-plegable{background:transparent !important;border:1px solid var(--k-linea) !important;border-radius:5px !important}
+body.tema-casete .epl-linea-et{font:700 12px/1 var(--k-rotulo);letter-spacing:.08em;color:var(--k-suave)}
+body.tema-casete .epl-linea-toma{color:#C8BCD2 !important}
+body.tema-casete .epl-tag{background:var(--k-tinta3) !important;color:var(--k-crema) !important;border-radius:3px}
+body.tema-casete .epl-hl{outline:2px solid var(--k-crema) !important;background:var(--k-tinta3) !important}
+
+/* ---------------------------------------------------------------- el estante: teñido de cobalto, rótulos crema y pegatinas */
+body.tema-casete .epl-refs{background:var(--k-estante) !important;border-color:var(--k-estante-linea) !important}
+body.tema-casete .epl-grupo{border:0;background:transparent !important}
+body.tema-casete .epl-grupo .epl-ayuda{color:#A9B1E0 !important;text-transform:none;letter-spacing:0;font-family:var(--k-rotulo);font-size:12px}
+body.tema-casete .epl-estante-barra{background:none;border-left:1px dashed var(--k-estante-linea);width:0}
+body.tema-casete .epl-poster{background:var(--k-tinta) !important;box-shadow:none !important;outline:0;border:1px solid var(--k-estante-linea);border-radius:6px !important;overflow:visible}
+body.tema-casete .epl-poster.usada{outline:2px solid var(--k-naranja);outline-offset:2px}
+body.tema-casete .epl-poster-abrir{border-radius:5px !important}
+body.tema-casete .epl-poster-pie{left:6px !important;right:6px !important;bottom:6px !important;background:var(--k-crema) !important;color:var(--k-tinta) !important;
+  border-radius:2px;padding:4px 7px !important;flex-direction:row !important;align-items:center !important;justify-content:space-between;gap:6px !important}
+body.tema-casete .epl-poster-pie b{font:600 13px/1.1 var(--k-rotulo);color:var(--k-tinta) !important;min-width:0}
+body.tema-casete .epl-poster-pie small{color:var(--k-crema-txt)}
+body.tema-casete .epl-poster-pie .epl-papel{background:none !important;color:var(--k-crema-txt) !important;font:700 11px/1 var(--k-rotulo);letter-spacing:.08em;
+  text-transform:uppercase;padding:0 !important;flex:none}
+body.tema-casete .epl-papel{background:var(--k-tinta3) !important;color:var(--k-crema) !important;border-radius:3px !important;font-family:var(--k-rotulo)}
+/* la pegatina de cada referencia: redonda, de su color, un poco fuera de la esquina */
+body.tema-casete .epl-poster .epl-sello{top:-8px !important;left:-8px !important;width:30px;height:30px;min-width:30px;font-size:10px}
+body.tema-casete .epl-fondo .epl-poster .epl-poster-botones .epl-mini{background:rgba(23,18,28,.85) !important;border:1px solid var(--k-linea2) !important;
+  color:var(--k-texto) !important;width:32px;height:32px;padding:0}
+body.tema-casete .epl-fondo .epl-poster .epl-poster-botones .epl-mini:hover{border-color:var(--k-crema) !important}
+body.tema-casete .epl-poster .sinfoto{background:var(--k-tinta3)}
+body.tema-casete .epl-vacia{border:1px dashed var(--k-estante-linea) !important;background:transparent !important;color:var(--k-texto) !important}
+body.tema-casete .epl-vacia:hover{border-color:var(--k-crema) !important}
+body.tema-casete .epl-vacia b{color:var(--k-crema) !important}
+body.tema-casete .epl-punto{border-radius:50% !important;min-width:22px;height:22px;padding:0;font-size:9.5px !important;
+  box-shadow:0 0 0 2px var(--k-tinta),0 1px 0 3px rgba(0,0,0,.35)}
+body.tema-casete .epl-punto.epl-en-todas{box-shadow:0 0 0 2px var(--k-tinta),0 0 0 3.5px var(--k-crema)}
+body.tema-casete .epl-efecto{background:var(--k-tinta) !important;border:1px solid var(--k-estante-linea) !important;border-radius:5px !important}
+body.tema-casete .epl-efecto.usada{outline:0;border-color:var(--k-naranja) !important}
+body.tema-casete .epl-efecto b{color:var(--k-crema)}
+body.tema-casete .epl-menu-conectar{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;border-radius:6px !important;
+  box-shadow:0 16px 40px rgba(0,0,0,.55) !important}
+body.tema-casete .epl-menu-conectar .epl-mini{min-height:36px}
+/* arrastrar: borde discontinuo crema donde se puede soltar; naranja y con «Soltar en la toma N» donde está encima */
+body.tema-casete .epl-puede{outline:2px dashed var(--k-crema) !important;outline-offset:3px}
+body.tema-casete .epl-encima{outline:3px solid var(--k-naranja) !important;outline-offset:3px}
+body.tema-casete .epl-encima::after{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-radius:4px !important;box-shadow:none !important;
+  font:700 14px/1 var(--k-rotulo) !important;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px !important}
+
+/* ---------------------------------------------------------------- la línea de tiempo: las pistas de la cara A */
+body.tema-casete .epl-s-linea>.epl-zona-tomas>.epl-tit{font:800 19px/1 var(--k-titulo) !important;letter-spacing:.05em;color:var(--k-texto) !important}
+body.tema-casete .epl-tomab{background:var(--k-crema) !important;color:var(--k-tinta) !important;border:0 !important;border-radius:4px !important;
+  box-shadow:none !important}
+body.tema-casete .epl-tomab *{color:inherit}
+body.tema-casete .epl-tomab:hover{filter:brightness(1.04)}
+body.tema-casete .epl-tomab.elegida{background:var(--k-naranja) !important;color:var(--k-tinta) !important;
+  box-shadow:0 0 0 2px var(--k-tinta),0 0 0 4px var(--k-naranja) !important}
+body.tema-casete .epl-tomab b{font:800 16px/1 var(--k-titulo);letter-spacing:.02em}
+body.tema-casete .epl-tomab .epl-pista{background:var(--k-tinta) !important;color:var(--k-crema) !important;font-size:12px}
+body.tema-casete .epl-tomab .epl-punto{color:#111 !important}
+body.tema-casete .epl-tomab-t{color:var(--k-crema-txt) !important;opacity:1 !important;font-size:11px}
+body.tema-casete .epl-tomab.elegida .epl-tomab-t{color:var(--k-tinta) !important}
+body.tema-casete .epl-tomab>span:not(.epl-tomab-cab):not(.epl-tomab-t):not(.epl-tomab-x){font-family:var(--k-texto-f);opacity:.85}
+/* «recién pegada»: la pegatina que se acaba de conectar, con un anillo cobalto y su rótulo */
+body.tema-casete .epl-punto.epl-recien{box-shadow:0 0 0 2px var(--k-crema),0 0 0 4px var(--k-cobalto) !important}
+body.tema-casete .epl-recien-et{font:700 11px/1 var(--k-rotulo);letter-spacing:.08em;text-transform:uppercase;color:var(--k-cobalto) !important;
+  background:var(--k-crema);padding:2px 5px;border-radius:2px;white-space:nowrap}
+body.tema-casete .epl-tomab-x .x{background:rgba(23,18,28,.85) !important;border:1px solid var(--k-tinta) !important;color:var(--k-crema) !important}
+body.tema-casete .epl-tomab-x .x:hover{background:var(--k-tinta) !important}
+body.tema-casete .epl-borde::after{background:rgba(246,234,210,.4)}
+body.tema-casete .epl-borde:hover::after,body.tema-casete .epl-borde.arrastrando::after{background:var(--k-naranja)}
+body.tema-casete .epl-borde-et{background:var(--k-tinta);color:var(--k-crema);border-color:var(--k-naranja)}
+body.tema-casete .epl-mas{border-style:dashed !important;color:var(--k-suave) !important}
+body.tema-casete .epl-regla,body.tema-casete .epl-audio-info{color:var(--k-suave) !important}
+body.tema-casete .epl-texto-cab{color:var(--k-suave);font-family:var(--k-rotulo)}
+body.tema-casete .epl-texto-cab b{color:var(--k-texto);font:700 12px/1 var(--k-rotulo);letter-spacing:.08em;text-transform:uppercase}
+/* la pista de texto, teñida de cobalto como el estante */
+body.tema-casete .epl-texto-pista{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;border-radius:4px !important}
+body.tema-casete .epl-texto-et{background:var(--k-cobalto) !important;color:var(--k-crema) !important;border:0 !important;border-radius:4px !important;
+  font:600 13px/18px var(--k-rotulo) !important;letter-spacing:.06em}
+body.tema-casete .epl-texto-et.encima{background:#3A5BE8 !important}
+body.tema-casete .epl-texto-et.arrastrando{box-shadow:none;outline:2px solid var(--k-naranja)}
+body.tema-casete .epl-duracion{background:transparent !important;border:1px solid var(--k-linea) !important;border-radius:5px !important;color:var(--k-texto);
+  text-transform:none}
+body.tema-casete .epl-dur-et,body.tema-casete .epl-dur-igual{font-family:var(--k-texto-f);color:var(--k-suave)}
+body.tema-casete .epl-dur-num{background:transparent !important;border-radius:0 !important;border-bottom:1px dashed var(--k-naranja);color:var(--k-texto) !important}
+body.tema-casete .epl-dur-num:hover,body.tema-casete .epl-dur-num.arrastrando,body.tema-casete .epl-dur-num:focus-visible{background:var(--k-naranja) !important;color:var(--k-tinta) !important}
+body.tema-casete .epl-pegar{font-family:var(--k-rotulo)}
+body.tema-casete .epl-onda{border:1px solid #4A2C1A !important;border-radius:4px !important}
+body.tema-casete .epl-onda-et{background:rgba(23,18,28,.8) !important;color:var(--k-crema) !important}
+body.tema-casete .epl-play{background:var(--k-tinta3) !important;border:1px solid var(--k-linea) !important;color:var(--k-texto) !important;border-radius:50% !important;
+  width:44px;height:44px;align-self:center;font-size:16px}
+body.tema-casete .epl-play:hover{border-color:var(--k-crema) !important}
+body.tema-casete .epl-sonido-campo>span{color:var(--k-suave) !important}
+body.tema-casete .epl-cancion{background:var(--k-tinta);border-color:var(--k-linea)}
+body.tema-casete .epl-cancion:hover,body.tema-casete .epl-cancion.actual{border-color:var(--k-naranja);background:var(--k-tinta3)}
+body.tema-casete .epl-cancion small{color:var(--k-suave)}
+
+/* ---------------------------------------------------------------- el prompt final */
+body.tema-casete .epl-final{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;border-radius:5px !important;color:#D6CCDD !important}
+body.tema-casete .epl-o-codigo{color:#C8BCD2}
+body.tema-casete .epl-o-tu{color:var(--k-crema);font-weight:600}
+body.tema-casete .epl-o-llm{color:#B9C3F0}
+body.tema-casete .epl-o-molde{color:var(--k-suave)}
+body.tema-casete .epl-o.frase:hover{background:var(--k-tinta3)}
+body.tema-casete .epl-frase{border-color:var(--k-linea)}
+body.tema-casete .epl-frase.foco{background:var(--k-tinta3)}
+body.tema-casete .epl-frase b{color:var(--k-crema)}
+
+/* ---------------------------------------------------------------- ventanas: la ficha, la biblioteca, las cajitas (el mismo idioma) */
+body.tema-casete .epl-capa{background:rgba(10,7,13,.78) !important}
+body.tema-casete .epl-modal,body.tema-casete .epl-modal.izq,body.tema-casete .epl-modal.der{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;
+  border-radius:8px !important;box-shadow:0 24px 60px rgba(0,0,0,.6) !important;color:var(--k-texto)}
+body.tema-casete .epl-modal>.epl-tit{font:800 20px/1 var(--k-titulo) !important;letter-spacing:.03em;color:var(--k-texto) !important}
+body.tema-casete .epl-modal>.epl-tit b{color:var(--k-crema) !important}
+body.tema-casete .epl-ficha .grande{background:var(--k-tinta) !important;border:1px solid var(--k-linea);border-radius:6px !important}
+body.tema-casete .epl-ficha .grande .fondo{display:none}
+body.tema-casete .epl-ficha label{color:var(--k-crema) !important;font:700 12px/1.3 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase}
+body.tema-casete .epl-ficha .epl-ficha-toma{text-transform:none;color:var(--k-texto) !important;font:500 14px/1 var(--k-texto-f)}
+body.tema-casete .epl-pestanas-ficha .epl-mini{min-height:34px;font-size:14px !important}
+body.tema-casete .epl-propuesta{background:var(--k-tinta) !important;border:1px solid var(--k-linea2) !important;color:var(--k-texto) !important}
+body.tema-casete .epl-renglones summary,body.tema-casete .avanzado summary{color:var(--k-crema);font-family:var(--k-rotulo);text-transform:uppercase;letter-spacing:.06em}
+body.tema-casete .epl-clip-nota{background:rgba(23,18,28,.85);color:var(--k-crema)}
+body.tema-casete .epl-biblio-item,body.tema-casete .epl-elegir>div,body.tema-casete .epl-fotos>div{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;color:var(--k-texto)}
+body.tema-casete .epl-biblio-item:hover,body.tema-casete .epl-elegir>div:hover{border-color:var(--k-crema) !important}
+body.tema-casete .epl-biblio-item.marcada,body.tema-casete .epl-elegir>div.si,body.tema-casete .epl-fotos>div.elegida{border-color:var(--k-naranja) !important;
+  outline:2px solid var(--k-naranja) !important;background:var(--k-tinta3) !important}
+body.tema-casete .epl-biblio-item img,body.tema-casete .epl-elegir img,body.tema-casete .epl-fotos img{background:var(--k-tinta3) !important}
+body.tema-casete .epl-biblio-item small{color:var(--k-suave)}
+body.tema-casete .epl-check{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-color:var(--k-tinta) !important;box-shadow:none !important}
+body.tema-casete .epl-biblio-pie{background:var(--k-tinta2) !important;border-color:var(--k-linea) !important}
+body.tema-casete .epl-soltar{border-color:var(--k-linea2) !important}
+body.tema-casete .epl-tam-barra{accent-color:var(--k-naranja)}
+body.tema-casete .epl-sv-rect,body.tema-casete .epl-sv-sel{border-color:var(--k-naranja) !important}
+body.tema-casete .epl-sv-sel{background:rgba(255,122,26,.14) !important}
+body.tema-casete .epl-sv-h,body.tema-casete .epl-sv-tirador{background:var(--k-naranja) !important}
+body.tema-casete .epl-boton.epl-cortar.fijo{background:var(--k-naranja) !important;color:var(--k-tinta) !important}
+body.tema-casete .epl-tapar{border-top-color:var(--k-linea) !important}
+body.tema-casete .epl-tapar.encendido{border-top-color:var(--k-naranja) !important}
+body.tema-casete .epl-tapar .epl-interruptor{color:var(--k-texto)}
+
+/* ---------------------------------------------------------------- Retocar (cara B) */
+body.tema-casete .max-rt-tit>span:first-child{font:800 20px/1 var(--k-titulo);letter-spacing:.04em;color:var(--k-texto)}
+body.tema-casete .max-rt-tit .max-rt-nombre{color:var(--k-crema);font-family:var(--k-rotulo);font-size:14px}
+body.tema-casete .max-rt-etiqueta{font:700 13px/1 var(--k-rotulo);letter-spacing:.08em;color:var(--k-crema)}
+body.tema-casete .max-rt-marco{background:var(--k-tinta) !important;border:1px solid var(--k-linea);border-radius:6px !important}
+body.tema-casete .max-rt-linea{background:#2E190E !important;border:1px solid #4A2C1A !important;border-radius:4px !important}
+body.tema-casete .max-rt-tramo{background:rgba(255,122,26,.3) !important;border:2px solid var(--k-naranja) !important;border-radius:4px !important}
+body.tema-casete .max-rt-asa{background:var(--k-crema) !important;border-radius:3px !important}
+body.tema-casete .max-rt-cursor{background:var(--k-crema) !important}
+body.tema-casete .max-rt-rect{border-color:var(--k-naranja) !important;background:rgba(255,122,26,.16) !important;border-radius:2px !important}
+body.tema-casete .max-rt-esq{background:var(--k-naranja) !important;border-color:var(--k-tinta) !important}
+body.tema-casete .max-rt-ref img,body.tema-casete .max-rt-opcion img{border-radius:5px !important;background:var(--k-tinta3)}
+body.tema-casete .max-rt-ref small,body.tema-casete .max-rt-opcion small{color:var(--k-crema);font-family:var(--k-rotulo)}
+body.tema-casete .max-rt-opcion{border:1px solid var(--k-linea) !important;border-radius:6px !important}
+body.tema-casete .max-rt-elegir{background:var(--k-tinta) !important;border:1px solid var(--k-linea);border-radius:6px !important}
+body.tema-casete .max-rt-quitar,body.tema-casete .max-rt-cortar{background:rgba(23,18,28,.85) !important;border:1px solid var(--k-linea2) !important;color:var(--k-texto) !important}
+body.tema-casete .max-rt-error{color:var(--k-error)}
+body.tema-casete .max-rt-avance .max-texto{font-family:var(--k-rotulo)}
+body.tema-casete .max-rt-recorte .epl-sv-marco{background:var(--k-tinta)}
+body.tema-casete .epl-fondo .epl-cerrar,body.tema-casete .epl-fondo .epl-x{display:none !important}

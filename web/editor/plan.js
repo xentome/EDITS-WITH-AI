@@ -305,7 +305,7 @@ export function instalar(ctx) {
     if (!caja2 || !S.elegida) return;
     // el título lleva los segundos de la toma, que llegan con el montaje (al abrir aún no estaban)
     const tit = secToma.querySelector(".epl-tit-toma"), a = S.cortes[S.elegida - 1], z = S.cortes[S.elegida] ?? S.duracion;
-    if (tit && a !== undefined) tit.textContent = t("toma.titulo_tiempo", { k: S.elegida, a: u.num(a, 3), z: u.num(+z, 3) });
+    if (tit && a !== undefined) tit.textContent = t("toma.titulo_tiempo", { k: S.elegida, a: u.num(a, 3), z: u.num(+z, 3), f: Math.round((+z - a) * 24) });
     const linea = lineaDe(S.elegida);
     caja2.replaceChildren(...(linea ? linea.split(/(<(?:Picture|Video|Audio|Subject) \d+>)/).map((s) =>
       /^<(Picture|Video) \d+>$/.test(s) ? el("span", { class: "epl-tag", "data-tag": s, onmouseenter: () => ctx.resaltar(s, true),
@@ -347,7 +347,7 @@ export function instalar(ctx) {
                   ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
                   ninguno ? null : campoFondo(toma)].filter(Boolean);
     const titulo = el("span", { class: "epl-tit-toma" }, a === undefined ? t("toma.titulo", { k })
-      : t("toma.titulo_tiempo", { k, a: u.num(a, 3), z: u.num(+z, 3) }));
+      : t("toma.titulo_tiempo", { k, a: u.num(a, 3), z: u.num(+z, 3), f: Math.round((+z - a) * 24) }));
     secToma.replaceChildren(
       // los botones a la izquierda (se lee de izquierda a derecha) y el título después
       el("div", { class: "epl-tit epl-tit-izq" },
@@ -355,7 +355,7 @@ export function instalar(ctx) {
           el("button", { class: "epl-mini", title: t("toma.rehacer.tooltip"),
             onclick: () => ctx.conLLM("toma.rehaciendo", "tomas", { solo: k }, { k }) }, u.icono("rehacer"), " " + t("toma.rehacer")),
           S.tomas > 1 ? el("button", { class: "epl-mini", title: t("toma.quitar.tooltip"), onclick: () => ctx.quitarToma(k) }, u.icono("x"), " " + t("toma.quitar")) : null),
-        titulo),
+        el("span", { class: "epl-pista" }, t("linea.pista", { k })), titulo),
       el("div", { class: "epl-tres" },
         el("div", {}, el("b", {}, t("toma.direccion")),
           campoTexto(toma, "momento", el("span", {}, el("i", { class: "epl-icono" }, u.icono("accion")), t("toma.momento")), toma.fijos,

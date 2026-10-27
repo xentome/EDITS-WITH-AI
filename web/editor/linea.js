@@ -52,6 +52,7 @@ export function instalar(ctx) {
   // siempre hay una toma elegida: elegir(null) o una que no existe deja la que había (o la última)
   ctx.elegir = function elegir(k) {
     S.elegida = k && k <= S.tomas ? k : Math.min(S.elegida || S.tomas, S.tomas);
+    if (S.recien?.k === S.elegida) S.recien = null;      // tocar la toma quita el «recién pegada»
     ctx.programarGuardado?.();
     ctx.pintarToma();
     ctx.pintarRefs();
@@ -209,14 +210,19 @@ export function instalar(ctx) {
       // los puntos de color de lo que lleva la toma (las de Principal con anillo blanco), con su sello Im1 / V1 (27 oct)
       const lleva = ctx.refsDeToma?.(i + 1) || [];
       const puntos = el("span", { class: "epl-puntos", title: t("linea.puntos", { lista: lleva.map((x) => ctx.selloDe(x)).join(" · ") || "—" }) },
-        ...lleva.map((x) => ctx.punto(x, ctx.claveDe(x) && ctx.enTodas(ctx.claveDe(x)) ? " epl-en-todas" : "")));
+        ...lleva.map((x) => ctx.punto(x, (ctx.claveDe(x) && ctx.enTodas(ctx.claveDe(x)) ? " epl-en-todas" : "") +
+                                          (S.recien?.tag === x && S.recien.k === i + 1 ? " epl-recien" : ""))),
+        // la que se acaba de conectar lleva un anillo y «recién pegada» hasta que se toca esa toma o esa referencia
+        S.recien?.k === i + 1 && lleva.includes(S.recien.tag) ? el("span", { class: "epl-recien-et" }, t("linea.recien")) : null);
       const bloque = el("div", {
         class: "epl-tomab" + (S.elegida === i + 1 ? " elegida" : ""), id: `epl-tomab-${i + 1}`,
         style: { background: COLORES[i % COLORES.length] },
         title: [toma.lugar, toma.momento].filter(Boolean).join(" — ") || t("linea.toma_sin_historia"),
         onclick: () => ctx.elegir(i + 1) },
         n > 1 ? cruz : null,
-        el("span", { class: "epl-tomab-cab" }, el("b", {}, t("linea.toma", { k: i + 1 })), puntos),
+        // la etiqueta de pista (A1, A2…: las tomas son las pistas de la cara A) y el nombre
+        el("span", { class: "epl-tomab-cab" }, el("span", { class: "epl-pista" }, t("linea.pista", { k: i + 1 })),
+          el("b", {}, t("linea.toma", { k: i + 1 })), puntos),
         el("span", {}, toma.momento || (toma.entorno === "ninguno" ? t("toma.entorno.ninguno") : toma.lugar || t("linea.sin_lugar"))), tiempo);
       ctx.zonaToma?.(bloque, i + 1);    // soltar aquí un póster del estante lo conecta a esta toma (referencias.js)
       return bloque;
@@ -225,7 +231,7 @@ export function instalar(ctx) {
     const colocar = (c) => bloques.forEach((b, i) => {
       b.style.left = `calc(${c[i] / dur * 100}% + 2px)`;
       b.style.width = `calc(${(fin(c, i) - c[i]) / dur * 100}% - 4px)`;
-      tiempos[i][0].textContent = t("linea.tiempo", { a: seg(c[i]), b: seg(fin(c, i)) }) + tiempos[i][1];
+      tiempos[i][0].textContent = t("linea.tiempo", { a: seg(c[i]), b: seg(fin(c, i)), f: Math.round((fin(c, i) - c[i]) * FPS) }) + tiempos[i][1];
     });
     // los bordes: se arrastran (puntero) y muestran los segundos de las dos tomas mientras tanto
     const bordes = ini.slice(1).map((_, j) => {

@@ -142,6 +142,7 @@ export function instalar(ctx) {
       toma.efecto = toma.efectos[0];
       fijarCampo(toma, "efecto");
     }
+    S.recien = { tag, k };      // su pegatina en la toma lleva «recién pegada» hasta que se toque la toma o la referencia
     repintarTodo();
     ctx.avisar(t(campo === "fondo_ref" ? "referencias.conectada_fondo" : "referencias.conectada", { nombre: nombreTag(tag), k }), "bien");
   };
@@ -152,6 +153,7 @@ export function instalar(ctx) {
     for (const c of CAMPOS_REF) if (toma[c] === tag) toma[c] = "";
     toma.efectos = (toma.efectos || []).filter((x) => x && x !== tag);
     toma.efecto = toma.efectos[0] || "";
+    if (S.recien?.tag === tag && S.recien.k === k) S.recien = null;
     repintarTodo();
     ctx.avisar(t("referencias.desconectada", { nombre: nombreTag(tag), k }), "bien");
   };
@@ -518,7 +520,10 @@ export function instalar(ctx) {
                           style: { "--c": r.tag ? ctx.colorDe(r.tag) : "#555" },
                           onmouseenter: () => r.tag && ctx.resaltar(r.tag, true), onmouseleave: () => r.tag && ctx.resaltar(r.tag, false) },
       el("button", { class: "epl-poster-abrir", title: t("referencias.ficha.abrir", { nombre: r.nombre }),
-                     onclick: () => cajita ? ctx.abrirCajita(r) : ctx.abrirFicha(r) },
+                     onclick: () => {
+                       if (S.recien?.tag === r.tag) { S.recien = null; ctx.pintarLinea(); }   // tocar la referencia quita «recién pegada»
+                       return cajita ? ctx.abrirCajita(r) : ctx.abrirFicha(r);
+                     } },
         src ? el("img", { src, alt: "", loading: "lazy", draggable: false })
             : el("span", { class: "sinfoto" }, t(r.kind === "video" ? "referencias.tarjeta.video" : "comun.sin_vista_previa")),
         el("span", { class: "epl-poster-pie" },

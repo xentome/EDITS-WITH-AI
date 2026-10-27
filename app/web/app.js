@@ -119,7 +119,7 @@ function pintarFases() {
   const retoques = A.videos.filter((x) => x.tipo === "retoque").length;
   const bloque = (f, num, estado) => el("button", { class: "max-fase" + (A.fase === f ? " activa" : ""), "aria-current": A.fase === f ? "step" : null,
                                                     "data-fase": f, onclick: () => ponerFase(f) },
-    el("span", { class: "max-fase-cab" }, el("span", { class: "max-fase-num" }, num), el("span", { class: "max-fase-nombre" }, t(`app.fases.${f}`)),
+    el("span", { class: "max-fase-cab" }, el("span", { class: "max-fase-cara" }, t(`app.fases.cara_${f}`)), el("span", { class: "max-fase-num" }, num), el("span", { class: "max-fase-nombre" }, t(`app.fases.${f}`)),
       A.fase === f ? el("span", { class: "max-fase-aqui" }, t("app.fases.aqui")) : null),
     el("span", { class: "max-fase-estado" }, ...estado));
   barraFases.replaceChildren(
