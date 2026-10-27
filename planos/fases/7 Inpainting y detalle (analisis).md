@@ -88,3 +88,21 @@ Controles mínimos que pide el flujo (el diseño lo decide el usuario):
 - escribir qué queda en su lugar;
 - un botón para borrar; y, aparte, otro para mejorar el detalle;
 - opcional: grow, feather, recorte sí o no, y «usar este fotograma como referencia».
+
+## 8. Pruebas reales (26–27 oct, en local, RTX 3060)
+
+Todas sobre `prueba_camara_toma2_00002_.mp4` (la demo, 960×544, dos tomas), con el modelo de `edit_h3` + VDN turbo a **8 pasos** y `SamplerCustomAdvanced` (euler). SPEED no sirve: rechaza las máscaras en su código. Grafos y máscaras en `~/comfy/max_editor_app/pruebas/inpaint/`.
+
+| Prueba | Qué | Tamaño | Tokens | Tiempo | Resultado |
+|---|---|---|---|---|---|
+| Máscara SAM 3.1 | «face», «hand», «text»… | — | — | 40–50 s | ✅ la cara y la mano sí; ❌ las letras estilizadas del título, no (ni «text», ni «white letters», ni «title») |
+| Borrar 1 | título, clip entero, `mask_hide` off | 960×544, recorte 640² | 37 465 | 961 s | ❌ H3 vuelve a copiar las letras del clip citado |
+| Borrar 2 | tramo 2,10–5,14 s + `mask_hide` blur | 960×544, recorte 640² | 22 534 | 575 s | ❌ ya no copia, pero inventa letras nuevas |
+| Borrar 3 | + máscara grande + prompt «no text» | ref 640 px, recorte 448² | 10 666 | 327 s | ❌ copia el borrón de la referencia e inventa letras |
+| **Detalle de cara** | 2.ª toma, 3,52–5,14 s (39 f), máscara SAM «face», `mask_hide` off, `mask_ref_strength` 1 | ref 640 px, recorte 384² | 2 497 | **182 s** | ✅ cara mucho más nítida: ojos azules con iris, pecas, labios; sigue siendo ella. También quitó las letras que tapaban la cara |
+
+**Lecciones:**
+- ✅ **El tramo corto y la baja resolución mandan en el tiempo.** El coste depende de los tokens: el clip citado como referencia + el recorte.
+- ✅ **El «detail» con la lupa de Fantastic funciona**, y en 3 minutos: máscara de SAM por texto, recorte con zoom y referencia a fuerza completa para conservar la identidad.
+- ✅ **Para borrar, H3 obedece demasiado a la referencia:** sin ocultar, copia; ocultando, copia el borrón o rellena con algo parecido. ❓ Falta probar `mask_ref_strength` 0,3–0,5.
+- 💡 **En la app:** elegir el tramo en la línea de tiempo, la máscara por texto (SAM) o con pincel y rectángulo (para lo que SAM no encuentra), un interruptor «borrar / mejorar detalle» que ponga solos `mask_hide` y `mask_ref_strength`, y un aviso del tiempo según los tokens.
