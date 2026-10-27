@@ -68,7 +68,7 @@ LLM local: llama.cpp en :8080 (nucleo.py ya lo usa, no cambia)
 
 ## Fases (marcar ✅ al terminar, con commit y push)
 
-1. ⬜ **Plantilla y generar** (ayudante «generar»): `app/plantillas/edit_h3.api.json` y `app/generar.py`, más una prueba por línea de comandos `app/pruebas/prueba_generar.py`.
+1. ✅ **Plantilla y generar** (ayudante «generar»): `app/plantillas/edit_h3.api.json` y `app/generar.py`, más una prueba por línea de comandos `app/pruebas/prueba_generar.py`.
    - La plantilla sale de `~/comfy/max_editor_app/pruebas/wf_h3_api.json`, que es el workflow con el que salieron los edits buenos del 26 oct. Sin LoRAs, sin `PreviewAny`, sin nada del usuario dentro del `estado`: un estado vacío y sencillo.
    - Una prueba corta (22 fotogramas) que devuelva un video. Dejar el estado con lo mínimo.
 2. ⬜ **Servidor y grafo de mentira** (ayudante «app»): `app/servidor.py`, `app/carpetas.py` (el `folder_paths` de la app), `app/config.json`, `app/web/index.html`, `app/web/app.js` y `app/web/grafo_falso.js`.
@@ -113,3 +113,4 @@ LLM local: llama.cpp en :8080 (nucleo.py ya lo usa, no cambia)
 ## Registro
 
 - 26 oct: plano escrito; SDK y proxy comprobados con un render de 22 fotogramas.
+- 26 oct (fase 1, «generar»): `app/plantillas/edit_h3.api.json` (sin PreviewAny, Stack y audio vacíos, estado `{"v":4}`, prefijo `max_editor/edit`) con su `LEEME.md` (nodos, custom nodes y modelos); `app/generar.py` (hilos + `Comfy` síncrono; `iniciar` nunca lanza: un fallo nace como trabajo en «error»); `app/pruebas/prueba_generar.py` (prueba seca + render). Render de 22 fotogramas por el SDK: 228 s, 960×544 con audio. Sorpresas del SDK: `Workflow.remove_node` redirige los enlaces a la única entrada del nodo quitado (el `prompt_text` habría recibido el audio), así que se quita a mano; el `value` de Progress no sirve como avance total (marca 99 % a los 2 s), así que `generar.py` lo estima por fases; el cliente no acepta `base_url`, solo `COMFY_BASE_URL`; `cancelar` usa el cancel del proxy (solo ese trabajo); `LoadAudio` solo acepta archivos de `input/`.
