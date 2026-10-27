@@ -100,3 +100,6 @@ body.tema-azul .epl-tomab{background:linear-gradient(to bottom right,#4a0b12 0%,
 body.tema-azul .epl-tomab *{color:inherit}
 body.tema-azul .epl-tomab.elegida{background:linear-gradient(to bottom right,#5c0e17 0%,#220709 28%,#080808 50%,#220709 72%,#5c0e17 100%) !important;
   color:#ffffff !important;border:2px solid var(--c-coral) !important}
+/* (26 oct) el fondo grande de la toma: redondeado como el resto */
+body.tema-azul .epl-fondo-grande{border-radius:22px !important;border-color:rgba(170,130,255,.14) !important;background:rgba(255,255,255,.02) !important}
+body.tema-azul .epl-fondo-vista{border-radius:18px !important}

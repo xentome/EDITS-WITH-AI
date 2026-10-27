@@ -335,6 +335,19 @@ export function instalar(ctx) {
                                                       onmouseleave: () => ctx.resaltar(s, false) }, s) : s)
       : [t("toma.sin_linea")]));
   };
+  /* el fondo de la toma (26 oct): grande pero apagado, con su menú a todo lo ancho y debajo una vista previa cuadrada y
+   * grande de la imagen elegida, para aprovechar el hueco de la columna de la derecha */
+  function campoFondo(toma) {
+    const ops = opcionesDe("fondo", t("toma.sin_fondo"));
+    if (!ops) return null;
+    const r = wf.lista.find((x) => x.tag === toma.fondo_ref);
+    const src = r ? ctx.vista(r) : "";
+    return el("div", { class: "epl-fondo-grande" },
+      campoMenu(toma, "fondo_ref", t("toma.fondo"), toma.fijos, ops),
+      el("div", { class: "epl-fondo-vista" + (src ? "" : " vacia"),
+        onmouseenter: () => toma.fondo_ref && ctx.resaltar(toma.fondo_ref, true), onmouseleave: () => toma.fondo_ref && ctx.resaltar(toma.fondo_ref, false) },
+        src ? el("img", { src, alt: "", loading: "lazy" }) : el("span", { class: "epl-ayuda" }, t("toma.sin_fondo"))));
+  }
   ctx.pintarToma = function pintarToma() {
     const k = S.elegida, toma = k ? S.plan.tomas[k - 1] : null;
     if (k !== tomaPintada) { encuadrePropio = false; camaraPropia = false; tomaPintada = k; }   // en otra toma lo decide su valor
@@ -355,7 +368,7 @@ export function instalar(ctx) {
     const refs = [menu("personaje", "toma.atuendo", "personaje", "—"), menu("ropa", "toma.ropa", "ropa", t("toma.sin_ropa")),
                   menu("pose", "toma.pose", "pose", t("toma.sin_pose")), menu("objeto", "toma.objeto", "objeto", t("toma.sin_objeto")),
                   ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
-                  ninguno ? null : menu("fondo_ref", "toma.fondo", "fondo", t("toma.sin_fondo"))].filter(Boolean);
+                  ninguno ? null : campoFondo(toma)].filter(Boolean);
     const titulo = el("span", { class: "epl-tit-toma" }, a === undefined ? t("toma.titulo", { k })
       : t("toma.titulo_tiempo", { k, a: u.num(a, 3), z: u.num(+z, 3) }));
     secToma.replaceChildren(
