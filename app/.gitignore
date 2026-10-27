@@ -3,3 +3,4 @@ proyectos/*
 salidas/
 config.local.json
 __pycache__/
+servidor.log

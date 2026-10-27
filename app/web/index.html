@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAX EDITOR</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2318a058'/%3E%3Cpath d='M3 12V4l2.5 4L8 4l2.5 4L13 4v8' stroke='white' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+/* La app: una cabecera fina arriba y, debajo, la ventana del nodo (web/editor_core.js) a pantalla completa y siempre abierta.
+ * La ventana es un modal (.epl-fondo); aquí se pega debajo de la cabecera y se le quitan «Cerrar» y ✕. */
+:root{--max-alto:48px;--max-fondo:#111418;--max-borde:#2a2f3a;--max-texto:#d7dbe2;--max-suave:#8a93a3;--max-verde:#18a058;
+  --max-verde-claro:#22c06c;--max-rojo:#f07070;--max-ambar:#e0a94c}
+html,body{margin:0;height:100%;background:var(--max-fondo);color:var(--max-texto);font:13px system-ui,sans-serif;overflow:hidden}
+button{font:inherit;cursor:pointer}
+.max-cab{position:fixed;top:0;left:0;right:0;z-index:10002;background:#0d1014;border-bottom:1px solid var(--max-borde)}
+.max-fila{display:flex;align-items:center;gap:10px;padding:6px 12px;min-height:36px;flex-wrap:wrap}
+.max-nombre{font-weight:800;letter-spacing:.12em;font-size:14px;color:#fff;white-space:nowrap}
+.max-nombre i{font-style:normal;color:var(--max-verde-claro)}
+.max-grupo{display:flex;align-items:center;gap:6px}
+.max-sep{width:1px;height:22px;background:var(--max-borde)}
+.max-cab select,.max-cab input{background:#161a20;color:var(--max-texto);border:1px solid #303642;padding:4px 6px;font:inherit}
+.max-cab select{max-width:220px}
+.max-boton{background:#232833;color:var(--max-texto);border:1px solid #363d4a;padding:4px 10px}
+.max-boton:hover{background:#2c3240}
+.max-boton:disabled{opacity:.5;cursor:default}
+.max-generar{background:var(--max-verde);border:1px solid var(--max-verde-claro);color:#fff;font-weight:800;font-size:15px;
+  padding:7px 22px;letter-spacing:.03em}
+.max-generar:hover{background:var(--max-verde-claro)}
+.max-generar:disabled{background:#2a5a40;border-color:#2a5a40}
+.max-aviso{color:var(--max-suave);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.max-aviso.bien{color:#5fbf7f}.max-aviso.mal{color:var(--max-rojo)}
+.max-salud{display:flex;gap:10px;font-size:12px;color:var(--max-suave)}
+.max-salud span::before{content:"●";margin-right:4px;color:#555}
+.max-salud .si::before{color:#4cd07d}.max-salud .no::before{color:var(--max-rojo)}
+.max-semilla input{width:110px}
+.max-derecha{margin-left:auto}
+.max-idioma .max-boton{padding:3px 7px;font-size:11px}
+.max-idioma .max-boton.fijo{background:#3a4252;color:#fff}
+.max-pop{position:absolute;z-index:10005;background:#1b1f27;border:1px solid #3a4252;padding:10px;display:flex;gap:6px;align-items:center;
+  box-shadow:0 10px 30px rgba(0,0,0,.5)}
+/* el avance del video: una fila debajo de la cabecera */
+.max-avance{display:none;align-items:center;gap:10px;padding:5px 12px;border-top:1px solid var(--max-borde);background:#0f1317}
+.max-avance.ver{display:flex}
+.max-barra{flex:1;height:10px;background:#20252e;position:relative;overflow:hidden}
+.max-barra b{position:absolute;inset:0 auto 0 0;background:var(--max-verde);width:0;transition:width .4s}
+.max-avance.mal .max-barra b{background:var(--max-rojo)}
+.max-avance .max-texto{min-width:280px;font-size:12px}
+.max-avance.mal .max-texto{color:var(--max-rojo)}
+/* la ventana del nodo, pegada debajo de la cabecera y siempre abierta */
+body .epl-fondo{top:var(--max-alto);background:none;align-items:stretch}
+body .epl-fondo .epl-caja{width:100vw;height:auto;flex:1;border:0;box-shadow:none}
+body .epl-fondo .epl-cerrar,body .epl-fondo .epl-x{display:none}
+/* los videos: un panel a la derecha */
+.max-videos{position:fixed;top:var(--max-alto);right:0;bottom:0;width:min(440px,100vw);z-index:10003;background:#13161c;
+  border-left:1px solid var(--max-borde);display:none;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.5)}
+.max-videos.ver{display:flex}
+.max-videos .max-fila{border-bottom:1px solid var(--max-borde)}
+.max-videos video{width:100%;max-height:58vh;background:#000;display:block}
+.max-lista{flex:1;overflow:auto;padding:6px}
+.max-video{display:flex;gap:8px;align-items:center;padding:6px;border:1px solid transparent;cursor:pointer}
+.max-video:hover{background:#1b1f27}
+.max-video.actual{border-color:var(--max-verde)}
+.max-video small{color:var(--max-suave)}
+.max-vacio{color:var(--max-suave);font-style:italic;padding:10px}
+.max-cargando{position:fixed;inset:var(--max-alto) 0 0 0;display:flex;align-items:center;justify-content:center;color:var(--max-suave)}
+</style>
+</head>
+<body>
+<div class="max-cargando" id="cargando">…</div>
+<script type="module" src="/app/web/app.js"></script>
+</body>
+</html>

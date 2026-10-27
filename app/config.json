@@ -1,0 +1,9 @@
+{
+ "comfyui_dir": "~/comfy/ComfyUI",
+ "comfyui_url": "http://127.0.0.1:8188",
+ "proxy_url": "http://127.0.0.1:8199",
+ "puerto": 8300,
+ "llm_url": "http://127.0.0.1:8080",
+ "python_comfyui": "",
+ "liberar_gpu": true
+}

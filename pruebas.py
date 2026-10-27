@@ -519,8 +519,9 @@ comprobar("y los mismos {marcadores} en cada clave", all(marcas(ES[k]) == marcas
 
 # las claves que usa el código: literales que empiezan por una zona conocida; con ${x} o {x}, un patrón
 ZONAS = sorted({k.split(".")[0] for k in ES})
-CODIGO_JS = sorted(glob.glob(os.path.join(AQUI, "web", "**", "*.js"), recursive=True))
-CODIGO_PY = [os.path.join(AQUI, x) for x in ("__init__.py", "rutas.py", "nucleo.py", "i18n.py")]
+# también la app MAX EDITOR (app/: usa los mismos textos; planos/fases/6)
+CODIGO_JS = sorted(glob.glob(os.path.join(AQUI, "web", "**", "*.js"), recursive=True)) + sorted(glob.glob(os.path.join(AQUI, "app", "web", "*.js")))
+CODIGO_PY = [os.path.join(AQUI, x) for x in ("__init__.py", "rutas.py", "nucleo.py", "i18n.py", "app/servidor.py", "app/trabajador.py")]
 literal = re.compile(r"""(?<![\w.])f?(["'`])((?:%s)\.[\w.${}]+?)\1""" % "|".join(ZONAS))
 usadas, patrones, faltan = set(), [], []
 for ruta in CODIGO_JS + CODIGO_PY:
