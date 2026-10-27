@@ -106,3 +106,29 @@ Todas sobre `prueba_camara_toma2_00002_.mp4` (la demo, 960×544, dos tomas), con
 - ✅ **El «detail» con la lupa de Fantastic funciona**, y en 3 minutos: máscara de SAM por texto, recorte con zoom y referencia a fuerza completa para conservar la identidad.
 - ✅ **Para borrar, H3 obedece demasiado a la referencia:** sin ocultar, copia; ocultando, copia el borrón o rellena con algo parecido. ❓ Falta probar `mask_ref_strength` 0,3–0,5.
 - 💡 **En la app:** elegir el tramo en la línea de tiempo, la máscara por texto (SAM) o con pincel y rectángulo (para lo que SAM no encuentra), un interruptor «borrar / mejorar detalle» que ponga solos `mask_hide` y `mask_ref_strength`, y un aviso del tiempo según los tokens.
+
+## 9. Con el workflow del usuario y una imagen de referencia ✅ (27 oct)
+
+El método que funciona es **el workflow del usuario** (`MiniMax H3 Inpainting .json`), con estos cambios:
+- **Modelo:** el modelo, el codificador de texto y el VAE de `edit_h3`.
+- **VDN turbo a 8 pasos:** `ApplyVDNH3` entre `SigmaShift` y `ModelPreviewOverrideKJ`, con `SamplerCustomAdvanced` + euler.
+- **Sin `MiniMaxLowVRAMAttention`:** choca con VDN («VDN cannot safely replace existing object patch … attn.forward»).
+- **Sin** las vistas previas ni el truco de congelar los 19 primeros fotogramas.
+- **El tramo:** se corta antes con ffmpeg (39 fotogramas) y el NKDTimeline se pone al tamaño del video.
+
+Lo decisivo es **la imagen de referencia en `MiniMaxH3ReferenceToVideo`** (`<Picture 1>`), que el método de Fantastic de antes no tenía.
+
+| Prueba | Máscara | Referencia | Tiempo | Resultado |
+|---|---|---|---|---|
+| Detalle de la cara (`_00011_`, 2.ª toma, 1408×768) | SAM «face» (tracking) | la cara recortada de la foto de la chica | ~3,5 min | ✅ «increíble», según el usuario |
+| Efecto deformado → logo (`_00014_`, 0,30–1,92 s, 1248×704) | rectángulo 920×260 hecho con SolidMask + MaskComposite (SAM no cubría todo el efecto) | el logo «MAX EDITOR for MINIMAX H3» (`image (443).png`) | 197 s | ✅ el logo sale limpio y legible en el sitio del efecto; queda un iconito naranja de la píldora vieja |
+
+Grafos en `~/comfy/max_editor_app/pruebas/inpaint/usuario_detalle.json` y `usuario_efecto_logo.json`.
+
+💡 **Para la app:**
+- una plantilla «retocar» con esta base;
+- el usuario elige el tramo en la línea de tiempo;
+- marca la zona con SAM por texto o con un rectángulo o pincel;
+- elige una referencia de su biblioteca;
+- escribe qué debe salir;
+- tarda unos 3–4 minutos con tramos de 39 fotogramas.
