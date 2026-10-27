@@ -293,6 +293,39 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
       avisar(t("app.retocar.cargado", { nombre: j.name }), "bien");
     } catch (err) { avisar(err.message, "mal"); }
   } });
+  /* una imagen subida como referencia se puede recortar antes (26 oct): la ventana del recorte del editor (subir.js,
+   * ctx.editorRecorte) sobre la imagen; «Usar» recorta en el navegador con un canvas y sube solo esa parte */
+  function recortarYSubir(f) {
+    const v = A.ctx.capa("");
+    const url = URL.createObjectURL(f);
+    const img = el("img", { src: url, alt: "", class: "max-rt-img-recorte" });
+    const x = { recorte: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 } };
+    const ed = A.ctx.editorRecorte(img, x);
+    const cerrar = () => { URL.revokeObjectURL(url); v.cerrar(); };
+    const usar = async () => {
+      try {
+        let archivo = f;
+        if (x.recorte && img.naturalWidth) {
+          const r = x.recorte, W = img.naturalWidth, H = img.naturalHeight;
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(r.w * W)); c.height = Math.max(1, Math.round(r.h * H));
+          c.getContext("2d").drawImage(img, r.x * W, r.y * H, r.w * W, r.h * H, 0, 0, c.width, c.height);
+          const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
+          archivo = new File([blob], f.name.replace(/\.[^.]+$/, "") + "_" + Date.now() + "." + "png", { type: "image/png" });
+        }
+        cerrar();
+        R.refs.push(await subir(archivo)); R.error = ""; guardar();
+      } catch (err) { R.error = err.message; }
+      pintar();
+    };
+    v.modal.replaceChildren(
+      el("div", { class: "epl-tit" }, t("app.retocar.recorte.titulo"),
+        el("span", { class: "der" }, ed.botonCortar,
+          el("button", { class: "epl-mini", onclick: cerrar }, t("app.proyecto.cancelar")),
+          el("button", { class: "epl-boton epl-azul", onclick: usar }, t("app.retocar.recorte.usar")))),
+      el("p", { class: "epl-ayuda" }, t("app.retocar.recorte.ayuda")),
+      el("div", { class: "max-rt-recorte" }, ed.marco));
+  }
   function pintar() {
     const nombre = R.video ? R.video.replace(/ \[(input|output)\]$/, "") : "";
     cabeza.replaceChildren(el("span", {}, t("app.retocar.titulo")),
@@ -319,9 +352,9 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
                      onclick: () => { R.refs.splice(i, 1); guardar(); pintar(); } }, "✕")));
     const archivo = el("input", { type: "file", accept: "image/*", style: { display: "none" }, onchange: async (e) => {
       const f = e.target.files?.[0];
+      e.target.value = "";
       if (!f) return;
-      try { R.refs.push(await subir(f)); R.error = ""; guardar(); } catch (err) { R.error = err.message; }
-      pintar();
+      recortarYSubir(f);
     } });
     const lleno = R.refs.length >= MAX_REFS;
     const elegibles = delProyecto();
