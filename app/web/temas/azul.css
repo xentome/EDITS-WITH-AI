@@ -78,11 +78,11 @@ body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-histo
   background:var(--c-campo-azul) !important;border:1.5px solid #1b3566 !important;color:var(--c-letra-clara) !important}
 body.tema-azul .epl-sec input::placeholder,body.tema-azul .epl-sec textarea::placeholder,body.tema-azul .epl-citas:empty::before{color:#8fa3c9 !important}
 body.tema-azul .epl-sec.epl-s-historia input::placeholder,body.tema-azul .epl-sec.epl-s-historia textarea::placeholder{color:#9db0d6 !important}
-/* (26 oct) el fondo gris pasa a negro mate en la esquina de arriba a la izquierda con degradado a un violeta más claro en la de abajo a la derecha; las tarjetas, violeta muy oscuro translúcido para
+/* (26 oct) el fondo gris pasa a negro mate en la esquina de arriba a la izquierda con degradado al violeta oscuro (#3b1f63) en la de abajo a la derecha; las tarjetas, violeta muy oscuro translúcido para
  * que se vea el degradado detrás (los cambios azules de arriba se quedan) */
 body.tema-azul,body.tema-azul .epl-caja{
   background:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px) 0 0/4px 4px,
-             linear-gradient(to bottom right,#0b0b0d 0%,#140e20 35%,#33205a 70%,#5b3a94 100%) fixed !important}
+             linear-gradient(to bottom right,#0b0b0d 0%,#120d1c 30%,#24153f 62%,#3b1f63 100%) fixed !important}
 body.tema-azul .epl-cuerpo{background:transparent !important}
 body.tema-azul .max-cab,body.tema-azul .epl-cabecera{background:rgba(14,10,22,.88) !important;border-color:rgba(160,120,255,.12) !important}
 body.tema-azul .epl-sec{background:rgba(22,14,36,.72) !important;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 0 0 1px rgba(170,130,255,.07) !important}
