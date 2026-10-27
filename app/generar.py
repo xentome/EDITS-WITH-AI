@@ -257,17 +257,45 @@ def iniciar(valores: dict, opciones: dict | None = None) -> str:
     c = config()
     try:
         grafo = preparar(valores, opciones)
-        s = salud()
-        if not s["comfyui"]:
-            raise ErrorGenerar(f"ComfyUI no responde en {c['comfyui_url']}: ábrelo y vuelve a probar")
-        if not s["proxy"]:
-            raise ErrorGenerar(f"el proxy de ComfyUI no responde en {c['proxy_url']}: arráncalo (app/arrancar.sh)")
+        comprobar_servicios(c)
     except Exception as exc:
         return _nuevo("error", _texto_error(exc, c))
+    return lanzar(grafo, opciones, c, despues=_despues_edit)
+
+
+def comprobar_servicios(c: dict) -> None:
+    s = salud()
+    if not s["comfyui"]:
+        raise ErrorGenerar(f"ComfyUI no responde en {c['comfyui_url']}: ábrelo y vuelve a probar")
+    if not s["proxy"]:
+        raise ErrorGenerar(f"el proxy de ComfyUI no responde en {c['proxy_url']}: arráncalo (app/arrancar.sh)")
+
+
+def lanzar(grafo: dict, opciones: dict, c: dict, despues, extra: dict | None = None) -> str:
+    """Lo común de generar y retocar (retocar.py): un trabajo nuevo y un hilo que manda el grafo por el SDK.
+    `despues(tid, grafo, job, opciones) -> (archivo, fila)` baja el video del job a app/salidas y dice qué se anota."""
     tid = _nuevo()
-    _poner(tid, semilla=_semilla_de(grafo))
-    threading.Thread(target=_correr, args=(tid, grafo, opciones, c), name=f"generar-{tid}", daemon=True).start()
+    _poner(tid, semilla=_semilla_de(grafo), **(extra or {}))
+    threading.Thread(target=_correr, args=(tid, grafo, opciones, c, despues), name=f"generar-{tid}", daemon=True).start()
     return tid
+
+
+def videos_del_job(job, grafo: dict, tipos=(NODO_GUARDAR, "VHS_VideoCombine")) -> list:
+    salidas = [o for tipo in tipos for nid in _por_tipo(grafo, tipo) for o in job.get_outputs(nid)]
+    return [o for o in salidas if str(o.content_type).startswith("video") or o.name.lower().endswith((".mp4", ".webm", ".mov"))]
+
+
+def _despues_edit(tid: str, grafo: dict, job, opciones: dict):
+    videos = videos_del_job(job, grafo, (NODO_GUARDAR,))
+    if not videos:
+        raise ErrorGenerar("ComfyUI terminó pero no devolvió ningún video")
+    os.makedirs(SALIDAS, exist_ok=True)
+    o = videos[0]
+    ext = os.path.splitext(o.name)[1] or ".mp4"
+    semilla = _semilla_de(grafo)
+    archivo = f"edit_{datetime.now():%Y%m%d_%H%M%S}_{semilla}{ext}"
+    o.to_file(os.path.join(SALIDAS, archivo))
+    return archivo, {"semilla": semilla, "proyecto": opciones.get("proyecto")}
 
 
 def _avance(grafo: dict, ev, vistos: set) -> float:
@@ -277,12 +305,13 @@ def _avance(grafo: dict, ev, vistos: set) -> float:
     tipo = grafo.get(ev.current_node or "", {}).get("class_type", "")
     if "Sampler" in tipo and ev.steps:
         return 0.35 + 0.60 * min(ev.step or 0, ev.steps) / ev.steps
-    if tipo in ("VAEDecode", "VAEDecodeAudio", "MiniMaxH3FantasticEditComposite", "CreateVideo", NODO_GUARDAR):
+    if tipo in ("VAEDecode", "VAEDecodeAudio", "MiniMaxH3FantasticEditComposite", "CreateVideo", NODO_GUARDAR,
+                "MVEx_SubjectUncrop", "VHS_VideoCombine"):
         return 0.96
     return min(0.34, 0.35 * len(vistos) / max(1, len(grafo)))
 
 
-def _correr(tid: str, grafo: dict, opciones: dict, c: dict) -> None:
+def _correr(tid: str, grafo: dict, opciones: dict, c: dict, despues) -> None:
     from comfy_sdk.events import Progress, StatusChange
     nombres = {nid: n.get("class_type", "") for nid, n in grafo.items()}
     vistos: set[str] = set()
@@ -318,25 +347,14 @@ def _correr(tid: str, grafo: dict, opciones: dict, c: dict) -> None:
             if job.status != "succeeded":
                 _poner(tid, estado="error", mensaje=_texto_fallo(job.error))
                 return
-            guardar = _por_tipo(grafo, NODO_GUARDAR)
-            salidas = [o for nid in guardar for o in job.get_outputs(nid)]
-            videos = [o for o in salidas if str(o.content_type).startswith("video") or o.name.lower().endswith((".mp4", ".webm", ".mov"))]
-            if not videos:
-                _poner(tid, estado="error", mensaje="ComfyUI terminó pero no devolvió ningún video")
-                return
-            os.makedirs(SALIDAS, exist_ok=True)
-            o = videos[0]
-            ext = os.path.splitext(o.name)[1] or ".mp4"
-            semilla = _semilla_de(grafo)
-            archivo = f"edit_{datetime.now():%Y%m%d_%H%M%S}_{semilla}{ext}"
-            o.to_file(os.path.join(SALIDAS, archivo))
+            archivo, fila = despues(tid, grafo, job, opciones)
         finally:
             cliente.close()
         with _cerrojo:
             segundos = round(time.time() - _trabajos[tid]["_t0"], 1)
         _poner(tid, estado="listo", avance=1.0, mensaje="listo", video=archivo, segundos=segundos)
-        _anotar({"id": tid, "fecha": datetime.now().isoformat(timespec="seconds"), "semilla": semilla,
-                 "segundos": segundos, "archivo": archivo, "proyecto": opciones.get("proyecto"), "job": job.id})
+        _anotar({"id": tid, "fecha": datetime.now().isoformat(timespec="seconds"), "segundos": segundos,
+                 "archivo": archivo, "job": job.id, **fila})
     except Exception as exc:
         _poner(tid, estado="error", mensaje=_texto_error(exc, c))
     finally:

@@ -112,3 +112,15 @@ body.tema-azul .epl-s-historia .epl-boton.epl-llm{background:#7a2236 !important;
 /* (26 oct) «Lo que no cambia · persistente» no se veía (azul sobre oscuro): píldora con borde y letra clara */
 body.tema-azul .epl-mitad.izq .epl-tit-txt{color:#e3ecff !important;border:1.5px solid #5b8fe8;border-radius:999px;padding:4px 14px;
   background:rgba(47,98,196,.18);font-weight:600}
+/* (27 oct) «Retocar el video»: la misma tarjeta que el resto; la línea de tiempo y las fotos, redondeadas */
+body.tema-azul .max-rt-linea{border-radius:14px !important;background-color:var(--c-campo-azul) !important;border:1.5px solid var(--c-borde-azul) !important;overflow:visible}
+body.tema-azul .max-rt-tramo{border-radius:10px !important;background:rgba(47,98,196,.5) !important;border-color:#8fb3ff !important}
+body.tema-azul .max-rt-asa{border-radius:6px !important}
+body.tema-azul .max-rt-cursor{border-radius:0 !important}
+body.tema-azul .max-rt-marco{border-radius:18px !important}
+body.tema-azul .max-rt-rect,body.tema-azul .max-rt-esq{border-radius:4px !important}
+body.tema-azul .max-rt-ref img,body.tema-azul .max-rt-opcion img{border-radius:16px !important}
+body.tema-azul .max-rt-opcion{border-radius:18px !important;border-color:var(--c-borde-azul) !important}
+body.tema-azul .max-rt-elegir{border-radius:16px !important}
+body.tema-azul .max-rt-boton{font-size:16px !important;padding:9px 30px !important}
+body.tema-azul .max-rt-quitar{background:rgba(0,0,0,.72) !important;border-color:#fff !important;color:#fff !important}

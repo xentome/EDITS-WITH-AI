@@ -58,6 +58,17 @@ After updating the code: `app/arrancar.sh --reiniciar`. The scripts speak Spanis
 
 Everything is saved automatically in `app/proyectos/<name>.json`. Videos go to `app/salidas/`.
 
+## Retouch / Retocar
+
+At the very bottom of the window, after «Final prompt», **«Retouch the video»** is a second timeline just for retouching a segment with H3 (inpainting):
+- the last generated video lands there automatically; any other one via «🎬 Videos» › «Send to Retouch»;
+- drag the two handles to pick the segment (always 17n+5 frames; ~3–4 min per 39 frames);
+- cover the area **by text** (SAM 3.1, e.g. `face`) or by drawing a **rectangle** on the video;
+- add up to 4 **reference images** of everything that must appear in the covered area and cite them in the (English) prompt as `<Picture N>`;
+- «Retouch» saves the retouched segment and the full video with that segment replaced (original audio untouched) in `app/salidas/`; the full one stays on the timeline so retouches can be chained.
+
+Code: `app/retocar.py`, `app/plantillas/retocar.api.json`, `app/web/retocar.js`; routes `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`.
+
 ## How it works
 
 ```

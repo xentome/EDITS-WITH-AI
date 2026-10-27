@@ -5,6 +5,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /edit_prompt_llm/<acción>  rutas.ACCIONES, en el trabajador (trabajador.py, con el Python de ComfyUI)
   /view, /upload/image, /minimax_h3/*   reenviados a ComfyUI
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
+  /app/retocar, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
 Arranque: ~/comfy/max_editor_app/.venv/bin/python app/servidor.py  →  http://127.0.0.1:8300
 Configuración: config.json, encima config.local.json (no va a git) y encima las variables MAX_EDITOR_<CLAVE>."""
 import asyncio
@@ -313,6 +314,39 @@ async def videos(peticion):
     return web.json_response(list(reversed(filas)))
 
 
+# ------------------------------------------------------------------ retocar (retocar.py, comparte los trabajos de generar.py)
+def retocar():
+    return importlib.import_module("retocar")
+
+
+async def lanzar_retoque(peticion):
+    """POST /app/retocar {video, inicio, fin, mascara, referencias, prompt, semilla, proyecto} → {id}; el avance, en /app/trabajo/<id>."""
+    datos = await peticion.json()
+    if not isinstance(datos, dict):
+        return error("app.error.sin_valores", peticion)
+    tid = await asyncio.get_running_loop().run_in_executor(None, lambda: retocar().iniciar(datos))   # corta con ffmpeg: 1–2 s
+    return web.json_response({"id": tid})
+
+
+async def video_info(peticion):
+    """GET /app/video_info?video= → {ancho, alto, fps, fotogramas, duracion, audio}."""
+    r = retocar()
+    try:
+        return web.json_response(await asyncio.get_running_loop().run_in_executor(None, r.info, peticion.query.get("video", "")))
+    except r.ErrorGenerar as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+
+
+async def ver_video(peticion):
+    """GET /app/video?video= : el archivo de app/salidas o de ComfyUI input/output (con Range, para el reproductor)."""
+    r = retocar()
+    try:
+        ruta = r.ruta_video(peticion.query.get("video", ""))
+    except r.ErrorGenerar:
+        raise web.HTTPNotFound()
+    return web.FileResponse(ruta, headers={"Cache-Control": "no-store"})
+
+
 async def abrir_carpeta(peticion):
     """«Abrir carpeta»: el gestor de archivos en app/salidas (la app corre en el mismo PC que la mira)."""
     os.makedirs(SALIDAS, exist_ok=True)
@@ -375,6 +409,9 @@ def crear_app():
     app.router.add_get("/app/videos", videos)
     app.router.add_get("/app/salidas/{ruta:[^/]+}", servir(SALIDAS))
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)
+    app.router.add_post("/app/retocar", lanzar_retoque)
+    app.router.add_get("/app/video_info", video_info)
+    app.router.add_get("/app/video", ver_video)
     app.router.add_get("/app/salud", salud)
     return app
 

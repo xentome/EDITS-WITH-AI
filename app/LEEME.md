@@ -59,6 +59,16 @@ Después de actualizar el código: `app/arrancar.sh --reiniciar`.
 
 Todo se guarda solo en `app/proyectos/<nombre>.json`. Los videos quedan en `app/salidas/`.
 
+## Retocar (Retouch)
+
+Abajo del todo de la ventana, después de «Prompt final», está **«Retocar el video»**: una segunda línea de tiempo solo para retocar un tramo con H3 (inpainting).
+- ✅ Al acabar un ▶ Generar, el video nuevo se pone ahí solo. Para usar otro: «🎬 Videos» › «Poner en Retocar».
+- ✅ Mueve el tramo con sus dos asas: siempre mide 17n+5 fotogramas (39 = 1,6 s; unos 3–4 min por cada 39).
+- ✅ Marca qué tapar: **por texto** (SAM 3.1, por ejemplo `face`) o con un **rectángulo** dibujado sobre el video (para lo que SAM no encuentra, como letras estilizadas).
+- ✅ Pon hasta 4 **referencias** (del Stack del proyecto, de las que se usa la foto original, o subidas) de todo lo que debe salir en la zona tapada, y cítalas en el prompt (inglés) con su `<Picture N>`.
+- ✅ «Retocar» guarda en `app/salidas/` el tramo retocado (`retoque_…_tramo.mp4`) y la versión completa (`retoque_….mp4`: el original con ese tramo cambiado y el audio intacto), que queda en la línea de tiempo para encadenar otro retoque.
+- Por dentro: `app/retocar.py` + `app/plantillas/retocar.api.json` (el workflow de inpainting del usuario con VDN a 8 pasos); rutas `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`; el avance, en `GET /app/trabajo/<id>`. Línea de órdenes: `retocar.py datos.json [--seco]`.
+
 ## Cómo funciona por dentro
 
 ```

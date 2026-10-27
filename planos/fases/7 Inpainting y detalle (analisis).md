@@ -132,3 +132,23 @@ Grafos en `~/comfy/max_editor_app/pruebas/inpaint/usuario_detalle.json` y `usuar
 - elige una referencia de su biblioteca;
 - escribe qué debe salir;
 - tarda unos 3–4 minutos con tramos de 39 fotogramas.
+
+## 10. En la app ✅ (27 oct)
+
+**Qué se hizo:** la función **«Retocar el video»** en MAX EDITOR, con la base de la sección 9.
+
+**Dónde:**
+- `app/plantillas/retocar.api.json`: el grafo de `usuario_efecto_logo_chica.json` con las dos ramas de máscara (13–17 SAM 3.1 por texto; 201–206 rectángulo) y una `LoadImage` modelo (112). La clave `_max_editor` dice qué nodos son cada rama.
+- `app/retocar.py`: `info`, `preparar`, `iniciar`, `validar` (contra `/object_info`: nodos, entradas, combos y que existan los archivos de entrada). Ajusta el tramo al 17n+5 más cercano, lo corta con ffmpeg (fotogramas exactos) a `ComfyUI/input/max_editor/retocar/`, pone el NKDTimeline al tamaño y fotogramas del tramo, deja una rama de máscara, pone una `LoadImage` por referencia (`ref_images.ref_image_0..N`; de un RefMod se usa `models/refmods/<nombre>.fuente.json` → `file`) y, al terminar, baja el tramo y arma la versión completa (concat de ffmpeg con el audio original copiado).
+- `app/generar.py`: el lanzamiento se comparte (`lanzar`, `comprobar_servicios`, `videos_del_job`); retocar usa los mismos trabajos, avance y cancelación. El historial anota `tipo: "retoque"`, `de`, `tramo`, `tramo_video`, `mascara`, `referencias` y `prompt`.
+- `app/servidor.py`: `POST /app/retocar` → `{id}` (avance en `GET /app/trabajo/<id>`, cancelar en `POST /app/cancelar/<id>`), `GET /app/video_info?video=`, `GET /app/video?video=`. Las imágenes nuevas se suben con `/upload/image` a `input/max_editor/retocar/refs`.
+- `app/web/retocar.js` (la sección), `app.js` (la coloca al final de `.epl-cuerpo`, sin tocar `web/editor/*`), estilos en `index.html` y `temas/azul.css`, 43 claves `app.retocar.*` / `app.videos.*` en `web/i18n`.
+
+**Cómo se usa:** al acabar ▶ Generar, el video se pone solo en la línea de tiempo de abajo (ya no se abre el panel de Videos). En «🎬 Videos», cada video tiene «Poner en Retocar». Se elige el tramo con dos asas, se marca la máscara (texto o rectángulo con esquinas), se ponen hasta 4 referencias con su `<Picture N>` (un clic en la etiqueta la cita en el prompt), el prompt y la semilla, y «Retocar». Al terminar, la línea de tiempo carga el video completo nuevo.
+
+**Pruebas:**
+- ✅ Render real por `POST /app/retocar`: `demo_00014.mp4`, 0,30–1,92 s → fotogramas 7–45 (39), rectángulo 920×260 en 170,210, logo + chica, el prompt de la sección 9. **203 s.** El logo sale limpio y la chica igual. Fuera del tramo, el video completo es igual al original (PSNR 49,7 dB, solo la recodificación); 243 fotogramas y el audio copiado.
+- ✅ Interfaz por CDP: cargar un video, mover el tramo y sus asas (39 → 56 → 39), dibujar y ajustar el rectángulo, elegir una referencia del Stack y subir otra, citar `<Picture 2>`, y lo que manda el botón (con la petición interceptada). «Poner en Retocar» y ES/EN. `pruebas.py` TODO BIEN.
+- ✅ La máscara por texto pasa la validación seca con `/object_info`. ❓ Sin render desde la app (en la sección 9 sí funcionó con «face»).
+- ❓ Sin probar: un video sin audio (se pone silencio), tamaños que no son múltiplo de 8, cancelar a mitad y encadenar dos retoques seguidos.
+- Archivos de la prueba y capturas: `~/comfy/max_editor_app/pruebas/retocar/`.

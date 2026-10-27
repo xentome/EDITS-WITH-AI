@@ -11,6 +11,7 @@ import { construir, valoresDe, nodoDelEdit, nodoPorTipo, campo } from "./grafo_f
 const NODO = "/edit_prompt_llm/web/";
 const v = "?v=" + Date.now();
 const [core, i18n, util] = await Promise.all(["editor_core.js", "editor/i18n.js", "editor/util.js"].map((f) => import(NODO + f + v)));
+const retocarJS = await import("./retocar.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
@@ -20,7 +21,7 @@ const leerLocal = (k) => { try { return localStorage.getItem(k); } catch { retur
 const ponerLocal = (k, x) => { try { localStorage.setItem(k, x); } catch { /* sin almacenamiento: solo esta sesión */ } };
 const ajustes = {
   get: (k) => (k === i18n.AJUSTE ? leerLocal(GUARDA_IDIOMA) || "auto" : k === "Comfy.Locale" ? navigator.language : undefined),
-  set: (k, x) => { if (k === i18n.AJUSTE) { ponerLocal(GUARDA_IDIOMA, x); tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso)); pintarCabecera(); } },
+  set: (k, x) => { if (k === i18n.AJUSTE) { ponerLocal(GUARDA_IDIOMA, x); tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso)); pintarCabecera(); retoque?.pintar(); } },
 };
 const appFalso = { graph: null, extensionManager: { setting: ajustes, toast: { add() {} } } };
 const textos = await i18n.cargarTextos();
@@ -38,6 +39,10 @@ async function pedir(ruta, cuerpo) {
 // ---- estado de la app
 const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", guardadoJSON: "", proyectos: [], salud: {},
             trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null };
+
+// ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
+const retoque = retocarJS.crear({ el, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
+                                  alTerminar: () => cargarVideos() });
 
 // ---- la cabecera
 const cab = el("div", { class: "max-cab" });
@@ -91,6 +96,7 @@ async function cambiarIdioma(i) {
   if (A.ctx?.idioma) await A.ctx.idioma.cambiar(i);        // la ventana cambia el ajuste (ajustes.set) y se vuelve a pintar
   else ajustes.set(i18n.AJUSTE, i);
   pintarVideos();
+  retoque.pintar();
 }
 
 // ---- pedir un nombre (nuevo proyecto o guardar como): una cajita debajo del botón, sin diálogos del navegador
@@ -156,6 +162,8 @@ async function abrirProyecto(nombre, valores = null) {
     document.getElementById("cargando")?.remove();
     avisar(t("app.proyecto.abierto", { nombre }), "bien");
     await cargarVideos();
+    retoque.colocar();                                    // debajo de «Prompt final», en la ventana nueva
+    await retoque.alAbrirProyecto();
   } catch (e) {
     avisar(t("app.proyecto.error_abrir", { nombre, error: e.message }), "mal");
   }
@@ -243,8 +251,9 @@ async function seguir(id) {
     if (A.avance.estado === "listo") {
       await cargarVideos();
       A.videoActual = A.avance.video;
-      A.verVideos = true;
       pintarVideos();
+      await retoque.cargar(A.avance.video);               // el clip nuevo, en la línea de tiempo de «Retocar» (abajo del todo)
+      retoque.ver();
       return;
     }
     if (A.avance.estado === "error") return;
@@ -291,7 +300,16 @@ function pintarVideos() {
                                                                                      s: tr.num(actual.segundos || 0, 0) }))) : null,
     el("div", { class: "max-lista" }, A.videos.length ? A.videos.map((x) =>
       el("div", { class: "max-video" + (x.archivo === A.videoActual ? " actual" : ""), onclick: () => { A.videoActual = x.archivo; pintarVideos(); } },
-        el("span", {}, "🎬"), el("div", {}, el("div", {}, fecha(x)), el("small", {}, t("app.videos.semilla", { semilla: x.semilla ?? "?" })))))
+        el("span", {}, x.tipo === "retoque" ? "🩹" : "🎬"),
+        el("div", {}, el("div", {}, fecha(x)), el("small", {}, x.tipo === "retoque"
+          ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
+          : t("app.videos.semilla", { semilla: x.semilla ?? "?" }))),
+        el("button", { class: "max-boton max-derecha", title: t("app.videos.retocar.tooltip"), onclick: (e) => {
+          e.stopPropagation();
+          A.verVideos = false;
+          pintarVideos();
+          retoque.cargar(x.archivo).then(retoque.ver);
+        } }, t("app.videos.retocar"))))
       : el("div", { class: "max-vacio" }, t("app.videos.vacio"))));
 }
 
@@ -312,3 +330,4 @@ mirarSalud();
 setInterval(mirarSalud, 10000);
 addEventListener("beforeunload", () => { A.ctx?.guardarYa(); });
 window.maxEditor = A;                                    // para probar desde la consola
+window.maxRetoque = retoque;
