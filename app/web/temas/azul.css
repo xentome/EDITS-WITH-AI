@@ -123,6 +123,6 @@ body.tema-azul .max-rt-ref img,body.tema-azul .max-rt-opcion img{border-radius:1
 body.tema-azul .max-rt-opcion{border-radius:18px !important;border-color:var(--c-borde-azul) !important}
 body.tema-azul .max-rt-elegir{border-radius:16px !important}
 body.tema-azul .max-rt-boton{font-size:16px !important;padding:9px 30px !important}
-body.tema-azul .max-rt-quitar{background:rgba(0,0,0,.72) !important;border-color:#fff !important;color:#fff !important}
+body.tema-azul .max-rt-quitar,body.tema-azul .max-rt-cortar{background:rgba(0,0,0,.72) !important;border-color:#fff !important;color:#fff !important}
 /* (27 oct) la ventana para recortar una referencia de Retocar */
 .max-rt-recorte{display:flex;justify-content:center}.max-rt-recorte .epl-sv-marco{display:inline-block;width:auto !important;max-width:min(80vw,900px);position:relative;line-height:0}.max-rt-recorte img{display:block;max-width:min(80vw,900px);max-height:70vh;width:auto;height:auto}

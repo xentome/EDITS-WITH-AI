@@ -347,6 +347,17 @@ async def ver_video(peticion):
     return web.FileResponse(ruta, headers={"Cache-Control": "no-store"})
 
 
+async def foto_referencia(peticion):
+    """GET /app/foto_referencia?refmod= | ?imagen= : la foto original de una referencia de Retocar, para recortarla."""
+    r = retocar()
+    q = peticion.query
+    try:
+        ruta = r.ruta_foto_referencia({"refmod": q["refmod"]} if q.get("refmod") else {"imagen": q.get("imagen", "")})
+    except r.ErrorGenerar:
+        raise web.HTTPNotFound()
+    return web.FileResponse(ruta, headers={"Cache-Control": "no-store"})
+
+
 async def abrir_carpeta(peticion):
     """«Abrir carpeta»: el gestor de archivos en app/salidas (la app corre en el mismo PC que la mira)."""
     os.makedirs(SALIDAS, exist_ok=True)
@@ -412,6 +423,7 @@ def crear_app():
     app.router.add_post("/app/retocar", lanzar_retoque)
     app.router.add_get("/app/video_info", video_info)
     app.router.add_get("/app/video", ver_video)
+    app.router.add_get("/app/foto_referencia", foto_referencia)
     app.router.add_get("/app/salud", salud)
     return app
 

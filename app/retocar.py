@@ -190,6 +190,20 @@ def _imagen_de_referencia(ref: dict) -> str:
     return archivo[:-len(" [input]")] if archivo.endswith(" [input]") else archivo
 
 
+def ruta_foto_referencia(ref: dict) -> str:
+    """La ruta en disco de la foto de una referencia (para recortarla en la ventana): la original de un RefMod o la imagen."""
+    archivo = _imagen_de_referencia(ref)
+    for marca, carpeta in ((" [output]", "output"), (" [temp]", "temp")):
+        if archivo.endswith(marca):
+            ruta = _dentro(os.path.join(comfyui_dir(), carpeta), archivo[:-len(marca)])
+            break
+    else:
+        ruta = _dentro(os.path.join(comfyui_dir(), "input"), archivo)
+    if not ruta or not os.path.isfile(ruta):
+        raise ErrorGenerar(f"no encuentro la foto «{archivo}»")
+    return ruta
+
+
 # ---------------------------------------------------------------- el grafo
 
 def preparar(datos: dict) -> tuple[dict, dict]:

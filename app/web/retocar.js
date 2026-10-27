@@ -295,26 +295,28 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
   } });
   /* una imagen subida como referencia se puede recortar antes (26 oct): la ventana del recorte del editor (subir.js,
    * ctx.editorRecorte) sobre la imagen; «Usar» recorta en el navegador con un canvas y sube solo esa parte */
-  function recortarYSubir(f) {
+  // `fuente`: un archivo recién elegido o la dirección de la foto de una referencia ya puesta; `alListo(ref)` la coloca
+  function recortarYSubir(fuente, nombre, alListo) {
     const v = A.ctx.capa("");
-    const url = URL.createObjectURL(f);
+    const propia = fuente instanceof Blob, url = propia ? URL.createObjectURL(fuente) : fuente;
     const img = el("img", { src: url, alt: "", class: "max-rt-img-recorte" });
     const x = { recorte: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 } };
     const ed = A.ctx.editorRecorte(img, x);
-    const cerrar = () => { URL.revokeObjectURL(url); v.cerrar(); };
+    const cerrar = () => { if (propia) URL.revokeObjectURL(url); v.cerrar(); };
     const usar = async () => {
       try {
-        let archivo = f;
+        let archivo = propia ? fuente : null;
+        if (!x.recorte && !propia) { cerrar(); return; }   // una referencia ya puesta, sin recorte: se queda como estaba
         if (x.recorte && img.naturalWidth) {
           const r = x.recorte, W = img.naturalWidth, H = img.naturalHeight;
           const c = document.createElement("canvas");
           c.width = Math.max(1, Math.round(r.w * W)); c.height = Math.max(1, Math.round(r.h * H));
           c.getContext("2d").drawImage(img, r.x * W, r.y * H, r.w * W, r.h * H, 0, 0, c.width, c.height);
           const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
-          archivo = new File([blob], f.name.replace(/\.[^.]+$/, "") + "_" + Date.now() + "." + "png", { type: "image/png" });
+          archivo = new File([blob], nombre.replace(/\.[^.]+$/, "").replace(/[^\w.-]+/g, "_") + "_" + Date.now() + "." + "png", { type: "image/png" });
         }
         cerrar();
-        R.refs.push(await subir(archivo)); R.error = ""; guardar();
+        alListo(await subir(archivo)); R.error = ""; guardar();
       } catch (err) { R.error = err.message; }
       pintar();
     };
@@ -348,13 +350,17 @@ export function crear({ el, t, num, pedir, A, avisar, alTerminar }) {
       el("img", { src: r.vista || "", alt: r.nombre || "" }),
       el("button", { class: "epl-cita", title: t("app.retocar.citar.tooltip"), onclick: () => citar(`<Picture ${i + 1}>`) }, `<Picture ${i + 1}>`),
       el("small", { title: r.nombre }, r.nombre || ""),
+      el("button", { class: "epl-mini max-rt-cortar", title: t("app.retocar.recortar.tooltip"), disabled: ocupado,
+                     onclick: () => recortarYSubir(r.refmod ? "/app/foto_referencia?refmod=" + encodeURIComponent(r.refmod)
+                       : r.imagen ? "/app/foto_referencia?imagen=" + encodeURIComponent(r.imagen) : r.vista,
+                       r.nombre || "ref", (nueva) => { R.refs[i] = { ...nueva, nombre: (r.nombre || nueva.nombre) + " ✂" }; }) }, "✂"),
       el("button", { class: "epl-mini max-rt-quitar", title: t("app.retocar.quitar.tooltip"), disabled: ocupado,
                      onclick: () => { R.refs.splice(i, 1); guardar(); pintar(); } }, "✕")));
     const archivo = el("input", { type: "file", accept: "image/*", style: { display: "none" }, onchange: async (e) => {
       const f = e.target.files?.[0];
       e.target.value = "";
       if (!f) return;
-      recortarYSubir(f);
+      recortarYSubir(f, f.name, (nueva) => R.refs.push(nueva));
     } });
     const lleno = R.refs.length >= MAX_REFS;
     const elegibles = delProyecto();
