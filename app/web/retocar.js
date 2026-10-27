@@ -358,8 +358,10 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     const ocupado = enMarcha();
     const modoBoton = (m, claveT) => el("button", { class: "epl-mini epl-seg" + (R.modo === m ? " fijo" : ""), disabled: ocupado,
       onclick: () => { R.modo = m; guardar(); pintar(); } }, t(claveT));
-    const tarjetas = R.refs.map((r, i) => el("div", { class: "max-rt-ref" },
-      el("img", { src: r.vista || "", alt: r.nombre || "" }),
+    // arrastrar una tarjeta al prompt escribe su <Picture N> donde se suelta (27 oct); el botón de la etiqueta sigue
+    const tarjetas = R.refs.map((r, i) => el("div", { class: "max-rt-ref", draggable: ocupado ? false : "true", title: t("app.retocar.arrastra.tooltip"),
+      ondragstart: (e) => { e.dataTransfer.setData("text/plain", `<Picture ${i + 1}>`); e.dataTransfer.effectAllowed = "copy"; } },
+      el("img", { src: r.vista || "", alt: r.nombre || "", draggable: "false" }),
       el("button", { class: "epl-cita", title: t("app.retocar.citar.tooltip"), onclick: () => citar(`<Picture ${i + 1}>`) }, `<Picture ${i + 1}>`),
       el("small", { title: r.nombre }, r.nombre || ""),
       el("button", { class: "epl-mini max-rt-cortar", title: t("app.retocar.recortar.tooltip"), disabled: ocupado,
@@ -402,8 +404,12 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
         selector,
         el("span", { class: "epl-ayuda" }, t("app.retocar.refs.ayuda"))),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.prompt")),
+        el("span", { class: "max-rt-arrastra" }, t("app.retocar.prompt.arrastra")),
         el("textarea", { class: "max-rt-prompt", rows: 5, placeholder: t("app.retocar.prompt.placeholder"), disabled: ocupado,
-                         oninput: (e) => { R.prompt = e.target.value; guardar(); } }, R.prompt),
+                         oninput: (e) => { R.prompt = e.target.value; guardar(); },
+                         ondragover: (e) => e.currentTarget.classList.add("soltar"),
+                         ondragleave: (e) => e.currentTarget.classList.remove("soltar"),
+                         ondrop: (e) => e.currentTarget.classList.remove("soltar") }, R.prompt),
         el("span", { class: "epl-ayuda" }, t("app.retocar.prompt.ayuda"))),
       el("div", { class: "max-rt-fila max-rt-final" },
         el("label", { class: "max-rt-semilla", title: t("app.retocar.semilla.tooltip") }, el("span", {}, t("app.retocar.semilla")),

@@ -351,3 +351,8 @@ body.tema-casete .max-rt-vacio-cargar{min-height:40px !important;padding:8px 18p
 body.tema-casete .epl-poster-abrir{padding:6px;gap:6px;background:var(--k-tinta)}
 body.tema-casete .epl-poster-abrir img{background:var(--k-tinta3);border-radius:3px}
 body.tema-casete .epl-poster-pie{position:static !important;left:auto !important;right:auto !important;bottom:auto !important}
+/* retocar (27 oct): las referencias se arrastran al prompt para citarlas */
+body.tema-casete .max-rt-ref[draggable="true"]{cursor:grab}
+body.tema-casete .max-rt-ref[draggable="true"]:active{cursor:grabbing}
+body.tema-casete .max-rt-arrastra{display:block;margin:2px 0 6px;color:var(--k-crema);font-family:var(--k-rotulo);font-size:14px;letter-spacing:.02em}
+body.tema-casete .max-rt-prompt.soltar{outline:2px dashed var(--k-crema) !important;outline-offset:2px}
