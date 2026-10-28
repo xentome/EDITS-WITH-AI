@@ -389,4 +389,16 @@ textarea.epl-final{min-height:40vh}
 .epl-sonido{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.epl-sonido .epl-sonido-campo{flex:1 1 600px;margin:0}
 .epl-audio-salida{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.epl-audio-salida .epl-fila{margin:0;gap:4px}.epl-audio-salida .epl-ayuda{margin:0;max-width:60ch}
 .epl-audio-salida-et{font-size:12px;color:#9aa3b2}
+/* (27 oct) la fila de la cabecera, en una rejilla fija: el título, el estado (una línea con «…», el texto entero en su
+ * tooltip), la resolución anclada (no se mueve aunque el estado cambie de largo) y el idioma y «se guarda solo» a la derecha */
+.epl-cabecera{display:grid !important;grid-template-columns:auto minmax(0,1fr) auto auto auto auto auto;align-items:center;column-gap:16px}
+.epl-cabecera .epl-estado{min-width:0;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;justify-self:start}
+.epl-cabecera .epl-resolucion{margin:0}
+.epl-resolucion{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.epl-res-tit{font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.epl-res-campo{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.epl-resolucion input.corto{width:72px;font:500 14px ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.epl-resolucion .epl-res-mp input.corto{width:76px}
+.epl-res-por{opacity:.8}
+.epl-girar{display:inline-flex;align-items:center;gap:4px}
 `;

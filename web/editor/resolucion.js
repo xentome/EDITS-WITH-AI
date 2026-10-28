@@ -62,11 +62,14 @@ export function instalar(ctx) {
     iAncho.addEventListener("change", () => aplicar(iAncho.value, alto));
     iAlto.addEventListener("change", () => aplicar(ancho, iAlto.value));
     iMp.addEventListener("change", () => { const m = medidas(iMp.value, ancho / alto); aplicar(m.ancho, m.alto); });
+    // una etiqueta de cinta en una sola fila (27 oct): RESOLUCIÓN · Ancho [960] × Alto [544] · [0,52] MP · ⇅ Girar
     return el("div", { class: "epl-resolucion", title: t("resolucion.tooltip") },
-      el("button", { class: "epl-mini epl-girar", title: t("resolucion.girar.tooltip"), "aria-label": t("resolucion.girar.tooltip"), onclick: () => aplicar(alto, ancho) }, u.icono("girar")),
-      el("div", { class: "epl-res-medidas" },
-        el("label", {}, el("span", {}, t("resolucion.ancho")), iAncho),
-        el("label", {}, el("span", {}, t("resolucion.alto")), iAlto)),
-      el("label", { class: "epl-res-mp" }, iMp, el("span", {}, "MP")));
+      el("span", { class: "epl-res-tit" }, t("resolucion.titulo")),
+      el("label", { class: "epl-res-campo" }, el("span", {}, t("resolucion.ancho")), iAncho),
+      el("span", { class: "epl-res-por", "aria-hidden": "true" }, "×"),
+      el("label", { class: "epl-res-campo" }, el("span", {}, t("resolucion.alto")), iAlto),
+      el("label", { class: "epl-res-campo epl-res-mp" }, iMp, el("span", {}, "MP")),
+      el("button", { class: "epl-mini epl-girar", title: t("resolucion.girar.tooltip"), onclick: () => aplicar(alto, ancho) },
+        u.icono("girar"), " " + t("resolucion.girar")));
   };
 }

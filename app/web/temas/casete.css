@@ -381,3 +381,13 @@ body.tema-casete .epl-hueco-anadir b,body.tema-casete .epl-gestor-subir b{font:8
 body.tema-casete .epl-hueco-anadir span,body.tema-casete .epl-gestor-subir span{font-family:var(--k-rotulo);color:#C9C2D8}
 body.tema-casete .epl-ya-esta{font-family:var(--k-rotulo);text-transform:uppercase;letter-spacing:.06em;border-radius:3px}
 body.tema-casete .epl-audio-salida-et{font:700 12px/1 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-suave)}
+/* la resolución: una etiqueta de cinta cobalto con rótulos crema (no naranja: no es la acción), del mismo alto de la fila */
+body.tema-casete .epl-resolucion{background:var(--k-cobalto) !important;border:0 !important;border-radius:4px;padding:3px 10px !important;color:var(--k-crema)}
+body.tema-casete .epl-res-tit{font:800 15px/1 var(--k-titulo);letter-spacing:.06em;color:var(--k-crema)}
+body.tema-casete .epl-res-campo span,body.tema-casete .epl-res-mp span{font:700 12px/1 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-crema)}
+body.tema-casete .epl-res-por{color:var(--k-crema)}
+body.tema-casete .epl-resolucion input,body.tema-casete .epl-resolucion input.corto{height:26px !important;font:500 15px/1 var(--k-mono) !important;
+  background:rgba(23,18,28,.55) !important;border:1px solid rgba(246,234,210,.45) !important;color:var(--k-crema) !important;padding:0 6px !important;border-radius:3px !important}
+body.tema-casete .epl-resolucion .epl-girar{background:transparent !important;border-color:rgba(246,234,210,.6) !important;color:var(--k-crema) !important;min-height:26px}
+body.tema-casete .epl-resolucion .epl-girar:hover{background:rgba(23,18,28,.35) !important}
+body.tema-casete .epl-cabecera .epl-estado{max-width:none}

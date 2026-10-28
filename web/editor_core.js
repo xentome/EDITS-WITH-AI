@@ -69,7 +69,8 @@ export async function abrir(node, app) {
 
   const ctx = { u, node, app, graph, S, wf, guardado, enApp: !!app?.maxEditor, biblioteca: {}, cajitas: {}, caja,
                 secToma, secRefs, secLinea, secTexto, secAudio, secSonido, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
-  ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
+  // la píldora de estado (una línea, con «…»); el texto entero, o su detalle, en el tooltip
+  ctx.avisar = (texto, tipo = "", detalle = "") => { estado.textContent = texto; estado.title = detalle || texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
   // (los efectos de texto, E1, E2…, van con las referencias, con papel «efecto»)
   const entradas = () => ({
@@ -123,8 +124,10 @@ export async function abrir(node, app) {
     guardando = guardando.then(async () => {
       try {
         const d = await guardar();
-        ctx.avisar(t(S.avisos.length ? "comun.ventana.autoguardado_huecos" : "comun.ventana.autoguardado") + textoDuracion(d),
-                   S.avisos.length ? "mal" : "bien");
+        // los huecos del prompt (campos que faltan), por su nombre; la lista entera y la duración, en el tooltip
+        const faltan = S.avisos.length ? t("comun.ventana.autoguardado_faltan", { lista: S.avisos.slice(0, 3).join(" · ") + (S.avisos.length > 3 ? " · …" : "") }) : "";
+        ctx.avisar(faltan || t("comun.ventana.autoguardado") + textoDuracion(d), S.avisos.length ? "mal" : "bien",
+                   (faltan ? t("comun.ventana.autoguardado_faltan.detalle", { lista: S.avisos.join(" · ") }) + "\n" : "") + t("comun.ventana.autoguardado") + textoDuracion(d));
       } catch (e) { ctx.avisar(t("errores.guardar", { error: e.message }), "mal"); }
     });
     return guardando;
