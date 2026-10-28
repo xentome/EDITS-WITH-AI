@@ -809,5 +809,71 @@ comprobar("la resolución va a múltiplos de 32 y la revisión pide la canción 
           p18.tamano() == (768, 1344) and any("song" in x for x in err18) and any("shot 2" in x and "main field" in x for x in av18),
           (p18.tamano(), err18, av18))
 
+print("19 · Extender: longitudes, de dónde sale la cola, la canción y la unión (app/extender.py, sin GPU)")
+import extender as EX  # noqa: E402
+import generar as GEN  # noqa: E402
+comprobar("lo nuevo va de 17 en 17 (la ventana solape + nuevos queda en 17n+5) y los solapes válidos son 17j+5",
+          [EX.nuevos({"nuevos": x}) for x in (1, 17, 25, 26, 68, 999)] == [17, 17, 17, 34, 68, 204]
+          and all((s + EX.nuevos({"nuevos": n}) - 5) % 17 == 0 for s in EX.SOLAPES for n in (17, 50, 100))
+          and _falla(lambda: EX.solape({"solape": 30})) and EX.solape({}) == 39)
+comprobar("la calidad: «original» es el tamaño del video (rejilla de 32); «rápida» y «media», la misma forma con menos megapíxeles",
+          EX.tamano({"ancho": 1280, "alto": 768}, "original") == (1280, 768)
+          and EX.tamano({"ancho": 1280, "alto": 768}, "rapida") == (640, 384)
+          and EX.tamano({"ancho": 544, "alto": 960}, "media") == (544, 960), EX.tamano({"ancho": 1280, "alto": 768}, "rapida"))
+hist19 = [{"archivo": "edit_a.mp4", "latente": "lat_a", "latente_wh": [640, 384], "audio": {"original": "c.wav", "inicio_s": 2.0}},
+          {"archivo": "retoque_b.mp4", "tipo": "retoque", "de": "edit_a.mp4", "tramo": {"f0": 0, "n": 20}},
+          {"archivo": "retoque_c.mp4", "tipo": "retoque", "de": "edit_a.mp4", "tramo": {"f0": 80, "n": 20}},
+          {"archivo": "edit_d.mp4", "audio": None},
+          {"archivo": "extension_e.mp4", "tipo": "extension", "de": "edit_a.mp4", "audio": {"original": "c.wav", "inicio_s": 2.0},
+           "latente": "lat_e", "latente_wh": [640, 384]}]
+antes19 = (GEN.historial, EX._ruta_latente)
+GEN.historial = lambda: hist19
+EX._ruta_latente = lambda n: __file__ if n in ("lat_a", "lat_e") else "/no/existe"
+try:
+    vi19 = {"fotogramas": 100}
+    f19 = [EX.fuente_latente(v, vi19, 640, 384, 39) for v in ("edit_a.mp4", "retoque_b.mp4", "retoque_c.mp4", "edit_d.mp4", "extension_e.mp4")]
+    otra19 = EX.fuente_latente("edit_a.mp4", vi19, 1280, 768, 39)
+    c19 = [EX.cancion(v) for v in ("retoque_b.mp4", "edit_d.mp4", "extension_e.mp4", "x [input]")]
+finally:
+    GEN.historial, EX._ruta_latente = antes19
+comprobar("la cola sale del latente si existe y es del tamaño; un retoque que no tocó el final usa el del video original",
+          [x[0] for x in f19] == ["lat_a", "lat_a", None, None, "lat_e"] and f19[2][1] == "retoque_final"
+          and otra19 == (None, "otra_resolucion"), (f19, otra19))
+comprobar("la canción se hereda de retoques y extensiones; sin canción anotada (o un mp4 de fuera) no hay",
+          c19[0] == ({"original": "c.wav", "inicio_s": 2.0}, "anotada") and c19[1] == (None, "ninguna")
+          and c19[2][1] == "anotada" and c19[3] == (None, "ninguna"), c19)
+if shutil.which("ffmpeg"):
+    with tempfile.TemporaryDirectory() as d19:
+        def _ff19(*a):
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *a], check=True)
+        def _n19(ruta, que="v"):
+            r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", f"{que}:0", "-count_frames", "-show_entries",
+                                "stream=nb_read_frames,duration", "-of", "json", ruta], capture_output=True, text=True)
+            return (json.loads(r.stdout).get("streams") or [{}])[0]
+        o19, v19, c19w = (os.path.join(d19, x) for x in ("orig.mp4", "ventana.mp4", "cancion.wav"))
+        _ff19("-f", "lavfi", "-i", "color=c=black:size=160x96:rate=24:duration=2.5", "-f", "lavfi", "-i", "sine=frequency=440:duration=2.5",
+              "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", o19)                     # 60 f negros
+        _ff19("-f", "lavfi", "-i", "color=c=white:size=96x64:rate=24:duration=3.0417", "-f", "lavfi", "-i", "sine=frequency=880:duration=3.0417",
+              "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", v19)                     # 73 f blancos (39 + 34)
+        _ff19("-f", "lavfi", "-i", "sine=frequency=220:duration=10", c19w)
+        p19 = {"info": {"ancho": 160, "alto": 96, "audio": True}, "solape": 39, "nuevos": 34, "total": 60, "usa_cancion": False}
+        s19 = os.path.join(d19, "sin_cancion.mp4")
+        EX.unir(o19, v19, p19, s19)
+        antes = EX._ruta_cancion
+        EX._ruta_cancion = lambda c: c19w
+        try:
+            s19b = os.path.join(d19, "con_cancion.mp4")
+            EX.unir(o19, v19, {**p19, "usa_cancion": True, "cancion": {"original": "x", "inicio_s": 1.0}}, s19b)
+        finally:
+            EX._ruta_cancion = antes
+        b19 = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", s19, "-vf", "scale=8:8,format=gray", "-f", "rawvideo", "-"],
+                             capture_output=True).stdout
+        m19 = [sum(b19[i * 64:(i + 1) * 64]) / 64 for i in range(len(b19) // 64)]
+        comprobar("la unión: los 60 f del original y después solo los 34 nuevos (el solape se tira), al tamaño del original, "
+                  "con audio de 94/24 s (original + nuevo, o la canción intacta)",
+                  len(m19) == 94 and max(m19[:60]) < 40 and min(m19[60:]) > 200
+                  and abs(float(_n19(s19, "a").get("duration") or 0) - 94 / 24) < 0.06
+                  and abs(float(_n19(s19b, "a").get("duration") or 0) - 94 / 24) < 0.06, (len(m19), _n19(s19, "a"), _n19(s19b, "a")))
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

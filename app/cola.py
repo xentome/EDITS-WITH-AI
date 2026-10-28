@@ -7,6 +7,8 @@ hace de uno en uno (una sola GPU), aunque nadie tenga la página abierta.
 - La cola vive en disco (app/salidas/cola.json, fuera de git). Al arrancar, lo que estaba «corriendo» se busca en el
   historial de ComfyUI por su prompt_id: si terminó, se recoge su video; si sigue en la cola de ComfyUI, se espera y se
   recoge; si no, queda «interrumpido» y se puede reintentar.
+- Extender (28 oct, planos/fases/12) va igual que Retocar: su foto fija son sus datos (video, solape, nuevos, calidad,
+  audio, prompt, referencias, semilla).
 - Un hilo procesa la cola: empieza el siguiente solo si no hay otro corriendo, la cola no está en pausa, el LLM local no
   está trabajando (llm_ocupado) y la cola de ComfyUI está vacía (así nunca van dos a la vez contra el mismo ComfyUI).
   Si un trabajo falla, sigue con el siguiente.
@@ -29,7 +31,7 @@ from datetime import datetime
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RUTA = os.environ.get("MAX_EDITOR_COLA") or os.path.join(AQUI, "salidas", "cola.json")   # otra ruta, para probar
-TIPOS = ("generar", "retocar")
+TIPOS = ("generar", "retocar", "extender")
 TERMINADOS = ("hecho", "error", "cancelado", "interrumpido")
 
 _cerrojo = threading.RLock()
@@ -88,7 +90,10 @@ def anadir(tipo: str, foto: dict, semillas: list | None = None) -> list[str]:
             tramo = None
             if tipo == "retocar":
                 tramo = {k: f.get(k) for k in ("f0", "n")} if f.get("n") is not None else {"inicio": f.get("inicio"), "fin": f.get("fin")}
+            # Extender: lo que la página enseña del trabajo (la pestaña carga lo que encoló el agente) sin la foto entera
+            extension = {k: f.get(k) for k in ("video", "solape", "nuevos", "calidad", "audio_salida", "prompt")} if tipo == "extender" else None
             _estado["trabajos"].append({"id": tid, "tipo": tipo, "proyecto": f.get("proyecto") or "", "semilla": s, "tramo": tramo,
+                                        "extension": extension,
                                         "origen": f.get("origen") or "",
                                         "estado": "en_cola", "avance": 0.0, "mensaje": "", "video": None, "creado": _ahora(),
                                         "empezado": None, "terminado": None, "segundos": 0.0, "job": None, "foto": f})
@@ -168,7 +173,7 @@ def pausar(si: bool) -> dict:
 
 # ---------------------------------------------------------------- el hilo
 def arrancar(api: dict) -> None:
-    """api: {generar: () -> módulo, retocar: () -> módulo, llm_ocupado: () -> bool, comfyui_url, comfyui_dir}."""
+    """api: {generar: () -> módulo, retocar: () -> módulo, extender: () -> módulo, llm_ocupado: () -> bool, comfyui_url, comfyui_dir}."""
     global _hilo
     _api.update(api)
     _cargar()
@@ -217,6 +222,8 @@ def _correr(t: dict) -> None:
     if t["tipo"] == "generar":
         opciones = {k: foto.get(k) for k in ("semilla", "proyecto", "prefijo")}
         tid = g.iniciar(foto["valores"], opciones)
+    elif t["tipo"] == "extender":
+        tid = _api["extender"]().iniciar(foto)
     else:
         tid = _api["retocar"]().iniciar(foto)
     with _cerrojo:
@@ -311,6 +318,8 @@ def _recoger(t: dict, h: dict) -> str:
         archivo = f"edit_{sello}_{foto.get('semilla')}{os.path.splitext(rutas[0])[1] or '.mp4'}"
         shutil.copyfile(rutas[0], os.path.join(g.SALIDAS, archivo))
         fila = {"semilla": foto.get("semilla"), "proyecto": foto.get("proyecto")}
+    elif t["tipo"] == "extender":
+        archivo, fila = _api["extender"]().recuperar(foto, rutas, sello)
     else:
         archivo, fila = _api["retocar"]().recuperar(foto, rutas, sello)
     g._anotar({"id": t["id"], "fecha": _ahora(), "segundos": t.get("segundos") or 0, "archivo": archivo, "job": t.get("job"),

@@ -381,9 +381,27 @@ async def lanzar_mascara(peticion):
     return web.json_response({"id": tid})
 
 
+# ------------------------------------------------------------------ extender (extender.py, planos/fases/12)
+def extender():
+    return importlib.import_module("extender")
+
+
+async def extender_plan(peticion):
+    """POST /app/extender_plan {video, solape, nuevos, calidad, audio_salida} → lo que se hará (fuente, audio, tamaños, ventana),
+    para que la página lo enseñe antes de encolar. Sin GPU: solo ffprobe y el historial."""
+    datos = await peticion.json()
+    if not isinstance(datos, dict):
+        return error("app.error.sin_valores", peticion)
+    x = extender()
+    try:
+        return web.json_response(await asyncio.get_running_loop().run_in_executor(None, x.plan, datos))
+    except x.ErrorGenerar as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+
 # ------------------------------------------------------------------ la cola de trabajos (cola.py)
 async def cola_anadir(peticion):
-    """POST /app/cola {tipo: generar | retocar, valores (generar) | datos (retocar), semilla?, proyecto?, n?} → {ids}.
+    """POST /app/cola {tipo: generar | retocar | extender, valores (generar) | datos (retocar, extender), semilla?, proyecto?, n?} → {ids}.
     Con n > 1 se encolan n trabajos con semillas aleatorias distintas. Cada uno lleva su foto fija."""
     d = await peticion.json()
     if not isinstance(d, dict) or d.get("tipo") not in cola.TIPOS:
@@ -495,7 +513,7 @@ async def al_empezar(app):
     app["http"] = ClientSession(timeout=ClientTimeout(total=None, sock_connect=5))
     asyncio.create_task(TRABAJADOR.arrancar())               # que librosa esté cargado antes del primer «montar»
     # la cola de trabajos: su hilo procesa lo pendiente aunque nadie tenga la página abierta
-    cola.arrancar({"generar": generar, "retocar": retocar, "llm_ocupado": lambda: _llm_en_marcha[0] > 0,
+    cola.arrancar({"generar": generar, "retocar": retocar, "extender": extender, "llm_ocupado": lambda: _llm_en_marcha[0] > 0,
                    "comfyui_url": CONFIG["comfyui_url"], "comfyui_dir": os.path.expanduser(CONFIG.get("comfyui_dir") or "~/comfy/ComfyUI")})
 
 
@@ -528,6 +546,7 @@ def crear_app():
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)
     app.router.add_post("/app/retocar", lanzar_retoque)
     app.router.add_post("/app/retocar_mascara", lanzar_mascara)
+    app.router.add_post("/app/extender_plan", extender_plan)
     app.router.add_get("/app/cola", cola_lista)
     app.router.add_post("/app/cola", cola_anadir)
     app.router.add_post("/app/cola/limpiar", cola_limpiar)

@@ -180,6 +180,7 @@ def preparar(valores: dict, opciones: dict | None = None) -> dict:
     grafo = plantilla()
     _copiar_valores(grafo, valores)
     prompt = _leer_prompt(grafo)
+    opciones["_audio"] = cancion_de(_estado(grafo))  # lo anota _despues_edit (la fila del historial)
     _poner_audio(grafo, audio_salida(grafo))          # antes de quitar el PromptDelEdit, que guarda la opción
 
     builders = _por_tipo(grafo, NODO_BUILDER)
@@ -205,7 +206,56 @@ def preparar(valores: dict, opciones: dict | None = None) -> dict:
     if prefijo:
         for nid in _por_tipo(grafo, NODO_GUARDAR):
             grafo[nid]["inputs"]["filename_prefix"] = str(prefijo)
+    _guardar_latente(grafo)
     return grafo
+
+
+# el latente (28 oct, planos/fases/12): Extender lo usa para seguir el video sin volver a codificar el mp4 (pierde color).
+# MpiSaveLatent (ComfyUi-MpiNodes) sabe guardar el latente AV de H3; el SaveLatent del núcleo no. Si no está, no se guarda.
+NODO_GUARDAR_LATENTE = "MpiSaveLatent"
+NODO_LATENTE_PARA = ("VAEDecode", NODO_DECODIFICAR_AUDIO)
+_nodos_cache: dict[str, bool] = {}
+
+
+def hay_nodo(tipo: str) -> bool:
+    if tipo not in _nodos_cache:
+        try:
+            with urllib.request.urlopen(f"{config()['comfyui_url']}/object_info/{tipo}", timeout=3) as r:
+                _nodos_cache[tipo] = bool((json.load(r) or {}).get(tipo))
+        except Exception:
+            return False                       # ComfyUI no responde: no se recuerda, se vuelve a mirar la próxima vez
+    return _nodos_cache[tipo]
+
+
+def _guardar_latente(grafo: dict) -> None:
+    """Mete un MpiSaveLatent entre el sampler y los decodificadores (el mismo latente, con «continue»)."""
+    decos = [nid for nid, n in grafo.items() if n.get("class_type") in NODO_LATENTE_PARA and es_enlace(n["inputs"].get("samples"))]
+    if not decos or not hay_nodo(NODO_GUARDAR_LATENTE):
+        return
+    origen = grafo[decos[0]]["inputs"]["samples"]
+    nid = "900"
+    grafo[nid] = {"class_type": NODO_GUARDAR_LATENTE, "inputs": {
+        "samples": origen, "filename": f"max_editor_{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}", "boolean": True}}
+    for d in decos:
+        if grafo[d]["inputs"]["samples"] == origen:
+            grafo[d]["inputs"]["samples"] = [nid, 0]
+
+
+def latente_de(grafo: dict) -> str | None:
+    for nid in _por_tipo(grafo, NODO_GUARDAR_LATENTE):
+        return grafo[nid]["inputs"].get("filename")
+    return None
+
+
+def cancion_de(estado: dict) -> dict | None:
+    """La canción que suena en el video (para Extender): {original, inicio_s}, o None si el video lleva el audio del modelo."""
+    a = estado.get("audio") or {}
+    if estado.get("audio_salida", "cancion") == "modelo" or not a.get("original"):
+        return None
+    try:
+        return {"original": a["original"], "inicio_s": float(a.get("inicio_s") or 0)}
+    except (TypeError, ValueError):
+        return None
 
 
 def _semilla_de(grafo: dict):
@@ -329,7 +379,16 @@ def _despues_edit(tid: str, grafo: dict, job, opciones: dict):
     semilla = _semilla_de(grafo)
     archivo = f"edit_{datetime.now():%Y%m%d_%H%M%S}_{semilla}{ext}"
     o.to_file(os.path.join(SALIDAS, archivo))
-    return archivo, {"semilla": semilla, "proyecto": opciones.get("proyecto")}
+    fila = {"semilla": semilla, "proyecto": opciones.get("proyecto"), "audio": opciones.get("_audio")}
+    latente = latente_de(grafo)
+    if latente:
+        try:
+            import retocar
+            vi = retocar.info(archivo)
+            fila.update(latente=latente, latente_wh=[vi["ancho"], vi["alto"]])
+        except Exception:
+            pass
+    return archivo, fila
 
 
 def _avance(grafo: dict, ev, vistos: set) -> float:
