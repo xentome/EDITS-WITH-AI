@@ -363,3 +363,11 @@ body.tema-casete .max-videos-caja>.max-fila:first-child b{font:800 20px/1 var(--
 body.tema-casete .max-videos-caja video{border-radius:0}
 body.tema-casete .max-rt-tramo-info{font-family:var(--k-mono);color:var(--k-suave)}body.tema-casete .max-rt-tramo-info b{color:var(--k-crema)}
 body.tema-casete .max-rt-asa{width:12px}
+body.tema-casete .max-rt-calculando{font-family:var(--k-mono);color:var(--k-crema)}
+body.tema-casete .max-rt-ver .epl-mini{min-height:36px}
+/* el reproductor de Retocar: play grande sobre tinta (no compite con Retocar), pasos callados y la lectura en mono */
+body.tema-casete .max-rt-play{background:var(--k-tinta3);border:1px solid var(--k-crema);color:var(--k-crema)}
+body.tema-casete .max-rt-play:hover{background:var(--k-linea)}
+body.tema-casete .max-rt-paso{min-height:40px !important;min-width:40px}
+body.tema-casete .max-rt-lectura{font-family:var(--k-mono);color:var(--k-crema)}
+body.tema-casete .max-rt-play{border-radius:50% !important}

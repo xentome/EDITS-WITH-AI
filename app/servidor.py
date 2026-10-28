@@ -5,7 +5,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /edit_prompt_llm/<acción>  rutas.ACCIONES, en el trabajador (trabajador.py, con el Python de ComfyUI)
   /view, /upload/image, /minimax_h3/*   reenviados a ComfyUI
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
-  /app/retocar, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
+  /app/retocar, /app/retocar_mascara, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
 Arranque: ~/comfy/max_editor_app/.venv/bin/python app/servidor.py  →  http://127.0.0.1:8300
 Configuración: config.json, encima config.local.json (no va a git) y encima las variables MAX_EDITOR_<CLAVE>."""
 import asyncio
@@ -309,7 +309,7 @@ async def videos(peticion):
         filas = generar().historial()
     except (ImportError, AttributeError):
         filas = []
-    filas = [f for f in filas if (not proyecto or f.get("proyecto") == proyecto) and f.get("archivo")
+    filas = [f for f in filas if (not proyecto or f.get("proyecto") == proyecto) and f.get("archivo") and f.get("tipo") != "mascara"
              and os.path.isfile(os.path.join(SALIDAS, f["archivo"]))]
     return web.json_response(list(reversed(filas)))
 
@@ -325,6 +325,16 @@ async def lanzar_retoque(peticion):
     if not isinstance(datos, dict):
         return error("app.error.sin_valores", peticion)
     tid = await asyncio.get_running_loop().run_in_executor(None, lambda: retocar().iniciar(datos))   # corta con ffmpeg: 1–2 s
+    return web.json_response({"id": tid})
+
+
+async def lanzar_mascara(peticion):
+    """POST /app/retocar_mascara {video, inicio, fin, mascara, megapixeles, proyecto} → {id}: la vista de la máscara del tramo
+    (sin H3); el avance y el video, en /app/trabajo/<id>."""
+    datos = await peticion.json()
+    if not isinstance(datos, dict):
+        return error("app.error.sin_valores", peticion)
+    tid = await asyncio.get_running_loop().run_in_executor(None, lambda: retocar().iniciar_mascara(datos))
     return web.json_response({"id": tid})
 
 
@@ -421,6 +431,7 @@ def crear_app():
     app.router.add_get("/app/salidas/{ruta:[^/]+}", servir(SALIDAS))
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)
     app.router.add_post("/app/retocar", lanzar_retoque)
+    app.router.add_post("/app/retocar_mascara", lanzar_mascara)
     app.router.add_get("/app/video_info", video_info)
     app.router.add_get("/app/video", ver_video)
     app.router.add_get("/app/foto_referencia", foto_referencia)

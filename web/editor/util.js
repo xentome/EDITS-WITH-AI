@@ -25,7 +25,7 @@ const ICONOS = {
   video: "M3 5h18v14H3zM7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4", subir: "M12 16V4M7 9l5-5 5 5M4 20h16",
   musica: "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z", carpeta: "M3 6h6l2 2h10v11H3z",
   ojo: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z", tijeras: "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.1 7.9L20 20M8.1 16.1L20 4",
-  lapiz: "M15 4l5 5L9 20H4v-5zM13 6l5 5", girar: "M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4", retoque: "M4 20l6-6M14 4l6 6-8 8-6-6z", menu: "M4 7h16M4 12h16M4 17h16",
+  lapiz: "M15 4l5 5L9 20H4v-5zM13 6l5 5", girar: "M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4", atras: "M15 18l-6-6 6-6", adelante: "M9 6l6 6-6 6", retoque: "M4 20l6-6M14 4l6 6-8 8-6-6z", menu: "M4 7h16M4 12h16M4 17h16",
 };
 export function icono(nombre) {
   const s = document.createElement("span");

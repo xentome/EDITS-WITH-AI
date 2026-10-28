@@ -38,7 +38,12 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const lado = el("div", { class: "max-rt-lado" });
   const cabeza = el("div", { class: "epl-tit max-rt-tit" });
   const bajoVideo = el("div", { class: "max-rt-bajo" });
-  sec.append(cabeza, el("div", { class: "max-rt-cuerpo" }, el("div", { class: "max-rt-izq" }, marco, linea, bajoVideo), lado));
+  // debajo del visor: ver el video normal o el tramo con la máscara encima (27 oct)
+  const verFila = el("div", { class: "max-rt-ver" });
+  // el reproductor (27 oct): play/pausa grande, ‹ › un fotograma, −5 s / +5 s, y el fotograma y el tiempo de ahora
+  const transporte = el("div", { class: "max-rt-transporte" });
+  sec.append(cabeza, el("div", { class: "max-rt-cuerpo" },
+    el("div", { class: "max-rt-izq" }, marco, transporte, verFila, linea, bajoVideo), lado));
 
   const fps = () => R.info?.fps || 24;
   const total = () => R.info?.fotogramas || 0;
@@ -59,6 +64,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
       const antes = { f0: R.f0, n: R.n };
       R.video = nombre;
       R.info = info;
+      R.vista = "normal";
+      R.mascara = null;
       video.src = "/app/video?video=" + encodeURIComponent(nombre) + "&t=" + Date.now();
       if (!mantener) R.rect = R.rect && R.rect.x + R.rect.w <= info.ancho && R.rect.y + R.rect.h <= info.alto ? R.rect : null;
       ajustar(antes.f0, antes.n);
@@ -71,7 +78,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   // al abrir un proyecto: lo último que se eligió aquí o, si no, el último video del proyecto
   async function alAbrirProyecto() {
     const g = leerGuardado();
-    Object.assign(R, { video: "", info: null, rect: null, refs: [], prompt: "", trabajo: null, avance: null, error: "", elegir: false },
+    Object.assign(R, { video: "", info: null, rect: null, refs: [], prompt: "", trabajo: null, avance: null, error: "", elegir: false,
+                       vista: "normal", mascara: null, calculando: null },
                   g ? { f0: g.f0 ?? 0, n: g.n ?? 39, modo: g.modo || "rectangulo", texto: g.texto ?? "face", rect: g.rect || null,
                         refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla, mp: g.mp || MP_NORMAL } : {});
     video.removeAttribute("src");
@@ -86,25 +94,71 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const segundos = (f) => f / fps();
   function reproducirTramo() {
     if (!R.info) return;
+    if (enMascara()) { video.currentTime = 0; video.play().catch(() => {}); return; }   // el visor ya es solo el tramo
     soloTramo = true;
     video.currentTime = segundos(R.f0) + 0.001;
     video.play().catch(() => {});
   }
   video.addEventListener("timeupdate", () => {
-    if (soloTramo && video.currentTime >= segundos(R.f0 + R.n)) { video.pause(); soloTramo = false; video.currentTime = segundos(R.f0); }
+    if (soloTramo && !enMascara() && video.currentTime >= segundos(R.f0 + R.n)) { video.pause(); soloTramo = false; video.currentTime = segundos(R.f0); }
     pintarCursor();
   });
-  video.addEventListener("pause", () => { pintarBajo(); });
-  video.addEventListener("play", () => { pintarBajo(); });
-  video.addEventListener("seeked", pintarCursor);
+  video.addEventListener("pause", () => { pintarBajo(); pintarTransporte(); });
+  video.addEventListener("play", () => { pintarBajo(); pintarTransporte(); });
+  video.addEventListener("seeked", () => { pintarCursor(); pintarLectura(); });
+  video.addEventListener("timeupdate", () => pintarLectura());
+
+  // ---- el reproductor: mover de a un fotograma o de a 5 s (también con las flechas y Mayús+flecha)
+  const saltar = (s) => {
+    if (!R.info) return;
+    video.pause();
+    soloTramo = false;
+    const fin = Number.isFinite(video.duration) ? video.duration : R.info.duracion;
+    video.currentTime = Math.max(0, Math.min(fin - 1 / (2 * fps()), video.currentTime + s));
+  };
+  const fotograma = (d) => saltar(d / fps());
+  const reloj = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}.${String(Math.round((s % 1) * 1000)).padStart(3, "0").slice(0, 3)}`;
+  const lectura = el("span", { class: "max-rt-lectura", "aria-live": "off" });
+  const ICONO_PLAY = { true: "play", false: "pausa" };      // el icono del botón (util.icono), no un texto
+  function pintarLectura() {
+    if (!R.info) return lectura.replaceChildren();
+    const s = tiempoClip();
+    lectura.textContent = t("app.retocar.reproductor.ahora", { f: Math.round(s * fps()), t: reloj(s) });
+  }
+  function pintarTransporte() {
+    if (!R.info) return transporte.replaceChildren();
+    const b = (clase, clave, accion, ...hijos) => el("button", { class: "epl-mini " + clase, title: t(clave), "aria-label": t(clave), onclick: accion }, ...hijos);
+    transporte.replaceChildren(
+      b("max-rt-paso", "app.retocar.reproductor.menos5", () => saltar(-5), t("app.retocar.reproductor.menos5_corto")),
+      b("max-rt-paso", "app.retocar.reproductor.atras", () => fotograma(-1), icono("atras")),
+      el("button", { class: "max-rt-play", title: t(video.paused ? "app.retocar.reproductor.play" : "app.retocar.reproductor.pausa"),
+                     "aria-label": t(video.paused ? "app.retocar.reproductor.play" : "app.retocar.reproductor.pausa"),
+                     onclick: () => { soloTramo = false; if (video.paused) video.play().catch(() => {}); else video.pause(); } },
+        icono(ICONO_PLAY[video.paused])),
+      b("max-rt-paso", "app.retocar.reproductor.adelante", () => fotograma(1), icono("adelante")),
+      b("max-rt-paso", "app.retocar.reproductor.mas5", () => saltar(5), t("app.retocar.reproductor.mas5_corto")),
+      lectura,
+      el("span", { class: "epl-ayuda" }, t("app.retocar.reproductor.teclas")));
+    pintarLectura();
+  }
+  document.addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(e.key) || !R.info || !sec.offsetParent || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest?.("input, textarea, select, [contenteditable]") || document.querySelector(".epl-capa, .max-videos.ver")) return;
+    e.preventDefault();
+    const d = e.key === "ArrowLeft" ? -1 : 1;
+    if (e.shiftKey) saltar(5 * d); else fotograma(d);
+  });
 
   // ---- la línea de tiempo: el clip entero, el tramo con dos asas y el cursor
   const tramoEl = el("div", { class: "max-rt-tramo" }, el("span", { class: "max-rt-asa izq" }), el("span", { class: "max-rt-asa der" }));
   const cursor = el("div", { class: "max-rt-cursor" });
   linea.append(tramoEl, cursor);
+  // el tiempo del clip entero: con la vista de la máscara, el visor tiene solo el tramo (su 0 es el inicio del tramo)
+  const enMascara = () => R.vista === "mascara" && !!R.mascara;
+  const tiempoClip = () => video.currentTime + (enMascara() ? segundos(R.mascara.f0) : 0);
   function pintarCursor() {
     if (!R.info) return;
-    cursor.style.left = (100 * video.currentTime / R.info.duracion).toFixed(3) + "%";
+    cursor.style.left = (100 * tiempoClip() / R.info.duracion).toFixed(3) + "%";
   }
   function pintarTramo() {
     if (!R.info) { tramoEl.style.display = "none"; return; }
@@ -206,6 +260,63 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     capa.addEventListener("pointerup", soltar);
     capa.addEventListener("pointercancel", soltar);
   });
+
+  /* ---- la vista de la máscara: el tramo con la zona que se rehará en rosa, calculada en ComfyUI con la misma rama,
+   * limpieza y recorte que el retoque, sin H3 (retocar.py, preparar_mascara). Si el tramo o la máscara cambian, vale otra. */
+  const firmaMascara = () => JSON.stringify([R.video, R.f0, R.n, R.modo, R.modo === "texto" ? R.texto.trim() : R.rect, R.mp]);
+  const datosMascara = () => ({ video: R.video, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001, megapixeles: R.mp,
+                                mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
+                                proyecto: A.proyecto });
+  function verNormal() {
+    if (R.vista !== "mascara") return;
+    const t0 = tiempoClip();
+    R.vista = "normal";
+    video.src = "/app/video?video=" + encodeURIComponent(R.video) + "&t=" + Date.now();
+    video.addEventListener("loadedmetadata", () => { video.currentTime = t0; }, { once: true });
+    pintar();
+  }
+  function mostrarMascara() {
+    R.vista = "mascara";
+    video.src = "/app/video?video=" + encodeURIComponent(R.mascara.video) + "&t=" + Date.now();
+    video.addEventListener("loadedmetadata", () => { video.currentTime = 0; video.play().catch(() => {}); }, { once: true });
+    pintar();
+  }
+  async function verMascara() {
+    if (!R.info || R.calculando) return;
+    const falta = R.modo === "rectangulo" && !R.rect ? "app.retocar.falta.rect" : R.modo === "texto" && !R.texto.trim() ? "app.retocar.falta.texto" : "";
+    if (falta) { R.error = t(falta); return pintar(); }
+    if (R.mascara?.firma === firmaMascara()) return mostrarMascara();
+    const firma = firmaMascara(), t0 = Date.now();
+    R.calculando = { s: 0 };
+    R.error = "";
+    pintar();
+    const reloj = setInterval(() => { if (R.calculando) { R.calculando.s = Math.round((Date.now() - t0) / 1000); pintarVer(); } }, 500);
+    try {
+      const { id } = await pedir("/app/retocar_mascara", datosMascara());
+      let a;
+      for (;;) {
+        a = await pedir("/app/trabajo/" + id);
+        if (a.estado === "listo" || a.estado === "error") break;
+        await new Promise((ok) => setTimeout(ok, 1000));
+      }
+      if (a.estado === "error") throw new Error(a.mensaje || "?");
+      R.mascara = { video: a.video, f0: R.f0, n: R.n, firma, segundos: a.segundos };
+      if (firmaMascara() === firma) mostrarMascara();
+    } catch (e) { R.error = t("app.retocar.ver.error", { error: e.message }); }
+    finally { clearInterval(reloj); R.calculando = null; pintar(); }
+  }
+  function pintarVer() {
+    if (!R.info) return verFila.replaceChildren();
+    if (R.vista === "mascara" && R.mascara?.firma !== firmaMascara()) { verNormal(); return; }   // el tramo o la máscara cambiaron
+    const boton = (k, clave, accion, ic) => el("button", { class: "epl-mini epl-seg" + (R.vista === k ? " fijo" : ""), "aria-pressed": String(R.vista === k),
+                                                          disabled: !!R.calculando, onclick: accion }, icono(ic), " " + t(clave));
+    verFila.replaceChildren(
+      boton("normal", "app.retocar.ver.normal", verNormal, "video"),
+      boton("mascara", "app.retocar.ver.mascara", verMascara, "ojo"),
+      R.calculando ? el("span", { class: "max-rt-calculando", role: "status" }, t("app.retocar.ver.calculando", { s: R.calculando.s }))
+        : enMascara() ? el("span", { class: "epl-ayuda" }, t("app.retocar.ver.listo", { s: num(R.mascara.segundos || 0, 0) }))
+        : el("span", { class: "epl-ayuda" }, t("app.retocar.ver.ayuda")));
+  }
 
   function pintarVacio() {
     vacio.hidden = !!R.info;
@@ -377,6 +488,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     marco.style.aspectRatio = `${w} / ${h}`;
     marco.style.width = `min(100%, calc(62vh * ${w} / ${h}))`;   // cabe a lo ancho y a lo alto sin deformarse
     pintarVacio();
+    pintarTransporte();
+    pintarVer();
     pintarTramo();
     pintarCursor();
     pintarRect();
