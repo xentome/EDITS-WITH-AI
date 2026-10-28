@@ -198,31 +198,14 @@ body .epl-sec.epl-s-final{padding:6px 16px !important}
 /* los iconos de trazo (util.icono): del tamaño de la letra y del color del texto */
 .epl-ic{display:inline-flex;vertical-align:-0.15em}.epl-ic svg{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 </style>
-<!-- El tema (27 oct): «casete» (mundo «Mixtape de casete»: tinta, un solo naranja de acción, cobalto en las referencias y crema
-     en los rótulos) es el de siempre. «trama» (negro, gris y blanco) y «azul» (el de antes) quedan como temas opcionales: abrir
-     la app con ?tema=trama o ?tema=azul (se recuerda en este navegador; ?tema=casete vuelve). Cada tema trae sus letras de Google
-     Fonts; sin internet, las de respaldo de su CSS. -->
+<!-- El tema (27 oct; único desde el 28 oct): «casete» (mundo «Mixtape de casete»: tinta, un solo naranja de acción, cobalto
+     en las referencias y crema en los rótulos), con sus letras de Google Fonts; sin internet, las de respaldo de su CSS. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<script>
-  (() => {
-    const LETRAS = {
-      casete: "family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Gochi+Hand",
-      trama: "family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600",
-      azul: "",
-    };
-    const vale = (x) => Object.hasOwn(LETRAS, x || "");
-    let tema = new URLSearchParams(location.search).get("tema");
-    try { if (vale(tema)) localStorage.setItem("max-editor-tema", tema); else tema = localStorage.getItem("max-editor-tema"); } catch { /* sin almacenamiento */ }
-    window.maxTema = vale(tema) ? tema : "casete";
-    const letras = LETRAS[window.maxTema];
-    document.write((letras ? `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?${letras}&display=swap">` : "") +
-                   `<link rel="stylesheet" href="/app/web/temas/${window.maxTema}.css">`);
-  })();
-</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Gochi+Hand&display=swap">
+<link rel="stylesheet" href="/app/web/temas/casete.css">
 </head>
-<body>
-<script>document.body.className = "tema-" + window.maxTema;</script>
+<body class="tema-casete">
 <div class="max-cargando" id="cargando">…</div>
 <script type="module" src="/app/web/app.js"></script>
 </body>

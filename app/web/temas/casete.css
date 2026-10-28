@@ -9,7 +9,7 @@
  * de la ficha). Lo demás que está activo o elegido va en crema sobre tinta. El crema #F6EAD2, además, en los rótulos.
  * Letras: Big Shoulders Display (títulos y Generar), Barlow Condensed (rótulos), Barlow (texto), JetBrains Mono (cifras y prompt).
  * Sin brillos ni barras arcoíris; la única sombra dura es la de Generar. Solo colores, bordes y letra: la colocación es la de P10
- * (index.html y web/editor/estilos.js). Se activa con <body class="tema-casete">; trama y azul siguen en temas/ (?tema=…). */
+ * (index.html y web/editor/estilos.js). Se activa con <body class="tema-casete">; desde el 28 oct es el único tema (trama, azul, coral y amarillo se quitaron). */
 body.tema-casete{--k-tinta:#17121C;--k-tinta2:#211A29;--k-tinta3:#2C2336;--k-linea:#3E3349;--k-linea2:#54465F;--k-suave:#A99DB5;--k-texto:#EFE6F2;
   --k-naranja:#FF7A1A;--k-naranja2:#FF9140;--k-cobalto:#2546D6;--k-rosa:#FF3E8A;--k-crema:#F6EAD2;--k-crema-txt:#4A3E36;
   --k-estante:#18183A;--k-estante-linea:#2B2F66;--k-aviso:#F7C83A;--k-error:#FF6B6B;--k-ok:#3FC46E;

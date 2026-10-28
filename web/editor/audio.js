@@ -250,7 +250,7 @@ export function instalar(ctx) {
   function dibujar() {
     if (!onda.isConnected) return;
     const [c, w, h, r] = lienzo(onda);
-    // los colores salen del tema (variables --onda-*; temas/trama.css), con los de siempre si el tema no los pone
+    // los colores salen del tema (variables --onda-*; app/web/temas/casete.css), con los de siempre si el tema no los pone
     const color = (v, otro) => getComputedStyle(onda).getPropertyValue(v).trim() || otro;
     c.fillStyle = color("--onda-fondo", "#0f1217");
     c.fillRect(0, 0, w, h);
