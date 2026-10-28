@@ -375,3 +375,8 @@ body.tema-casete .max-rt-generado{border-color:rgba(246,234,210,.5)}
 body.tema-casete .max-rt-asa.elegida{outline:2px solid var(--k-naranja)}
 body.tema-casete .max-rt-aviso-largo{color:var(--k-aviso);font-family:var(--k-rotulo)}
 body.tema-casete .max-rt-tramo-info small{color:var(--k-suave)}
+/* el hueco para añadir y la franja del gestor: borde punteado crema sobre el estante cobalto */
+body.tema-casete .epl-hueco-anadir,body.tema-casete .epl-gestor-subir{border-color:rgba(246,234,210,.6);color:var(--k-crema);border-radius:6px}
+body.tema-casete .epl-hueco-anadir b,body.tema-casete .epl-gestor-subir b{font:800 18px/1 var(--k-titulo);letter-spacing:.04em;text-transform:uppercase}
+body.tema-casete .epl-hueco-anadir span,body.tema-casete .epl-gestor-subir span{font-family:var(--k-rotulo);color:#C9C2D8}
+body.tema-casete .epl-ya-esta{font-family:var(--k-rotulo);text-transform:uppercase;letter-spacing:.06em;border-radius:3px}

@@ -397,15 +397,24 @@ export function instalar(ctx) {
       } catch (e) { aviso.textContent = "⚠ " + e.message; }
     } });
     const v = ctx.capa(lado);
+    v.modal.classList.add("epl-gestor-modal");          // el gestor de RefMods: una ventana centrada, como la ficha
     rejilla.addEventListener("click", (e) => { if (e.target === rejilla) ctx.abrirSubir(lado, opciones); });   // un hueco vacío
+    /* arriba, una franja grande para subir fotos o un video del PC (clic o soltar): sigue en «Subir foto o video»
+     * (subir.js), con su recorte y la creación del RefMod; lo que se cree entra en el mismo grupo */
+    const archivoSubir = el("input", { type: "file", accept: "image/*,video/*", multiple: true, style: { display: "none" },
+      onchange: (e) => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) ctx.abrirSubir(lado, { ...opciones, archivos: fs }); } });
+    const franja = el("button", { class: "epl-gestor-subir", title: t("referencias.gestor.subir.tooltip"), onclick: () => archivoSubir.click() },
+      u.icono("subir"), el("b", {}, t("referencias.gestor.subir")), el("span", {}, t("referencias.gestor.subir.ayuda")));
+    soltarArchivos(franja, (fs) => ctx.abrirSubir(lado, { ...opciones, archivos: fs }));
+    const enProyecto = new Set(wf.items.map((r) => r.ref).filter(Boolean));
     // toda la ventana (también al cambiar de idioma): lo buscado y lo marcado se conservan
     v.repintar = () => {
       filtro.placeholder = t("referencias.biblioteca.buscar");
       v.modal.replaceChildren(
         el("div", { class: "epl-tit" }, t(lado === "izq" ? "referencias.biblioteca.titulo_izq" : "referencias.biblioteca.titulo_der"),
           el("span", { class: "der" }, filtro, ctx.controlTamano((x) => rejilla.style.setProperty("--epl-tam", x + "px"), "epl-tam-biblioteca", 270),
-            el("button", { class: "epl-boton epl-verde epl-grande epl-subir", title: t("referencias.subir.tooltip"), onclick: () => ctx.abrirSubir(lado, opciones) }, t("referencias.subir")),
-            el("button", { class: "epl-mini", onclick: () => v.cerrar() }, t("comun.cerrar")))),
+            el("button", { class: "epl-mini epl-cerrar-ficha", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: () => v.cerrar() }, u.icono("x")))),
+        franja, archivoSubir,
         el("p", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda")),
         rejilla,
         el("div", { class: "epl-biblio-pie" }, aviso,
@@ -426,7 +435,7 @@ export function instalar(ctx) {
       const q = filtro.value.toLowerCase();
       rejilla.replaceChildren(...Object.values(ctx.biblioteca).filter((it) => it.visual && it.name.toLowerCase().includes(q))
         .map((it) => {
-          const item = el("div", { class: "epl-biblio-item" + (marcadas.includes(it.name) ? " marcada" : ""), title: it.name,
+          const item = el("div", { class: "epl-biblio-item" + (marcadas.includes(it.name) ? " marcada" : "") + (enProyecto.has(it.name) ? " en-proyecto" : ""), title: it.name,
                                    "data-nombre": it.name, onclick: () => {
             const i = marcadas.indexOf(it.name);
             if (i >= 0) marcadas.splice(i, 1); else marcadas.push(it.name);
@@ -434,6 +443,7 @@ export function instalar(ctx) {
             contar();
           } },
             el("span", { class: "epl-check" }, "✓"),
+            enProyecto.has(it.name) ? el("span", { class: "epl-ya-esta" }, t("referencias.biblioteca.en_proyecto")) : null,
             el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
             el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
               (it.visual?.source === "stack" ? t("referencias.biblioteca.cajita_de", { n: it.visual.t }) : "")));
@@ -577,6 +587,33 @@ export function instalar(ctx) {
       onclick: (e) => { e.stopPropagation(); ctx.quitarDelStack(r); } }, u.icono("x"));
   }
 
+  // soltar archivos del PC sobre un sitio (el hueco del estante o la franja del gestor): fotos o un video
+  function soltarArchivos(nodo, alSoltar) {
+    const conArchivos = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+    nodo.addEventListener("dragover", (e) => { if (!conArchivos(e)) return; e.preventDefault(); nodo.classList.add("epl-soltando"); });
+    nodo.addEventListener("dragleave", () => nodo.classList.remove("epl-soltando"));
+    nodo.addEventListener("drop", (e) => {
+      if (!conArchivos(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      nodo.classList.remove("epl-soltando");
+      const fs = [...e.dataTransfer.files].filter((f) => /^(image|video)\//.test(f.type));
+      if (fs.length) alSoltar(fs);
+    });
+  }
+  /* el hueco para añadir (27 oct): al final de un grupo con menos de tres referencias, del ancho de unos dos pósters.
+   * Clic: el gestor de RefMods (abrirBiblioteca); soltar fotos o un video: «Subir». Lo que se añade entra en ese grupo. */
+  const alAnadirEn = (lado) => (nombres) => {
+    for (const n of nombres) if (S.refs[n]) S.refs[n].en_todas = lado === "izq";
+    ctx.pintarRefs(); ctx.pintarLinea(); ctx.pedirMontaje();
+  };
+  function hueco(lado) {
+    const h = el("button", { class: "epl-hueco-anadir", "data-lado": lado, title: t("referencias.hueco.tooltip"),
+                             onclick: () => ctx.abrirBiblioteca(lado, { alAnadir: alAnadirEn(lado) }) },
+      u.icono("mas"), el("b", {}, t("referencias.hueco")), el("span", {}, t(`referencias.hueco.${lado}`)));
+    soltarArchivos(h, (fs) => ctx.abrirSubir(lado, { archivos: fs, alAnadir: alAnadirEn(lado) }));
+    return h;
+  }
   // un grupo sin referencias: toda la caja es un botón que abre «Subir foto» (sin Stack, solo el aviso)
   const vacia = (lado) => !wf.stack ? el("p", { class: "epl-vacio" }, t(`referencias.${lado}.vacio`))
     : el("div", { class: "epl-vacia", title: t("referencias.vacia.tooltip"), onclick: () => ctx.abrirSubir(lado) },
@@ -588,9 +625,9 @@ export function instalar(ctx) {
     const orden = (r) => (!r.tag ? 2 : (S.refs[r.clave]?.papel || "no") === "no" ? 1 : 0);
     resto.sort((a, b) => orden(a) - orden(b));
     // lado de la biblioteca y de «Subir»: Principal = lo que no cambia (izq); Secundarias = lo que se presta (der)
-    const botones = (lado) => el("span", { class: "der" },
-      wf.stack ? el("button", { class: "epl-boton epl-verde epl-anadir", onclick: () => ctx.abrirBiblioteca(lado, {
-        alAnadir: (nombres) => { for (const n of nombres) if (S.refs[n]) S.refs[n].en_todas = lado === "izq"; ctx.pintarRefs(); ctx.pintarLinea(); ctx.pedirMontaje(); } }) },
+    // «Añadir» en la cabecera solo cuando el grupo ya no tiene hueco (3 o más referencias): el hueco es el camino principal
+    const botones = (lado, n) => el("span", { class: "der" },
+      wf.stack && n >= 3 ? el("button", { class: "epl-boton epl-verde epl-anadir", onclick: () => ctx.abrirBiblioteca(lado, { alAnadir: alAnadirEn(lado) }) },
         u.icono("mas"), " " + t("referencias.anadir")) : null,
       wf.stack ? el("button", { class: "epl-mini", onclick: () => ctx.crearCajita({ lado }) }, u.icono("mas"), " " + t("referencias.cajita")) : null);
     // efectos de texto: tocar uno lo pone o lo quita en la toma elegida; sin toma elegida, se abre para cambiarlo
@@ -610,8 +647,9 @@ export function instalar(ctx) {
     const grupo = (g, lado, lista, extra) => {
       const caja2 = el("div", { class: "epl-grupo epl-grupo-" + g, "data-soltar-grupo": g, "data-soltar": t("referencias.pasar_a", { grupo: t(`referencias.${g}`) }) },
         el("div", { class: "epl-tit" }, el("span", { class: "epl-tit-txt" }, t(`referencias.${g}`)),
-          el("span", { class: "epl-ayuda", style: { margin: 0 } }, t(`referencias.${g}.sub`)), botones(lado)),
-        el("div", { class: "epl-posters" }, ...(lista.length ? lista.map((r) => poster(r, usadas)) : [vacia(lado)]), ...(extra ? [extra] : [])));
+          el("span", { class: "epl-ayuda", style: { margin: 0 } }, t(`referencias.${g}.sub`)), botones(lado, lista.length)),
+        el("div", { class: "epl-posters" }, ...lista.map((r) => poster(r, usadas)),
+          ...(!wf.stack && !lista.length ? [vacia(lado)] : wf.stack && lista.length < 3 ? [hueco(lado)] : []), ...(extra ? [extra] : [])));
       zona(caja2, (a) => a.clave && ctx.ponerGrupo(a.clave, g === "principal"));
       return caja2;
     };

@@ -97,7 +97,8 @@ export function instalar(ctx) {
     return `${j.subfolder ? j.subfolder + "/" : ""}${j.name}`;
   };
 
-  // opciones: {papel, alAnadir(nombres)} (la letra de una palabra, textos.js). Una letra no se tapa: se perdería el texto
+  // opciones: {papel, alAnadir(nombres)} (la letra de una palabra, textos.js), y `archivos`: los que ya se eligieron o se
+  // soltaron (el hueco del estante y la franja del gestor de RefMods, referencias.js). Una letra no se tapa: se perdería el texto
   ctx.abrirSubir = function abrirSubir(lado, opciones = {}) {
     const papel0 = opciones.papel || ctx.PAPELES_LADO[lado][0];
     const st = { papel: papel0, nombre: "", tapar: lado === "der" && papel0 !== "letra", juntar: true, fotos: [],
@@ -289,7 +290,7 @@ export function instalar(ctx) {
       }
       return creados;
     }
-    pintar();
+    if (opciones.archivos?.length) anadir(opciones.archivos); else pintar();
     return v;
   };
 }

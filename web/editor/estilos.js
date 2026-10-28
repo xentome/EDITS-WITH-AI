@@ -373,4 +373,16 @@ textarea.epl-final{min-height:40vh}
 .epl-poster-abrir img{flex:1 1 0;min-height:0;width:100%;height:auto;object-fit:contain;background:#0d1015}
 .epl-poster-pie{position:static;flex:none;background:#0b0b10;padding:5px 8px 6px}
 .epl-poster .sinfoto{position:static;flex:1}
+/* (27 oct) el hueco para añadir del estante (del ancho de unos dos pósters; si no cabe, se encoge a uno) y el gestor de RefMods */
+.epl-hueco-anadir{flex:0 1 auto;width:320px;min-width:160px;height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  border:2px dashed rgba(246,234,210,.55);border-radius:calc(var(--radio) * 12px);background:transparent;color:#F6EAD2;cursor:pointer;font:inherit;padding:12px;text-align:center}
+.epl-hueco-anadir:hover,.epl-hueco-anadir.epl-soltando{border-color:#F6EAD2;background:rgba(246,234,210,.06)}
+.epl-hueco-anadir .epl-ic{font-size:28px}.epl-hueco-anadir span{font-size:12px;opacity:.85}
+.epl-modal.epl-gestor-modal{width:min(1120px,94%);max-height:88%}
+.epl-gestor-subir{width:100%;min-height:170px;margin:4px 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  border:2px dashed rgba(246,234,210,.55);border-radius:calc(var(--radio) * 12px);background:transparent;color:#F6EAD2;cursor:pointer;font:inherit}
+.epl-gestor-subir:hover,.epl-gestor-subir.epl-soltando{border-color:#F6EAD2;background:rgba(246,234,210,.06)}
+.epl-gestor-subir .epl-ic{font-size:30px}.epl-gestor-subir b{font-size:16px}.epl-gestor-subir span{font-size:12px;opacity:.85}
+.epl-biblio-item.en-proyecto{opacity:.75}
+.epl-ya-esta{position:absolute;top:10px;left:10px;z-index:1;font-size:11px;padding:2px 6px;background:rgba(0,0,0,.75);color:#F6EAD2;border:1px solid rgba(246,234,210,.5)}
 `;
