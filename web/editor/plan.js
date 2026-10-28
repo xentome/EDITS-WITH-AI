@@ -100,8 +100,10 @@ export function instalar(ctx) {
   const ICONO = { momento: "accion", gesto: "mano", encuadre: "encuadre", camara: "camara", luz: "luz", entorno: "capas", lugar: "pin", estilo: "estilo",
                   efecto: "enlace", efecto_frase: "efecto", fondo_ref: "imagen", personaje: "percha", ropa: "percha", pose: "figura", objeto: "caja", lugar_ref: "pin" };
   // un bloque de campo: `campo` (data-c2) da su icono y es lo que se marca como «falta»
-  const bloque = (campo, etiqueta, control, boton, clase = "") => el("div", { class: "epl-c2" + (clase ? " " + clase : ""), "data-c2": campo },
-    el("span", { class: "epl-c2-et" }, u.icono(ICONO[campo]), el("span", {}, etiqueta), el("span", { class: "epl-falta" }, t("toma.falta"))),
+  // `trad`: el campo que se escribe (textarea o contenteditable); lleva «Traducir a inglés» a la derecha de su nombre (traducir.js)
+  const bloque = (campo, etiqueta, control, boton, clase = "", trad = null) => el("div", { class: "epl-c2" + (clase ? " " + clase : ""), "data-c2": campo },
+    el("span", { class: "epl-c2-et" }, u.icono(ICONO[campo]), el("span", {}, etiqueta), el("span", { class: "epl-falta" }, t("toma.falta")),
+      trad && ctx.botonTraducir ? ctx.botonTraducir(trad) : null),
     el("div", { class: "epl-c2-fila" }, control, boton || null));
   /* pone al día lo que falta sin volver a pintar (mientras escribes): la marca de cada campo, la pastilla del título y la
    * cuenta de cada pestaña */
@@ -129,7 +131,7 @@ export function instalar(ctx) {
     }, obj[campo] || "");
     const hacer = () => candado(lista, campo, () => { botonCandado.replaceWith(botonCandado = hacer()); });
     let botonCandado = hacer();
-    return bloque(campo, etiqueta, entrada, botonCandado, opciones.clase);
+    return bloque(campo, etiqueta, entrada, botonCandado, opciones.clase, entrada);
   }
   function campoMenu(obj, campo, etiqueta, lista, opciones) {
     const sel = el("select", { "data-campo": campo, "aria-label": etiqueta, onchange: (e) => { obj[campo] = e.target.value; fijar(lista, campo); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
@@ -245,7 +247,7 @@ export function instalar(ctx) {
         el("div", { class: "epl-marca-frase" }, marca, propia ? guardarComo : null)),
       el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: t("toma.frase.volver"), "aria-label": t("toma.frase.volver"),
         onclick: () => { toma.efecto_frase = ""; toma.fijos = toma.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, u.icono("volver")),
-      "epl-g-efref");
+      "epl-g-efref", caja3);
   }
 
   /* el encuadre: el menú (ENCUADRES) o, con «✎ escribir el mío», un texto propio (queda fijo y se pega tal cual). Un
@@ -267,7 +269,7 @@ export function instalar(ctx) {
     const entrada = el("textarea", { rows: 1, "data-campo": "encuadre", "aria-label": t("toma.encuadre"), placeholder: t("toma.encuadre.mio.placeholder"),
       oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); pintarFaltas(toma); ctx.pedirMontaje(); } }, toma.encuadre || "");
     return bloque("encuadre", t("toma.encuadre"), entrada,
-      botonMenu(() => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); }));
+      botonMenu(() => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); }), "", entrada);
   }
   /* el movimiento de cámara: el menú (MOVIMIENTOS) o un texto propio, como el encuadre. Lo que escribió el LLM y no está
    * en el menú se enseña como texto. */
@@ -285,7 +287,7 @@ export function instalar(ctx) {
     const entrada = el("textarea", { rows: 1, "data-campo": "camara", "aria-label": t("toma.camara"), placeholder: t("toma.camara.mio.placeholder"),
       oninput: (e) => { toma.camara = e.target.value; fijar(toma.fijos, "camara"); pintarFaltas(toma); ctx.pedirMontaje(); } }, toma.camara || "");
     return bloque("camara", t("toma.camara"), entrada,
-      botonMenu(() => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); }));
+      botonMenu(() => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); }), "", entrada);
   }
   /* el entorno (su propio bloque, encima del lugar): «Entorno auto» (lo escribe el LLM; si escribes el lugar, pasa a
    * manual), «Entorno manual» (fijo; hace de candado del lugar) o «Sin entorno» (no se escribe ningún lugar ni fondo, y la
@@ -313,7 +315,7 @@ export function instalar(ctx) {
         }
         pintarFaltas(toma); ctx.pedirMontaje(); pintarRefsSuave();
       } }, toma.lugar || "");
-    return bloque("lugar", t("toma.lugar"), entrada);
+    return bloque("lugar", t("toma.lugar"), entrada, null, "", entrada);
   }
 
   // ---- el sonido de todo el edit: un renglón al final de la pestaña (27 oct). Va tal cual a overall_soundscape; vacío,
@@ -328,10 +330,11 @@ export function instalar(ctx) {
         el("button", { class: "epl-mini epl-seg" + (S.audio_salida === k ? " fijo" : ""), "aria-pressed": String(S.audio_salida === k),
                        "data-audio": k, onclick: () => { S.audio_salida = k; ctx.programarGuardado(); ctx.pintarSonido(); } }, t(clave)))),
       el("span", { class: "epl-ayuda" }, t("linea.audio.ayuda")));
+    const sonido = el("input", { "data-campo": "sonido", placeholder: t("linea.sonido.placeholder"), value: S.sonido,
+                                 oninput: (e) => { S.sonido = e.target.value; ctx.pedirMontaje(); } });
     secSonido?.replaceChildren(el("label", { class: "epl-campo ancho epl-sonido-campo", title: t("linea.sonido.tooltip") },
-      el("span", {}, el("i", { class: "epl-icono" }, u.icono("sonido")), t("linea.sonido")),
-      el("input", { "data-campo": "sonido", placeholder: t("linea.sonido.placeholder"), value: S.sonido,
-                    oninput: (e) => { S.sonido = e.target.value; ctx.pedirMontaje(); } })), audio);
+      el("span", {}, el("i", { class: "epl-icono" }, u.icono("sonido")), t("linea.sonido")), sonido),
+      ctx.botonTraducir ? ctx.botonTraducir(sonido) : null, audio);
   };
 
   // ---- 2 · prompt de la toma elegida

@@ -26,7 +26,8 @@ const ICONOS = {
   musica: "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z", carpeta: "M3 6h6l2 2h10v11H3z",
   ojo: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z", tijeras: "M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.1 7.9L20 20M8.1 16.1L20 4",
   lapiz: "M15 4l5 5L9 20H4v-5zM13 6l5 5", girar: "M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4", atras: "M15 18l-6-6 6-6", adelante: "M9 6l6 6-6 6", arriba: "M18 15l-6-6-6 6", abajo: "M6 9l6 6 6-6", retoque: "M4 20l6-6M14 4l6 6-8 8-6-6z", menu: "M4 7h16M4 12h16M4 17h16",
-  // (28 oct) los del panel de la toma: todos sus campos llevan icono
+  // (28 oct) los del panel de la toma: todos sus campos llevan icono; «traducir» (Aあ), el del traductor
+  traducir: "M3 5h8M7 3v2M5 5c0 4 2 7 6 8M9 5c-.5 3-2.5 6-6 8M12 21l4-9 4 9M13.5 18h5",
   mano: "M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 6.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.5 14a1.5 1.5 0 0 1 2.4-1.8L8 14",
   pin: "M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z", capas: "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5",
   chispa: "M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z",

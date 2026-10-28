@@ -449,3 +449,15 @@ body.tema-casete .epl-p2-num{background:var(--k-crema);color:var(--k-tinta);font
 body.tema-casete .epl-fondo-mini{border-color:var(--k-linea2);background:var(--k-tinta)}
 body.tema-casete .epl-s-toma .epl-ayuda{font-size:13px;color:#C9BFD3}
 body.tema-casete .epl-s-toma .epl-linea-toma{font-size:13px;line-height:1.55}
+
+/* ---------------------------------------------------------------- (28 oct) traducir al inglés (traducir.js) */
+body.tema-casete .epl-trad-et{color:var(--k-suave);font:700 12px/1 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase}
+body.tema-casete .epl-trad-elegir{color:var(--k-crema) !important;border-color:var(--k-linea2) !important}
+body.tema-casete .epl-trad-pop,body.tema-casete .epl-trad-menu{background:var(--k-tinta2);border-color:var(--k-linea2);color:var(--k-texto);font-family:var(--k-texto-f)}
+body.tema-casete .epl-trad-pop b{font:800 16px/1 var(--k-titulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-crema)}
+body.tema-casete .epl-trad-pop input{background:var(--k-tinta) !important;color:var(--k-texto) !important;border:1px solid var(--k-linea2) !important;border-radius:6px}
+body.tema-casete .epl-trad-otro>span{color:var(--k-suave);font-family:var(--k-rotulo);text-transform:uppercase;letter-spacing:.06em}
+body.tema-casete .epl-trad-menu button{color:var(--k-texto);font:500 15px var(--k-texto-f)}
+body.tema-casete .epl-trad-menu button:hover,body.tema-casete .epl-trad-menu button:focus-visible{background:var(--k-tinta3)}
+body.tema-casete .epl-trad-menu small{color:var(--k-suave)}
+body.tema-casete .epl-s-toma .epl-c2-et .epl-trad-boton{font:600 13px/1 var(--k-texto-f) !important;text-transform:none;letter-spacing:0;color:var(--k-crema) !important}

@@ -391,7 +391,7 @@ textarea.epl-final{min-height:40vh}
 .epl-audio-salida-et{font-size:12px;color:#9aa3b2}
 /* (27 oct) la fila de la cabecera, en una rejilla fija: el título, el estado (una línea con «…», el texto entero en su
  * tooltip), la resolución anclada (no se mueve aunque el estado cambie de largo) y el idioma y «se guarda solo» a la derecha */
-.epl-cabecera{display:grid !important;grid-template-columns:auto minmax(0,1fr) auto auto auto auto auto;align-items:center;column-gap:16px}
+.epl-cabecera{display:grid !important;grid-template-columns:auto minmax(0,1fr) auto auto auto auto auto auto;align-items:center;column-gap:16px}
 .epl-cabecera .epl-estado{min-width:0;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;justify-self:start}
 .epl-cabecera .epl-resolucion{margin:0}
 .epl-resolucion{display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -448,4 +448,30 @@ textarea.epl-final{min-height:40vh}
 .epl-s-toma:has(.epl-p2-cont[data-tab="lugar"] .max-ag) .epl-p2-tab[data-tab="lugar"],
 .epl-s-toma:has(.epl-p2-cont[data-tab="refs"] .max-ag) .epl-p2-tab[data-tab="refs"]{outline:2px dashed #ff3e8a;outline-offset:2px}
 @media (max-width:1100px){.epl-p2-arriba,.epl-p2-cont{grid-template-columns:minmax(0,1fr)}}
+/* (28 oct) traducir al inglés (traducir.js): el selector de la cabecera y su ventanita, el botón de cada campo (a la
+ * derecha de su nombre), el campo mientras traduce y el menú del clic derecho */
+.epl-trad-desde{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px}
+.epl-trad-et{display:inline-flex;align-items:center;gap:4px;color:#9aa3b2}
+.epl-trad-elegir{min-height:30px;display:inline-flex;align-items:center;gap:4px}
+.epl-trad-pop{position:fixed;z-index:10010;width:320px;display:flex;flex-direction:column;gap:8px;padding:12px;background:#1b1f27;border:1px solid #3a4252;
+  border-radius:8px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.epl-trad-pop input{width:100%;box-sizing:border-box;min-height:36px;padding:6px 10px}
+.epl-trad-lista{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:260px;overflow:auto}
+.epl-trad-lista .epl-mini{min-height:36px;justify-content:flex-start;text-align:left}
+.epl-trad-otro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.epl-trad-otro>span{grid-column:1/-1;font-size:12px;color:#9aa3b2}
+.epl-trad-pop .epl-ayuda{margin:0}
+.epl-c2-et .epl-trad-boton{margin-left:auto;min-height:30px;font-size:12px;text-transform:none;letter-spacing:0}
+.epl-sonido .epl-trad-boton{min-height:32px;flex:none}
+.epl-trad-boton.trabajando{opacity:.8;pointer-events:none}
+.epl-trad-boton.trabajando::after{content:attr(data-s);margin-left:4px;font-variant-numeric:tabular-nums}
+.epl-traduciendo{opacity:.6;cursor:progress !important;animation:epl-trad 1.2s ease-in-out infinite alternate}
+@keyframes epl-trad{from{opacity:.75}to{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.epl-traduciendo{animation:none}}
+.epl-trad-menu{position:fixed;z-index:10011;min-width:260px;display:flex;flex-direction:column;padding:6px;background:#1b1f27;border:1px solid #3a4252;
+  border-radius:8px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.epl-trad-menu[hidden]{display:none}
+.epl-trad-menu button{min-height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#e6e9ef;text-align:left;cursor:pointer;font:inherit}
+.epl-trad-menu button:hover,.epl-trad-menu button:focus-visible{background:#2a3140}
+.epl-trad-menu small{padding:6px 12px 4px;color:#9aa3b2;font-size:11px}
 `;
