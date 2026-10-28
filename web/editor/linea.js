@@ -271,6 +271,9 @@ export function instalar(ctx) {
     secLinea.replaceChildren(
       el("div", { class: "epl-tit" }, t(n === 1 ? "linea.titulo_una" : "linea.titulo_varias", { n }), recuadroDuracion(),
         manual ? el("span", { class: "epl-marca" }, t("linea.a_mano")) : null,
+        // (28 oct) «Escribir tomas» vive aquí y no en el panel de una toma: el LLM escribe todas las tomas, salvo lo fijado
+        el("button", { class: "epl-boton epl-llm epl-escribir-tomas", title: t("final.escribir_tomas.tooltip"),
+          onclick: () => ctx.conLLM("final.escribiendo_tomas", "tomas") }, u.icono("chispa"), " " + t("final.escribir_tomas")),
         el("span", { class: "der epl-ayuda", style: { margin: 0 } },
           el("label", { class: "epl-pegar", title: t("linea.pegar.tooltip") },
             el("input", { type: "checkbox", checked: S.pegarBeats, onchange: (e) => { S.pegarBeats = e.target.checked; } }), " " + t("linea.pegar")),

@@ -401,4 +401,51 @@ textarea.epl-final{min-height:40vh}
 .epl-resolucion .epl-res-mp input.corto{width:76px}
 .epl-res-por{opacity:.8}
 .epl-girar{display:inline-flex;align-items:center;gap:4px}
+/* (28 oct) el panel de la toma, variante P2 (plan.js; prototipo app/web/prototipo_panel_toma.html): el título con lo que
+ * falta, lo principal arriba (Acción y Gesto) y lo demás en tres pestañas. Tres tamaños de letra: grupo y pestaña (17–18 px),
+ * nombre de campo (14 px) y lo escrito (16 px; Acción, 20). Cada campo: el nombre arriba y el control con su botón a la
+ * derecha; todos los botones de 40 px; los textos crecen con lo escrito; lo que falta, en punteado amarillo */
+.epl-p2-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid #2e3440}
+.epl-p2-cab .epl-pista{font-size:16px;padding:4px 10px;margin:0}
+.epl-p2-faltan{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:999px;background:#f7c83a;color:#17121c}
+.epl-p2-faltan.cero{background:#3fc46e}
+.epl-p2-faltan:empty{display:none}
+.epl-p2-acciones{margin-left:auto;display:flex;gap:8px}
+.epl-s-toma .epl-boton,.epl-s-toma .epl-seg,.epl-s-toma .epl-mas-ref,.epl-escribir-tomas{min-height:40px}
+.epl-s-toma .epl-candado{width:40px;min-width:40px;height:40px;opacity:1;filter:none;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.epl-s-toma .epl-solo-icono{width:40px;padding:0 !important;justify-content:center}
+.epl-p2-arriba{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px;margin-bottom:14px}
+.epl-p2-grupo h3{margin:0 0 10px;display:flex;align-items:center;gap:10px;font-size:18px;text-transform:uppercase;letter-spacing:.07em}
+.epl-p2-grupo h3::after{content:"";flex:1;height:1px;background:#2e3440}
+.epl-c2{display:flex;flex-direction:column;gap:6px;min-width:0}
+.epl-s-toma .epl-c2>.epl-c2-et{display:flex;align-items:center;gap:8px;padding:0 !important;font-size:14px !important;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.epl-falta,.epl-p2-cuenta{font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:#f7c83a;color:#17121c;text-transform:uppercase}
+.epl-falta{display:none}
+.epl-c2.vacio .epl-falta{display:inline-block}
+.epl-p2-cuenta[hidden]{display:none}
+.epl-c2-fila{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:8px;align-items:start}
+.epl-c2-fila:has(>:only-child){grid-template-columns:minmax(0,1fr)}
+.epl-s-toma .epl-c2 textarea,.epl-s-toma .epl-c2 select{width:100%;box-sizing:border-box;min-height:40px;font-size:16px;line-height:1.4;padding:8px 11px}
+.epl-s-toma .epl-c2 textarea{field-sizing:content;resize:none;overflow:hidden;max-height:none}
+.epl-s-toma .epl-c2.vacio textarea,.epl-s-toma .epl-c2.vacio select{border-style:dashed !important;border-color:#f7c83a !important}
+.epl-s-toma .epl-c2.epl-g-accion textarea{font-size:20px !important;line-height:1.35 !important;min-height:76px !important;padding:10px 14px !important}
+.epl-p2-tabs{display:flex;gap:6px;border-bottom:1.5px solid #343b48;margin-bottom:14px}
+.epl-p2-tab{min-height:44px;padding:0 18px;border:1.5px solid #343b48;border-bottom:0;border-radius:8px 8px 0 0;background:transparent;color:inherit;
+  display:inline-flex;align-items:center;gap:10px;font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:-1.5px;cursor:pointer}
+.epl-p2-num{font-size:12px;font-weight:700;min-width:22px;padding:1px 7px;border-radius:999px;background:#d7dbe2;color:#17121c;text-align:center}
+.epl-p2-cont{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 24px;align-items:start}
+.epl-p2-cont[hidden]{display:none}
+.epl-p2-nota{grid-column:1/-1;margin:0}
+.epl-s-toma .epl-entorno{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.epl-fondo-p2{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:center}
+.epl-fondo-mini{width:64px;height:64px;border-radius:6px;overflow:hidden;background:#000;border:1px solid #343b48}
+.epl-fondo-mini img{width:100%;height:100%;object-fit:cover;display:block}
+.epl-ref-lista{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.epl-ref-lista .epl-ref-fila{width:100%}
+.epl-s-toma .epl-c2 .epl-citas{max-height:none;min-height:40px;font-size:16px}
+/* una marca «✎ agente» dentro de una pestaña cerrada: la pestaña también la enseña */
+.epl-s-toma:has(.epl-p2-cont[data-tab="camara"] .max-ag) .epl-p2-tab[data-tab="camara"],
+.epl-s-toma:has(.epl-p2-cont[data-tab="lugar"] .max-ag) .epl-p2-tab[data-tab="lugar"],
+.epl-s-toma:has(.epl-p2-cont[data-tab="refs"] .max-ag) .epl-p2-tab[data-tab="refs"]{outline:2px dashed #ff3e8a;outline-offset:2px}
+@media (max-width:1100px){.epl-p2-arriba,.epl-p2-cont{grid-template-columns:minmax(0,1fr)}}
 `;

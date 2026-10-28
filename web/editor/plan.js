@@ -81,32 +81,60 @@ export function instalar(ctx) {
     }
   };
 
-  // ---- campos con candado: lo que escribes queda fijo y el LLM no lo cambia
+  /* ---- los campos del panel (28 oct, variante P2 del prototipo): cada campo es un bloque con el nombre arriba (su icono
+   * y, si hace falta y está vacío, «falta») y debajo el control con su botón (candado, ↺ o menú), siempre a la derecha y
+   * de 40 px. Los textos crecen con lo que se escribe (CSS field-sizing). */
   const candado = (lista, campo, alCambiar) => el("button", {
-    class: "epl-candado" + (lista.includes(campo) ? " fijo" : ""), title: t("comun.candado"),
+    class: "epl-candado" + (lista.includes(campo) ? " fijo" : ""), title: t("comun.candado"), "aria-label": t("comun.candado"),
     onclick: () => { const i = lista.indexOf(campo); if (i >= 0) lista.splice(i, 1); else lista.push(campo); alCambiar(); },
   }, u.icono(lista.includes(campo) ? "candado" : "abierto"));
   const fijar = (lista, campo) => { if (!lista.includes(campo)) lista.push(campo); };
   let refrescoRefs = null;
   const pintarRefsSuave = () => { clearTimeout(refrescoRefs); refrescoRefs = setTimeout(() => { ctx.pintarRefs(); ctx.pintarLinea(); }, 600); };
 
-  // un letrero de campo; los importantes llevan su icono y su color (clase epl-et-…), y los destacados un degradado
-  const letrero = (texto, clase = "", icono = "") => el("span", { class: clase }, icono ? el("i", { class: "epl-icono" }, icono) : null, texto);
+  // lo que falta en una toma: los mismos huecos que avisa el montaje (nucleo, final.hueco.*); sin entorno no hay lugar ni luz
+  const faltanDe = (toma) => ["encuadre", "camara", "gesto", ...(toma.entorno === "ninguno" ? [] : ["lugar", "luz"])]
+    .filter((c) => !String(toma[c] || "").trim());
+  const ETIQUETAS = { encuadre: "toma.encuadre", camara: "toma.camara", gesto: "toma.gesto", lugar: "toma.lugar", luz: "toma.luz" };
+  // el icono de cada campo (util.icono): todos llevan el suyo
+  const ICONO = { momento: "accion", gesto: "mano", encuadre: "encuadre", camara: "camara", luz: "luz", entorno: "capas", lugar: "pin", estilo: "estilo",
+                  efecto: "enlace", efecto_frase: "efecto", fondo_ref: "imagen", personaje: "percha", ropa: "percha", pose: "figura", objeto: "caja", lugar_ref: "pin" };
+  // un bloque de campo: `campo` (data-c2) da su icono y es lo que se marca como «falta»
+  const bloque = (campo, etiqueta, control, boton, clase = "") => el("div", { class: "epl-c2" + (clase ? " " + clase : ""), "data-c2": campo },
+    el("span", { class: "epl-c2-et" }, u.icono(ICONO[campo]), el("span", {}, etiqueta), el("span", { class: "epl-falta" }, t("toma.falta"))),
+    el("div", { class: "epl-c2-fila" }, control, boton || null));
+  /* pone al día lo que falta sin volver a pintar (mientras escribes): la marca de cada campo, la pastilla del título y la
+   * cuenta de cada pestaña */
+  function pintarFaltas(toma) {
+    const faltan = faltanDe(toma);
+    for (const b of secToma.querySelectorAll("[data-c2]")) b.classList.toggle("vacio", faltan.includes(b.dataset.c2));
+    const pastilla = secToma.querySelector(".epl-p2-faltan");
+    if (pastilla) {
+      pastilla.classList.toggle("cero", !faltan.length);
+      pastilla.textContent = faltan.length ? t("toma.faltan", { n: faltan.length, lista: faltan.map((c) => t(ETIQUETAS[c]).toLowerCase()).join(", ") }) : t("toma.completa");
+    }
+    for (const p of PESTANAS) {
+      const cuenta = secToma.querySelector(`.epl-p2-tab[data-tab="${p.k}"] .epl-p2-cuenta`);
+      if (!cuenta || p.k === "refs") continue;
+      const n = p.campos.filter((c) => faltan.includes(c)).length;
+      cuenta.hidden = !n;
+      cuenta.textContent = t("toma.falta_n", { n });
+    }
+  }
+
   function campoTexto(obj, campo, etiqueta, lista, opciones = {}) {
-    const entrada = el(opciones.largo ? "textarea" : "input", {
-      rows: opciones.largo ? (opciones.filas || 2) : undefined, placeholder: opciones.ayuda || "", "data-campo": campo,
-      oninput: (e) => { obj[campo] = e.target.value; fijar(lista, campo); botonCandado.replaceWith(botonCandado = hacer()); ctx.pedirMontaje(); pintarRefsSuave(); },
-    });
-    if (opciones.largo) entrada.textContent = obj[campo] || ""; else entrada.value = obj[campo] || "";
+    const entrada = el("textarea", {
+      rows: 1, placeholder: opciones.ayuda || "", "data-campo": campo, "aria-label": etiqueta,
+      oninput: (e) => { obj[campo] = e.target.value; fijar(lista, campo); botonCandado.replaceWith(botonCandado = hacer()); pintarFaltas(obj); ctx.pedirMontaje(); pintarRefsSuave(); },
+    }, obj[campo] || "");
     const hacer = () => candado(lista, campo, () => { botonCandado.replaceWith(botonCandado = hacer()); });
     let botonCandado = hacer();
-    return el("label", { class: "epl-campo" + (opciones.clase ? " " + opciones.clase : "") },
-      typeof etiqueta === "string" ? el("span", {}, etiqueta) : etiqueta, entrada, botonCandado);
+    return bloque(campo, etiqueta, entrada, botonCandado, opciones.clase);
   }
   function campoMenu(obj, campo, etiqueta, lista, opciones) {
-    const sel = el("select", { "data-campo": campo, onchange: (e) => { obj[campo] = e.target.value; fijar(lista, campo); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
+    const sel = el("select", { "data-campo": campo, "aria-label": etiqueta, onchange: (e) => { obj[campo] = e.target.value; fijar(lista, campo); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
       opciones.map(([v, t]) => el("option", { value: v, selected: (obj[campo] || "") === v }, t)));
-    return el("label", { class: "epl-campo" }, el("span", {}, etiqueta), sel, candado(lista, campo, () => ctx.pintarToma()));
+    return bloque(campo, etiqueta, sel, candado(lista, campo, () => ctx.pintarToma()));
   }
   // referencias de un papel para un menú de la toma; las de personaje solo si tienen atuendo. Los efectos son las
   // referencias de papel efecto y los efectos de texto (E1, E2…)
@@ -143,12 +171,11 @@ export function instalar(ctx) {
         ops.map(([val, txt]) => el("option", { value: val, selected: (v || "") === val }, txt))),
       lista.length > 1 ? el("button", { class: "epl-mini", title: t("toma.efecto.quitar.tooltip"),
         onclick: () => conectar(toma, lista.filter((_, j) => j !== i)) }, u.icono("x")) : null));
-    return el("div", { class: "epl-campo epl-destacado epl-g-refs" },
-      el("span", {}, el("i", { class: "epl-icono" }, u.icono("enlace")), t("toma.efecto"),
+    return bloque("efecto", t("toma.efecto"),
+      el("div", { class: "epl-ref-lista" }, ...filas,
         ops ? el("button", { class: "epl-mini epl-mas-ref", title: t("toma.efecto.mas.tooltip"),
-          "aria-label": t("toma.efecto.mas.tooltip"), onclick: () => conectar(toma, [...lista, ""]) }, u.icono("mas")) : null),
-      el("div", { class: "epl-ref-lista" }, ...filas),
-      candado(toma.fijos, "efecto", () => ctx.pintarToma()));
+          onclick: () => conectar(toma, [...lista, ""]) }, u.icono("mas"), " " + t("toma.efecto.mas")) : null),
+      candado(toma.fijos, "efecto", () => ctx.pintarToma()), "epl-g-refs");
   }
 
   /* EFECTO DE LA REFERENCIA: lo que hace cada referencia conectada, con tus palabras (en inglés). Las referencias van
@@ -211,82 +238,82 @@ export function instalar(ctx) {
         conectar(toma, [id]);
         ctx.avisar(t("toma.frase.creado", { id }), "bien");
       } }, t("toma.frase.guardar_como"));
-    return el("div", { class: "epl-campo epl-destacado epl-g-efref" },
-      el("span", {}, el("i", { class: "epl-icono" }, u.icono("efecto")), t("toma.frase")),
+    return bloque("efecto_frase", t("toma.frase"),
       el("div", { class: "epl-citas-caja" }, caja3, menu,
         el("div", { class: "epl-citas-ayuda" }, el("span", { class: "epl-ayuda" }, t(conectadas.length ? "toma.frase.arroba" : "toma.frase.sin_conectadas")),
           ...conectadas.map((tag) => el("button", { class: "epl-mini epl-citar", onmousedown: (e) => { e.preventDefault(); meter(tag); } }, "@ " + nombreDe(tag)))),
         el("div", { class: "epl-marca-frase" }, marca, propia ? guardarComo : null)),
-      el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: t("toma.frase.volver"),
-        onclick: () => { toma.efecto_frase = ""; toma.fijos = toma.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, u.icono("volver")));
+      el("button", { class: "epl-candado" + (propia ? " fijo" : ""), title: t("toma.frase.volver"), "aria-label": t("toma.frase.volver"),
+        onclick: () => { toma.efecto_frase = ""; toma.fijos = toma.fijos.filter((f) => f !== "efecto_frase"); ctx.pintarToma(); ctx.pedirMontaje(); } }, u.icono("volver")),
+      "epl-g-efref");
   }
 
   /* el encuadre: el menú (ENCUADRES) o, con «✎ escribir el mío», un texto propio (queda fijo y se pega tal cual). Un
    * encuadre que no está en el menú se enseña ya como texto; «≡ menú» vuelve al menú. */
-  let encuadrePropio = false, tomaPintada = null, lineaAbierta = false;   // (camaraPropia, más abajo, se olvida igual al cambiar de toma)
+  let encuadrePropio = false, tomaPintada = null, lineaAbierta = true;   // (camaraPropia, más abajo, se olvida igual al cambiar de toma)
+  // «≡ menú»: vuelve del texto propio al menú (en el sitio del candado, del mismo tamaño)
+  const botonMenu = (alTocar) => el("button", { class: "epl-candado epl-volver-menu", title: t("toma.encuadre.menu.tooltip"),
+    "aria-label": t("toma.encuadre.menu.tooltip"), onclick: alTocar }, u.icono("menu"));
   function campoEncuadre(toma) {
-    const et = () => letrero(t("toma.encuadre"), "", u.icono("encuadre"));
     const propio = encuadrePropio || (toma.encuadre && !ENCUADRES.includes(toma.encuadre));
     if (!propio) {
       const ops = [["", "—"], ...ENCUADRES.map((e, i) => [e, t(`toma.encuadre_op.${i}`)]), ["__mio", t("toma.encuadre.mio")]];
-      const sel = el("select", { "data-campo": "encuadre", onchange: (e) => {
+      const sel = el("select", { "data-campo": "encuadre", "aria-label": t("toma.encuadre"), onchange: (e) => {
         if (e.target.value === "__mio") { encuadrePropio = true; ctx.pintarToma(); return; }
         toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pintarPlan(); ctx.pedirMontaje(); } },
         ops.map(([v, txt]) => el("option", { value: v, selected: (toma.encuadre || "") === v }, txt)));
-      return el("label", { class: "epl-campo epl-medio epl-et-encuadre" }, et(), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
+      return bloque("encuadre", t("toma.encuadre"), sel, candado(toma.fijos, "encuadre", () => ctx.pintarToma()));
     }
-    const entrada = el("textarea", { rows: 2, "data-campo": "encuadre", placeholder: t("toma.encuadre.mio.placeholder"),
-      oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); ctx.pedirMontaje(); } }, toma.encuadre || "");
-    return el("label", { class: "epl-campo epl-medio epl-et-encuadre" }, et(), entrada,
-      el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
-        onclick: () => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
-        u.icono("menu"), " " + t("toma.encuadre.menu")));
+    const entrada = el("textarea", { rows: 1, "data-campo": "encuadre", "aria-label": t("toma.encuadre"), placeholder: t("toma.encuadre.mio.placeholder"),
+      oninput: (e) => { toma.encuadre = e.target.value; fijar(toma.fijos, "encuadre"); pintarFaltas(toma); ctx.pedirMontaje(); } }, toma.encuadre || "");
+    return bloque("encuadre", t("toma.encuadre"), entrada,
+      botonMenu(() => { encuadrePropio = false; if (!ENCUADRES.includes(toma.encuadre)) toma.encuadre = ""; ctx.pintarToma(); ctx.pedirMontaje(); }));
   }
   /* el movimiento de cámara: el menú (MOVIMIENTOS) o un texto propio, como el encuadre. Lo que escribió el LLM y no está
    * en el menú se enseña como texto. */
   let camaraPropia = false;
   function campoCamara(toma) {
     const propia = camaraPropia || (toma.camara && !MOVIMIENTOS.includes(toma.camara));
-    const et = letrero(t("toma.camara"), "", u.icono("camara"));
     if (!propia) {
       const ops = [["", "—"], ...MOVIMIENTOS.map((m, i) => [m, t(`toma.camara_op.${i}`)]), ["__mio", t("toma.encuadre.mio")]];
-      const sel = el("select", { "data-campo": "camara", onchange: (e) => {
+      const sel = el("select", { "data-campo": "camara", "aria-label": t("toma.camara"), onchange: (e) => {
         if (e.target.value === "__mio") { camaraPropia = true; ctx.pintarToma(); return; }
         toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pintarToma(); ctx.pedirMontaje(); } },
         ops.map(([v, txt]) => el("option", { value: v, selected: (toma.camara || "") === v }, txt)));
-      return el("label", { class: "epl-campo epl-medio epl-et-camara" }, et, sel, candado(toma.fijos, "camara", () => ctx.pintarToma()));
+      return bloque("camara", t("toma.camara"), sel, candado(toma.fijos, "camara", () => ctx.pintarToma()));
     }
-    const entrada = el("textarea", { rows: 2, "data-campo": "camara", placeholder: t("toma.camara.mio.placeholder"),
-      oninput: (e) => { toma.camara = e.target.value; fijar(toma.fijos, "camara"); ctx.pedirMontaje(); } }, toma.camara || "");
-    return el("label", { class: "epl-campo epl-medio epl-et-camara" }, et, entrada,
-      el("button", { class: "epl-mini", title: t("toma.encuadre.menu.tooltip"),
-        onclick: () => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); } },
-        u.icono("menu"), " " + t("toma.encuadre.menu")));
+    const entrada = el("textarea", { rows: 1, "data-campo": "camara", "aria-label": t("toma.camara"), placeholder: t("toma.camara.mio.placeholder"),
+      oninput: (e) => { toma.camara = e.target.value; fijar(toma.fijos, "camara"); pintarFaltas(toma); ctx.pedirMontaje(); } }, toma.camara || "");
+    return bloque("camara", t("toma.camara"), entrada,
+      botonMenu(() => { camaraPropia = false; if (!MOVIMIENTOS.includes(toma.camara)) toma.camara = ""; ctx.pintarToma(); ctx.pedirMontaje(); }));
   }
-  /* el lugar de la toma con su selector de entorno (en lugar del candado): «Entorno auto» (lo escribe el LLM; si lo
-   * escribes tú, pasa a manual), «Entorno manual» (fijo) o «Sin entorno» (no se escribe ningún lugar ni fondo, y la luz
-   * solo va si la escribes) */
-  function campoLugar(toma) {
+  /* el entorno (su propio bloque, encima del lugar): «Entorno auto» (lo escribe el LLM; si escribes el lugar, pasa a
+   * manual), «Entorno manual» (fijo; hace de candado del lugar) o «Sin entorno» (no se escribe ningún lugar ni fondo, y la
+   * luz solo va si la escribes). El lugar no lleva candado: su candado es el entorno. */
+  function campoEntorno(toma) {
     const poner = (e) => {
       toma.entorno = e;
       if (e === "ninguno" && !toma.fijos.includes("luz")) toma.luz = "";   // la luz del LLM no va sin entorno; la tuya sí
       toma.fijos = [...toma.fijos.filter((f) => f !== "lugar"), ...(e === "manual" ? ["lugar"] : [])];
       ctx.pintarToma(); ctx.pintarRefs(); ctx.pintarLinea(); ctx.pedirMontaje();
     };
-    const ninguno = toma.entorno === "ninguno";
-    const entrada = el("textarea", { rows: 2, "data-campo": "lugar", disabled: ninguno,
-      placeholder: ninguno ? t("toma.entorno.ninguno.ayuda") : "",
+    return bloque("entorno", t("toma.entorno"),
+      el("span", { class: "epl-entorno", role: "group", "aria-label": t("toma.entorno") }, ...ENTORNOS.map((e) =>
+        el("button", { class: "epl-mini epl-seg" + (toma.entorno === e ? " fijo" : ""), "data-entorno": e, title: t(`toma.entorno.${e}.tooltip`),
+                       "aria-pressed": String(toma.entorno === e), onclick: () => poner(e) }, t(`toma.entorno.${e}`)))));
+  }
+  function campoLugar(toma) {
+    const entrada = el("textarea", { rows: 1, "data-campo": "lugar", "aria-label": t("toma.lugar"),
       oninput: (e) => {
         toma.lugar = e.target.value;
-        if (toma.entorno !== "manual") { toma.entorno = "manual"; fijar(toma.fijos, "lugar"); botones.replaceWith(botones = selector()); }
-        ctx.pedirMontaje(); pintarRefsSuave();
+        if (toma.entorno !== "manual") {           // escribirlo lo deja en manual (el bloque del entorno se pone al día)
+          toma.entorno = "manual"; fijar(toma.fijos, "lugar");
+          const viejo = secToma.querySelector('[data-c2="entorno"]');
+          if (viejo) viejo.replaceWith(campoEntorno(toma));
+        }
+        pintarFaltas(toma); ctx.pedirMontaje(); pintarRefsSuave();
       } }, toma.lugar || "");
-    const selector = () => el("span", { class: "epl-entorno" }, ...ENTORNOS.map((e) =>
-      el("button", { class: "epl-mini epl-seg" + (toma.entorno === e ? " fijo" : ""), "data-entorno": e, title: t(`toma.entorno.${e}.tooltip`),
-                     onclick: () => poner(e) }, t(`toma.entorno.${e}`))));
-    let botones = selector();
-    return el("div", { class: "epl-campo-lugar" },
-      el("label", { class: "epl-campo" }, el("span", {}, t("toma.lugar")), entrada), botones);
+    return bloque("lugar", t("toma.lugar"), entrada);
   }
 
   // ---- el sonido de todo el edit: un renglón al final de la pestaña (27 oct). Va tal cual a overall_soundscape; vacío,
@@ -323,27 +350,43 @@ export function instalar(ctx) {
                                                       onmouseleave: () => ctx.resaltar(s, false) }, s) : s)
       : [t("toma.sin_linea")]));
   };
-  /* el fondo de la toma (26 oct): grande pero apagado, con su menú a todo lo ancho y debajo una vista previa cuadrada y
-   * grande de la imagen elegida, para aprovechar el hueco de la columna de la derecha */
+  /* el fondo de la toma: su menú con una miniatura de la imagen elegida al lado (28 oct: pequeña; la imagen grande está
+   * arriba, en el estante) */
   function campoFondo(toma) {
     const ops = opcionesDe("fondo", t("toma.sin_fondo"));
     if (!ops) return null;
     const r = wf.lista.find((x) => x.tag === toma.fondo_ref);
     const src = r ? ctx.vista(r) : "";
-    return el("div", { class: "epl-fondo-grande" },
-      campoMenu(toma, "fondo_ref", t("toma.fondo"), toma.fijos, ops),
-      el("div", { class: "epl-fondo-vista" + (src ? "" : " vacia"),
-        onmouseenter: () => toma.fondo_ref && ctx.resaltar(toma.fondo_ref, true), onmouseleave: () => toma.fondo_ref && ctx.resaltar(toma.fondo_ref, false) },
-        src ? el("img", { src, alt: "", loading: "lazy" }) : el("span", { class: "epl-ayuda" }, t("toma.sin_fondo"))));
+    const sel = el("select", { "data-campo": "fondo_ref", "aria-label": t("toma.fondo"),
+      onchange: (e) => { toma.fondo_ref = e.target.value; fijar(toma.fijos, "fondo_ref"); ctx.pintarPlan(); ctx.pintarRefs(); ctx.pedirMontaje(); } },
+      ops.map(([v, txt]) => el("option", { value: v, selected: (toma.fondo_ref || "") === v }, txt)));
+    return bloque("fondo_ref", t("toma.fondo"),
+      el("span", { class: "epl-fondo-p2" },
+        el("span", { class: "epl-fondo-mini" + (src ? "" : " vacia"), onmouseenter: () => toma.fondo_ref && ctx.resaltar(toma.fondo_ref, true),
+                     onmouseleave: () => toma.fondo_ref && ctx.resaltar(toma.fondo_ref, false) }, src ? el("img", { src, alt: "", loading: "lazy" }) : null),
+        sel),
+      candado(toma.fijos, "fondo_ref", () => ctx.pintarToma()));
   }
+
+  /* ---- el panel de la toma (28 oct, variante P2 elegida por el usuario): arriba el título (la toma, sus cifras y lo que
+   * falta) con sus acciones a la derecha; después lo principal siempre a la vista, «Qué pasa» (Acción / movimiento) y «El
+   * personaje» (Gesto); y lo demás en tres pestañas, Cámara, Lugar y estilo, y Referencias, que dicen cuánto falta en
+   * cada una. Al final, el prompt de la toma entero. «Escribir tomas» es de todo el edit: está en la línea de tiempo. */
+  const PESTANAS = [{ k: "camara", nombre: "toma.pestana.camara", campos: ["encuadre", "camara", "luz"] },
+                    { k: "lugar", nombre: "toma.pestana.lugar", campos: ["lugar"] },
+                    { k: "refs", nombre: "toma.pestana.refs", campos: [] }];
+  let pestana = "camara";
+  // cambiar de pestaña no vuelve a pintar el panel (no se pierde lo que estás escribiendo)
+  const ponerPestana = (k) => {
+    pestana = k;
+    for (const b of secToma.querySelectorAll(".epl-p2-tab")) { b.classList.toggle("si", b.dataset.tab === k); b.setAttribute("aria-selected", String(b.dataset.tab === k)); }
+    for (const c of secToma.querySelectorAll(".epl-p2-cont")) c.hidden = c.dataset.tab !== k;
+  };
   ctx.pintarToma = function pintarToma() {
     const k = S.elegida, toma = k ? S.plan.tomas[k - 1] : null;
     if (k !== tomaPintada) { encuadrePropio = false; camaraPropia = false; tomaPintada = k; }   // en otra toma lo decide su valor
-    const botonTomas = el("button", { class: "epl-boton epl-llm epl-azul-osc", title: t("final.escribir_tomas.tooltip"),
-      onclick: () => ctx.conLLM("final.escribiendo_tomas", "tomas") }, t("final.escribir_tomas"));
     if (!toma) {
-      secToma.replaceChildren(el("div", { class: "epl-tit epl-tit-izq" }, el("span", { class: "epl-botones-toma" }, botonTomas),
-        el("span", { class: "epl-tit-toma" }, t("toma.titulo_vacio"))),
+      secToma.replaceChildren(el("div", { class: "epl-p2-cab" }, el("span", { class: "epl-tit-toma" }, t("toma.titulo_vacio"))),
         el("div", { class: "epl-vacio" }, t("toma.vacio")));
       return;
     }
@@ -353,44 +396,50 @@ export function instalar(ctx) {
       return ops ? campoMenu(toma, campo, t(etiqueta), toma.fijos, ops) : null;
     };
     const ninguno = toma.entorno === "ninguno";     // sin entorno no hay lugar fijo ni fondo que elegir
-    const refs = [menu("personaje", "toma.atuendo", "personaje", "—"), menu("ropa", "toma.ropa", "ropa", t("toma.sin_ropa")),
-                  menu("pose", "toma.pose", "pose", t("toma.sin_pose")), menu("objeto", "toma.objeto", "objeto", t("toma.sin_objeto")),
-                  ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
-                  ninguno ? null : campoFondo(toma)].filter(Boolean);
+    const usa = [menu("personaje", "toma.atuendo", "personaje", "—"), menu("ropa", "toma.ropa", "ropa", t("toma.sin_ropa")),
+                 menu("pose", "toma.pose", "pose", t("toma.sin_pose")), menu("objeto", "toma.objeto", "objeto", t("toma.sin_objeto")),
+                 ninguno ? null : menu("lugar_ref", "toma.lugar_fijo", "lugar", t("toma.sin_lugar_fijo")),
+                 ninguno ? null : campoFondo(toma)].filter(Boolean);
+    // «Efecto de la referencia» solo sale con una referencia conectada (o si ya escribiste tu frase: no se esconde lo tuyo)
+    const conectadas = (toma.efectos || []).filter(Boolean).length;
+    const propia = toma.fijos.includes("efecto_frase") && (toma.efecto_frase || "").trim();
+    const contenido = {
+      camara: [campoEncuadre(toma), campoCamara(toma),
+               campoTexto(toma, "luz", t(ninguno ? "toma.luz_opcional" : "toma.luz"), toma.fijos, { ayuda: t("toma.luz.ayuda") })],
+      lugar: [campoEntorno(toma), ninguno ? el("p", { class: "epl-ayuda epl-p2-nota" }, t("toma.entorno.ninguno.ayuda")) : campoLugar(toma),
+              // el estilo de esta toma (27 oct): vacío = el de las referencias de papel estilo
+              campoTexto(toma, "estilo", t("toma.estilo"), toma.fijos, { ayuda: t("toma.estilo.placeholder") })],
+      refs: [campoReferencias(toma), conectadas || propia ? campoEfectoRef(toma) : null, ...usa,
+             el("p", { class: "epl-ayuda epl-p2-nota" }, t("toma.refs.ayuda"))],
+    };
+    const nRefs = (ctx.refsDeToma?.(k) || []).length;
     // el título: «Toma 1» (rotulado, como en la etiqueta de una cinta) y, aparte, sus segundos y fotogramas
     const titulo = el("span", { class: "epl-tit-toma", title: t("toma.titulo", { k }) }, el("span", { class: "epl-tit-nombre" }, t("linea.toma", { k })),
       el("span", { class: "epl-tit-cifras" }, a === undefined ? "" : cifrasToma(a, z)));
     secToma.replaceChildren(
-      // los botones a la izquierda (se lee de izquierda a derecha) y el título después
-      el("div", { class: "epl-tit epl-tit-izq" },
-        el("span", { class: "epl-botones-toma" }, botonTomas,
-          el("button", { class: "epl-mini", title: t("toma.rehacer.tooltip"),
+      el("div", { class: "epl-p2-cab" },
+        el("span", { class: "epl-pista" }, t("linea.pista", { k })), titulo, el("span", { class: "epl-p2-faltan" }),
+        el("span", { class: "epl-p2-acciones" },
+          el("button", { class: "epl-boton", title: t("toma.rehacer.tooltip"),
             onclick: () => ctx.conLLM("toma.rehaciendo", "tomas", { solo: k }, { k }) }, u.icono("rehacer"), " " + t("toma.rehacer")),
-          S.tomas > 1 ? el("button", { class: "epl-mini", title: t("toma.quitar.tooltip"), onclick: () => ctx.quitarToma(k) }, u.icono("x"), " " + t("toma.quitar")) : null),
-        el("span", { class: "epl-pista" }, t("linea.pista", { k })), titulo),
-      el("div", { class: "epl-tres" },
-        el("div", {}, el("b", {}, t("toma.direccion")),
-          campoTexto(toma, "momento", el("span", {}, el("i", { class: "epl-icono" }, u.icono("accion")), t("toma.momento")), toma.fijos,
-                     { largo: true, filas: 2, clase: "epl-destacado epl-g-accion", ayuda: t("toma.momento.ayuda") }),
-          campoReferencias(toma),
-          campoEfectoRef(toma)),
-        // encuadre, cámara y luz, a la derecha de la acción (26 oct), con un título intermedio: borde de color
-        el("div", {}, el("b", {}, t("toma.que_pasa")),
-          campoEncuadre(toma),
-          campoCamara(toma),
-          campoTexto(toma, "luz", el("span", {}, el("i", { class: "epl-icono" }, u.icono("luz")), t(ninguno ? "toma.luz_opcional" : "toma.luz")),
-                     toma.fijos, { largo: true, filas: 1, clase: "epl-medio epl-et-luz" }),
-          campoLugar(toma),
-          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { largo: true, filas: 1 }),
-          // el estilo de esta toma (27 oct): vacío = el de las referencias de papel estilo
-          campoTexto(toma, "estilo", letrero(t("toma.estilo"), "", u.icono("estilo")), toma.fijos,
-                     { largo: true, filas: 1, clase: "epl-medio epl-et-estilo", ayuda: t("toma.estilo.placeholder") })),
-        el("div", { class: "epl-col-refs" }, el("b", {}, t("toma.refs")),
-          ...(refs.length ? refs : [el("p", { class: "epl-ayuda" }, t("toma.sin_refs"))]),
-          el("p", { class: "epl-ayuda" }, t("toma.refs.ayuda")))),
-      // la línea de la toma en el prompt, plegada en una línea (se abre al tocarla); se recuerda abierta o cerrada
+          S.tomas > 1 ? el("button", { class: "epl-boton epl-solo-icono", title: t("toma.quitar.tooltip"), "aria-label": t("toma.quitar.tooltip"),
+                                       onclick: () => ctx.quitarToma(k) }, u.icono("x")) : null)),
+      el("div", { class: "epl-p2-arriba" },
+        el("section", { class: "epl-p2-grupo" }, el("h3", {}, t("toma.grupo.que_pasa")),
+          campoTexto(toma, "momento", t("toma.momento"), toma.fijos, { clase: "epl-g-accion", ayuda: t("toma.momento.ayuda") })),
+        el("section", { class: "epl-p2-grupo" }, el("h3", {}, t("toma.grupo.personaje")),
+          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { ayuda: t("toma.gesto.ayuda") }))),
+      el("div", { class: "epl-p2-tabs", role: "tablist", "aria-label": t("toma.pestanas") }, ...PESTANAS.map((p) =>
+        el("button", { class: "epl-p2-tab" + (pestana === p.k ? " si" : ""), role: "tab", "aria-selected": String(pestana === p.k), "data-tab": p.k,
+                       onclick: () => ponerPestana(p.k) },
+          t(p.nombre), el("span", { class: "epl-p2-cuenta", hidden: true }),
+          p.k === "refs" ? el("span", { class: "epl-p2-num", title: t("toma.pestana.refs_n", { n: nRefs }) }, String(nRefs)) : null))),
+      ...PESTANAS.map((p) => el("div", { class: "epl-p2-cont epl-p2-cont-" + p.k, role: "tabpanel", "data-tab": p.k, hidden: pestana !== p.k },
+        ...contenido[p.k].filter(Boolean))),
+      // la línea de la toma en el prompt, entera (se pliega al tocarla); se recuerda abierta o cerrada
       el("details", { class: "epl-linea-plegable", open: lineaAbierta, ontoggle: (e) => { lineaAbierta = e.target.open; } },
         el("summary", { title: t("toma.linea.tooltip") }, el("span", { class: "epl-linea-et" }, t("toma.linea")), el("span", { class: "epl-linea-toma" }))));
+    pintarFaltas(toma);
     ctx.pintarLineaToma();
     ctx.zonaToma(secToma, k);     // soltar aquí un póster del estante lo conecta a esta toma (referencias.js)
   };

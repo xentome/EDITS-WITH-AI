@@ -420,3 +420,32 @@ body.tema-casete .max-ex-leyenda.o::before{background:#8A5A34}body.tema-casete .
 body.tema-casete .max-ex-leyenda.n::before{background:var(--k-rosa)}
 body.tema-casete .max-ex-fuente{font-family:var(--k-rotulo);font-size:14px;letter-spacing:.02em}
 body.tema-casete .max-ex-fuente.latente{color:var(--k-ok)}body.tema-casete .max-ex-fuente.mp4{color:var(--k-aviso)}
+
+/* ---------------------------------------------------------------- (28 oct) el panel de la toma, variante P2 (plan.js) */
+body.tema-casete .epl-p2-cab{border-bottom-color:var(--k-linea)}
+body.tema-casete .epl-p2-cab .epl-tit-nombre{font-size:34px}
+body.tema-casete .epl-p2-cab .epl-tit-cifras{font-size:16px}
+body.tema-casete .epl-p2-faltan,body.tema-casete .epl-falta,body.tema-casete .epl-p2-cuenta{background:var(--k-aviso);color:var(--k-tinta);font-family:var(--k-rotulo)}
+body.tema-casete .epl-p2-faltan.cero{background:var(--k-ok)}
+body.tema-casete .epl-p2-grupo h3{font:800 18px/1 var(--k-titulo);letter-spacing:.07em;color:var(--k-crema)}
+body.tema-casete .epl-p2-grupo h3::after{background:var(--k-linea)}
+body.tema-casete .epl-s-toma .epl-c2>.epl-c2-et{font-family:var(--k-rotulo) !important;color:var(--k-texto) !important;background:none !important;border:0 !important}
+body.tema-casete .epl-s-toma .epl-c2>.epl-c2-et .epl-ic{color:var(--k-suave)}
+body.tema-casete .epl-s-toma .epl-c2.epl-g-accion>.epl-c2-et,body.tema-casete .epl-s-toma .epl-c2.epl-g-accion>.epl-c2-et .epl-ic{color:var(--k-naranja) !important}
+body.tema-casete .epl-s-toma .epl-c2 textarea,body.tema-casete .epl-s-toma .epl-c2 select,body.tema-casete .epl-s-toma .epl-c2 .epl-citas{
+  background:#120E17 !important;border:1.5px solid var(--k-linea2) !important;border-radius:7px !important;font-size:16px !important}
+body.tema-casete .epl-s-toma .epl-c2.vacio textarea,body.tema-casete .epl-s-toma .epl-c2.vacio select{border-style:dashed !important;border-color:var(--k-aviso) !important;background:#1A1508 !important}
+body.tema-casete .epl-s-toma .epl-c2.epl-g-accion textarea{border:2px solid var(--k-naranja) !important;background:#1E1710 !important;font:600 20px/1.35 var(--k-texto-f) !important}
+body.tema-casete .epl-s-toma .epl-c2 textarea:focus,body.tema-casete .epl-s-toma .epl-c2 select:focus{border-color:var(--k-crema) !important}
+body.tema-casete .epl-s-toma .epl-candado{border:1.5px solid var(--k-linea2) !important;border-radius:7px !important}
+body.tema-casete .epl-s-toma .epl-candado.fijo{background:var(--k-crema) !important;border-color:var(--k-crema) !important;color:var(--k-tinta) !important}
+body.tema-casete .epl-s-toma .epl-boton,body.tema-casete .epl-escribir-tomas{font-size:14px !important;padding:0 14px;border-width:1.5px !important}
+body.tema-casete .epl-s-toma .epl-seg,body.tema-casete .epl-s-toma .epl-mas-ref{font-size:13px !important;padding:0 14px;min-height:40px}
+body.tema-casete .epl-p2-tabs{border-bottom-color:var(--k-linea2)}
+body.tema-casete .epl-p2-tab{border-color:var(--k-linea2);color:var(--k-suave);font:800 17px/1 var(--k-titulo);letter-spacing:.06em}
+body.tema-casete .epl-p2-tab:hover{color:var(--k-texto)}
+body.tema-casete .epl-p2-tab.si{background:var(--k-tinta2);color:var(--k-crema);border-color:var(--k-crema);border-bottom:1.5px solid var(--k-tinta2)}
+body.tema-casete .epl-p2-num{background:var(--k-crema);color:var(--k-tinta);font-family:var(--k-mono)}
+body.tema-casete .epl-fondo-mini{border-color:var(--k-linea2);background:var(--k-tinta)}
+body.tema-casete .epl-s-toma .epl-ayuda{font-size:13px;color:#C9BFD3}
+body.tema-casete .epl-s-toma .epl-linea-toma{font-size:13px;line-height:1.55}
