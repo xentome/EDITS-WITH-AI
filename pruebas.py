@@ -876,5 +876,46 @@ if shutil.which("ffmpeg"):
                   and abs(float(_n19(s19, "a").get("duration") or 0) - 94 / 24) < 0.06
                   and abs(float(_n19(s19b, "a").get("duration") or 0) - 94 / 24) < 0.06, (len(m19), _n19(s19, "a"), _n19(s19b, "a")))
 
+print("20 · Traducir al inglés: lo protegido no se toca, la selección y la revisión (nucleo.traducir, con un LLM de mentira)")
+_resp20, _vistos20 = [], []
+def _pedir20(reg, nombre, mensajes, pensar, semilla, max_tokens, temperatura=0.6):
+    _vistos20.append(mensajes[-1]["content"])
+    return _resp20.pop(0), "stop"
+_antes20 = (N.pedir, N.llm_vivo, N.registro_nuevo)
+N.pedir, N.llm_vivo = _pedir20, (lambda: True)
+N.registro_nuevo = lambda accion: N.Registro(tempfile.mkdtemp(prefix="traducir_"))
+try:
+    t20 = 'la chica levanta <Picture 2> y @V1 aparece; en 0:02 la palabra "HOLA" sale'
+    enviado20, guardado20 = N._proteger(t20)
+    comprobar("se protegen <Picture N>, las citas @, los tiempos y el texto entre comillas",
+              guardado20 == ["<Picture 2>", "@V1", "0:02", '"HOLA"'] and "{{4}}" in enviado20, (enviado20, guardado20))
+    _resp20[:] = ['Here is the translation: "the girl raises {{1}} and {{2}} appears; at {{3}} the word {{4}} shows up"']
+    r20 = N.traducir(t20, "Spanish")
+    comprobar("la traducción vuelve con lo protegido tal cual y sin «Here is…» ni comillas de más",
+              r20["texto"] == 'the girl raises <Picture 2> and @V1 appears; at 0:02 the word "HOLA" shows up' and r20["intentos"] == 1, r20)
+    _resp20[:] = ["the girl raises {{1}} and appears", "the girl raises {{1}} and {{2}} appears at {{3}}, the word {{4}}"]
+    r20 = N.traducir(t20, "Spanish")
+    comprobar("si falta un hueco, se le devuelve al LLM con la causa y el segundo intento vale",
+              r20["intentos"] == 2 and "{{2}}" in _vistos20[-1] and "missing" in _vistos20[-1], (r20, _vistos20[-1][:120]))
+    _resp20[:] = ["the girl con la mano raises {{1}} {{2}} {{3}} {{4}}"] * 3
+    try:
+        N.traducir(t20, "Spanish"); r20 = None
+    except N.ErrorUsuario as e:
+        r20 = e
+    comprobar("español sin traducir en 3 intentos: error claro y el texto del usuario no se toca", isinstance(r20, N.ErrorUsuario), r20)
+    t20b = "la cámara se acerca despacio a su cara"
+    _resp20[:] = ["slowly moves closer"]
+    r20 = N.traducir(t20b, "Spanish", 10, 29)
+    comprobar("una selección: se manda el texto entero con la parte marcada (sin los espacios de sus bordes) y vuelve solo "
+              "esa parte, con dónde va", r20["texto"] == "slowly moves closer" and (r20["inicio"], r20["fin"]) == (10, 28)
+              and _vistos20[-1] == "la cámara <<<se acerca despacio>>> a su cara", (r20, _vistos20[-1]))
+    _resp20[:] = []
+    r20 = N.traducir("<Picture 1> 0:02", "Spanish")
+    comprobar("sin nada que traducir (solo etiquetas o cifras) no se llama al LLM", r20["intentos"] == 0 and r20["texto"] == "<Picture 1> 0:02", r20)
+    comprobar("desde otro idioma no se busca español sobrante",
+              not N.revisar_traduccion("the girl con her hand", "x", 0, "French") and N.revisar_traduccion("the girl con her hand", "x", 0, "Spanish"))
+finally:
+    N.pedir, N.llm_vivo, N.registro_nuevo = _antes20
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

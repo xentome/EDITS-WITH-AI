@@ -106,6 +106,11 @@ def describir(d):
     return nucleo.describir_imagen(base64.b64encode(buf.getvalue()).decode(), d.get("papel", "pose"))
 
 
+def traducir(d):
+    """Un campo (o la selección de un campo, d.inicio–d.fin) al inglés, desde d.desde (el idioma de la cabecera)."""
+    return nucleo.traducir(str(d.get("texto") or ""), d.get("desde") or "Spanish", d.get("inicio"), d.get("fin"))
+
+
 def tomas(d):
     t = time.time()
     solo = int(d["solo"]) if d.get("solo") else None
@@ -709,6 +714,7 @@ ACCIONES = {
     "historia": (historia, True),
     "tomas": (tomas, True),
     "describir": (describir, True),
+    "traducir": (traducir, True),
     "medios": (medios, False),
     "cajitas": (cajitas, False),
     "video_de": (video_de, False),

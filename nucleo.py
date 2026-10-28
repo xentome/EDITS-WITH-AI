@@ -640,8 +640,8 @@ def llm_vivo():
         return False
 
 
-def pedir(reg, nombre, mensajes, pensar, semilla, max_tokens):
-    cuerpo = {"model": MODELO, "temperature": 0.6, "seed": semilla, "max_tokens": max_tokens, "messages": mensajes,
+def pedir(reg, nombre, mensajes, pensar, semilla, max_tokens, temperatura=0.6):
+    cuerpo = {"model": MODELO, "temperature": temperatura, "seed": semilla, "max_tokens": max_tokens, "messages": mensajes,
               "chat_template_kwargs": {"reasoning_effort": "low"} if pensar else {"enable_thinking": False}}
     t = time.time()
     pet = urllib.request.Request(URL, json.dumps(cuerpo).encode(), {"Content-Type": "application/json"})
@@ -1214,6 +1214,131 @@ def describir_imagen(jpeg_b64, papel):
     return {"nombre": str(d.get("nombre", "")).strip()[:60], "ficha": str(d.get("ficha", "")).strip()[:300],
             "riesgos": [str(x).strip() for x in d.get("riesgos", []) if str(x).strip()][:5],
             "segundos": round(time.time() - t, 1)}
+
+
+# ------------------------------------------------------------------ traducir: un campo (o un trozo) al inglés
+# (28 oct) El botón «Traducir a inglés» de cada campo y «Traducir selección» del clic derecho. Siempre AL INGLÉS (H3 lee
+# inglés); el idioma de partida lo elige el usuario en la cabecera. Lo que no se puede tocar (<Picture N>, <Subject 1>,
+# citas @, efectos E1, tiempos y el texto entre comillas, que es texto en pantalla) se cambia por {{1}}, {{2}}… antes de
+# mandarlo y se vuelve a poner después: así no se puede perder ni cambiar. El código revisa la respuesta y, si falla, se
+# la devuelve al LLM con la causa (hasta 3 veces); si no pasa, no se toca el texto del usuario. planos/fases/14.
+PROTEGIDO = re.compile(r'<(?:Subject|Picture|Video|Audio) \d+>|@[\w-]+|\bE\d+\b|\b\d{1,2}:\d{2}(?:[.,]\d+)?\b|"[^"\n]*"|“[^”\n]*”')
+HUECO_TR = re.compile(r"\{\{(\d+)\}\}")
+MARCA_INI, MARCA_FIN = "<<<", ">>>"
+# palabras que delatan español sin traducir (solo se miran si se traduce desde el español)
+RESTO_ES = re.compile(r"\b(?:el|los|las|del|que|una|unos|unas|por|para|con|muy|pero|mientras|hacia|desde|cuando|donde|"
+                      r"sobre|entre|detrás|cámara|toma|chica|chico|mientras|lentamente|frente)\b|[¿¡]", re.I)
+PREAMBULO = re.compile(r"^\s*(?:here(?: is|'s)[^:\n]*:|translation\s*:|english\s*:|sure[,!.][^\n]*\n)\s*", re.I)
+TRADUCTOR = """You translate the fields of a prompt for an AI video model from {desde} into English.
+Rules:
+- Reply with the English translation only. No notes, no explanations, no quotes around it, nothing before or after.
+- Keep every placeholder like {{{{1}}}} exactly as written and in the right place of the English sentence. Never translate,
+  remove, merge, renumber or add placeholders.
+- Translate faithfully: keep every detail, the order of the events, the tone and the tense. Do not add, remove, summarize,
+  explain or improve anything.
+- Use the natural wording of a video prompt: concrete and visual (camera, light, place, gesture, colors).
+- Keep left and right, colors, numbers and names exactly as they are.
+- Words or sentences that are already in English stay exactly as they are.
+- Keep the line breaks."""
+SELECCION = """
+The text has a part marked between {ini} and {fin}. Translate ONLY that marked part. The rest of the text is context, so
+your translation fits the sentence around it (grammar, gender, number, which word it refers to). Reply with the English
+translation of the marked part only: never repeat the context and never write the marks."""
+
+
+def _proteger(texto):
+    """Cambia lo protegido por {{1}}, {{2}}… → (texto, [lo protegido, en orden])."""
+    guardado = []
+    def cambio(m):
+        guardado.append(m.group(0))
+        return "{{%d}}" % len(guardado)
+    return PROTEGIDO.sub(cambio, texto), guardado
+
+
+def _limpiar(respuesta, original):
+    """Lo que el LLM a veces pone alrededor (un «Here is…:», comillas que el original no tenía, espacios)."""
+    r = PREAMBULO.sub("", respuesta.strip()).strip()
+    for a, z in (('"', '"'), ("“", "”"), ("'", "'"), ("«", "»")):
+        if len(r) > 1 and r.startswith(a) and r.endswith(z) and not original.strip().startswith(a):
+            r = r[1:-1].strip()
+    return r
+
+
+def revisar_traduccion(respuesta, enviado, n_huecos, desde):
+    """Los problemas de una traducción (en inglés: se le devuelven al LLM). `enviado`: lo que se tradujo, ya protegido."""
+    p = []
+    if not respuesta.strip():
+        return ["The answer is empty: write the English translation."]
+    vistos = HUECO_TR.findall(respuesta)
+    faltan = [f"{{{{{i}}}}}" for i in range(1, n_huecos + 1) if vistos.count(str(i)) == 0]
+    repetidos = sorted({f"{{{{{i}}}}}" for i in vistos if vistos.count(i) > 1})
+    sobran = sorted({f"{{{{{i}}}}}" for i in vistos if not 1 <= int(i) <= n_huecos})
+    if faltan:
+        p.append("These placeholders are missing, keep each one exactly once: " + ", ".join(faltan))
+    if repetidos:
+        p.append("These placeholders appear more than once, keep each one exactly once: " + ", ".join(repetidos))
+    if sobran:
+        p.append("These placeholders do not exist in the text, remove them: " + ", ".join(sobran))
+    if MARCA_INI in respuesta or MARCA_FIN in respuesta:
+        p.append(f"Do not write the marks {MARCA_INI} and {MARCA_FIN}: only the translation of the marked part.")
+    if enviado.count("\n") != respuesta.count("\n"):
+        p.append(f"Keep the line breaks: the text has {enviado.count(chr(10)) + 1} lines.")
+    largo = len(HUECO_TR.sub("", enviado).strip())
+    if largo >= 20 and not 0.45 <= len(HUECO_TR.sub("", respuesta).strip()) / largo <= 2.4:
+        p.append("The translation is much shorter or longer than the text: translate everything, and only that.")
+    if desde.strip().lower() in ("spanish", "español", "espanol", "castellano"):
+        restos = sorted({m.group(0).lower() for m in RESTO_ES.finditer(HUECO_TR.sub("", respuesta))})
+        if restos:
+            p.append("Some Spanish is left untranslated (" + ", ".join(restos) + "): write everything in English.")
+    return p
+
+
+def traducir(texto, desde="Spanish", inicio=None, fin=None, semilla=1):
+    """Traduce `texto` (o solo texto[inicio:fin], con el resto como contexto) de `desde` al inglés.
+    Devuelve {'texto': la traducción (de la selección, si la hay), 'intentos', 'segundos'} y, con selección, 'inicio' y
+    'fin': el trozo que hay que cambiar por la traducción (la selección sin los espacios de sus bordes)."""
+    desde = re.sub(r"[^\w ()'-]+", "", str(desde or "Spanish"), flags=re.U).strip()[:40] or "Spanish"
+    seleccion = inicio is not None and fin is not None and 0 <= int(inicio) < int(fin) <= len(texto)
+    if seleccion:                       # los espacios de los bordes de la selección se quedan fuera de las marcas
+        inicio, fin = int(inicio), int(fin)
+        while inicio < fin and texto[inicio].isspace():
+            inicio += 1
+        while fin > inicio and texto[fin - 1].isspace():
+            fin -= 1
+        seleccion = inicio < fin
+    trozo = texto[inicio:fin] if seleccion else texto
+    if not re.search(r"[^\W\d_]", PROTEGIDO.sub("", trozo)):
+        return {"texto": trozo, "intentos": 0, "segundos": 0.0}          # nada que traducir (solo etiquetas o cifras)
+    if not llm_vivo():
+        raise ErrorUsuario("errores.llm_no_responde", url=URL)
+    # lo protegido de la selección se numera primero (es lo que la respuesta debe traer); el del contexto, después
+    enviado, guardado = _proteger(trozo)
+    instrucciones = TRADUCTOR.format(desde=desde)
+    if seleccion:
+        # el contexto no lleva huecos (para que el LLM no los copie): lo protegido de alrededor va tal cual
+        contenido = texto[:inicio] + MARCA_INI + enviado + MARCA_FIN + texto[fin:]
+        instrucciones += SELECCION.format(ini=MARCA_INI, fin=MARCA_FIN)
+    else:
+        contenido = enviado
+    mensajes = [{"role": "system", "content": instrucciones}, {"role": "user", "content": contenido}]
+    reg, t = registro_nuevo("traducir"), time.time()
+    tope = 200 + 3 * len(trozo) // 2
+    for i in range(1, 4):
+        respuesta, final = pedir(reg, f"traducir_{i}", mensajes, False, semilla, tope, temperatura=0)
+        limpia = _limpiar(respuesta, trozo)
+        problemas = ["The answer was cut: write only the translation."] if final == "length" else \
+            revisar_traduccion(limpia, enviado, len(guardado), desde)
+        if not problemas:
+            salida = HUECO_TR.sub(lambda m: guardado[int(m.group(1)) - 1], limpia)
+            # una selección devuelve también dónde va (sin los espacios de sus bordes, que no se tocan)
+            fuera = {"inicio": inicio, "fin": fin} if seleccion else {}
+            return {"texto": salida, "intentos": i, "segundos": round(time.time() - t, 1), **fuera}
+        reg.problemas.append({"paso": "traducir", "intento": i, "problemas": problemas})
+        mensajes += [{"role": "assistant", "content": respuesta},
+                     {"role": "user", "content": "Your answer has these problems:\n- " + "\n- ".join(problemas) +
+                      "\nWrite the translation again, fixing them. Reply with the translation only."}]
+    reg.volcar()
+    raise ErrorUsuario("errores.traducir", problemas="; ".join(problemas), carpeta=reg.carpeta)
 
 
 # ------------------------------------------------------------------ tapar: quitar cara, pelo o texto de una referencia

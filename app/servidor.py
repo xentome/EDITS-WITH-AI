@@ -144,7 +144,7 @@ TRABAJADOR = Trabajador()
 
 
 # las acciones que usan el LLM local (rutas.ACCIONES con usa_llm): mientras corren, la cola no empieza otro trabajo
-CON_LLM = {"historia", "tomas", "describir"}
+CON_LLM = {"historia", "tomas", "describir", "traducir"}
 _llm_en_marcha = [0]
 
 

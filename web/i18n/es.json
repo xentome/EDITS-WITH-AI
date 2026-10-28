@@ -377,6 +377,7 @@
  "errores.tarda.crear_tapada": "Tarda demasiado ({min} min) en crear la referencia tapada; mira la consola de ComfyUI.",
  "errores.tarda.mascaras": "Tarda demasiado ({min} min) en hacer las máscaras con SAM 3.1; mira la consola de ComfyUI.",
  "errores.tomas_no_caben": "{n} tomas no caben en {dur} s (cada toma necesita al menos 0,4 s).",
+ "errores.traducir": "No pude traducirlo sin errores en 3 intentos (no toqué tu texto). Últimos problemas: {problemas}. Detalle en {carpeta}",
  "final.a_mano": "editado a mano",
  "final.ayuda": "El código lo vuelve a montar con cada cambio, sin llamar al LLM. Pasa el ratón sobre una referencia para ver dónde se usa.",
  "final.editar": "Editar a mano",

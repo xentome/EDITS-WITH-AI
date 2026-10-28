@@ -377,6 +377,7 @@
  "errores.tarda.crear_tapada": "Taking too long ({min} min) to create the covered reference; check the ComfyUI console.",
  "errores.tarda.mascaras": "Taking too long ({min} min) to make the masks with SAM 3.1; check the ComfyUI console.",
  "errores.tomas_no_caben": "{n} shots don't fit in {dur} s (each shot needs at least 0.4 s).",
+ "errores.traducir": "I could not translate it without errors in 3 tries (your text was not changed). Last problems: {problemas}. Details in {carpeta}",
  "final.a_mano": "edited by hand",
  "final.ayuda": "The code rebuilds it on every change, without calling the LLM. Hover over a reference to see where it's used.",
  "final.editar": "Edit by hand",
