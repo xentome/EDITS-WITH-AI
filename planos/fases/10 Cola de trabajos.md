@@ -17,4 +17,8 @@ Lectura: 2 min · 27 oct 2026 · Para los ayudantes y para retomar si se corta.
 ## Fases (✅ al terminar, con commit)
 1. ✅ **El servidor:** `app/cola.py`, rutas, foto fija, disco, recuperar al reiniciar, LLM y ComfyUI ocupados; `pruebas/generar_simulado.py` para probar sin GPU (`MAX_EDITOR_GENERAR=simulado`, `MAX_EDITOR_SIMULADO_S`).
 2. ✅ **La página:** Generar y Retocar encolan; «Encolar ×N»; el panel «Cola» con sus acciones; aviso opcional al terminar. Lista en orden de ejecución (lo que corre arriba, luego lo que espera, luego lo terminado).
-3. **La prueba real:** 3 Generar de 22 f en orden, con la cola de ComfyUI vacía.
+3. ✅ **La prueba real (27 oct):** 3 Generar de 22 f (semillas 11, 22, 33) en orden, de uno en uno, con la cola de ComfyUI vacía: 150 s, 132 s y el segundo recogido de ComfyUI tras reiniciar el servidor a mitad (`recuperando` → `hecho`). Los tres, 960×544 y 22 f.
+
+## Huecos conocidos
+- Un trabajo recogido tras reiniciar anota solo los segundos desde el reinicio.
+- Retocar con cola se probó en la página (botón y foto fija), no con un retoque real de H3.
