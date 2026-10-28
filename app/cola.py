@@ -89,6 +89,7 @@ def anadir(tipo: str, foto: dict, semillas: list | None = None) -> list[str]:
             if tipo == "retocar":
                 tramo = {k: f.get(k) for k in ("f0", "n")} if f.get("n") is not None else {"inicio": f.get("inicio"), "fin": f.get("fin")}
             _estado["trabajos"].append({"id": tid, "tipo": tipo, "proyecto": f.get("proyecto") or "", "semilla": s, "tramo": tramo,
+                                        "origen": f.get("origen") or "",
                                         "estado": "en_cola", "avance": 0.0, "mensaje": "", "video": None, "creado": _ahora(),
                                         "empezado": None, "terminado": None, "segundos": 0.0, "job": None, "foto": f})
             ids.append(tid)

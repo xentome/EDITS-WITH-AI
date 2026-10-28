@@ -3,7 +3,8 @@
 #   1. mira ComfyUI (no lo arranca: es tuyo) y el LLM local;
 #   2. arranca comfy-api-proxy si no responde (el puente del SDK de Comfy hacia tu ComfyUI);
 #   3. arranca el servidor de la app si no responde;
-#   4. abre el navegador.
+#   4. arranca el servidor MCP (para que un agente maneje la app: planos/fases/11 MCP.md) si no responde;
+#   5. abre el navegador.
 # Opciones: --reiniciar (vuelve a arrancar el servidor de la app, por ejemplo tras actualizar el código)
 #           --sin-navegador (no abre el navegador)
 # Para pararla: app/parar.sh
@@ -82,7 +83,30 @@ else
   fi
 fi
 
-# 4. el navegador
+# 4. el servidor MCP (con --reiniciar también se vuelve a arrancar, por si cambió su código)
+if [ "$REINICIAR" = 1 ] && responde "$MCP_URL/salud"; then
+  "$APP/parar.sh" --solo-mcp >/dev/null
+fi
+if responde "$MCP_URL/salud"; then
+  decir "✓ MCP para agentes en $MCP_URL/mcp" "✓ MCP for agents at $MCP_URL/mcp"
+elif ! "$PY" -c "import mcp" 2>/dev/null; then
+  decir "! Falta el paquete mcp en el entorno: vuelve a ejecutar app/instalar.sh (la app funciona igual, sin agentes)." \
+        "! The mcp package is missing: run app/instalar.sh again (the app works the same, without agents)."
+else
+  cd "$REPO" || exit 1
+  mkdir -p "$APP/salidas"
+  nohup "$PY" "$APP/mcp_servidor.py" >> "$APP/salidas/mcp.log" 2>&1 &
+  echo $! > "$PID_MCP"
+  for _ in $(seq 1 30); do responde "$MCP_URL/salud" && break; sleep 0.5; done
+  if responde "$MCP_URL/salud"; then
+    decir "✓ MCP para agentes en $MCP_URL/mcp  (Claude Code: claude mcp add max-editor --transport http $MCP_URL/mcp)" \
+          "✓ MCP for agents at $MCP_URL/mcp  (Claude Code: claude mcp add max-editor --transport http $MCP_URL/mcp)"
+  else
+    decir "! El MCP no arrancó (la app funciona igual). Mira app/salidas/mcp.log" "! The MCP did not start (the app works the same). See app/salidas/mcp.log"
+  fi
+fi
+
+# 5. el navegador
 if [ "$NAVEGADOR" = 1 ]; then
   if command -v xdg-open >/dev/null 2>&1; then xdg-open "$APP_URL/" >/dev/null 2>&1 &
   elif command -v open >/dev/null 2>&1; then open "$APP_URL/"

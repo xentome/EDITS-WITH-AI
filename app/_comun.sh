@@ -36,10 +36,12 @@ c = json.loads(sys.argv[1])
 p = urllib.parse.urlparse(c["proxy_url"])
 for k, v in {"PUERTO": c["puerto"], "COMFYUI_DIR": c["comfyui_dir"], "COMFYUI_URL": c["comfyui_url"],
              "PROXY_URL": c["proxy_url"], "PROXY_HOST": p.hostname or "127.0.0.1", "PROXY_PUERTO": p.port or 80,
-             "LLM_URL": c["llm_url"], "PY_TRABAJADOR": c["python_trabajador"]}.items():
+             "LLM_URL": c["llm_url"], "PY_TRABAJADOR": c["python_trabajador"], "MCP_PUERTO": c.get("mcp_puerto") or 8301}.items():
     print(f"{k}={shlex.quote(str(v))}")' "$CONFIG_JSON")"
 APP_URL="http://127.0.0.1:$PUERTO"
 PID_SERVIDOR="$APP/.servidor_$PUERTO.pid"
+MCP_URL="http://127.0.0.1:$MCP_PUERTO"                    # el servidor MCP (mcp_servidor.py): para que un agente maneje la app
+PID_MCP="$APP/.servidor_mcp_$MCP_PUERTO.pid"
 
 # el proceso que escucha en un puerto (solo los de este usuario), o nada
 pid_del_puerto() {

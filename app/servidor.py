@@ -31,7 +31,8 @@ SALIDAS = os.path.join(APP, "salidas")
 PLANTILLA = os.path.join(APP, "plantillas", "edit_h3.api.json")
 
 DEFECTO = {"comfyui_dir": "~/comfy/ComfyUI", "comfyui_url": "http://127.0.0.1:8188", "proxy_url": "http://127.0.0.1:8199",
-           "puerto": 8300, "host": "127.0.0.1", "llm_url": "http://127.0.0.1:8080", "python_comfyui": "", "liberar_gpu": True}
+           "puerto": 8300, "host": "127.0.0.1", "llm_url": "http://127.0.0.1:8080", "python_comfyui": "", "liberar_gpu": True,
+           "mcp_puerto": 8301}
 
 
 def leer_config():
@@ -247,10 +248,10 @@ async def lista_proyectos(peticion):
         if a.endswith(".json"):
             try:
                 with open(os.path.join(PROYECTOS, a), encoding="utf-8") as fh:
-                    guardado = (json.load(fh) or {}).get("guardado", "")
+                    p = json.load(fh) or {}
             except (OSError, ValueError):
                 continue
-            out.append({"nombre": a[:-5], "guardado": guardado})
+            out.append({"nombre": a[:-5], "guardado": p.get("guardado", ""), "rev": int(p.get("rev") or 0), "autor": p.get("autor") or ""})
     return web.json_response(sorted(out, key=lambda p: p["guardado"] or "", reverse=True))
 
 
@@ -276,13 +277,43 @@ async def guardar_proyecto(peticion):
         return error("app.error.sin_valores", peticion)
     if datos.get("nuevo") and os.path.exists(ruta):          # «nuevo» y «guardar como» no pisan otro proyecto
         return error("app.error.ya_existe", peticion, 409, nombre=nombre)
-    proyecto = {"nombre": nombre, "guardado": time.strftime("%Y-%m-%dT%H:%M:%S"), "valores": datos["valores"]}
+    # rev sube en cada guardado; quien guarda con «base_rev» (la página, el MCP) no pisa lo que otro escribió después
+    # (planos/fases/11 MCP.md). «agente» guarda las marcas «✎ agente»: se conservan si el que guarda no las manda.
+    antes = {}
+    if os.path.isfile(ruta) and not datos.get("nuevo"):
+        try:
+            with open(ruta, encoding="utf-8") as fh:
+                antes = json.load(fh) or {}
+        except (OSError, ValueError):
+            antes = {}
+    rev = int(antes.get("rev") or 0)
+    if datos.get("base_rev") is not None and int(datos["base_rev"]) != rev:
+        return web.json_response({"error": t("app.error.conflicto", peticion, nombre=nombre), "clave": "app.error.conflicto",
+                                  "rev": rev, "autor": antes.get("autor") or ""}, status=409)
+    autor = "agente" if datos.get("autor") == "agente" else "pagina"
+    proyecto = {"nombre": nombre, "guardado": time.strftime("%Y-%m-%dT%H:%M:%S"), "rev": rev + 1, "autor": autor,
+                "valores": datos["valores"]}
+    agente = datos["agente"] if isinstance(datos.get("agente"), dict) else antes.get("agente")
+    if agente:
+        proyecto["agente"] = agente
     os.makedirs(PROYECTOS, exist_ok=True)
     temporal = ruta + ".tmp"
     with open(temporal, "w", encoding="utf-8") as fh:
         json.dump(proyecto, fh, ensure_ascii=False, indent=1)
     os.replace(temporal, ruta)                                 # nunca un proyecto a medio escribir
-    return web.json_response({"nombre": nombre, "guardado": proyecto["guardado"]})
+    return web.json_response({"nombre": nombre, "guardado": proyecto["guardado"], "rev": proyecto["rev"], "autor": autor})
+
+
+async def rev_proyecto(peticion):
+    """GET /app/proyecto_rev/<nombre> → {rev, autor, guardado, marcas}: lo poco que la página mira cada 2 s para saber si
+    el agente (u otra pestaña) cambió el proyecto."""
+    ruta = ruta_proyecto(peticion.match_info["nombre"])
+    if not ruta or not os.path.isfile(ruta):
+        return error("app.error.no_existe", peticion, 404, nombre=peticion.match_info["nombre"])
+    with open(ruta, encoding="utf-8") as fh:
+        p = json.load(fh) or {}
+    return web.json_response({"rev": int(p.get("rev") or 0), "autor": p.get("autor") or "", "guardado": p.get("guardado") or "",
+                              "marcas": len(((p.get("agente") or {}).get("marcas")) or [])})
 
 
 # ------------------------------------------------------------------ generar, avance y videos
@@ -368,6 +399,8 @@ async def cola_anadir(peticion):
         if not isinstance(d.get("datos"), dict):
             return error("app.error.sin_valores", peticion)
         foto = dict(d["datos"])
+    if d.get("origen") == "agente":                           # lo encoló el agente (MCP): la cola lo enseña
+        foto["origen"] = "agente"
     semillas = cola.semillas_nuevas(n) if n > 1 else [foto.get("semilla")]
     return web.json_response({"ids": cola.anadir(d["tipo"], foto, semillas)})
 
@@ -486,6 +519,7 @@ def crear_app():
     app.router.add_get("/app/proyectos", lista_proyectos)
     app.router.add_get("/app/proyecto/{nombre}", ver_proyecto)
     app.router.add_post("/app/proyecto/{nombre}", guardar_proyecto)
+    app.router.add_get("/app/proyecto_rev/{nombre}", rev_proyecto)
     app.router.add_post("/app/generar", lanzar)
     app.router.add_get("/app/trabajo/{id}", trabajo)
     app.router.add_post("/app/cancelar/{id}", cancelar)

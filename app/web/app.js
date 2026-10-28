@@ -45,7 +45,9 @@ async function pedir(ruta, cuerpo) {
 const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", guardadoJSON: "", proyectos: [], salud: {},
             trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null,
             cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 3, colaVista: {},
-            fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas" };
+            fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas",
+            // el agente (MCP, planos/fases/11): rev del proyecto que se cargó, marcas «✎ agente», cambios sin guardar y choque
+            rev: 0, marcas: [], sucio: false, conflicto: null };
 
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
 const retoque = retocarJS.crear({ el, icono: util.icono, mirarCola: () => mirarCola(), t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
@@ -182,21 +184,33 @@ async function cargarProyectos() {
   A.proyectos = await pedir("/app/proyectos");
 }
 
-async function guardarProyecto(nombre = A.proyecto, nuevo = false) {
+async function guardarProyecto(nombre = A.proyecto, nuevo = false, forzar = false) {
   if (!A.graph || !nombre) return;
   const valores = valoresDe(A.graph, A.plantilla), texto = JSON.stringify(valores);
-  if (!nuevo && nombre === A.proyecto && texto === A.guardadoJSON) return;    // nada nuevo que escribir
-  const r = await pedir("/app/proyecto/" + encodeURIComponent(nombre), { valores, nuevo });
-  if (nombre === A.proyecto) A.guardadoJSON = texto;
+  const propio = !nuevo && nombre === A.proyecto;
+  if (propio && texto === A.guardadoJSON && !forzar) { A.sucio = false; return; }   // nada nuevo que escribir
+  if (propio && A.conflicto) return;                     // el agente cambió el proyecto: decide el usuario (avisoAgente)
+  // con base_rev el servidor no pisa lo que el agente escribió después de abrirlo: responde 409 y aquí se pregunta
+  const r = await fetch(`/app/proyecto/${encodeURIComponent(nombre)}?idioma=${tr.idioma}`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ valores, nuevo, ...(propio ? { base_rev: A.rev, agente: { marcas: A.marcas } } : {}) }) });
+  const j = await r.json().catch(() => ({ error: t("errores.respuesta_no_valida", { estado: r.status }) }));
+  if (r.status === 409 && j.clave === "app.error.conflicto") { A.conflicto = { rev: j.rev }; pintarAgente(); return; }
+  if (!r.ok || j.error) throw new Error(j.error || r.statusText);
+  if (propio || nombre === A.proyecto) { A.guardadoJSON = texto; A.rev = j.rev ?? A.rev; A.sucio = false; }
   avisar(t("app.proyecto.guardado", { nombre, hora: new Date().toLocaleTimeString(tr.locale) }), "bien");
-  return r;
+  return j;
 }
 
-async function abrirProyecto(nombre, valores = null) {
+async function abrirProyecto(nombre, valores = null, recargar = false) {
   if (nombre === EJEMPLO) return abrirEjemplo();
   try {
-    if (A.ctx) await A.ctx.guardarYa();                   // lo último del proyecto que se deja
-    if (valores === null) valores = (await pedir("/app/proyecto/" + encodeURIComponent(nombre))).valores || {};
+    if (A.ctx && !recargar) await A.ctx.guardarYa();      // lo último del proyecto que se deja (al recargar, no: lo nuevo manda)
+    const doc = await pedir("/app/proyecto/" + encodeURIComponent(nombre));
+    if (valores === null) valores = doc.valores || {};
+    A.rev = doc.rev || 0;
+    A.marcas = doc.agente?.marcas || [];
+    A.conflicto = null;
+    A.sucio = false;
     A.proyecto = nombre;
     ponerLocal(GUARDA_PROYECTO, nombre);
     A.graph = construir(A.plantilla, valores);
@@ -210,9 +224,13 @@ async function abrirProyecto(nombre, valores = null) {
     const ctx = A.ctx;
     ctx.guardarYa = () => guardarVentana().then(() => ctx === A.ctx && guardarProyecto())
       .catch((e) => avisar(t("app.proyecto.error_guardar", { error: e.message }), "mal"));
+    // cualquier cambio en la ventana deja el proyecto «sucio» hasta que se guarda: entonces no se recarga solo (mirarRev)
+    const programar = ctx.programarGuardado;
+    ctx.programarGuardado = () => { if (ctx === A.ctx) A.sucio = true; return programar(); };
     ctx.alMontar = () => { if (ctx === A.ctx) pintarFases(); };
     document.getElementById("cargando")?.remove();
-    avisar(t("app.proyecto.abierto", { nombre }), "bien");
+    if (!recargar) avisar(t("app.proyecto.abierto", { nombre }), "bien");
+    pintarAgente();
     await cargarVideos();
     retoque.colocar();                                    // debajo de «Prompt final», en la ventana nueva
     pintarFases();                                        // la barra de fases, arriba del todo de la ventana
@@ -367,7 +385,8 @@ function pintarCola() {
     const tramo = x.tramo ? (x.tramo.n != null ? t("app.cola.tramo_f", { a: x.tramo.f0, n: x.tramo.n }) : "") : "";
     return el("div", { class: "max-cola-fila e-" + x.estado, "data-id": x.id },
       util.icono(x.tipo === "retocar" ? "retoque" : "video"),
-      el("div", { class: "max-cola-que" }, el("b", {}, t(`app.cola.tipo.${x.tipo}`) + " · " + (x.proyecto || "—")),
+      el("div", { class: "max-cola-que" }, el("b", {}, t(`app.cola.tipo.${x.tipo}`) + " · " + (x.proyecto || "—"),
+        x.origen === "agente" ? el("span", { class: "max-ag-sello", title: t("app.agente.cola.tooltip") }, t("app.agente.marca")) : null),
         el("small", {}, [t("app.cola.semilla", { semilla: x.semilla ?? "?" }), tramo, hora(x)].filter(Boolean).join(" · "))),
       el("span", { class: "max-cola-estado", title: x.mensaje || "" },
         t(`app.cola.estado.${x.estado}`, { p: Math.round((x.avance || 0) * 100) })),
@@ -448,6 +467,119 @@ function pintarVideos() {
       : el("div", { class: "max-vacio" }, t("app.videos.vacio"))));
 }
 
+/* ---- el agente (MCP, planos/fases/11 MCP.md): un agente cambia el MISMO proyecto por el servidor y aquí se ve.
+ *   - Cada 2 s se mira la rev del proyecto. Si subió y aquí no hay nada a medio guardar (ni se está escribiendo en un campo),
+ *     se recarga solo, sin perder la toma elegida ni el scroll. Si hay cambios sin guardar, no se pisa nada: un aviso deja
+ *     elegir entre «cargar lo del agente» y «quedarme con lo mío» (que guarda lo de aquí encima).
+ *   - Lo que tocó el agente lleva «✎ agente» (proyecto.agente.marcas) hasta que el usuario lo edita o pulsa «visto». */
+let mirandoRev = false;
+async function mirarRev() {
+  if (!A.proyecto || !A.ctx || mirandoRev) return;
+  mirandoRev = true;
+  try {
+    const r = await pedir("/app/proyecto_rev/" + encodeURIComponent(A.proyecto));
+    if (r.rev <= A.rev) return;
+    const activo = document.activeElement, escribiendo = activo && activo.closest?.(".epl-fondo") &&
+      (activo.matches("input, textarea, select") || activo.isContentEditable);
+    if (A.sucio || A.conflicto) { A.conflicto = { rev: r.rev, autor: r.autor }; return pintarAgente(); }
+    if (escribiendo) return;                                 // se recarga cuando deje el campo (en la siguiente vuelta)
+    await recargarProyecto(r.autor);
+  } catch { /* sin servidor: ya avisa la salud */ } finally { mirandoRev = false; }
+}
+async function recargarProyecto(autor = "agente") {
+  const cuerpo = document.querySelector(".epl-fondo .epl-cuerpo");
+  const scroll = [window.scrollX, window.scrollY, cuerpo?.scrollTop || 0];
+  await abrirProyecto(A.proyecto, null, true);
+  window.scrollTo(scroll[0], scroll[1]);
+  const nuevo = document.querySelector(".epl-fondo .epl-cuerpo");
+  if (nuevo) nuevo.scrollTop = scroll[2];
+  avisar(t(autor === "agente" ? "app.agente.recargado" : "app.agente.recargado_otro"), "bien");
+}
+
+// el aviso del agente, en la cabecera: «✎ agente · N cambios · visto» y, si chocan, las dos opciones
+const avisoAgente = el("div", { class: "max-ag-aviso" });
+cab.append(avisoAgente);
+function pintarAgente() {
+  const n = A.marcas.length;
+  avisoAgente.className = "max-ag-aviso" + (n || A.conflicto ? " ver" : "") + (A.conflicto ? " choque" : "");
+  if (A.conflicto) {
+    avisoAgente.replaceChildren(el("span", { class: "max-ag-sello" }, t("app.agente.marca")), el("span", {}, t("app.agente.conflicto")),
+      el("button", { class: "max-boton", onclick: () => { A.sucio = false; recargarProyecto(); } }, t("app.agente.cargar_agente")),
+      el("button", { class: "max-boton", onclick: async () => {
+        A.rev = A.conflicto.rev; A.conflicto = null;          // lo de aquí se guarda encima (el usuario lo eligió)
+        try { await A.ctx.guardarYa(); await guardarProyecto(A.proyecto, false, true); } catch (e) { avisar(e.message, "mal"); }
+        pintarAgente();
+      } }, t("app.agente.quedarme")));
+  } else if (n) {
+    avisoAgente.replaceChildren(el("span", { class: "max-ag-sello" }, t("app.agente.marca")),
+      el("span", { title: t("app.agente.cambios.tooltip") }, t("app.agente.cambios", { n })),
+      el("button", { class: "max-boton", title: t("app.agente.visto.tooltip"), onclick: () => quitarMarcas(() => true) }, t("app.agente.visto")));
+  } else avisoAgente.replaceChildren();
+  pintarMarcas();
+}
+
+// dónde se ve cada marca: la toma en la línea de tiempo y su campo en el panel (si está elegida), el póster de la referencia…
+const ZONAS = { resolucion: ".epl-resolucion", semilla: ".max-semilla", cancion: ".epl-audio", duracion: ".epl-zona-tomas",
+                sonido: '[data-campo="sonido"]', texto: ".epl-texto" };
+const CITAS = ".epl-citas";                                 // las referencias de la toma, en su panel
+function nodosDe(m) {
+  const S = A.ctx?.S;
+  if (m.zona === "toma") {
+    const out = [document.getElementById(`epl-tomab-${m.toma}`)];
+    const panel = document.querySelector(".epl-s-toma");
+    if (panel && S?.elegida === m.toma && m.campo) out.push(...panel.querySelectorAll(m.campo === "referencias" ? CITAS : `[data-campo="${m.campo}"]`));
+    return out.filter(Boolean);
+  }
+  if (m.zona === "referencia") return [...document.querySelectorAll(".epl-poster")].filter((p) => p.dataset.clave === m.ref);
+  return ZONAS[m.zona] ? [...document.querySelectorAll(ZONAS[m.zona])] : [];
+}
+let pintandoMarcas = false;
+function pintarMarcas() {
+  if (pintandoMarcas) return;
+  pintandoMarcas = true;
+  for (const x of document.querySelectorAll(".max-ag")) { x.classList.remove("max-ag"); delete x.dataset.ag; }
+  for (const m of A.marcas) for (const x of nodosDe(m)) { x.classList.add("max-ag"); x.dataset.ag = t("app.agente.marca"); }
+  pintandoMarcas = false;
+}
+// la ventana se vuelve a pintar a trozos: las marcas se ponen de nuevo en el siguiente fotograma
+let marcasPendientes = false;
+new MutationObserver(() => {
+  if (pintandoMarcas || marcasPendientes || !A.marcas.length) return;
+  marcasPendientes = true;
+  requestAnimationFrame(() => { marcasPendientes = false; pintarMarcas(); });
+}).observe(document.body, { childList: true, subtree: true });
+
+// el usuario edita algo marcado: esa marca se quita (y se guarda con el proyecto)
+function quitarMarcas(cual) {
+  const antes = A.marcas.length;
+  A.marcas = A.marcas.filter((m) => !cual(m));
+  if (A.marcas.length === antes) return;
+  pintarAgente();
+  guardarProyecto(A.proyecto, false, true).catch((e) => avisar(t("app.proyecto.error_guardar", { error: e.message }), "mal"));
+}
+const alEditar = (e) => {
+  const x = e.target;
+  if (!A.marcas.length || !x?.closest) return;
+  const S = A.ctx?.S, campo = x.closest("[data-campo]")?.dataset.campo, enToma = x.closest(".epl-s-toma");
+  quitarMarcas((m) => (enToma && m.zona === "toma" && m.toma === S?.elegida && (m.campo === campo || (m.campo === "referencias" && !campo)))
+    || (m.zona === "referencia" && x.closest(".epl-poster")?.dataset.clave === m.ref)
+    || Object.entries(ZONAS).some(([z, sel]) => m.zona === z && x.closest(sel)));
+};
+document.addEventListener("change", alEditar, true);
+document.addEventListener("input", (e) => { if (e.target?.closest?.(".max-ag")) alEditar(e); }, true);
+
+// el aspecto (con los colores del tema casete si está; si no, los suyos): la marca es un borde discontinuo rosa con su rótulo
+document.head.append(el("style", { id: "max-agente-css" }, `
+.max-ag{outline:2px dashed var(--k-rosa,#ff3e8a)!important;outline-offset:2px;position:relative}
+.max-ag:not(input):not(textarea):not(select)::after{content:attr(data-ag);position:absolute;top:-.85em;right:.3em;z-index:5;
+  padding:0 .45em;border-radius:.6em;background:var(--k-rosa,#ff3e8a);color:#fff;font:600 11px/1.5 var(--k-mano,inherit);
+  pointer-events:none;white-space:nowrap}
+.max-ag-sello{display:inline-block;margin:0 .4em;padding:0 .5em;border-radius:.7em;background:var(--k-rosa,#ff3e8a);color:#fff;
+  font:600 12px/1.6 var(--k-mano,inherit);white-space:nowrap}
+.max-ag-aviso{display:none;align-items:center;gap:.6em;padding:.25em .8em;font-size:13px}
+.max-ag-aviso.ver{display:flex}
+.max-ag-aviso.choque{background:color-mix(in srgb,var(--k-rosa,#ff3e8a) 22%,transparent)}`));
+
 // ---- arrancar: plantilla, proyectos y el último proyecto abierto (o el ejemplo)
 pintarCabecera();
 try {
@@ -465,6 +597,7 @@ mirarSalud();
 setInterval(mirarSalud, 10000);
 mirarCola();
 setInterval(mirarCola, 2000);
+setInterval(mirarRev, 2000);
 addEventListener("beforeunload", () => { A.ctx?.guardarYa(); });
 window.maxEditor = A;                                    // para probar desde la consola
 window.maxRetoque = retoque;

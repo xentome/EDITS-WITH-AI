@@ -6,5 +6,6 @@
  "host": "127.0.0.1",
  "llm_url": "http://127.0.0.1:8080",
  "python_comfyui": "",
- "liberar_gpu": true
+ "liberar_gpu": true,
+ "mcp_puerto": 8301
 }

@@ -758,5 +758,56 @@ if shutil.which("ffmpeg"):
                   len(_medias(corte)) == 39 and len(b17) == 60 and blancos == list(range(10, 40)) and len(_medias(corto)) == 73,
                   (len(_medias(corte)), len(b17), blancos[:3], blancos[-3:]))
 
+print("18 · El agente (MCP): el proyecto como lo cambia la ventana (app/agente.py, sin red)")
+import agente as AG  # noqa: E402
+with open(os.path.join(AQUI, "app", "plantillas", "edit_h3.api.json"), encoding="utf-8") as fh18:
+    plantilla18 = json.load(fh18)
+p18 = AG.Proyecto({"nombre": "prueba", "valores": {}}, plantilla18)
+lib18 = {"name": "personajes/x", "label": "x", "concept": "identity", "visual": {"file": "personajes/x", "kind": "image"}}
+clip18 = {"name": "efectos/clip", "label": "clip", "concept": "", "visual": {"file": "efectos/clip", "kind": "video"}}
+fon18 = {"name": "fondos/f", "label": "f", "concept": "background", "visual": {"file": "fondos/f", "kind": "image"}}
+t1 = p18.poner_referencia(lib18, "personaje", "Ren", None, "he")
+t2 = p18.poner_referencia(clip18, "efecto", "flash", "a white flash")
+t3 = p18.poner_referencia(fon18, "fondo")
+comprobar("las etiquetas siguen al Text Encode (un contador para fotos y otro para videos) y el personaje va a Principal",
+          (t1, t2, t3) == ("<Picture 1>", "<Video 1>", "<Picture 2>") and p18.en_todas("personajes/x") and not p18.en_todas("fondos/f"),
+          (t1, t2, t3))
+d18 = p18.poner_duracion(5)
+comprobar("la duración se pone en 17·k+5 fotogramas en el Text Encode y en el Prompt Builder (duracion.js)",
+          d18 == {"fotogramas": 124, "segundos": 5.167} and p18.fotogramas() == 124
+          and json.loads(p18.valor(p18.nodo(AG.T_BUILDER), "builder_state"))["duration"] == 5.167, d18)
+p18.poner_tomas(3, [2, 2, 1.17])
+comprobar("tomas con duraciones: cortes a mano, al fotograma, dentro del total válido",
+          p18.n_tomas == 3 and p18.plan["cortes"][0] == 0 and AG.cortes_validos(p18.plan["cortes"], 3, p18.duracion)
+          and p18.fotogramas() == 124, p18.plan.get("cortes"))
+p18.escribir_toma(2, {"momento": "he turns", "fondo_ref": "<Picture 2>"}, conectar=["<Video 1>"])
+toma18 = p18.plan["tomas"][1]
+comprobar("escribir una toma fija sus campos, el fondo va a su campo y el efecto a sus referencias (conectarRef)",
+          toma18["momento"] == "he turns" and "momento" in toma18["fijos"] and toma18["fondo_ref"] == "<Picture 2>"
+          and toma18["efectos"] == ["<Video 1>"] and toma18["efecto"] == "<Video 1>", toma18)
+p18.quitar_referencia("<Picture 1>")
+comprobar("quitar una referencia renumera y las tomas siguen a su referencia por clave (remapear)",
+          p18.plan["tomas"][1]["fondo_ref"] == "<Picture 1>" and list(p18.etiquetas()) == ["<Video 1>", "<Picture 1>"],
+          (p18.plan["tomas"][1]["fondo_ref"], list(p18.etiquetas())))
+try:
+    p18.escribir_toma(1, {"momento": "next to <Picture 7>"})
+    cita18 = False
+except AG.ErrorAgente:
+    cita18 = True
+p18.guardar_estado()
+e18 = json.loads(p18.valor(p18.edit, "estado"))
+comprobar("una cita a una referencia que no existe se rechaza; el estado guarda las etiquetas por clave y las marcas del agente",
+          cita18 and e18["etiquetas"] == {"<Video 1>": "efectos/clip", "<Picture 1>": "fondos/f"}
+          and any(m.get("toma") == 2 and m.get("campo") == "momento" for m in p18.datos["agente"]["marcas"]))
+p18.quitar_toma(1)
+comprobar("quitar la toma 1: las demás se reparten su tiempo y las marcas se renumeran",
+          p18.n_tomas == 2 and AG.cortes_validos(p18.plan["cortes"], 2, p18.duracion)
+          and any(m.get("toma") == 1 and m.get("campo") == "momento" for m in p18.datos["agente"]["marcas"]), p18.plan["cortes"])
+p18.poner_tamano(770, 1340)
+err18, av18 = AG.revisar(p18)
+comprobar("la resolución va a múltiplos de 32 y la revisión pide la canción y avisa del campo principal vacío",
+          p18.tamano() == (768, 1344) and any("song" in x for x in err18) and any("shot 2" in x and "main field" in x for x in av18),
+          (p18.tamano(), err18, av18))
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)
