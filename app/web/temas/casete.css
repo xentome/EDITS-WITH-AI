@@ -361,3 +361,5 @@ body.tema-casete .max-videos{background:rgba(10,7,13,.78)}
 body.tema-casete .max-videos-caja{border-radius:8px}
 body.tema-casete .max-videos-caja>.max-fila:first-child b{font:800 20px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
 body.tema-casete .max-videos-caja video{border-radius:0}
+body.tema-casete .max-rt-tramo-info{font-family:var(--k-mono);color:var(--k-suave)}body.tema-casete .max-rt-tramo-info b{color:var(--k-crema)}
+body.tema-casete .max-rt-asa{width:12px}

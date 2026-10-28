@@ -1,7 +1,8 @@
 /* MAX EDITOR · «Retocar el video»: la sección de abajo del todo, después de «Prompt final» (planos/fases/7, sección 10).
  * Una segunda línea de tiempo solo para retocar, con el último video generado (o el que se ponga desde «Videos»):
  *   - un reproductor con una capa encima para dibujar el rectángulo de la máscara (con esquinas para ajustarlo);
- *   - la línea de tiempo del clip entero con un tramo de dos asas, que siempre mide 17n+5 fotogramas (lo que pide H3);
+ *   - la línea de tiempo del clip entero con un tramo de dos asas, que siempre mide 17n+5 fotogramas (lo que pide H3):
+ *     pulsar y arrastrar lo dibuja desde el punto pulsado, cada asa mueve solo su borde y el centro lo mueve entero;
  *   - la máscara «por texto» (SAM 3.1) o «rectángulo»; hasta 4 referencias (del Stack del proyecto o subidas), cada una
  *     con su <Picture N> para citarla en el prompt; el prompt (inglés), la semilla y «Retocar».
  *   - POST /app/retocar → {id}; el avance, en /app/trabajo/<id> (el mismo de Generar). Al terminar, la línea de tiempo carga
@@ -108,28 +109,46 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     tramoEl.style.width = (100 * R.n / total()) + "%";
   }
   const fotogramaEn = (x) => { const r = linea.getBoundingClientRect(); return (x - r.left) / r.width * total(); };
+  /* elegir el tramo (27 oct), siempre en largos válidos de H3 (17n+5) y con el otro borde quieto:
+   *   - pulsar en la línea y arrastrar: el punto pulsado es el inicio y el final va hacia donde arrastras (hacia la
+   *     izquierda, el punto pulsado es el final); un clic sin arrastrar solo mueve el cursor;
+   *   - el asa de inicio o la de final: mueve solo ese borde;
+   *   - el centro del tramo: lo mueve entero sin cambiar su largo. */
+  const largoHasta = (d, max) => {             // el largo válido más cercano a d que cabe en max (al menos 22)
+    let n = valido(Math.max(22, d));
+    while (n > 22 && n > max) n -= 17;
+    return n;
+  };
+  const ponerDesde = (ancla, f) => {           // un borde quieto en `ancla` y el otro hacia el fotograma f
+    if (f >= ancla) { R.f0 = Math.max(0, Math.min(ancla, total() - 22)); R.n = largoHasta(f - R.f0, total() - R.f0); }
+    else { const fin = Math.max(22, Math.min(ancla, total())); R.n = largoHasta(fin - f, fin); R.f0 = fin - R.n; }
+  };
   linea.addEventListener("pointerdown", (e) => {
     if (!R.info || enMarcha()) return;
     const asa = e.target.closest(".max-rt-asa"), enTramo = e.target.closest(".max-rt-tramo");
-    const modo = asa ? (asa.classList.contains("izq") ? "izq" : "der") : enTramo ? "mover" : null;
-    if (!modo) {                                  // clic en la línea: el cursor salta ahí
-      video.currentTime = Math.max(0, Math.min(R.info.duracion, segundos(fotogramaEn(e.clientX))));
-      return;
-    }
+    const modo = asa ? (asa.classList.contains("izq") ? "izq" : "der") : enTramo ? "mover" : "nuevo";
     e.preventDefault();
     try { linea.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
-    const inicio = { x: fotogramaEn(e.clientX), f0: R.f0, n: R.n };
+    const x0 = e.clientX, f = Math.round(fotogramaEn(e.clientX)), inicio = { f0: R.f0, n: R.n };
+    let movido = false;
     const mover = (ev) => {
-      const d = fotogramaEn(ev.clientX) - inicio.x, fin = inicio.f0 + inicio.n;
-      if (modo === "mover") ajustar(inicio.f0 + d, inicio.n);
-      else if (modo === "izq") { const f0 = Math.min(inicio.f0 + d, fin - 22); ajustar(f0, valido(fin - f0)); R.f0 = Math.max(0, Math.min(R.f0, total() - R.n)); }
-      else ajustar(inicio.f0, inicio.n + d);
-      video.currentTime = segundos(modo === "der" ? R.f0 + R.n - 1 : R.f0);
+      if (!movido && Math.abs(ev.clientX - x0) < 4) return;
+      movido = true;
+      const fx = Math.round(fotogramaEn(ev.clientX)), fin = inicio.f0 + inicio.n;
+      if (modo === "mover") ajustar(inicio.f0 + fx - f, inicio.n);
+      else if (modo === "izq") ponerDesde(fin, fx);           // el final, quieto
+      else if (modo === "der") ponerDesde(inicio.f0, fx);     // el inicio, quieto
+      else ponerDesde(f, fx);                                 // el punto pulsado, quieto
+      video.currentTime = segundos(modo === "der" || (modo === "nuevo" && fx >= f) ? R.f0 + R.n - 1 : R.f0);
       pintarTramo();
       pintarBajo();
     };
-    const soltar = () => { linea.removeEventListener("pointermove", mover); linea.removeEventListener("pointerup", soltar);
-                           linea.removeEventListener("pointercancel", soltar); guardar(); };
+    const soltar = () => {
+      linea.removeEventListener("pointermove", mover); linea.removeEventListener("pointerup", soltar);
+      linea.removeEventListener("pointercancel", soltar);
+      if (!movido && modo === "nuevo") video.currentTime = Math.max(0, Math.min(R.info.duracion, segundos(f)));   // un clic: el cursor salta ahí
+      if (movido) guardar();
+    };
     linea.addEventListener("pointermove", mover);
     linea.addEventListener("pointerup", soltar);
     linea.addEventListener("pointercancel", soltar);
@@ -200,7 +219,10 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     bajoVideo.replaceChildren(
       el("button", { class: "epl-mini", title: t("app.retocar.reproducir.tooltip"), onclick: () => (video.paused ? reproducirTramo() : video.pause()) },
         t(video.paused ? "app.retocar.reproducir" : "app.retocar.pausa")),
-      el("b", {}, t("app.retocar.tramo", { n: R.n, s: num(R.n / fps(), 2), a: num(segundos(R.f0), 2), b: num(segundos(R.f0 + R.n), 2) })),
+      el("span", { class: "max-rt-tramo-info" },
+        el("span", {}, t("app.retocar.tramo.inicio", { f: R.f0, s: num(segundos(R.f0), 3) })),
+        el("span", {}, t("app.retocar.tramo.fin", { f: R.f0 + R.n, s: num(segundos(R.f0 + R.n), 3) })),
+        el("b", {}, t("app.retocar.tramo.largo", { n: R.n, s: num(R.n / fps(), 3) }))),
       el("span", { class: "epl-ayuda" }, t("app.retocar.estimado", { lo, hi })),
       ...(R.modo === "rectangulo" && R.rect ? [el("span", { class: "epl-ayuda" }, t("app.retocar.rect_info", R.rect))] : []));
   }
