@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>MAX EDITOR · Mixtape de casete</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Permanent+Marker&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#17121C;--ink2:#211A29;--ink3:#2C2336;--line:#3E3349;--mute:#A99DB5;--txt:#EFE6F2;--or:#FF7A1A;--co:#2546D6;--ro:#FF3E8A;--cr:#F6EAD2;--g:#3FC46E;--b:#4F86FF;--y:#F7C83A;--p:#FF5C9E}
+html,body{width:1440px;height:900px;overflow:hidden;margin:0;background:var(--ink);color:var(--txt);font:500 13px/1.35 Barlow,sans-serif}
+*{box-sizing:border-box}button,select,input,textarea{font:inherit;color:inherit}
+.h{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:12px;color:var(--mute)}
+.n{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500}
+.btn{background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 10px;font:600 13px 'Barlow Condensed',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--txt);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.btn svg,.ic{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dot{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font:700 10px 'JetBrains Mono',monospace;color:var(--ink);box-shadow:0 0 0 2px var(--ink),0 1px 0 3px rgba(0,0,0,.35)}
+.g{background:var(--g)}.b{background:var(--b)}.y{background:var(--y)}.p{background:var(--p)}
+/* cabecera */
+header{height:54px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}
+.logo{font:900 26px/1 'Big Shoulders Display',sans-serif;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+.logo i{display:block;width:30px;height:20px;border:2px solid var(--or);border-radius:4px;position:relative}
+.logo i:before,.logo i:after{content:"";position:absolute;top:5px;width:6px;height:6px;border-radius:50%;border:2px solid var(--or)}.logo i:before{left:3px}.logo i:after{right:3px}
+.proj{background:var(--cr);color:var(--ink);padding:4px 10px;border-radius:3px;font:600 14px 'Barlow Condensed',sans-serif;transform:rotate(-1deg)}
+.st{display:flex;gap:10px;font:600 12px 'Barlow Condensed',sans-serif;color:var(--mute);letter-spacing:.05em;text-transform:uppercase}.st b{color:var(--g)}
+.seed{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;color:var(--mute)}.seed .n{color:var(--txt);background:var(--ink3);padding:4px 8px;border-radius:4px}
+.gen{background:var(--or);color:var(--ink);border:0;border-radius:8px;padding:9px 22px;font:900 20px/1 'Big Shoulders Display',sans-serif;letter-spacing:.06em;text-transform:uppercase;display:flex;gap:8px;align-items:center;box-shadow:3px 3px 0 var(--ro)}
+.gen svg{width:16px;height:16px;fill:var(--ink)}
+/* fases */
+.phases{display:flex;height:50px;margin:8px 16px 0;gap:8px}
+.ph{border-radius:6px;display:flex;align-items:center;gap:14px;padding:0 16px}
+.ph.on{flex:3;background:var(--or);color:var(--ink);background-image:linear-gradient(90deg,transparent 0 calc(100% - 64px),var(--ro) calc(100% - 64px) calc(100% - 44px),var(--co) calc(100% - 44px) calc(100% - 24px),transparent 0)}
+.ph.off{flex:1;background:var(--ink2);border:1px solid var(--line);color:var(--mute)}
+.ph .t{font:800 24px/1 'Big Shoulders Display',sans-serif;text-transform:uppercase;letter-spacing:.03em}
+.ph .here{background:var(--ink);color:var(--or);font:700 11px 'Barlow Condensed';letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:3px}
+.ph .ms{font:600 13px 'Barlow Condensed';display:flex;gap:6px;align-items:center}.ph .ms .dot{box-shadow:0 0 0 2px var(--or)}
+.warn{background:var(--ink);color:var(--cr);padding:3px 8px;border-radius:3px;font:600 12px 'Barlow Condensed';margin-right:80px}
+/* panel toma */
+.shot{margin:8px 16px 0;background:var(--ink2);border:1px solid var(--line);border-left:6px solid var(--or);border-radius:6px;padding:8px 14px 8px}
+.shead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.trk{font:700 14px 'JetBrains Mono';background:var(--or);color:var(--ink);padding:2px 7px;border-radius:3px}
+.shead .name{font:22px/1 'Permanent Marker',cursive;color:var(--cr)}.shead .btn:first-of-type{margin-left:auto}
+.cols{display:grid;grid-template-columns:1.25fr 1.35fr .7fr;gap:14px}
+.col>.h{margin-bottom:5px;display:block;color:var(--cr)}
+.f{margin-bottom:5px}.f label{display:block;margin-bottom:2px}
+.box{background:var(--ink);border:1px solid var(--line);border-radius:5px;padding:5px 10px;min-height:28px;font-size:13px}
+.box.ph0{color:#8C8098;font-style:italic}
+.main label{color:var(--or)}.main .box{border:2px solid var(--or);font:600 17px/1.3 Barlow;min-height:54px;padding:8px 12px;background:#1E1710}
+.row{display:flex;gap:6px;align-items:center}.row select{flex:1;background:var(--ink);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:4px}.seg span{padding:3px 9px;font:600 12px 'Barlow Condensed';text-transform:uppercase;color:var(--mute)}.seg .a{background:var(--or);color:var(--ink)}
+.uses{background:var(--ink);border:1px solid var(--line);border-radius:5px;padding:10px}
+.ph-comfy{height:84px;border-radius:4px;background:#2A2A2E;position:relative;overflow:hidden;margin-top:6px}
+.ph-comfy i{position:absolute;background:#4A4A52;border:1px solid #63636c;border-radius:3px}
+.prm{margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden}.prm .n{color:#C8BCD2;font-size:12px}
+/* estante */
+.shelf{margin:8px 16px 0;display:flex;gap:12px;background:#18183A;border:1px solid #2B2F66;border-radius:6px;padding:8px 14px}
+.grp>.h{display:block;margin-bottom:6px}.grp>.h em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:500;color:#9AA3D6;margin-left:6px}
+.cards{display:flex;gap:10px}
+.card{width:160px;background:var(--ink);border-radius:5px;padding:6px;position:relative}
+.card.big{width:180px}
+.pic{height:100px;border-radius:3px;position:relative;overflow:hidden}.big .pic{height:122px}
+.card .dot{position:absolute;top:0;left:0;width:28px;height:28px;font-size:10px;transform:translate(-6px,-6px);z-index:2}
+.lab{background:var(--cr);color:var(--ink);margin-top:6px;padding:4px 7px;border-radius:2px;display:flex;justify-content:space-between;align-items:center;font:600 13px 'Barlow Condensed'}
+.lab small{font:600 11px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.08em;color:#6B5E52}
+.cact{display:flex;justify-content:space-between;margin-top:5px}.cact .btn{padding:3px 7px;font-size:12px}
+.adds{display:flex;flex-direction:column;gap:6px;margin-left:auto;justify-content:center}
+/* texto */
+.text{margin:6px 16px 0;display:flex;gap:10px;align-items:center;height:26px}
+.tt{flex:1;position:relative;height:24px;background:var(--ink2);border-radius:4px}.tt span{position:absolute;left:53.2%;right:0;top:0;bottom:0;background:var(--co);border-radius:4px;padding:3px 10px;font:600 13px 'Barlow Condensed';letter-spacing:.06em}
+/* linea de tiempo */
+.tl{margin:6px 16px 0}
+.tlh{display:flex;align-items:center;gap:12px;margin-bottom:5px}
+.tlh .ttl{font:800 18px 'Big Shoulders Display';letter-spacing:.05em;text-transform:uppercase}
+.dur{border:1px solid var(--line);border-radius:5px;padding:3px 10px;font-size:13px}.dur u{text-decoration:none;border-bottom:1px dashed var(--or);cursor:ew-resize}
+.tracks{display:flex;gap:6px;align-items:stretch}
+.tk{background:var(--cr);color:var(--ink);border-radius:4px;padding:6px 10px;position:relative;min-height:62px}
+.tk .top{display:flex;align-items:center;gap:8px}.tk .num{font:700 13px 'JetBrains Mono';background:var(--ink);color:var(--cr);padding:1px 6px;border-radius:3px}
+.tk .nm{font:15px 'Permanent Marker',cursive}.tk .tm{margin-left:auto;font-size:12px;color:#4A3E36}
+.tk .st2{position:absolute;left:10px;bottom:6px;display:flex;gap:3px}
+.tk .rule{height:6px;margin:5px 0 0 120px;background:repeating-linear-gradient(90deg,#B9AB93 0 1px,transparent 1px 10px)}
+.tk.sel{background:var(--or);box-shadow:0 0 0 2px var(--ink),0 0 0 4px var(--or)}.tk.sel .tm{color:var(--ink)}.tk.sel .rule{background:repeating-linear-gradient(90deg,#9A4A0E 0 1px,transparent 1px 10px)}
+.new{box-shadow:0 0 0 2px var(--cr),0 0 0 4px var(--co)!important;position:relative}
+.newtag{position:absolute;top:3px;left:30px;font:700 11px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;color:var(--co);background:var(--cr);padding:0 4px;border-radius:2px;white-space:nowrap}
+.plus{width:40px;border:1px dashed var(--line);border-radius:4px;display:grid;place-items:center;color:var(--mute)}
+/* onda */
+.wave{margin:6px 16px 0;display:flex;align-items:center;gap:10px}
+.play{width:34px;height:34px;border-radius:50%;background:var(--ink3);border:1px solid var(--line);display:grid;place-items:center}.play svg{fill:var(--txt);width:12px;height:12px}
+.tape{flex:1;height:34px;border-radius:3px;background:linear-gradient(180deg,#3A2114 0%,#7A4A2A 38%,#B7804F 46%,#6E4022 56%,#2E190E 100%);position:relative;overflow:hidden}
+.tape svg{position:absolute;inset:0;width:100%;height:100%}
+.wl{font-size:12px;color:var(--mute);white-space:nowrap}
+.snd{margin:6px 16px 0;display:flex;gap:10px;align-items:center}.snd .box{flex:1;min-height:0;padding:5px 10px}
+</style></head><body>
+<header>
+ <div class="logo"><i></i>MAX EDITOR</div><span class="proj">mi ejemplo 2</span>
+ <button class="btn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo</button><button class="btn">Guardar como…</button>
+ <div class="st"><span><b>●</b> ComfyUI</span><span><b>●</b> proxy</span><span><b>●</b> LLM</span></div>
+ <div class="seed">Semilla del video <span class="n">2026102202</span><button class="btn"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>otra semilla</button></div>
+ <button class="gen"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>Generar</button>
+ <button class="btn">Videos <span class="n">(0)</span></button><button class="btn">ES / EN</button>
+</header>
+<div class="phases">
+ <div class="ph on"><span class="t">Cara A · 1 · Tomas y referencias</span><span class="here">estás aquí</span><span class="ms"><span class="n">2</span> tomas · <span class="n">4</span> referencias · <span class="n">5</span> conexiones &nbsp;<span class="dot g">Im1</span><span class="dot b">V1</span><span class="dot y">Im2</span><span class="dot p">Im3</span></span><span class="warn" style="margin-left:auto">1 sin toma</span></div>
+ <div class="ph off"><span class="t">Cara B · 2 · Retocar</span><span class="ms"><span class="n">0</span> retoques</span></div>
+</div>
+<section class="shot">
+ <div class="shead"><span class="trk">A1</span><span class="name">Toma 1</span><span class="n" style="color:var(--mute)">0,000 – 2,750 s · 66 f</span>
+  <button class="btn"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Escribir tomas</button><button class="btn"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>rehacer esta toma</button><button class="btn"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>quitar toma</button></div>
+ <div class="cols">
+  <div class="col"><span class="h">Dirección</span>
+   <div class="f main"><label class="h">Acción / movimiento</label><div class="box">the background of nodes apear behind the girl</div></div>
+   <div class="f"><label class="h">Referencias</label><div class="row"><select><option>— ninguna —</option></select><button class="btn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+   <div class="f"><label class="h">Efecto de la referencia</label><div class="box ph0">en inglés: qué hace cada referencia; escribe @ para citarla</div></div></div>
+  <div class="col"><span class="h">Escena</span><div class="g2">
+   <div class="f"><label class="h">Encuadre</label><div class="box">primer plano</div></div>
+   <div class="f"><label class="h">Luz</label><div class="box ph0">—</div></div>
+   <div class="f" style="grid-column:span 2"><label class="h">Movimiento de cámara</label><div class="box">starts hidden behind her open palm, which slides away to reveal her surprised face</div></div>
+   <div class="f" style="grid-column:span 2"><label class="h">Lugar <span class="seg"><span>auto</span><span class="a">manual</span><span>sin entorno</span></span></label><div class="box">in front of a dim, near-black scene filled with gray rectangular panels…</div></div>
+   <div class="f"><label class="h">Gesto</label><div class="box ph0">—</div></div>
+   <div class="f"><label class="h">Estilo</label><div class="box">ilustration, digital painting</div></div></div></div>
+  <div class="col"><span class="h">Referencias que usa</span><div class="uses"><div class="row" style="justify-content:space-between"><span class="h">Fondo ref.</span><span class="dot y">Im2</span></div>
+   <div style="margin-top:4px;font-size:13px"><span class="n" style="font-size:12px">&lt;Picture 2&gt;</span> comfy ui</div>
+   <div class="ph-comfy"><i style="left:10px;top:12px;width:44px;height:30px"></i><i style="left:66px;top:28px;width:50px;height:36px"></i><i style="left:128px;top:10px;width:38px;height:26px"></i><i style="left:24px;top:56px;width:40px;height:28px"></i></div></div></div>
+ </div>
+ <div class="prm"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg><span class="h">Prompt de la toma</span><span class="n">[Shot 1] At 00:00.000 close-up, in the style of ilustration, digital painting, the background of nodes apear behind…</span></div>
+</section>
+<section class="shelf">
+ <div class="grp"><span class="h">Principal <em>en todo el edit</em></span><div class="cards">
+  <div class="card big"><span class="dot g">Im1</span><div class="pic" style="background:linear-gradient(180deg,#5B3B4A,#2F2233)"><div style="position:absolute;left:62px;top:14px;width:52px;height:56px;border-radius:50% 50% 44% 44%;background:#E2B293"></div><div style="position:absolute;left:44px;top:66px;width:88px;height:60px;border-radius:30px 30px 0 0;background:linear-gradient(#4E6FA8,#344F80)"></div></div>
+   <div class="lab">chica para la demo <small>personaje</small></div><div class="cact"><button class="btn"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>conectar</button><button class="btn" aria-label="quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div></div></div>
+ <div class="grp" style="border-left:1px dashed #3A3F7A;padding-left:12px"><span class="h">Secundarias <em>se prestan a algunas tomas</em></span><div class="cards">
+  <div class="card"><span class="dot b">V1</span><div class="pic" style="background:linear-gradient(135deg,#6A6A70,#45454C);display:grid;place-items:center;font:900 22px 'Big Shoulders Display';color:#fff;letter-spacing:.04em">ANIM TEXT</div><div class="lab">animation text <small>efecto</small></div><div class="cact"><button class="btn">conectar</button><button class="btn" aria-label="quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+  <div class="card"><span class="dot y">Im2</span><div class="pic ph-comfy" style="margin:0"><i style="left:10px;top:12px;width:40px;height:26px"></i><i style="left:60px;top:40px;width:46px;height:30px"></i><i style="left:96px;top:8px;width:36px;height:24px"></i></div><div class="lab">comfy ui <small>fondo</small></div><div class="cact"><button class="btn">conectar</button><button class="btn" aria-label="quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+  <div class="card"><span class="dot p">Im3</span><div class="pic" style="background:#1C1C20;display:grid;place-items:center;font:900 40px 'Big Shoulders Display';color:#fff"><span>A<span style="color:#E8322E">M</span>X</span></div><div class="lab">image 443 <small>letra</small></div><div class="cact"><button class="btn">conectar</button><button class="btn" aria-label="quitar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div></div></div>
+ <div class="adds"><button class="btn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Añadir</button><button class="btn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Cajita</button><button class="btn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Efecto</button></div>
+</section>
+<div class="text"><button class="btn" style="width:150px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Texto</button><div class="tt"><span>MAX EDITOR for MINIMAX H3 <span class="n" style="font-size:12px;opacity:.8">· desde 2,75 s</span></span></div></div>
+<section class="tl">
+ <div class="tlh"><span class="ttl">Línea de tiempo · Cara A · 2 tomas</span><span class="dur">Duración <u class="n">5,167 s</u> = <u class="n">124 f</u></span><span class="h" style="margin-left:auto">Cortes a mano</span></div>
+ <div class="tracks">
+  <div class="tk sel" style="flex:2.75"><div class="top"><span class="num">A1</span><span class="nm">Toma 1</span><span class="tm n">0,00–2,75 s · 66 f</span></div><div class="rule"></div><div class="st2"><span class="dot g">Im1</span><span class="dot y">Im2</span></div></div>
+  <div class="tk" style="flex:2.40"><div class="top"><span class="num">A2</span><span class="nm">Toma 2</span><span class="tm n">2,75–5,15 s · 58 f</span></div><div class="rule"></div><div class="st2"><span class="dot g">Im1</span><span class="dot y">Im2</span><span class="dot b new">V1<span class="newtag">recién pegada</span></span></div></div>
+  <div class="plus"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+ </div>
+</section>
+<div class="wave"><button class="play" aria-label="reproducir"><svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg></button>
+ <div class="tape"><svg viewBox="0 0 1000 34" preserveAspectRatio="none"><path d="M0 17 L20 11 40 23 60 8 80 26 100 14 120 20 140 5 160 29 180 12 200 22 220 9 240 25 260 15 280 19 300 6 320 28 340 13 360 21 380 10 400 24 420 16 440 18 460 7 480 27 500 12 520 22 540 4 560 30 580 14 600 20 620 9 640 25 660 13 680 21 700 6 720 28 740 15 760 19 780 10 800 24 820 12 840 22 860 8 880 26 900 14 920 20 940 11 960 23 980 15 1000 17" fill="none" stroke="#F3D2A8" stroke-opacity=".75" stroke-width="1.6"/><line x1="532" x2="532" y1="0" y2="34" stroke="var(--or)" stroke-width="2"/></svg></div>
+ <span class="wl"><span class="n">reel_sucio_cancion.wav</span> · <span class="n">0:00–0:05</span></span></div>
+<div class="snd"><span class="h" style="width:150px">Sonido</span><div class="box">the girl make noise of breathing</div></div>
+</body></html>

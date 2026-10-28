@@ -25,3 +25,10 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Guía del agente: `app/guia/1_mapa.md` (fila del panel y «Escribir tomas» en la línea de tiempo). Las herramientas del MCP no cambian: los campos y sus `data-campo` son los mismos.
 - Comprobado: 1440×900 y 2548×1284, ES y EN, las tres pestañas, la toma 2 con su efecto conectado, escribir el gesto quita su «falta» y la pastilla baja a «1 missing: light».
 - Queda en el CSS lo viejo del panel (`.epl-tres`, `.epl-g-*`, `.epl-fondo-grande`…) sin uso; no molesta.
+
+## 2 · Git ordenado y un solo tema ✅
+
+- **Un solo tema:** se quitaron `temas/trama.css`, `azul.css`, `coral.css` y `amarillo.css` (Jonathan, 28 oct). `index.html` carga `casete.css` directo, sin `?tema=`.
+- **Qué va a git y qué no** (antes del push, 28 oct):
+  - Sí: `PRODUCT.md`, `.impeccable/surfaces/` (el contrato del tema) y `.impeccable/mocks/decision/r3/r3-casete.html` (la maqueta elegida, citada en la fase 9); la `maqueta/` (Jonathan quiso guardarla: la del 24 oct, el dibujo del panel del 26 oct y las páginas de inspiración, con sus propias fotos).
+  - No (se quedan en el PC, en `.gitignore`): el resto de `.impeccable/` (rondas descartadas, su caché y una imagen de otra marca, «ARCMAIL», que no puede ir en un repo público), `app/ui-prototipo/` (el prototipo React de P10, superado) y `app/web/prototipo_*.html` (el del panel de la toma).

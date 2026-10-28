@@ -6,3 +6,6 @@ __pycache__/
 servidor.log
 .venv
 .servidor_*.pid
+# prototipos de la interfaz: desechables, solo en este PC (planos/fases/13)
+ui-prototipo/
+web/prototipo_*.html

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MAX EDITOR · Referencias</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0b0b0d}
+a{color:#8FB2FF}a:hover{color:#B9CEFF}
+.me *{box-sizing:border-box}
+.me button,.me input,.me select,.me textarea{font:inherit;color:inherit}
+.me .tarjeta{background:#16111F;border:1px solid #30274A;border-radius:16px}
+.me .campo{width:100%;background:#0F0B17;border:1px solid #30274A;border-radius:10px;padding:10px 12px;color:#EEEAF7;font-size:14px;line-height:1.5;resize:vertical}
+.me .campo:focus{outline:2px solid #3B6FD8;outline-offset:1px;border-color:transparent}
+.me .et{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
+.me .ayuda{font-size:12px;color:#8C85A6;margin:6px 0 0}
+.me .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:10px;border:1px solid #30274A;background:#1E1730;color:#EEEAF7;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none}
+.me .btn:hover{background:#271E3D}
+.me .btn-p{background:#3B6FD8;border-color:#3B6FD8;color:#fff;font-weight:600}
+.me .btn-p:hover{background:#4C7FE6}
+.me .btn-i{width:40px;padding:0}
+.me .tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:#B9CEFF;background:#1A2850;border-radius:6px;padding:2px 6px}
+.me .meta{font-size:13px;color:#ABA4C4}
+.me .h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
+.me .ref{display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:14px;background:#1E1730;border:1px solid #30274A;text-align:left;cursor:pointer;color:#EEEAF7}
+.me .ref:hover{border-color:#4A3D6E}
+.me .ref img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;display:block;background:#0F0B17}
+.me details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:#ABA4C4}
+.me details>summary::-webkit-details-marker{display:none}
+</style>
+<div class="me" style="min-height: 100vh; background: linear-gradient(to bottom right, #0b0b0d 0%, #120d1c 40%, #1d1233 75%, #2a1850 100%); color: #EEEAF7; font-family: Inter, system-ui, sans-serif; font-size: 14px;">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 12px 24px; border-bottom: 1px solid #241C38; background: rgba(11,11,13,.72);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 8px; background: #3B6FD8; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">M</span>
+      <span style="font-weight: 700; letter-spacing: .04em;">MAX EDITOR</span>
+    </div>
+    <label style="display: flex; align-items: center; gap: 8px;"><span class="meta">Proyecto</span>
+      <select class="campo" style="width: 220px; padding: 8px 12px;"><option>Demo · chica MAX EDITOR</option></select>
+    </label>
+    <span class="meta" style="display: inline-flex; align-items: center; gap: 6px;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3DD68C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Guardado</span>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+      <a class="btn" href="retocar.html"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>Mis videos</a>
+      <label><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Idioma</span><select class="campo" style="width: 76px; padding: 8px 10px;"><option>ES</option><option>EN</option></select></label>
+      <button class="btn btn-i" aria-label="Ayuda y atajos"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17h.01"/></svg></button>
+    </div>
+  </header>
+
+  <nav aria-label="Pasos" style="padding: 16px 24px 0;">
+    <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px;">
+      <li><a href="referencias.html" aria-current="step" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; background: #1A2850; border: 1px solid #3B6FD8; color: #FFFFFF; font-weight: 600; text-decoration: none;"><span style="width: 28px; height: 28px; border-radius: 999px; background: #3B6FD8; display: inline-flex; align-items: center; justify-content: center; font-size: 13px;">1</span>Referencias</a></li>
+      <li><a href="historia.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; background: #16111F; border: 1px solid #30274A; color: #ABA4C4; text-decoration: none;"><span style="width: 28px; height: 28px; border-radius: 999px; background: #271E3D; display: inline-flex; align-items: center; justify-content: center; font-size: 13px;">2</span>Historia</a></li>
+      <li><a href="tomas.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; background: #16111F; border: 1px solid #30274A; color: #ABA4C4; text-decoration: none;"><span style="width: 28px; height: 28px; border-radius: 999px; background: #271E3D; display: inline-flex; align-items: center; justify-content: center; font-size: 13px;">3</span>Tomas</a></li>
+      <li><a href="retocar.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 8px; border-radius: 999px; background: #16111F; border: 1px solid #30274A; color: #ABA4C4; text-decoration: none;"><span style="width: 28px; height: 28px; border-radius: 999px; background: #271E3D; display: inline-flex; align-items: center; justify-content: center; font-size: 13px;">4</span>Retocar</a></li>
+    </ol>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; gap: 24px; padding: 20px 24px 48px; max-width: 1440px;">
+    <div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px;">
+        <div>
+          <h1 style="margin: 0 0 4px; font-size: 24px; font-weight: 700; letter-spacing: -.02em;">Referencias</h1>
+          <p class="meta" style="margin: 0;">Las fotos y clips que H3 copia. Tu personaje se queda igual en todo el edit; lo demás se presta a cada toma.</p>
+        </div>
+        <button class="btn btn-p" style="margin-left: auto;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></svg>Subir foto o video</button>
+      </div>
+
+      <section class="tarjeta" aria-labelledby="t-fijo" style="padding: 20px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px;">
+          <h2 id="t-fijo" class="h2">Tu personaje</h2><span class="meta">no cambia en todo el edit</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px;">
+          <button class="ref" aria-pressed="true" style="border: 2px solid #3B6FD8;">
+            <img src="img/chica.jpg" alt="Foto de la chica de la demo">
+            <span style="display: flex; align-items: center; gap: 6px;"><span class="tag">Picture 1</span><span style="font-size: 12px; color: #C9D8FF;">personaje</span></span>
+            <span style="font-size: 13px; font-weight: 600;">chica de la demo</span>
+          </button>
+          <button class="ref" style="border-style: dashed; align-items: center; justify-content: center; min-height: 200px; color: #ABA4C4;">
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span style="font-size: 13px;">Añadir personaje u objeto</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="t-presta" style="padding: 20px;">
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px;">
+          <h2 id="t-presta" class="h2">Lo que se presta</h2><span class="meta">fondos, estilo, efectos y letras, toma a toma</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px;">
+          <button class="ref">
+            <img src="img/anim.jpg" alt="Clip de la animación del título">
+            <span style="display: flex; align-items: center; gap: 6px;"><span class="tag">Video 1</span><span class="meta" style="font-size: 12px;">efecto</span></span>
+            <span style="font-size: 13px; font-weight: 600;">animation text</span>
+          </button>
+          <button class="ref">
+            <img src="img/fondo.jpg" alt="Fondo de nodos de ComfyUI">
+            <span style="display: flex; align-items: center; gap: 6px;"><span class="tag">Picture 2</span><span class="meta" style="font-size: 12px;">fondo</span></span>
+            <span style="font-size: 13px; font-weight: 600;">comfy ui</span>
+          </button>
+          <button class="ref">
+            <img src="img/logo.jpg" alt="Logo MAX EDITOR for MINIMAX H3" style="object-fit: contain; background: #000;">
+            <span style="display: flex; align-items: center; gap: 6px;"><span class="tag">Picture 3</span><span class="meta" style="font-size: 12px;">letra</span></span>
+            <span style="font-size: 13px; font-weight: 600;">logo MAX EDITOR</span>
+          </button>
+          <button class="ref" style="border-style: dashed; align-items: center; justify-content: center; min-height: 200px; color: #ABA4C4;">
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span style="font-size: 13px;">Añadir de la biblioteca</span>
+          </button>
+        </div>
+      </section>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <a class="btn btn-p" href="historia.html">Siguiente: Historia<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+      </div>
+    </div>
+
+    <aside aria-labelledby="t-detalle" style="flex: 1 1 320px; min-width: 0; max-width: 400px;">
+      <section class="tarjeta" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <img src="img/chica.jpg" alt="" style="width: 64px; height: 80px; object-fit: cover; border-radius: 10px;">
+          <div>
+            <h2 id="t-detalle" class="h2">chica de la demo</h2>
+            <span class="tag">Picture 1</span>
+          </div>
+        </div>
+        <div><label class="et" for="r-nombre">Nombre</label><input id="r-nombre" class="campo" value="chica de la demo"></div>
+        <div><label class="et" for="r-papel">Papel</label><select id="r-papel" class="campo"><option>Personaje</option><option>Objeto o producto</option><option>Ropa</option><option>Pose</option></select></div>
+        <div>
+          <label class="et" for="r-ficha">Cómo es <span class="meta" style="font-weight: 400;">(en inglés)</span></label>
+          <textarea id="r-ficha" class="campo" rows="4">a young woman with long platinum blond hair, freckles, light blue eyes, a black choker and a striped teal top</textarea>
+          <p class="ayuda">H3 la lee tal cual. Describe lo que se ve, sin negaciones.</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" style="flex: 1 1 0;">Describir con IA</button>
+          <button class="btn" style="flex: 1 1 0;">Recortar</button>
+        </div>
+        <div style="border-top: 1px solid #30274A;">
+          <details>
+            <summary><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>Avanzado · tapar partes, modo completo o comprimido</summary>
+          </details>
+        </div>
+        <button class="btn" style="color: #F06A6A;">Quitar del proyecto</button>
+      </section>
+    </aside>
+  </main>
+</div>
+</body>
+</html>
