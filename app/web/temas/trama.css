@@ -119,7 +119,7 @@ body.tema-trama .max-barra b{background:var(--t-texto) !important}
 body.tema-trama .max-avance.mal .max-barra b{background:var(--t-error) !important}
 body.tema-trama .max-avance .max-texto{font-family:var(--t-m)}
 body.tema-trama .max-avance.mal .max-texto{color:var(--t-error)}
-body.tema-trama .max-pop,body.tema-trama .max-videos{background:var(--t-panel) !important;border:1px solid var(--t-linea) !important;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+body.tema-trama .max-pop,body.tema-trama .max-videos-caja{background:var(--t-panel) !important;border:1px solid var(--t-linea) !important;box-shadow:0 16px 40px rgba(0,0,0,.6)}
 body.tema-trama .max-video{border-color:transparent}
 body.tema-trama .max-video:hover{background:var(--t-alto)}
 body.tema-trama .max-video.actual{border-color:var(--t-texto)}

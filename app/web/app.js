@@ -51,7 +51,12 @@ const retoque = retocarJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.nu
 const cab = el("div", { class: "max-cab" });
 const filaCab = el("div", { class: "max-fila" });
 const filaAvance = el("div", { class: "max-avance" });
-const panelVideos = el("div", { class: "max-videos" });
+// los videos: una ventana centrada; se cierra con Esc, con un clic fuera o con ✕
+const panelVideos = el("div", { class: "max-videos", onclick: (e) => { if (e.target === panelVideos) cerrarVideos(); } });
+const cajaVideos = el("div", { class: "max-videos-caja", role: "dialog", "aria-modal": "true" });
+panelVideos.append(cajaVideos);
+const cerrarVideos = () => { A.verVideos = false; pintarVideos(); };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && A.verVideos) { e.stopPropagation(); cerrarVideos(); } }, true);
 cab.append(filaCab, filaAvance);
 document.body.append(cab, panelVideos);
 new ResizeObserver(() => document.documentElement.style.setProperty("--max-alto", cab.offsetHeight + "px")).observe(cab);
@@ -327,14 +332,15 @@ async function cargarVideos() {
 
 function pintarVideos() {
   panelVideos.className = "max-videos" + (A.verVideos ? " ver" : "");
-  if (!A.verVideos) return;
+  if (!A.verVideos) return cajaVideos.replaceChildren();     // cerrada: fuera el reproductor (que no siga sonando)
+  cajaVideos.setAttribute("aria-label", t("app.videos.titulo", { proyecto: A.proyecto }));
   const actual = A.videos.find((x) => x.archivo === A.videoActual);
   const fecha = (x) => (x.fecha || "").replace("T", " ");
-  panelVideos.replaceChildren(
+  cajaVideos.replaceChildren(
     el("div", { class: "max-fila" }, el("b", {}, t("app.videos.titulo", { proyecto: A.proyecto })),
       el("button", { class: "max-boton max-derecha", title: t("app.videos.carpeta.tooltip"),
                      onclick: () => pedir("/app/abrir_carpeta", {}).catch((e) => avisar(e.message, "mal")) }, t("app.videos.carpeta")),
-      el("button", { class: "max-boton", onclick: () => { A.verVideos = false; pintarVideos(); } }, t("comun.cerrar"))),
+      el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrarVideos }, util.icono("x"))),
     actual ? el("video", { src: "/app/salidas/" + encodeURIComponent(actual.archivo), controls: true, autoplay: true, loop: true }) : null,
     actual ? el("div", { class: "max-fila" }, el("small", {}, t("app.videos.info", { fecha: fecha(actual), semilla: actual.semilla ?? "?",
                                                                                      s: tr.num(actual.segundos || 0, 0) }))) : null,

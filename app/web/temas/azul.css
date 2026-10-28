@@ -88,7 +88,7 @@ body.tema-azul .max-cab,body.tema-azul .epl-cabecera{background:rgba(14,10,22,.8
 body.tema-azul .epl-sec{background:rgba(22,14,36,.72) !important;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 0 0 1px rgba(170,130,255,.07) !important}
 body.tema-azul .epl-s-toma{background:rgba(38,24,62,.78) !important}
 body.tema-azul .epl-sec.epl-s-historia{background:var(--c-coral) !important}
-body.tema-azul .max-videos{background:rgba(16,11,26,.97) !important}
+body.tema-azul .max-videos-caja{background:rgba(16,11,26,.97) !important;border-radius:22px}
 /* (26 oct) la tarjeta de la historia general, en un azul más oscuro que el de los botones; sus campos, un poco más oscuros */
 body.tema-azul .epl-sec.epl-s-historia{background:#183572 !important}
 body.tema-azul .epl-sec.epl-s-historia input,body.tema-azul .epl-sec.epl-s-historia textarea,body.tema-azul .epl-sec.epl-s-historia select{
