@@ -141,7 +141,7 @@
  "15": {
   "inputs": {
    "detection_threshold": 0.35,
-   "max_objects": 1,
+   "max_objects": 0,
    "detect_interval": 1,
    "images": [
     "12",
@@ -163,7 +163,7 @@
  },
  "16": {
   "inputs": {
-   "object_indices": "0",
+   "object_indices": "",
    "track_data": [
     "15",
     0
