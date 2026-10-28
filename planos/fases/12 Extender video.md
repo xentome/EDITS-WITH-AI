@@ -15,8 +15,8 @@ Lectura: 3 min · 28 oct 2026 · Para los ayudantes y para retomar si se corta. 
 - `app/web/extender.js` + pestañas en Retocar; `app/servidor.py` (`POST /app/extender_plan`, cola `tipo: extender`); `app/cola.py`; `app/mcp_servidor.py` (`extender`); `app/guia/` (sección propia).
 
 ## Fases (✅ al terminar, con commit)
-1. ⬜ **El servidor:** `extender.py`, latentes en Generar, cola y rutas; `pruebas.py` con su sección; el grafo valida contra `/object_info`.
-2. ⬜ **La página:** pestañas en Retocar, línea de tiempo (original · solape resaltado · lo nuevo en otro color, con sus segundos), tiradores con el mismo tacto que Retocar, calidad, audio, prompt con referencias y semilla, encolar.
+1. ✅ **El servidor:** `extender.py`, latentes en Generar, cola y rutas; `pruebas.py` con su sección; el grafo valida contra `/object_info`.
+2. ✅ **La página:** pestañas en Retocar, línea de tiempo (original · solape resaltado · lo nuevo en otro color, con sus segundos), tiradores con el mismo tacto que Retocar, calidad, audio, prompt con referencias y semilla, encolar.
 3. ⬜ **MCP y guía:** herramienta `extender`, sección en la guía, «✎ agente» en la pestaña.
 4. ⬜ **Pruebas reales** (3060, baja resolución, 22–39 f nuevos): un video de la app con latente y un mp4; hoja de la unión.
 5. ⬜ **Cierre:** LEEME, este plano, avisos.

@@ -404,3 +404,19 @@ body.tema-casete .max-cola-n{background:var(--k-tinta3) !important;border-color:
 body.tema-casete .max-cola-activa{border-color:var(--k-crema) !important;color:var(--k-crema) !important}
 body.tema-casete .max-cola-avisos{font-family:var(--k-rotulo);color:var(--k-suave)}
 body.tema-casete .max-cola-caja>.max-fila:first-child b{font:800 20px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
+/* «Extender video» (28 oct, planos/fases/12): las pestañas de Retocar como cajas de J-card (la elegida en crema, no naranja:
+ * el naranja es solo de acción) y la línea de tiempo como cinta: el original marrón, el solape crema y lo nuevo en rosa */
+body.tema-casete .max-rt-pestana{background:var(--k-tinta2);border:1px solid var(--k-linea);border-radius:6px;color:var(--k-suave)}
+body.tema-casete .max-rt-pestana:hover{border-color:var(--k-linea2);color:var(--k-texto)}
+body.tema-casete .max-rt-pestana.activa{background:var(--k-crema);border-color:var(--k-crema);color:var(--k-tinta)}
+body.tema-casete .max-rt-pestana-nombre{font:800 20px/1 var(--k-titulo);letter-spacing:.04em;text-transform:uppercase}
+body.tema-casete .max-rt-pestana small{font:600 13px/1.2 var(--k-rotulo);letter-spacing:.02em}
+body.tema-casete .max-ex-orig{background:#5A3A22 !important}
+body.tema-casete .max-ex-solape{background:rgba(246,234,210,.35) !important;border:2px solid var(--k-crema) !important;border-radius:4px}
+body.tema-casete .max-ex-nuevo{background:rgba(255,62,138,.28) !important;border:2px dashed var(--k-rosa) !important;border-radius:4px}
+body.tema-casete .max-ex-etq{font-family:var(--k-mono);color:var(--k-crema)}
+body.tema-casete .max-ex-regla{font-family:var(--k-mono);color:var(--k-suave)}
+body.tema-casete .max-ex-leyenda.o::before{background:#8A5A34}body.tema-casete .max-ex-leyenda.s::before{background:var(--k-crema)}
+body.tema-casete .max-ex-leyenda.n::before{background:var(--k-rosa)}
+body.tema-casete .max-ex-fuente{font-family:var(--k-rotulo);font-size:14px;letter-spacing:.02em}
+body.tema-casete .max-ex-fuente.latente{color:var(--k-ok)}body.tema-casete .max-ex-fuente.mp4{color:var(--k-aviso)}

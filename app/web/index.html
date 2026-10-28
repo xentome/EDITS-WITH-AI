@@ -120,6 +120,26 @@ body .epl-fondo .epl-cerrar,body .epl-fondo .epl-x{display:none}
 .max-rt-avance.mal .max-texto{color:var(--max-rojo)}.max-rt-avance.mal .max-barra b{background:var(--max-rojo)}
 .max-rt-avance .max-texto{font-size:12px;min-width:200px}
 @media (max-width:900px){.max-rt-cuerpo{grid-template-columns:1fr}}
+/* «Extender video» (extender.js, planos/fases/12): las dos pestañas de Retocar y su línea de tiempo (original · solape · nuevo) */
+.epl-cuerpo.rt-extender>.max-rt-inpaint{display:none}
+.epl-cuerpo:not(.rt-extender)>.max-ex{display:none}
+.max-rt-pestanas{display:flex;gap:12px}
+.max-rt-pestana{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 18px;min-height:58px;cursor:pointer;font:inherit;text-align:left}
+.max-rt-pestana-nombre{font-size:17px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.max-ex-linea{height:44px;cursor:default}
+.max-ex-orig,.max-ex-solape,.max-ex-nuevo{position:absolute;top:0;bottom:0}
+.max-ex-orig{background:rgba(120,140,170,.25)}
+.max-ex-solape{background:rgba(255,216,74,.35);border:2px solid #ffd84a;box-sizing:border-box;cursor:ew-resize}
+.max-ex-nuevo{background:rgba(255,62,138,.3);border:2px dashed #ff3e8a;box-sizing:border-box;cursor:ew-resize;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.max-ex-etq{font:700 13px ui-monospace,monospace;white-space:nowrap;pointer-events:none}
+.max-ex-asa{cursor:ew-resize;z-index:2}
+.max-ex-bajo{flex-direction:column;align-items:flex-start;gap:6px}
+.max-ex-regla{display:flex;gap:14px;flex-wrap:wrap;font:12px ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.max-ex-leyenda.o::before,.max-ex-leyenda.s::before,.max-ex-leyenda.n::before{content:"";display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+.max-ex-leyenda.o::before{background:rgba(120,140,170,.6)}.max-ex-leyenda.s::before{background:#ffd84a}.max-ex-leyenda.n::before{background:#ff3e8a}
+.max-ex-plan{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.max-ex-fuente{font-weight:700;font-size:13px}.max-ex-fuente.mp4{color:#f7c83a}.max-ex-fuente.latente{color:#3fc46e}
+.max-ex-seg{width:76px}
 /* (27 oct) interfaz P10 (planos/fases/8): la barra de fases a todo el ancho y lo justo para que «Tomas y referencias» quepa sin
  * bajar en 2548×1284; vale en todos los temas (sus colores, en temas/*.css) */
 .max-fases{display:flex;gap:12px;flex:none}

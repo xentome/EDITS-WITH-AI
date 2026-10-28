@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 import threading
 import time
@@ -391,6 +392,9 @@ def _despues_edit(tid: str, grafo: dict, job, opciones: dict):
     return archivo, fila
 
 
+vistos_t0: dict[int, float] = {}            # cuándo empezó cada trabajo (por su conjunto de nodos vistos), para _avance
+
+
 def _avance(grafo: dict, ev, vistos: set) -> float:
     """Avance aproximado de 0 a 1. El «value» del proxy no sirve para todo el grafo (marca 99 % a los 2 s: solo
     cuenta los nodos que ya empezaron), así que se estima por fases, medidas en el render de 22 fotogramas:
@@ -398,6 +402,11 @@ def _avance(grafo: dict, ev, vistos: set) -> float:
     tipo = grafo.get(ev.current_node or "", {}).get("class_type", "")
     if "Sampler" in tipo and ev.steps:
         return 0.35 + 0.60 * min(ev.step or 0, ev.steps) / ev.steps
+    # el MpiSaveLatent (el latente para Extender) pide su latente de forma perezosa: queda «en marcha» desde el principio y
+    # el proxy lo da como nodo actual todo el rato, sin pasos ni nodos contados. Entonces se estima por el tiempo: sube
+    # rápido al principio y se acerca al 90 % sin llegar (unos 3 min para el 63 %, lo que tarda un render corto)
+    if tipo == NODO_GUARDAR_LATENTE:
+        return 0.9 * (1 - math.exp(-(time.time() - vistos_t0.get(id(vistos), time.time())) / 180))
     if tipo in ("VAEDecode", "VAEDecodeAudio", "MiniMaxH3FantasticEditComposite", "CreateVideo", NODO_GUARDAR,
                 "MVEx_SubjectUncrop", "VHS_VideoCombine"):
         return 0.96
@@ -408,6 +417,7 @@ def _correr(tid: str, grafo: dict, opciones: dict, c: dict, despues) -> None:
     from comfy_sdk.events import Progress, StatusChange
     nombres = {nid: n.get("class_type", "") for nid, n in grafo.items()}
     vistos: set[str] = set()
+    vistos_t0[id(vistos)] = time.time()
     try:
         cliente = _cliente(c)
         try:
@@ -452,6 +462,7 @@ def _correr(tid: str, grafo: dict, opciones: dict, c: dict, despues) -> None:
     except Exception as exc:
         _poner(tid, estado="error", mensaje=_texto_error(exc, c))
     finally:
+        vistos_t0.pop(id(vistos), None)
         with _cerrojo:
             _jobs.pop(tid, None)
 

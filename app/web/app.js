@@ -16,6 +16,7 @@ const NODO = "/edit_prompt_llm/web/";
 const v = "?v=" + Date.now();
 const [core, i18n, util] = await Promise.all(["editor_core.js", "editor/i18n.js", "editor/util.js"].map((f) => import(NODO + f + v)));
 const retocarJS = await import("./retocar.js" + v);
+const extenderJS = await import("./extender.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
@@ -25,7 +26,7 @@ const leerLocal = (k) => { try { return localStorage.getItem(k); } catch { retur
 const ponerLocal = (k, x) => { try { localStorage.setItem(k, x); } catch { /* sin almacenamiento: solo esta sesión */ } };
 const ajustes = {
   get: (k) => (k === i18n.AJUSTE ? leerLocal(GUARDA_IDIOMA) || "auto" : k === "Comfy.Locale" ? navigator.language : undefined),
-  set: (k, x) => { if (k === i18n.AJUSTE) { ponerLocal(GUARDA_IDIOMA, x); tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso)); pintarCabecera(); retoque?.pintar(); } },
+  set: (k, x) => { if (k === i18n.AJUSTE) { ponerLocal(GUARDA_IDIOMA, x); tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso)); pintarCabecera(); retoque?.pintar(); extension?.pintar(); } },
 };
 // maxEditor: la ventana sabe que corre en la app (p. ej., el audio del video solo se elige aquí; en el nodo, el grafo es del usuario)
 const appFalso = { graph: null, maxEditor: true, extensionManager: { setting: ajustes, toast: { add() {} } } };
@@ -52,6 +53,9 @@ const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", g
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
 const retoque = retocarJS.crear({ el, icono: util.icono, mirarCola: () => mirarCola(), t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
                                   alTerminar: () => cargarVideos() });
+// ---- «Extender video» (extender.js, planos/fases/12): el segundo apartado de Retocar, con sus pestañas
+const extension = extenderJS.crear({ el, icono: util.icono, mirarCola: () => mirarCola(), t, num: (x, d) => tr.num(x, d), pedir, A,
+                                     avisar: (x, tipo) => avisar(x, tipo), alTerminar: () => cargarVideos(), retoque });
 
 // ---- la cabecera
 const cab = el("div", { class: "max-cab" });
@@ -120,7 +124,7 @@ function ponerFase(f) {
   A.fase = f;
   ponerLocal(GUARDA_FASE, f);
   pintarFases();
-  if (f === "retocar") retoque.pintar();
+  if (f === "retocar") { retoque.pintar(); extension.pintar(); }
 }
 function pintarFases() {
   const ctx = A.ctx, cuerpo = document.querySelector(".epl-fondo .epl-cuerpo");
@@ -133,6 +137,7 @@ function pintarFases() {
   const conexiones = S.plan.tomas.reduce((x, _, i) => x + (ctx.refsDeToma?.(i + 1) || []).length, 0);
   const sinToma = lista.filter((r) => !ctx.enTodas?.(r.clave) && !S.plan.tomas.some((_, i) => (ctx.refsDeToma?.(i + 1) || []).includes(r.tag))).length;
   const retoques = A.videos.filter((x) => x.tipo === "retoque").length;
+  const extensiones = A.videos.filter((x) => x.tipo === "extension").length;
   const bloque = (f, num, estado) => el("button", { class: "max-fase" + (A.fase === f ? " activa" : ""), "aria-current": A.fase === f ? "step" : null,
                                                     "data-fase": f, onclick: () => ponerFase(f) },
     el("span", { class: "max-fase-cab" }, el("span", { class: "max-fase-cara" }, t(`app.fases.cara_${f}`)), el("span", { class: "max-fase-num" }, num), el("span", { class: "max-fase-nombre" }, t(`app.fases.${f}`)),
@@ -142,7 +147,8 @@ function pintarFases() {
     bloque("tomas", "1", [el("span", {}, t("app.fases.estado_tomas", { n, r: lista.length, c: conexiones })),
       el("span", { class: "max-fase-puntos" }, ...lista.map((r) => ctx.punto ? ctx.punto(r.tag) : null)),
       sinToma ? el("span", { class: "max-fase-aviso" }, t("app.fases.sin_toma", { n: sinToma })) : null]),
-    bloque("retocar", "2", [el("span", {}, t("app.fases.retoques", { n: retoques }))]));
+    bloque("retocar", "2", [el("span", {}, t("app.fases.retoques", { n: retoques })),
+      extensiones ? el("span", {}, t("app.fases.extensiones", { n: extensiones })) : null]));
 }
 
 async function cambiarIdioma(i) {
@@ -233,8 +239,10 @@ async function abrirProyecto(nombre, valores = null, recargar = false) {
     pintarAgente();
     await cargarVideos();
     retoque.colocar();                                    // debajo de «Prompt final», en la ventana nueva
+    extension.colocar();                                  // sus pestañas (antes) y «Extender video» (después)
     pintarFases();                                        // la barra de fases, arriba del todo de la ventana
     await retoque.alAbrirProyecto();
+    await extension.alAbrirProyecto();
   } catch (e) {
     avisar(t("app.proyecto.error_abrir", { nombre, error: e.message }), "mal");
   }
@@ -348,6 +356,7 @@ async function mirarCola() {
   pintarCabecera();
   pintarCola();
   retoque.alCambiarCola?.(A.cola);
+  extension.alCambiarCola?.(A.cola);
 }
 
 function pintarAvance() {
@@ -456,14 +465,23 @@ function pintarVideos() {
         util.icono(x.tipo === "retoque" ? "retoque" : "video"),
         el("div", {}, el("div", {}, fecha(x)), el("small", {}, x.tipo === "retoque"
           ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
+          : x.tipo === "extension" ? t("app.videos.extension", { s: tr.num((x.extension?.nuevos || 0) / 24, 2), semilla: x.semilla ?? "?" })
           : t("app.videos.semilla", { semilla: x.semilla ?? "?" }))),
         el("button", { class: "max-boton max-derecha", title: t("app.videos.retocar.tooltip"), onclick: (e) => {
           e.stopPropagation();
           A.verVideos = false;
           pintarVideos();
           ponerFase("retocar");
+          extension.verInpaint();
           retoque.cargar(x.archivo).then(retoque.ver);
-        } }, t("app.videos.retocar"))))
+        } }, t("app.videos.retocar")),
+        el("button", { class: "max-boton", title: t("app.videos.extender.tooltip"), onclick: (e) => {
+          e.stopPropagation();
+          A.verVideos = false;
+          pintarVideos();
+          ponerFase("retocar");
+          extension.cargar(x.archivo).then(extension.ver);
+        } }, t("app.videos.extender"))))
       : el("div", { class: "max-vacio" }, t("app.videos.vacio"))));
 }
 
