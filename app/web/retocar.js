@@ -18,7 +18,7 @@ const SUBCARPETA = "max_editor/retocar/refs"; // las imágenes subidas desde aqu
 const RESOLUCIONES = [["rapida", 0.12], ["normal", 0.18], ["alta", 0.35], ["maxima", 0.6]];
 const MP_NORMAL = 0.18;
 
-export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
+export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTerminar }) {
   const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "", mp: MP_NORMAL,
               semilla: Math.floor(Math.random() * 2 ** 32), trabajo: null, avance: null, error: "", elegir: false };
   const clave = () => "max-editor-retocar:" + (A.proyecto || "");
@@ -59,7 +59,9 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     if (m >= total()) return { g0: 0, m };
     return { g0: Math.max(0, Math.min(R.f0 - Math.floor((m - R.n) / 2), total() - m)), m };
   };
-  const enMarcha = () => R.trabajo && !["listo", "error"].includes(R.avance?.estado);
+  // con la cola (27 oct) nada se bloquea mientras un retoque espera o corre: cada uno lleva su foto fija y se puede seguir
+  // editando, cambiar de semilla y volver a encolar
+  const enMarcha = () => false;
 
   // ---- cargar un video en la línea de tiempo
   async function cargar(nombre, { mantener = false } = {}) {
@@ -416,8 +418,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   };
 
   // ---- retocar
-  async function retocar() {
-    if (enMarcha()) return;
+  // retocar: se encola (n = 1 con la semilla de ahora, o n trabajos con semillas aleatorias: «+ Cola ×N»)
+  async function retocar(n = 1) {
     const falta = !R.info ? "app.retocar.falta.video" : R.modo === "rectangulo" && !R.rect ? "app.retocar.falta.rect"
       : R.modo === "texto" && !R.texto.trim() ? "app.retocar.falta.texto" : !R.prompt.trim() ? "app.retocar.falta.prompt" : "";
     if (falta) { R.error = t(falta); return pintar(); }
@@ -428,26 +430,30 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     R.ultimoPedido = datos;                         // para probar desde la consola
     try {
       R.error = "";
-      const r = await pedir("/app/retocar", datos);
-      R.trabajo = r.id;
+      const r = await pedir("/app/cola", { tipo: "retocar", datos, n });
+      R.mios = [...(R.mios || []), ...r.ids];        // los retoques encolados desde aquí: al terminar, el último se carga
+      R.trabajo = r.ids[r.ids.length - 1];
       R.avance = { estado: "en_cola", avance: 0, mensaje: "" };
+      avisar(t(r.ids.length > 1 ? "app.cola.encolados" : "app.cola.encolado", { n: r.ids.length }), "bien");
       pintar();
-      seguir(r.id);
+      mirarCola?.();
     } catch (e) { R.error = e.message; pintar(); }
   }
-  async function seguir(id) {
-    while (R.trabajo === id) {
-      try { R.avance = await pedir("/app/trabajo/" + id); } catch (e) { R.avance = { ...(R.avance || {}), mensaje: e.message }; }
-      pintarAvance();
-      if (R.avance.estado === "listo") {
-        await alTerminar?.();
-        await cargar(R.avance.video, { mantener: true });
-        avisar(t("app.retocar.listo_aviso", { video: R.avance.video }), "bien");
-        return pintar();
-      }
-      if (R.avance.estado === "error") return pintar();
-      await new Promise((ok) => setTimeout(ok, 1500));
+  /* la cola cambió (app.js la mira cada 2 s): el avance del último retoque encolado desde aquí y, al terminar uno, el video
+   * completo nuevo en la línea de tiempo (así los retoques se encadenan) */
+  function alCambiarCola(cola) {
+    const x = R.trabajo && cola.trabajos.find((y) => y.id === R.trabajo);
+    if (!x) return;
+    const antes = R.avance?.estado;
+    R.avance = { estado: x.estado === "hecho" ? "listo" : ["error", "cancelado", "interrumpido"].includes(x.estado) ? "error"
+                 : x.estado === "corriendo" ? "generando" : "en_cola", avance: x.avance || 0, mensaje: x.mensaje || "", segundos: x.segundos,
+                 paso: x.paso, pasos: x.pasos, video: x.video };
+    if (R.avance.estado === "listo" && antes !== "listo") {
+      alTerminar?.();
+      cargar(x.video, { mantener: true });
+      avisar(t("app.retocar.listo_aviso", { video: x.video }), "bien");
     }
+    pintarAvance();
   }
 
   // ---- el avance (como el de Generar, pero dentro de la sección)
@@ -462,9 +468,10 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
       : a.paso && a.pasos ? t("app.avance.paso", { paso: a.paso, pasos: a.pasos, s: seg, nodo: a.nodo || "" })
       : t(a.estado === "generando" ? "app.avance.generando" : "app.avance.en_cola", { s: seg });
     const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.estado === "listo" ? 1 : a.avance || 0) * 100) + "%" } }));
+    const vivo = ["en_cola", "generando"].includes(a.estado);
     avanceEl.replaceChildren(el("span", { class: "max-texto" }, texto), barra,
-      enMarcha() ? el("button", { class: "max-boton", onclick: () => pedir("/app/cancelar/" + R.trabajo, {}).catch(() => {}) }, t("app.avance.cancelar"))
-                 : el("button", { class: "max-boton", onclick: () => { R.avance = null; R.trabajo = null; pintar(); } }, t("comun.cerrar")));
+      vivo ? el("button", { class: "max-boton", onclick: () => pedir("/app/cola/" + R.trabajo + "/cancelar", {}).then(() => mirarCola?.()).catch(() => {}) }, t("app.avance.cancelar"))
+           : el("button", { class: "max-boton", onclick: () => { R.avance = null; R.trabajo = null; pintar(); } }, t("comun.cerrar")));
   }
 
   // ---- pintar la sección
@@ -607,8 +614,12 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
                         onchange: (e) => { R.semilla = Math.max(0, Math.round(+e.target.value || 0)); guardar(); } }),
           el("button", { class: "epl-mini", disabled: ocupado, title: t("app.semilla.otra.tooltip"),
                          onclick: () => { R.semilla = Math.floor(Math.random() * 2 ** 32); guardar(); pintar(); } }, icono("semilla"))),
-        el("button", { class: "max-generar max-rt-boton", disabled: ocupado || !R.info, title: t("app.retocar.boton.tooltip"), onclick: retocar },
-          t(ocupado ? "app.retocar.boton.trabajando" : "app.retocar.boton"))),
+        el("span", { class: "max-rt-cola", title: t("app.cola.encolar.tooltip") },
+          el("input", { type: "number", min: 1, max: 20, step: 1, value: R.colaN || 3, class: "max-cola-n", "aria-label": t("app.cola.n"),
+                        onchange: (e) => { R.colaN = Math.max(1, Math.min(20, Math.round(+e.target.value || 1))); pintar(); } }),
+          el("button", { class: "max-boton", disabled: !R.info, onclick: () => retocar(R.colaN || 3) }, icono("mas"), " " + t("app.cola.encolar", { n: R.colaN || 3 }))),
+        el("button", { class: "max-generar max-rt-boton", disabled: !R.info, title: t("app.retocar.boton.tooltip"), onclick: () => retocar(1) },
+          t("app.retocar.boton"))),
       ...(R.error ? [el("div", { class: "max-rt-error" }, R.error)] : []),   // replaceChildren escribiría «null»
       avanceEl);
   }
@@ -621,5 +632,5 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   }
   const ver = () => sec.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  return { R, sec, cargar, colocar, pintar, ver, alAbrirProyecto };
+  return { R, sec, cargar, colocar, pintar, ver, alAbrirProyecto, alCambiarCola };
 }

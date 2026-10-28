@@ -3,7 +3,9 @@
  * Plano: ../../planos/fases/6 La app MAX EDITOR.md. Todo texto pasa por t() con los mismos web/i18n/*.json del nodo.
  *   - Proyecto = app/proyectos/<nombre>.json con {valores: {id: {campo: valor}}} (solo lo que cambia respecto a la plantilla).
  *   - El autoguardado de la ventana escribe en los widgets del nodo de mentira; al terminar, la app guarda el proyecto.
- *   - Generar: POST /app/generar con todos los valores y la semilla; el avance se pide cada segundo a /app/trabajo/<id>.
+ *   - Generar (27 oct, planos/fases/10): encola en POST /app/cola una foto fija de todos los valores y la semilla (o N
+ *     trabajos con semillas aleatorias, «Encolar ×N»); el servidor los hace de uno en uno aunque la página esté cerrada.
+ *     La página mira la cola cada 2 s: la fila de avance enseña el que corre y el panel «Cola» la lista entera.
  *   - La barra de fases (27 oct, interfaz P10): «1 Tomas y referencias | 2 Retocar», a todo el ancho encima de la ventana,
  *     cada una con su mini estado; la elegida se ve (la otra se oculta) y se recuerda en este navegador.
  *   - El ejemplo (app/proyectos/ejemplo.json) va en git y es de solo lectura: elegirlo crea una copia («mi ejemplo») y abre
@@ -42,10 +44,11 @@ async function pedir(ruta, cuerpo) {
 // ---- estado de la app
 const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", guardadoJSON: "", proyectos: [], salud: {},
             trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null,
+            cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 3, colaVista: {},
             fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas" };
 
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
-const retoque = retocarJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
+const retoque = retocarJS.crear({ el, icono: util.icono, mirarCola: () => mirarCola(), t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
                                   alTerminar: () => cargarVideos() });
 
 // ---- la cabecera
@@ -78,7 +81,9 @@ function pintarCabecera() {
   const w = semillaW();
   const semilla = el("input", { type: "number", min: 0, step: 1, value: w ? w.value : "", disabled: !w,
                                 onchange: (e) => ponerSemilla(Math.max(0, Math.round(+e.target.value || 0))) });
-  const ocupado = A.trabajo && !["listo", "error"].includes(A.avance?.estado);
+  const activos = A.cola.trabajos.filter((x) => x.estado === "en_cola" || x.estado === "corriendo" || x.estado === "recuperando").length;
+  const nCola = el("input", { type: "number", min: 1, max: 20, step: 1, value: A.colaN, class: "max-cola-n", "aria-label": t("app.cola.n"),
+                              title: t("app.cola.n"), onchange: (e) => { A.colaN = Math.max(1, Math.min(20, Math.round(+e.target.value || 1))); } });
   const idioma = (i, texto) => el("button", { class: "max-boton" + (tr.idioma === i ? " fijo" : ""), onclick: () => cambiarIdioma(i) }, texto);
   filaCab.replaceChildren(
     el("span", { class: "max-nombre" }, t("app.nombre")),
@@ -93,10 +98,13 @@ function pintarCabecera() {
     el("label", { class: "max-grupo max-semilla", title: t("app.semilla.tooltip") }, el("span", {}, t("app.semilla")), semilla,
       el("button", { class: "max-boton", disabled: !w, title: t("app.semilla.otra.tooltip"), onclick: () => ponerSemilla(semillaNueva()) },
         util.icono("semilla"), " " + t("app.semilla.otra"))),
-    el("button", { class: "max-generar", disabled: !!ocupado || !A.node, title: t("app.generar.tooltip"), onclick: () => generar() },
-      t(ocupado ? "app.generar.generando" : "app.generar")),
+    el("button", { class: "max-generar", disabled: !A.node, title: t("app.generar.tooltip"), onclick: () => generar(1) }, t("app.generar")),
+    el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola,
+      el("button", { class: "max-boton", disabled: !A.node, onclick: () => generar(A.colaN) }, util.icono("mas"), " " + t("app.cola.encolar", { n: A.colaN }))),
     el("button", { class: "max-boton", title: t("app.videos.tooltip"), onclick: () => { A.verVideos = !A.verVideos; pintarVideos(); } },
       util.icono("video"), " " + t("app.videos.boton", { n: A.videos.length })),
+    el("button", { class: "max-boton" + (activos ? " max-cola-activa" : ""), title: t("app.cola.tooltip"), onclick: () => { A.verCola = !A.verCola; pintarCola(); } },
+      util.icono("menu"), " " + t("app.cola.boton", { n: activos })),
     el("span", { class: "max-grupo max-idioma", title: t("comun.idioma.tooltip") }, idioma("es", "ES"), idioma("en", "EN")));
   pintarAvance();
   pintarFases();
@@ -268,59 +276,138 @@ async function mirarSalud() {
   pintarCabecera();
 }
 
-// ---- generar
-async function generar() {
-  if (!A.ctx || (A.trabajo && !["listo", "error"].includes(A.avance?.estado))) return;
-  const fallo = (texto) => { A.trabajo = "x"; A.avance = { estado: "error", mensaje: texto, avance: 0 }; pintarCabecera(); };
+// ---- generar: se encola (1 con la semilla de ahora, o n con semillas aleatorias); el servidor los hace de uno en uno
+async function generar(n = 1) {
+  if (!A.ctx) return;
+  const fallo = (texto) => avisar(texto, "mal");
   try {
     await A.ctx.guardarYa();                              // el prompt y los campos, al día en el grafo y en el proyecto
     const estado = util.leerJSON(campo(A.node, "estado")?.value, {});
     if (!(estado.prompt || "").trim()) return fallo(t("app.generar.sin_prompt"));
     await mirarSalud();
-    if (!A.salud.comfyui) return fallo(t("app.error.comfyui", { url: A.salud.comfyui_url }));
-    if (!A.salud.proxy) return fallo(t("app.error.proxy", { url: A.salud.proxy_url }));
     if (!A.salud.generar) return fallo(t("app.error.sin_generar"));
     const w = semillaW();
-    const r = await pedir("/app/generar", { valores: valoresDe(A.graph), semilla: w ? +w.value : null, proyecto: A.proyecto });
-    A.trabajo = r.id;
-    A.avance = { estado: "en_cola", avance: 0, mensaje: "" };
-    pintarCabecera();
-    seguir(r.id);
+    const r = await pedir("/app/cola", { tipo: "generar", valores: valoresDe(A.graph), semilla: w ? +w.value : null, proyecto: A.proyecto, n });
+    avisar(t(r.ids.length > 1 ? "app.cola.encolados" : "app.cola.encolado", { n: r.ids.length }), "bien");
+    await mirarCola();
   } catch (e) { fallo(e.message); }
 }
 
-async function seguir(id) {
-  while (A.trabajo === id) {
-    try { A.avance = await pedir("/app/trabajo/" + id); } catch (e) { A.avance = { ...(A.avance || {}), mensaje: e.message }; }
-    pintarCabecera();
-    if (A.avance.estado === "listo") {
-      await cargarVideos();
-      A.videoActual = A.avance.video;
-      pintarVideos();
-      await retoque.cargar(A.avance.video);               // el clip nuevo, en la línea de tiempo de «Retocar»
-      ponerFase("retocar");
-      retoque.ver();
-      return;
+/* ---- la cola: se mira cada 2 s. La fila de avance enseña el que corre; al terminar uno de este proyecto se ponen al día
+ * sus videos (y Retocar, si era un retoque suyo). Aviso opcional (sonido o notificación del navegador) al terminar. */
+const GUARDA_AVISOS = "max-editor-avisos";
+const avisosOn = () => leerLocal(GUARDA_AVISOS) === "1";
+function sonar() {
+  try {
+    const c = new AudioContext(), o = c.createOscillator(), g = c.createGain();
+    o.frequency.value = 880; g.gain.setValueAtTime(0.08, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.35);
+    o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + 0.36);
+  } catch { /* sin audio */ }
+}
+function avisarFin(x, todos) {
+  if (!avisosOn()) return;
+  sonar();
+  try {
+    if (window.Notification?.permission === "granted") new Notification(t("app.nombre"), {
+      body: t(todos ? "app.cola.aviso.todo" : x.estado === "hecho" ? "app.cola.aviso.hecho" : "app.cola.aviso.error",
+              { tipo: t(`app.cola.tipo.${x.tipo}`), proyecto: x.proyecto || "—" }) });
+  } catch { /* sin notificaciones */ }
+}
+async function mirarCola() {
+  try { A.cola = await pedir("/app/cola"); } catch { return; }
+  let algunoHecho = false;
+  for (const x of A.cola.trabajos) {
+    const antes = A.colaVista[x.id];
+    if (antes && antes !== x.estado && ["hecho", "error"].includes(x.estado) && ["en_cola", "corriendo", "recuperando"].includes(antes)) {
+      algunoHecho = true;
+      const quedan = A.cola.trabajos.some((y) => ["en_cola", "corriendo", "recuperando"].includes(y.estado));
+      avisarFin(x, !quedan);
+      if (x.estado === "hecho" && x.proyecto === A.proyecto) avisar(t("app.cola.terminado", { tipo: t(`app.cola.tipo.${x.tipo}`) }), "bien");
     }
-    if (A.avance.estado === "error") return;
-    await new Promise((ok) => setTimeout(ok, 1000));
+    A.colaVista[x.id] = x.estado;
   }
+  if (algunoHecho) await cargarVideos();
+  pintarCabecera();
+  pintarCola();
+  retoque.alCambiarCola?.(A.cola);
 }
 
 function pintarAvance() {
-  const a = A.avance;
-  filaAvance.className = "max-avance" + (a ? " ver" : "") + (a?.estado === "error" ? " mal" : "");
+  const a = A.cola.trabajos.find((x) => x.estado === "corriendo" || x.estado === "recuperando");
+  const quedan = A.cola.trabajos.filter((x) => x.estado === "en_cola").length;
+  filaAvance.className = "max-avance" + (a ? " ver" : "");
   if (!a) return filaAvance.replaceChildren();
   const seg = tr.num(a.segundos || 0, 0);
-  const texto = a.estado === "error" ? t("app.avance.error", { mensaje: a.mensaje || "" })
-    : a.estado === "listo" ? t("app.avance.listo", { s: seg })
-    : a.paso && a.pasos ? t("app.avance.paso", { paso: a.paso, pasos: a.pasos, s: seg, nodo: a.nodo || "" })
-    : t(a.estado === "generando" ? "app.avance.generando" : "app.avance.en_cola", { s: seg });
-  const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.estado === "listo" ? 1 : a.avance || 0) * 100) + "%" } }));
-  const enMarcha = !["listo", "error"].includes(a.estado);
-  filaAvance.replaceChildren(el("span", { class: "max-texto" }, texto), barra,
-    enMarcha ? el("button", { class: "max-boton", onclick: () => pedir("/app/cancelar/" + A.trabajo, {}).catch(() => {}) }, t("app.avance.cancelar"))
-             : el("button", { class: "max-boton", onclick: () => { A.avance = null; A.trabajo = null; pintarCabecera(); } }, t("comun.cerrar")));
+  const texto = t("app.cola.corriendo", { tipo: t(`app.cola.tipo.${a.tipo}`), proyecto: a.proyecto || "—", semilla: a.semilla ?? "?",
+                                           p: Math.round((a.avance || 0) * 100), s: seg, quedan });
+  const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.avance || 0) * 100) + "%" } }));
+  filaAvance.replaceChildren(el("span", { class: "max-texto", title: a.mensaje || "" }, texto), barra,
+    el("button", { class: "max-boton", onclick: () => colaAccion(a.id, "cancelar") }, t("app.avance.cancelar")),
+    el("button", { class: "max-boton", onclick: () => { A.verCola = true; pintarCola(); } }, t("app.cola.ver")));
+}
+const colaAccion = (id, que) => pedir(`/app/cola/${id}/${que}`, {}).then(mirarCola).catch((e) => avisar(e.message, "mal"));
+
+// ---- el panel «Cola»: una ventana centrada, como la de los videos
+const panelCola = el("div", { class: "max-videos max-cola", onclick: (e) => { if (e.target === panelCola) cerrarCola(); } });
+const cajaCola = el("div", { class: "max-videos-caja max-cola-caja", role: "dialog", "aria-modal": "true" });
+panelCola.append(cajaCola);
+document.body.append(panelCola);
+const cerrarCola = () => { A.verCola = false; pintarCola(); };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && A.verCola) { e.stopPropagation(); cerrarCola(); } }, true);
+function pintarCola() {
+  panelCola.className = "max-videos max-cola" + (A.verCola ? " ver" : "");
+  if (!A.verCola) return;
+  cajaCola.setAttribute("aria-label", t("app.cola.titulo"));
+  const hora = (x) => (x.terminado || x.empezado || x.creado || "").slice(11, 16);
+  const pendientes = A.cola.trabajos.filter((x) => x.estado === "en_cola");
+  const fila = (x) => {
+    const pos = pendientes.indexOf(x);
+    const b = (que, clave, ic, extra = {}) => el("button", { class: "max-boton max-cola-b", title: t(clave), "aria-label": t(clave),
+                                                             onclick: () => colaAccion(x.id, que), ...extra }, util.icono(ic));
+    const tramo = x.tramo ? (x.tramo.n != null ? t("app.cola.tramo_f", { a: x.tramo.f0, n: x.tramo.n }) : "") : "";
+    return el("div", { class: "max-cola-fila e-" + x.estado, "data-id": x.id },
+      util.icono(x.tipo === "retocar" ? "retoque" : "video"),
+      el("div", { class: "max-cola-que" }, el("b", {}, t(`app.cola.tipo.${x.tipo}`) + " · " + (x.proyecto || "—")),
+        el("small", {}, [t("app.cola.semilla", { semilla: x.semilla ?? "?" }), tramo, hora(x)].filter(Boolean).join(" · "))),
+      el("span", { class: "max-cola-estado", title: x.mensaje || "" },
+        t(`app.cola.estado.${x.estado}`, { p: Math.round((x.avance || 0) * 100) })),
+      el("span", { class: "max-cola-acciones" },
+        x.estado === "en_cola" ? b("subir", "app.cola.subir", "arriba", { disabled: pos <= 0 }) : null,
+        x.estado === "en_cola" ? b("bajar", "app.cola.bajar", "abajo", { disabled: pos < 0 || pos >= pendientes.length - 1 }) : null,
+        ["en_cola", "corriendo"].includes(x.estado) ? b("cancelar", "app.cola.cancelar", "x") : null,
+        ["error", "cancelado", "interrumpido"].includes(x.estado) ? b("reintentar", "app.cola.reintentar", "rehacer") : null,
+        x.estado === "hecho" && x.video ? el("button", { class: "max-boton", title: t("app.cola.ver_video.tooltip"), onclick: () => verVideoDeCola(x) },
+          util.icono("play"), " " + t("app.cola.ver_video")) : null,
+        ["hecho", "error", "cancelado", "interrumpido"].includes(x.estado) ? b("quitar", "app.cola.quitar", "x") : null));
+  };
+  const avisos = el("label", { class: "max-cola-avisos", title: t("app.cola.avisos.tooltip") },
+    el("input", { type: "checkbox", checked: avisosOn(), onchange: (e) => {
+      ponerLocal(GUARDA_AVISOS, e.target.checked ? "1" : "0");
+      if (e.target.checked && window.Notification && Notification.permission === "default") Notification.requestPermission().catch(() => {});
+    } }), " " + t("app.cola.avisos"));
+  cajaCola.replaceChildren(
+    el("div", { class: "max-fila" }, el("b", {}, t("app.cola.titulo")),
+      el("span", { class: "max-aviso" }, t(A.cola.pausada ? "app.cola.pausada" : "app.cola.activa")),
+      el("button", { class: "max-boton max-derecha", onclick: () => pedir("/app/cola/pausar", { pausada: !A.cola.pausada }).then(mirarCola) },
+        util.icono(A.cola.pausada ? "play" : "pausa"), " " + t(A.cola.pausada ? "app.cola.reanudar" : "app.cola.pausar")),
+      el("button", { class: "max-boton", onclick: () => pedir("/app/cola/limpiar", {}).then(mirarCola) }, t("app.cola.limpiar")),
+      el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrarCola }, util.icono("x"))),
+    el("div", { class: "max-fila" }, el("small", {}, t("app.cola.ayuda")), avisos),
+    el("div", { class: "max-lista max-cola-lista" }, A.cola.trabajos.length ? ordenCola().map(fila)
+      : el("div", { class: "max-vacio" }, t("app.cola.vacia"))));
+}
+// en el orden en que se harán: lo que corre, lo que espera (el siguiente arriba) y lo terminado, lo último primero
+const ordenCola = () => {
+  const ts = A.cola.trabajos, de = (...e) => ts.filter((x) => e.includes(x.estado));
+  return [...de("corriendo", "recuperando"), ...de("en_cola"), ...de("hecho", "error", "cancelado", "interrumpido").reverse()];
+};
+// un trabajo hecho: su video en «Videos» (si es de otro proyecto, se abre el archivo)
+async function verVideoDeCola(x) {
+  if (x.proyecto !== A.proyecto) return window.open("/app/salidas/" + encodeURIComponent(x.video), "_blank");
+  await cargarVideos();
+  A.videoActual = x.video;
+  A.verCola = false; pintarCola();
+  A.verVideos = true; pintarVideos();
 }
 
 // ---- los videos del proyecto (app/salidas, historial de generar.py)
@@ -376,6 +463,8 @@ try {
 }
 mirarSalud();
 setInterval(mirarSalud, 10000);
+mirarCola();
+setInterval(mirarCola, 2000);
 addEventListener("beforeunload", () => { A.ctx?.guardarYa(); });
 window.maxEditor = A;                                    // para probar desde la consola
 window.maxRetoque = retoque;

@@ -595,7 +595,7 @@ EXCEPCIONES = {
     ("referencias.js", "RefMod"),           # de dónde salió una ficha: un dato del estado (se enseña con referencias.origen.*)
     ("referencias.js", "completo"),         # el modo de una referencia: un dato (rutas.MODOS); se enseña con referencias.subir.modo.*
     ("resolucion.js", "MP"),                # la unidad de los megapíxeles: igual en los dos idiomas
-    ("app.js", "retocar"), ("app.js", " activa"),   # la fase de la barra (un dato: app.fases.<fase>) y su clase (temas/azul.css)
+    ("app.js", "retocar"), ("app.js", " activa"), ("app.js", " ver"), ("retocar.js", " ver"), ("app.js", "play"),   # clases de index.html y un icono (util.icono)   # la fase de la barra (un dato: app.fases.<fase>) y su clase (temas/azul.css)
     ("referencias.js", "V"), ("referencias.js", "Im"),   # el sello corto de una referencia (V1, Im2): sale de su <Video N>/<Picture N>
 }
 # piezas que aún no pasaron a t(): se vacía al terminar las fases 2 (ventana) y 3 (servidor y nodo)

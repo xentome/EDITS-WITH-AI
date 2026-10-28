@@ -158,6 +158,18 @@ body .epl-sec.epl-s-final{padding:6px 16px !important}
   .max-semilla>span{display:none}
 }
 @media (max-width:1200px){.max-cab>.max-fila{flex-wrap:wrap}}
+/* la cola de trabajos (27 oct, planos/fases/10): «Encolar ×N» junto a Generar y su ventana, como la de los videos */
+.max-cola-n{width:56px}
+.max-encolar{gap:4px}
+.max-cola-activa{border-color:#fff !important}
+.max-cola-lista{max-height:62vh}
+.max-cola-fila{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--max-borde)}
+.max-cola-que{display:flex;flex-direction:column;min-width:0}.max-cola-que b,.max-cola-que small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.max-cola-estado{font:12px ui-monospace,monospace;white-space:nowrap}
+.max-cola-acciones{display:flex;gap:4px;align-items:center}
+.max-cola-b{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.max-cola-avisos{display:inline-flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer}
+.max-rt-cola{display:inline-flex;align-items:center;gap:4px}
 /* la cara de cada fase, la etiqueta de pista (A1, A2…) y «recién pegada»: lo mínimo en todos los temas (casete.css las viste) */
 .max-fase-cara{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
 .epl-pista{display:inline-flex;align-items:center;font:700 11px/1 ui-monospace,monospace;padding:2px 5px;border:1px solid currentColor;margin-right:6px}

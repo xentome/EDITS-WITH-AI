@@ -16,5 +16,5 @@ Lectura: 2 min · 27 oct 2026 · Para los ayudantes y para retomar si se corta.
 
 ## Fases (✅ al terminar, con commit)
 1. ✅ **El servidor:** `app/cola.py`, rutas, foto fija, disco, recuperar al reiniciar, LLM y ComfyUI ocupados; `pruebas/generar_simulado.py` para probar sin GPU (`MAX_EDITOR_GENERAR=simulado`, `MAX_EDITOR_SIMULADO_S`).
-2. **La página:** Generar y Retocar encolan; «Encolar ×N»; el panel «Cola» con sus acciones; aviso opcional al terminar.
+2. ✅ **La página:** Generar y Retocar encolan; «Encolar ×N»; el panel «Cola» con sus acciones; aviso opcional al terminar. Lista en orden de ejecución (lo que corre arriba, luego lo que espera, luego lo terminado).
 3. **La prueba real:** 3 Generar de 22 f en orden, con la cola de ComfyUI vacía.

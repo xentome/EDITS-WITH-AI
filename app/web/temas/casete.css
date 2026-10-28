@@ -391,3 +391,16 @@ body.tema-casete .epl-resolucion input,body.tema-casete .epl-resolucion input.co
 body.tema-casete .epl-resolucion .epl-girar{background:transparent !important;border-color:rgba(246,234,210,.6) !important;color:var(--k-crema) !important;min-height:26px}
 body.tema-casete .epl-resolucion .epl-girar:hover{background:rgba(23,18,28,.35) !important}
 body.tema-casete .epl-cabecera .epl-estado{max-width:none}
+/* la cola: la ventana como la de los videos; el estado de cada trabajo, en mono con su color de dato */
+body.tema-casete .max-cola-fila{border-color:var(--k-linea)}
+body.tema-casete .max-cola-que b{font:600 15px/1.2 var(--k-rotulo);letter-spacing:.02em}
+body.tema-casete .max-cola-que small{color:var(--k-suave);font-family:var(--k-mono)}
+body.tema-casete .max-cola-estado{font-family:var(--k-mono);color:var(--k-suave)}
+body.tema-casete .e-corriendo .max-cola-estado,body.tema-casete .e-recuperando .max-cola-estado{color:var(--k-crema)}
+body.tema-casete .e-hecho .max-cola-estado{color:var(--k-ok)}
+body.tema-casete .e-error .max-cola-estado,body.tema-casete .e-interrumpido .max-cola-estado{color:var(--k-error)}
+body.tema-casete .e-cancelado{opacity:.6}
+body.tema-casete .max-cola-n{background:var(--k-tinta3) !important;border-color:var(--k-tinta3) !important;font-family:var(--k-mono) !important}
+body.tema-casete .max-cola-activa{border-color:var(--k-crema) !important;color:var(--k-crema) !important}
+body.tema-casete .max-cola-avisos{font-family:var(--k-rotulo);color:var(--k-suave)}
+body.tema-casete .max-cola-caja>.max-fila:first-child b{font:800 20px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
