@@ -9,7 +9,12 @@ Mismo contrato que generar.py, y comparte con él el trabajo (lanzar por el SDK,
   validar(grafo) -> list[str]         los problemas del grafo según /object_info de ComfyUI (vacío = bien)
 
 `datos` = {video, inicio, fin, mascara: {modo: "texto", texto} | {modo: "rectangulo", x, y, w, h},
-           referencias: [{refmod: nombre} | {imagen: "ruta [input]"}] (0 a 4), prompt, semilla, proyecto}
+           referencias: [{refmod: nombre} | {imagen: "ruta [input]"}] (0 a 4), prompt, semilla, proyecto, megapixeles}
+`megapixeles` (27 oct): la resolución a la que H3 rehace el tramo. La decide el recorte alrededor de la máscara
+(MVEx_SubjectCrop, nodo 19): su upscale_megapixels lleva el recorte a ese tamaño (en negativo: sube o baja), en la rejilla de
+32 (divisible_by); el NKDAVLatent saca el latente de esos fotogramas. El NKDTimeline y el CR Aspect Ratio no lo cambian.
+Vista de la máscara (27 oct): iniciar_mascara(datos) calcula solo la máscara del tramo, con la misma rama, la misma limpieza
+y el mismo recorte que el retoque, y devuelve el tramo con la zona que se rehará en rosa (sin H3).
 `video`: un archivo de app/salidas («edit_….mp4») o de ComfyUI con su carpeta («x.mp4 [input]», «x.mp4 [output]»).
 Fotogramas: H3 pide 17n+5; el tramo se ajusta al número válido más cercano (39 = 1,6 s a 24 fps)."""
 from __future__ import annotations
@@ -33,6 +38,9 @@ RUTA_PLANTILLA = os.path.join(AQUI, "plantillas", "retocar.api.json")
 SALIDAS = generar.SALIDAS
 CARPETA_TRAMOS = "max_editor/retocar"          # dentro de ComfyUI/input: el tramo cortado que lee el LoadVideo
 MAX_REFERENCIAS = 4
+# la resolución del retoque, en megapíxeles del recorte (1 MP = 1024 × 1024): la de siempre (0,18) y sus límites
+MEGAPIXELES, MP_MIN, MP_MAX = 0.18, 0.05, 1.0
+N_RECORTE, N_TAMANO, N_OPS, N_OPS_FINAL, N_VAE = "19", "20", "23", "24", "9"
 
 # los nodos de la plantilla (sus números; la plantilla dice cuáles son las ramas de la máscara en «_max_editor»)
 N_VIDEO, N_LINEA, N_LIMPIEZA, N_CONDICION, N_PROMPT, N_RUIDO, N_GUARDAR = "11", "12", "18", "25", "89", "28", "105"
@@ -206,14 +214,17 @@ def ruta_foto_referencia(ref: dict) -> str:
 
 # ---------------------------------------------------------------- el grafo
 
-def preparar(datos: dict) -> tuple[dict, dict]:
-    datos = datos or {}
-    prompt = (datos.get("prompt") or "").strip()
-    if not prompt:
-        raise ErrorGenerar("falta el prompt: describe cómo debe quedar la zona tapada y cita las referencias")
-    refs = list(datos.get("referencias") or [])
-    if len(refs) > MAX_REFERENCIAS:
-        raise ErrorGenerar(f"como mucho {MAX_REFERENCIAS} referencias")
+def megapixeles(datos: dict) -> float:
+    try:
+        mp = float(datos.get("megapixeles") or MEGAPIXELES)
+    except (TypeError, ValueError):
+        raise ErrorGenerar("la resolución del retoque no es válida")
+    return round(min(MP_MAX, max(MP_MIN, mp)), 3)
+
+
+def _base(datos: dict) -> tuple[dict, dict, dict]:
+    """Lo común del retoque y de la vista de la máscara: el tramo cortado, la rama de la máscara, la línea de tiempo y la
+    resolución del recorte. Devuelve (grafo, meta de la plantilla, datos del tramo)."""
     mascara = datos.get("mascara") or {}
     vi = info(datos.get("video"))
     w, h, fps = vi["ancho"], vi["alto"], vi["fps"]
@@ -252,6 +263,7 @@ def preparar(datos: dict) -> tuple[dict, dict]:
         raise ErrorGenerar("elige la máscara: por texto o con un rectángulo")
     for nid in quitar:
         g.pop(nid, None)
+    g[N_RECORTE]["inputs"]["upscale_megapixels"] = -megapixeles(datos)    # negativo: el recorte sube o baja a ese tamaño
 
     # el tramo cortado y la línea de tiempo a su tamaño y sus fotogramas
     tramo = cortar(ruta_video(datos["video"]), f0, n, fps, vi["audio"])
@@ -262,6 +274,19 @@ def preparar(datos: dict) -> tuple[dict, dict]:
         clip.update(start=0, trimIn=0, length=n)
     linea.update(timeline=json.dumps(tl), width=w, height=h, megapixels=max(0.05, round(w * h / 1e6, 2)), fps=fps,
                  start_frame=0, frame_count=n, clip_markers=True)
+    return g, meta, {"vi": vi, "f0": f0, "n": n, "fps": fps, "mascara": mascara, "tramo": tramo}
+
+
+def preparar(datos: dict) -> tuple[dict, dict]:
+    datos = datos or {}
+    prompt = (datos.get("prompt") or "").strip()
+    if not prompt:
+        raise ErrorGenerar("falta el prompt: describe cómo debe quedar la zona tapada y cita las referencias")
+    refs = list(datos.get("referencias") or [])
+    if len(refs) > MAX_REFERENCIAS:
+        raise ErrorGenerar(f"como mucho {MAX_REFERENCIAS} referencias")
+    g, meta, b = _base(datos)
+    vi, f0, n, fps, mascara, tramo = b["vi"], b["f0"], b["n"], b["fps"], b["mascara"], b["tramo"]
 
     # una LoadImage por referencia, en orden: la primera es <Picture 1>
     modelo = g.pop(N_REF_MODELO)
@@ -283,7 +308,66 @@ def preparar(datos: dict) -> tuple[dict, dict]:
     g[N_GUARDAR]["inputs"]["filename_prefix"] = f"max_editor/retoque_{sello}"
     vi_tramo = {"f0": f0, "n": n, "inicio": round(f0 / fps, 3), "fin": round((f0 + n) / fps, 3)}
     return g, {"video": datos["video"], "info": vi, "tramo": vi_tramo, "tramo_archivo": tramo, "mascara": mascara,
-               "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto")}
+               "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
+
+
+# ---------------------------------------------------------------- vista de la máscara (sin H3)
+ROSA = 0xFF3E8A          # el color con que se pinta la zona que se rehará
+N_ROSA, N_MEZCLA, N_PEGAR, N_GUARDAR_MASCARA = "400", "401", "402", "403"
+
+
+def preparar_mascara(datos: dict) -> tuple[dict, dict]:
+    """El grafo mínimo de la vista: la misma rama de máscara, la misma limpieza (MaskCleanup) y el mismo recorte que el
+    retoque, y la máscara final (NKDMaskOps + NKDMaskOpsLean) pegada de vuelta en rosa semitransparente sobre el tramo con
+    el mismo MVEx_SubjectUncrop. Sin el modelo de H3: el NKDMaskOps lleva el VAE (la rejilla de latentes, igual que en el
+    retoque) pero no el modelo, que solo alinea los bordes a los bloques de 2×2 latentes de H3 (cargar sus 34 GB no vale
+    la pena para una vista); por eso el borde real puede crecer hasta un bloque más."""
+    datos = datos or {}
+    g, _, b = _base(datos)
+    vi, f0, n, fps = b["vi"], b["f0"], b["n"], b["fps"]
+    rama = [nid for nid in ("13", "14", "15", "16", "17", "201", "202", "203", "204", "205", "206") if nid in g]
+    quedan = set(rama) | {N_VIDEO, N_LINEA, N_VAE, N_LIMPIEZA, N_RECORTE, N_TAMANO, N_OPS, N_OPS_FINAL}
+    g = {nid: nodo for nid, nodo in g.items() if nid in quedan}
+    g[N_OPS]["inputs"].pop("model", None)
+    sello = f"{datetime.now():%Y%m%d_%H%M%S}"
+    g[N_ROSA] = {"class_type": "EmptyImage", "inputs": {"width": [N_TAMANO, 1], "height": [N_TAMANO, 2],
+                                                        "batch_size": [N_TAMANO, 3], "color": ROSA}}
+    g[N_MEZCLA] = {"class_type": "ImageBlend", "inputs": {"image1": [N_RECORTE, 0], "image2": [N_ROSA, 0], "blend_factor": 0.55,
+                                                          "blend_mode": "normal"}}
+    g[N_PEGAR] = {"class_type": "MVEx_SubjectUncrop", "inputs": {"feather": 16, "cropped_images": [N_MEZCLA, 0],
+                                                                 "original_images": [N_LINEA, 0], "bboxes": [N_RECORTE, 2],
+                                                                 "cropped_masks": [N_OPS_FINAL, 0]}}
+    g[N_GUARDAR_MASCARA] = {"class_type": "VHS_VideoCombine", "inputs": {
+        "frame_rate": fps, "loop_count": 0, "filename_prefix": f"max_editor/mascara_{sello}", "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p", "crf": 19, "save_metadata": False, "trim_to_audio": False, "pingpong": False, "save_output": True,
+        "images": [N_PEGAR, 0]}}
+    tramo = {"f0": f0, "n": n, "inicio": round(f0 / fps, 3), "fin": round((f0 + n) / fps, 3)}
+    return g, {"video": datos.get("video"), "info": vi, "tramo": tramo, "mascara": b["mascara"], "sello": sello,
+               "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
+
+
+def iniciar_mascara(datos: dict) -> str:
+    c = generar.config()
+    try:
+        grafo, meta = preparar_mascara(datos)
+        generar.comprobar_servicios(c)
+    except Exception as exc:
+        return generar._nuevo("error", generar._texto_error(exc, c))
+    return generar.lanzar(grafo, {"meta": meta, "proyecto": meta["proyecto"]}, c, despues=_despues_mascara,
+                          extra={"tipo": "mascara", "tramo": meta["tramo"]})
+
+
+def _despues_mascara(tid: str, grafo: dict, job, opciones: dict):
+    meta = opciones["meta"]
+    videos = generar.videos_del_job(job, grafo, ("VHS_VideoCombine",))
+    if not videos:
+        raise ErrorGenerar("ComfyUI terminó pero no devolvió la vista de la máscara")
+    os.makedirs(SALIDAS, exist_ok=True)
+    archivo = f"mascara_{meta['sello']}.mp4"
+    videos[-1].to_file(os.path.join(SALIDAS, archivo))
+    # «tipo: mascara»: va al historial (para saber de dónde salió) pero no a la lista de Videos
+    return archivo, {"tipo": "mascara", "proyecto": meta.get("proyecto"), "de": meta["video"], "tramo": meta["tramo"],
+                     "mascara": meta["mascara"], "megapixeles": meta["megapixeles"]}
 
 
 # entradas de archivo: su lista en /object_info no trae las subcarpetas (el nodo mira si existe), así que se mira el archivo

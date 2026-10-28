@@ -12,14 +12,18 @@
 const MAX_REFS = 4;
 const MIN_POR_39 = [3, 4];                    // minutos por cada 39 fotogramas (pruebas del 27 oct: 3–3,5 min)
 const SUBCARPETA = "max_editor/retocar/refs"; // las imágenes subidas desde aquí, en ComfyUI/input/
+/* la resolución del retoque (27 oct): los megapíxeles del recorte alrededor de la máscara (retocar.py, MVEx_SubjectCrop
+ * upscale_megapixels; 1 MP = 1024 × 1024, en la rejilla de 32). «normal» es la de siempre. El tiempo crece con los píxeles. */
+const RESOLUCIONES = [["rapida", 0.12], ["normal", 0.18], ["alta", 0.35], ["maxima", 0.6]];
+const MP_NORMAL = 0.18;
 
 export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
-  const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "",
+  const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "", mp: MP_NORMAL,
               semilla: Math.floor(Math.random() * 2 ** 32), trabajo: null, avance: null, error: "", elegir: false };
   const clave = () => "max-editor-retocar:" + (A.proyecto || "");
   const guardar = () => {
-    const { video, f0, n, modo, texto, rect, refs, prompt, semilla } = R;
-    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla })); } catch { /* sin almacenamiento */ }
+    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp } = R;
+    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp })); } catch { /* sin almacenamiento */ }
   };
   const leerGuardado = () => { try { return JSON.parse(localStorage.getItem(clave()) || "null"); } catch { return null; } };
 
@@ -69,7 +73,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     const g = leerGuardado();
     Object.assign(R, { video: "", info: null, rect: null, refs: [], prompt: "", trabajo: null, avance: null, error: "", elegir: false },
                   g ? { f0: g.f0 ?? 0, n: g.n ?? 39, modo: g.modo || "rectangulo", texto: g.texto ?? "face", rect: g.rect || null,
-                        refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla } : {});
+                        refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla, mp: g.mp || MP_NORMAL } : {});
     video.removeAttribute("src");
     video.load();
     if (g?.video) await cargar(g.video, { mantener: true });               // si ya no existe, queda sin info y se sigue
@@ -215,7 +219,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   // ---- debajo del video: reproducir el tramo, cuánto mide y cuánto tardará
   function pintarBajo() {
     if (!R.info) return bajoVideo.replaceChildren();      // el aviso va dentro del lienzo (pintarVacio)
-    const lo = Math.max(1, Math.round(MIN_POR_39[0] * R.n / 39)), hi = Math.max(lo + 1, Math.round(MIN_POR_39[1] * R.n / 39));
+    const escala = R.n / 39 * R.mp / MP_NORMAL;          // más fotogramas o más píxeles, más minutos
+    const lo = Math.max(1, Math.round(MIN_POR_39[0] * escala)), hi = Math.max(lo + 1, Math.round(MIN_POR_39[1] * escala));
     bajoVideo.replaceChildren(
       el("button", { class: "epl-mini", title: t("app.retocar.reproducir.tooltip"), onclick: () => (video.paused ? reproducirTramo() : video.pause()) },
         t(video.paused ? "app.retocar.reproducir" : "app.retocar.pausa")),
@@ -264,7 +269,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     const datos = { video: R.video, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001,
                     mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
                     referencias: R.refs.map(({ refmod, imagen }) => (refmod ? { refmod } : { imagen })),
-                    prompt: R.prompt.trim(), semilla: R.semilla, proyecto: A.proyecto };
+                    prompt: R.prompt.trim(), semilla: R.semilla, proyecto: A.proyecto, megapixeles: R.mp };
     R.ultimoPedido = datos;                         // para probar desde la consola
     try {
       R.error = "";
@@ -425,6 +430,12 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
             t("app.retocar.refs.subir")), archivo),
         selector,
         el("span", { class: "epl-ayuda" }, t("app.retocar.refs.ayuda"))),
+      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta", title: t("app.retocar.resolucion.tooltip") }, t("app.retocar.resolucion")),
+        el("div", { class: "max-rt-fila", role: "group" }, ...RESOLUCIONES.map(([k, mp]) => el("button", {
+          class: "epl-mini epl-seg" + (Math.abs(R.mp - mp) < 1e-6 ? " fijo" : ""), disabled: ocupado, "data-mp": mp,
+          title: t("app.retocar.resolucion.mp", { mp: num(mp * 1.048576, 2) }),
+          onclick: () => { R.mp = mp; guardar(); pintar(); } }, t(`app.retocar.resolucion.${k}`, { mp: num(mp * 1.048576, 2) })))),
+        el("span", { class: "epl-ayuda" }, t("app.retocar.resolucion.ayuda"))),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.prompt")),
         el("span", { class: "max-rt-arrastra" }, t("app.retocar.prompt.arrastra")),
         el("textarea", { class: "max-rt-prompt", rows: 5, placeholder: t("app.retocar.prompt.placeholder"), disabled: ocupado,
