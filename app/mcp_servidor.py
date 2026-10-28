@@ -531,7 +531,7 @@ async def generar(n: int = 1, semilla: int | None = None, confirmado: bool = Fal
     delante = len([x for x in cola["trabajos"] if x["estado"] in ACTIVOS])
     return (f"Queued {len(r['ids'])} job(s): {', '.join(r['ids'])} (seed {p.semilla() if int(n) == 1 else 'random'}). "
             f"{delante} job(s) ahead. Rough time: ~{_minutos(p)} min each on an RTX 3060. Visible in the header › «Cola» "
-            "(marked «✎ agente»)." + (f"\nWarnings: {'; '.join(avisos[:4])}" if avisos else ""))
+            "(marked «✎ agente»). Wait for it with esperar(id), then ver_video." + (f"\nWarnings: {'; '.join(avisos[:4])}" if avisos else ""))
 
 
 @herramienta
@@ -552,6 +552,23 @@ async def ver_cola(id: str = "") -> str:
                    f"{x.get('semilla')} · {round(x.get('segundos') or 0)} s{' · by the agent' if x.get('origen') == 'agente' else ''}"
                    + (f" · video {x['video']}" if x.get("video") else "") + (f" · {x['mensaje']}" if x.get("mensaje") and x['estado'] != 'hecho' else ""))
     return "\n".join(lin) or "(the queue is empty)"
+
+
+@herramienta
+async def esperar(id: str, max_segundos: int = 300) -> str:
+    """Wait until a queued job ends (hecho / error / cancelado / interrumpido) or max_segundos pass (at most 600), checking
+    every 10 s on the server, then report it like ver_cola. Use it instead of polling when you cannot schedule a wake-up;
+    call it again if the job is still running. A 22-frame test takes ~3 min, plus the jobs ahead of it."""
+    t0, limite = time.time(), max(10, min(600, int(max_segundos)))
+    while True:
+        x = await APPC.pedir("GET", "/app/cola/" + urllib.parse.quote(id), ok=(200, 404))
+        if "error" in x:
+            raise ErrorAgente(f"there is no job {id}")
+        if x["estado"] not in ACTIVOS or time.time() - t0 > limite:
+            break
+        await asyncio.sleep(10)
+    fin = "" if x["estado"] not in ACTIVOS else f" — still {x['estado']} after {round(time.time() - t0)} s: call esperar again"
+    return await ver_cola(id) + fin + ("\nNext: ver_video(video=…) to look at it." if x["estado"] == "hecho" else "")
 
 
 @herramienta
@@ -701,7 +718,7 @@ async def retocar(video: str, prompt: str, mascara_texto: str = "", rectangulo: 
         d["semilla"] = random.randrange(2 ** 32)
     r = await APPC.pedir("POST", "/app/cola", {"tipo": "retocar", "datos": d, "n": int(n), "origen": "agente"})
     return (f"Retouch queued: {', '.join(r['ids'])} (seed {d['semilla'] if int(n) == 1 else 'random'}). About 3–4 min per 39 "
-            "frames at normal resolution. Visible in «Cola» (✎ agente); then see it with ver_video(video=<new file>).")
+            "frames at normal resolution. Visible in «Cola» (✎ agente); wait with esperar(id), then ver_video(video=<new file>).")
 
 
 # ------------------------------------------------------------------ prompts de flujo

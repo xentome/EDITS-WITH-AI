@@ -21,7 +21,7 @@ poner_texto(textos=[{"texto": "TETO", "t": 0.5, "sitio": "encima", "frase": "in 
 poner_cancion(archivo="stay_0_5s.wav", inicio_s=1.0)  # ASK: song and start
 revisar_proyecto()
 generar()                                            # → id
-ver_cola(id=<id>)                                    # every 30–60 s until «hecho»
+esperar(id=<id>)                                     # waits until «hecho» (call again if still running)
 ver_video()                                          # frames: Teto with the lollipop, then «TETO» slams in at 0.5 s
 ```
 
@@ -86,7 +86,7 @@ ver_video(video=<file>, fotogramas=8)                # find when and where the l
 ver_mascara(video=<file>, mascara_texto="logo", inicio=1.0, fin=2.5)   # pink = what will be redone
 retocar(video=<file>, mascara_texto="logo", inicio=1.0, fin=2.5,
         prompt="plain dark fabric with soft folds")  # what is there instead, without naming the logo
-ver_cola(id=<id>) … ver_video(video=<new retouch file>)
+esperar(id=<id>) → ver_video(video=<the new retouch file>)
 ```
 To put something specific in the zone, pass `referencias=["<RefMod name>"]` and cite it: «the red bottle from <Picture 1>».
 If the pink covers too much or too little, change the text («the blue logo») or use `rectangulo={x, y, w, h}`.

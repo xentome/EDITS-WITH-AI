@@ -22,7 +22,7 @@ GOLDEN RULES (each one comes from real tests; details in the guide)
    (768×1344) is ~16 min and needs the creative's OK (generar asks for confirmado=true).
 7. When a result fails once, try ANOTHER SEED before rewriting the prompt. Then: prompt of the failing shot → references →
    durations. Change one thing at a time.
-8. Look at every result with ver_video and judge it against what was asked (guia://revisar). Report facts, then one proposal.
+8. Wait for a job with esperar(id) (it blocks up to 5–10 min; call again if needed). Look at every result with ver_video and judge it against what was asked (guia://revisar). Report facts, then one proposal.
 9. Never delete videos or projects, never touch «ejemplo» (copy it), never cancel the creative's jobs without asking.
 
 WHERE TO START

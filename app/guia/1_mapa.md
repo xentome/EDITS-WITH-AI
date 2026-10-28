@@ -24,7 +24,7 @@
 | Header › «Semilla del video» + «Otra semilla» | the seed of the next video | poner_semilla |
 | Header › «GENERAR», «Encolar ×N» | queue the edit | generar |
 | Header › «Videos (n)» / «Mis videos» | the project's results | listar_videos, ver_video |
-| Header › «Cola (n)» | the job queue | ver_cola, cancelar, reintentar |
+| Header › «Cola (n)» | the job queue | ver_cola, esperar, cancelar, reintentar |
 | Row under the header: «✎ agente · N cambios · Visto» | your marks; a conflict notice if both edited | — |
 | Editor bar › «Resolución» Ancho × Alto · MP · Girar | video size (multiples of 32) | poner_resolucion |
 | Step bar «Cara A · 1 · Tomas y referencias» / «Cara B · 2 · Retocar» | the two steps | — |

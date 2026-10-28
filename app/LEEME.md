@@ -69,6 +69,15 @@ Abajo del todo de la ventana, después de «Prompt final», está **«Retocar el
 - ✅ «Retocar» guarda en `app/salidas/` el tramo retocado (`retoque_…_tramo.mp4`) y la versión completa (`retoque_….mp4`: el original con ese tramo cambiado y el audio intacto), que queda en la línea de tiempo para encadenar otro retoque.
 - Por dentro: `app/retocar.py` + `app/plantillas/retocar.api.json` (el workflow de inpainting del usuario con VDN a 8 pasos); rutas `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`; el avance, en `GET /app/trabajo/<id>`. Línea de órdenes: `retocar.py datos.json [--seco]`.
 
+## Con un agente (MCP)
+
+`app/arrancar.sh` también levanta un **servidor MCP** en `http://127.0.0.1:8301/mcp`: un agente (Claude Code, Claude Desktop, Cursor, Codex…) maneja la app entera y tú lo ves todo en la página, con un borde rosa **«✎ agente»** en lo que tocó (se quita al editarlo o con **Visto**).
+- **Claude Code:** `claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp`
+- **Cursor** (`~/.cursor/mcp.json`): `{"mcpServers": {"max-editor": {"url": "http://127.0.0.1:8301/mcp"}}}`
+- **Claude Desktop** (solo stdio, en `claude_desktop_config.json`): `{"mcpServers": {"max-editor": {"command": "/ruta/a/app/.venv/bin/python", "args": ["/ruta/a/app/mcp_servidor.py", "--stdio"]}}}` (la app tiene que estar abierta).
+
+El agente recibe al conectarse lo esencial y lee la guía completa (`app/guia/`, recursos `guia://…`): cómo es la app, qué hace H3, cómo organizar las tomas y escribir para H3, cómo revisar un video y cómo trabajar contigo (tú decides lo creativo). Pide permiso antes de renders largos, nunca borra ni sobrescribe y encola como mucho 4 trabajos de una vez. Si cambias algo mientras el agente escribe, la página te deja elegir qué versión quedarte. Por dentro: `app/mcp_servidor.py` y `app/agente.py` (plano: `planos/fases/11 MCP.md`).
+
 ## Cómo funciona por dentro
 
 ```

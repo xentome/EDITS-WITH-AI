@@ -69,6 +69,15 @@ At the very bottom of the window, after «Final prompt», **«Retouch the video�
 
 Code: `app/retocar.py`, `app/plantillas/retocar.api.json`, `app/web/retocar.js`; routes `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`.
 
+## Use it with an agent (MCP)
+
+`app/arrancar.sh` also starts an **MCP server** at `http://127.0.0.1:8301/mcp`: an agent (Claude Code, Claude Desktop, Cursor, Codex…) drives the whole app while you watch it in the page; everything it touched gets a pink **«✎ agent»** border (gone when you edit it or press **Seen**).
+- **Claude Code:** `claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp`
+- **Cursor** (`~/.cursor/mcp.json`): `{"mcpServers": {"max-editor": {"url": "http://127.0.0.1:8301/mcp"}}}`
+- **Claude Desktop** (stdio only, in `claude_desktop_config.json`): `{"mcpServers": {"max-editor": {"command": "/path/to/app/.venv/bin/python", "args": ["/path/to/app/mcp_servidor.py", "--stdio"]}}}` (the app must be running).
+
+On connecting, the agent gets the essentials and reads the full guide (`app/guia/`, `guia://…` resources): the app's map, what H3 does, how to organise shots and write for H3, how to review a video and how to work with you (you make the creative calls). It asks before long renders, never deletes or overwrites, and queues at most 4 jobs at once. If you edit while the agent writes, the page lets you choose which version to keep. Code: `app/mcp_servidor.py`, `app/agente.py`.
+
 ## How it works
 
 ```
