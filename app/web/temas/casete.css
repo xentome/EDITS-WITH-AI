@@ -371,3 +371,7 @@ body.tema-casete .max-rt-play:hover{background:var(--k-linea)}
 body.tema-casete .max-rt-paso{min-height:40px !important;min-width:40px}
 body.tema-casete .max-rt-lectura{font-family:var(--k-mono);color:var(--k-crema)}
 body.tema-casete .max-rt-play{border-radius:50% !important}
+body.tema-casete .max-rt-generado{border-color:rgba(246,234,210,.5)}
+body.tema-casete .max-rt-asa.elegida{outline:2px solid var(--k-naranja)}
+body.tema-casete .max-rt-aviso-largo{color:var(--k-aviso);font-family:var(--k-rotulo)}
+body.tema-casete .max-rt-tramo-info small{color:var(--k-suave)}

@@ -721,5 +721,42 @@ comprobar("   cada referencia con papel se presenta arriba con su ficha (tambié
           all(f"{tag} is the {refs16[tag]['nombre']}" in pc16 for tag in ("<Picture 3>", "<Picture 4>", "<Picture 5>",
               "<Picture 6>", "<Picture 7>", "<Picture 8>")) and f": {refs16['<Picture 6>']['ficha']}." in pc16, pc16[:1500])
 
+print("17 · Retocar: lo elegido y lo que genera H3 (17n+5), y el empalme (app/retocar.py, sin GPU)")
+sys.path.insert(0, os.path.join(AQUI, "app"))
+import retocar as RT  # noqa: E402
+comprobar("el tramo generado es el 17n+5 más pequeño que contiene la selección, centrado y dentro del video",
+          [RT.valido_que_contiene(x) for x in (1, 22, 23, 30, 39, 40, 125)] == [22, 22, 39, 39, 39, 56, 141]
+          and RT.tramo_generado(10, 30, 60) == (6, 39) and RT.tramo_generado(0, 30, 60) == (0, 39)
+          and RT.tramo_generado(55, 5, 60) == (38, 22) and RT.tramo_generado(0, 60, 60) == (0, 73)
+          and RT.seleccion({"f0": 50, "n": 99}, 24, 60) == (50, 10) and RT.seleccion({"inicio": 0.5, "fin": 1.0}, 24, 60) == (12, 12))
+if shutil.which("ffmpeg"):
+    with tempfile.TemporaryDirectory() as d17:
+        def _ff(*a):
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *a], check=True)
+        def _medias(ruta):
+            b = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", ruta, "-vf", "scale=8:8,format=gray", "-f", "rawvideo", "-"],
+                               capture_output=True).stdout
+            return [sum(b[i * 64:(i + 1) * 64]) / 64 for i in range(len(b) // 64)]
+        o17 = os.path.join(d17, "orig.mp4")
+        _ff("-f", "lavfi", "-i", "testsrc2=size=160x120:rate=24:duration=2.5", "-f", "lavfi", "-i", "sine=frequency=440:duration=2.5",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", o17)
+        antes17 = RT.comfyui_dir
+        RT.comfyui_dir = lambda: d17
+        try:
+            g0, gn = RT.tramo_generado(10, 30, 60)
+            corte = os.path.join(d17, "input", RT.cortar(o17, g0, gn, 24.0, True, 60))
+            r17 = os.path.join(d17, "retocado.mp4")
+            _ff("-i", corte, "-vf", "lutyuv=y=255", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", r17)   # «retocado»: todo blanco
+            s17 = os.path.join(d17, "salida.mp4")
+            RT.sustituir(o17, r17, 10, 30, {"ancho": 160, "alto": 120, "fps": 24.0, "fotogramas": 60}, s17, desde=10 - g0)
+            a17, b17 = _medias(o17), _medias(s17)
+            blancos = [i for i in range(len(b17)) if b17[i] > 235 and a17[i] < 220]
+            corto = os.path.join(d17, "input", RT.cortar(o17, 0, 73, 24.0, True, 60))     # más que el video: se rellena
+        finally:
+            RT.comfyui_dir = antes17
+        comprobar("una selección de 30 f genera 39 f y el empalme solo cambia esos 30 (f 10–39); un tramo más largo que el video se rellena",
+                  len(_medias(corte)) == 39 and len(b17) == 60 and blancos == list(range(10, 40)) and len(_medias(corto)) == 73,
+                  (len(_medias(corte)), len(b17), blancos[:3], blancos[-3:]))
+
 print("\n" + ("TODO BIEN" if not fallos else f"{len(fallos)} FALLO(S): {', '.join(fallos)}"))
 sys.exit(1 if fallos else 0)

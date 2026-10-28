@@ -1,8 +1,9 @@
 /* MAX EDITOR · «Retocar el video»: la sección de abajo del todo, después de «Prompt final» (planos/fases/7, sección 10).
  * Una segunda línea de tiempo solo para retocar, con el último video generado (o el que se ponga desde «Videos»):
  *   - un reproductor con una capa encima para dibujar el rectángulo de la máscara (con esquinas para ajustarlo);
- *   - la línea de tiempo del clip entero con un tramo de dos asas, que siempre mide 17n+5 fotogramas (lo que pide H3):
- *     pulsar y arrastrar lo dibuja desde el punto pulsado, cada asa mueve solo su borde y el centro lo mueve entero;
+ *   - la línea de tiempo del clip entero con la selección: de 1 fotograma al clip entero, cada borde de fotograma en
+ *     fotograma con aceleración (como un ratón) y su asa, independiente; el centro la mueve entera; «Todo el clip». H3 pide
+ *     17n+5: por dentro se genera el válido más pequeño que la contiene y al pegar solo cambia lo elegido (retocar.py);
  *   - la máscara «por texto» (SAM 3.1) o «rectángulo»; hasta 4 referencias (del Stack del proyecto o subidas), cada una
  *     con su <Picture N> para citarla en el prompt; el prompt (inglés), la semilla y «Retocar».
  *   - POST /app/retocar → {id}; el avance, en /app/trabajo/<id> (el mismo de Generar). Al terminar, la línea de tiempo carga
@@ -47,12 +48,16 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
 
   const fps = () => R.info?.fps || 24;
   const total = () => R.info?.fotogramas || 0;
-  const valido = (n) => 17 * Math.max(1, Math.round((n - 5) / 17)) + 5;
-  const ajustar = (f0, n) => {                 // el tramo siempre dentro del clip y de 17n+5
-    n = valido(n);
-    while (n > 22 && n > total()) n -= 17;
-    R.n = n;
-    R.f0 = Math.max(0, Math.min(Math.round(f0), total() - n));
+  const ajustar = (f0, n) => {                 // la selección: cualquier largo, de 1 fotograma al clip entero
+    R.n = Math.max(1, Math.min(Math.round(n), total() || 1));
+    R.f0 = Math.max(0, Math.min(Math.round(f0), total() - R.n));
+  };
+  // lo que genera H3 (como retocar.tramo_generado): el 17n+5 más pequeño que contiene la selección, centrado y dentro del clip
+  const validoQueContiene = (n) => 17 * Math.max(1, Math.ceil((Math.max(1, n) - 5) / 17)) + 5;
+  const generado = () => {
+    const m = validoQueContiene(R.n);
+    if (m >= total()) return { g0: 0, m };
+    return { g0: Math.max(0, Math.min(R.f0 - Math.floor((m - R.n) / 2), total() - m)), m };
   };
   const enMarcha = () => R.trabajo && !["listo", "error"].includes(R.avance?.estado);
 
@@ -138,21 +143,24 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
       b("max-rt-paso", "app.retocar.reproductor.adelante", () => fotograma(1), icono("adelante")),
       b("max-rt-paso", "app.retocar.reproductor.mas5", () => saltar(5), t("app.retocar.reproductor.mas5_corto")),
       lectura,
-      el("span", { class: "epl-ayuda" }, t("app.retocar.reproductor.teclas")));
+      el("span", { class: "epl-ayuda" }, t(R.asa ? "app.retocar.reproductor.teclas_asa" : "app.retocar.reproductor.teclas")));
     pintarLectura();
   }
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && R.asa && sec.offsetParent) { R.asa = null; pintarTramo(); } });
   document.addEventListener("keydown", (e) => {
     if (!["ArrowLeft", "ArrowRight"].includes(e.key) || !R.info || !sec.offsetParent || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target.closest?.("input, textarea, select, [contenteditable]") || document.querySelector(".epl-capa, .max-videos.ver")) return;
     e.preventDefault();
     const d = e.key === "ArrowLeft" ? -1 : 1;
+    if (R.asa) return moverBorde(R.asa, (e.shiftKey ? 10 : 1) * d, true);   // con un asa elegida: ese borde, 1 o 10 fotogramas
     if (e.shiftKey) saltar(5 * d); else fotograma(d);
   });
 
   // ---- la línea de tiempo: el clip entero, el tramo con dos asas y el cursor
   const tramoEl = el("div", { class: "max-rt-tramo" }, el("span", { class: "max-rt-asa izq" }), el("span", { class: "max-rt-asa der" }));
+  const generadoEl = el("div", { class: "max-rt-generado" });         // lo que genera H3 de verdad (17n+5), debajo de la selección
   const cursor = el("div", { class: "max-rt-cursor" });
-  linea.append(tramoEl, cursor);
+  linea.append(generadoEl, tramoEl, cursor);
   // el tiempo del clip entero: con la vista de la máscara, el visor tiene solo el tramo (su 0 es el inicio del tramo)
   const enMascara = () => R.vista === "mascara" && !!R.mascara;
   const tiempoClip = () => video.currentTime + (enMascara() ? segundos(R.mascara.f0) : 0);
@@ -161,51 +169,79 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     cursor.style.left = (100 * tiempoClip() / R.info.duracion).toFixed(3) + "%";
   }
   function pintarTramo() {
-    if (!R.info) { tramoEl.style.display = "none"; return; }
-    tramoEl.style.display = "";
+    if (!R.info) { tramoEl.style.display = generadoEl.style.display = "none"; return; }
+    tramoEl.style.display = generadoEl.style.display = "";
     tramoEl.style.left = (100 * R.f0 / total()) + "%";
     tramoEl.style.width = (100 * R.n / total()) + "%";
+    const { g0, m } = generado();
+    generadoEl.style.left = (100 * g0 / total()) + "%";
+    generadoEl.style.width = (100 * Math.min(m, total() - g0) / total()) + "%";
+    tramoEl.querySelectorAll(".max-rt-asa").forEach((a) => a.classList.toggle("elegida", R.asa === (a.classList.contains("izq") ? "izq" : "der")));
   }
   const fotogramaEn = (x) => { const r = linea.getBoundingClientRect(); return (x - r.left) / r.width * total(); };
-  /* elegir el tramo (27 oct), siempre en largos válidos de H3 (17n+5) y con el otro borde quieto:
-   *   - pulsar en la línea y arrastrar: el punto pulsado es el inicio y el final va hacia donde arrastras (hacia la
-   *     izquierda, el punto pulsado es el final); un clic sin arrastrar solo mueve el cursor;
-   *   - el asa de inicio o la de final: mueve solo ese borde;
-   *   - el centro del tramo: lo mueve entero sin cambiar su largo. */
-  const largoHasta = (d, max) => {             // el largo válido más cercano a d que cabe en max (al menos 22)
-    let n = valido(Math.max(22, d));
-    while (n > 22 && n > max) n -= 17;
-    return n;
-  };
-  const ponerDesde = (ancla, f) => {           // un borde quieto en `ancla` y el otro hacia el fotograma f
-    if (f >= ancla) { R.f0 = Math.max(0, Math.min(ancla, total() - 22)); R.n = largoHasta(f - R.f0, total() - R.f0); }
-    else { const fin = Math.max(22, Math.min(ancla, total())); R.n = largoHasta(fin - f, fin); R.f0 = fin - R.n; }
-  };
+  /* elegir la selección (27 oct, rehecho a petición del usuario): cada borde se mueve de fotograma en fotograma, con una
+   * aceleración como la de un ratón. Despacio, ~0,15 fotogramas por píxel (preciso, nunca salta); rápido, la ganancia sube
+   * con la velocidad (suavizada) hasta 3 f/px y cubre tramos grandes. La curva es continua: g(v) = 0,15 + 2,85 · s(v/1,6),
+   * con s(x) = x² (3 − 2x) entre 0 y 1 (smoothstep), v en px/ms. Lo que queda de fotograma se acumula (sin saltos ni tirones);
+   * al soltar no hay inercia. Pointer Lock (o captura del puntero) para no perderlo al salir de la barra. */
+  const GANANCIA_MIN = 0.15, GANANCIA_MAX = 3, V_PLENA = 1.6, SUAVE = 0.25;
+  const ganancia = (v) => { const x = Math.min(1, Math.max(0, v / V_PLENA)); return GANANCIA_MIN + (GANANCIA_MAX - GANANCIA_MIN) * x * x * (3 - 2 * x); };
+  const fin = () => R.f0 + R.n;                // exclusivo: la selección es [f0, f0+n)
+  // mueve un borde d fotogramas; el otro se queda quieto (al cruzarse se para en 1 fotograma)
+  function moverBorde(borde, d, guardarYa = false) {
+    if (!R.info || !d) return;
+    if (borde === "izq") { const z = fin(); const a = Math.max(0, Math.min(z - 1, R.f0 + d)); R.f0 = a; R.n = z - a; }
+    else { const z = Math.max(R.f0 + 1, Math.min(total(), fin() + d)); R.n = z - R.f0; }
+    video.pause();
+    soloTramo = false;
+    video.currentTime = segundos(borde === "izq" ? R.f0 : fin() - 1) + (enMascara() ? -segundos(R.mascara.f0) : 0);
+    pintarTramo();
+    pintarBajo();
+    if (guardarYa) guardar();
+  }
+  const todoElClip = () => { if (!R.info) return; R.f0 = 0; R.n = total(); R.asa = null; guardar(); pintar(); };
   linea.addEventListener("pointerdown", (e) => {
-    if (!R.info || enMarcha()) return;
+    if (!R.info || enMarcha() || e.button > 0) return;
     const asa = e.target.closest(".max-rt-asa"), enTramo = e.target.closest(".max-rt-tramo");
-    const modo = asa ? (asa.classList.contains("izq") ? "izq" : "der") : enTramo ? "mover" : "nuevo";
+    let modo = asa ? (asa.classList.contains("izq") ? "izq" : "der") : enTramo ? "mover" : "nuevo";
+    R.asa = asa ? modo : null;                  // tocar un asa la elige (las flechas la mueven); tocar fuera la suelta
     e.preventDefault();
+    const bloqueo = !!linea.requestPointerLock;
     try { linea.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
-    const x0 = e.clientX, f = Math.round(fotogramaEn(e.clientX)), inicio = { f0: R.f0, n: R.n };
-    let movido = false;
+    try { if (bloqueo) linea.requestPointerLock()?.catch?.(() => {}); } catch { /* sin bloqueo: queda la captura */ }
+    const pulsado = Math.max(0, Math.min(total() - 1, Math.floor(fotogramaEn(e.clientX))));
+    let x = e.clientX, tAnt = e.timeStamp, v = 0, resto = 0, recorrido = 0, movido = false, ancla = pulsado, punta = pulsado;
     const mover = (ev) => {
-      if (!movido && Math.abs(ev.clientX - x0) < 4) return;
+      const dx = bloqueo && document.pointerLockElement === linea ? ev.movementX : ev.clientX - x;
+      x = ev.clientX;
+      const dt = Math.max(1, ev.timeStamp - tAnt);
+      tAnt = ev.timeStamp;
+      v = v * (1 - SUAVE) + SUAVE * Math.abs(dx) / dt;      // la velocidad, suavizada
+      recorrido += Math.abs(dx);
+      if (!movido && recorrido < 3) return;
       movido = true;
-      const fx = Math.round(fotogramaEn(ev.clientX)), fin = inicio.f0 + inicio.n;
-      if (modo === "mover") ajustar(inicio.f0 + fx - f, inicio.n);
-      else if (modo === "izq") ponerDesde(fin, fx);           // el final, quieto
-      else if (modo === "der") ponerDesde(inicio.f0, fx);     // el inicio, quieto
-      else ponerDesde(f, fx);                                 // el punto pulsado, quieto
-      video.currentTime = segundos(modo === "der" || (modo === "nuevo" && fx >= f) ? R.f0 + R.n - 1 : R.f0);
-      pintarTramo();
-      pintarBajo();
+      resto += dx * ganancia(v);
+      const d = Math.trunc(resto);
+      if (!d) return;
+      resto -= d;
+      if (modo === "izq" || modo === "der") moverBorde(modo, d);
+      else if (modo === "mover") { ajustar(R.f0 + d, R.n); video.currentTime = segundos(R.f0); pintarTramo(); pintarBajo(); }
+      else {                                    // dibujar: el punto pulsado queda quieto y la punta va hacia donde se arrastra
+        punta = Math.max(0, Math.min(total() - 1, punta + d));
+        R.f0 = Math.min(ancla, punta);
+        R.n = Math.abs(punta - ancla) + 1;
+        video.currentTime = segundos(punta);
+        pintarTramo();
+        pintarBajo();
+      }
     };
     const soltar = () => {
       linea.removeEventListener("pointermove", mover); linea.removeEventListener("pointerup", soltar);
       linea.removeEventListener("pointercancel", soltar);
-      if (!movido && modo === "nuevo") video.currentTime = Math.max(0, Math.min(R.info.duracion, segundos(f)));   // un clic: el cursor salta ahí
+      try { if (document.pointerLockElement === linea) document.exitPointerLock(); } catch { /* sin bloqueo */ }
+      if (!movido && modo === "nuevo") video.currentTime = Math.max(0, Math.min(R.info.duracion, segundos(pulsado)));   // un clic: el cursor salta ahí
       if (movido) guardar();
+      pintarTramo();
     };
     linea.addEventListener("pointermove", mover);
     linea.addEventListener("pointerup", soltar);
@@ -264,7 +300,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   /* ---- la vista de la máscara: el tramo con la zona que se rehará en rosa, calculada en ComfyUI con la misma rama,
    * limpieza y recorte que el retoque, sin H3 (retocar.py, preparar_mascara). Si el tramo o la máscara cambian, vale otra. */
   const firmaMascara = () => JSON.stringify([R.video, R.f0, R.n, R.modo, R.modo === "texto" ? R.texto.trim() : R.rect, R.mp]);
-  const datosMascara = () => ({ video: R.video, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001, megapixeles: R.mp,
+  const datosMascara = () => ({ video: R.video, f0: R.f0, n: R.n, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001, megapixeles: R.mp,
                                 mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
                                 proyecto: A.proyecto });
   function verNormal() {
@@ -300,7 +336,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
         await new Promise((ok) => setTimeout(ok, 1000));
       }
       if (a.estado === "error") throw new Error(a.mensaje || "?");
-      R.mascara = { video: a.video, f0: R.f0, n: R.n, firma, segundos: a.segundos };
+      // el video de la máscara es el tramo GENERADO (17n+5): su 0 es g0, que puede quedar antes de la selección
+      R.mascara = { video: a.video, f0: a.tramo?.g0 ?? R.f0, n: a.tramo?.gn ?? R.n, firma, segundos: a.segundos };
       if (firmaMascara() === firma) mostrarMascara();
     } catch (e) { R.error = t("app.retocar.ver.error", { error: e.message }); }
     finally { clearInterval(reloj); R.calculando = null; pintar(); }
@@ -330,16 +367,23 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   // ---- debajo del video: reproducir el tramo, cuánto mide y cuánto tardará
   function pintarBajo() {
     if (!R.info) return bajoVideo.replaceChildren();      // el aviso va dentro del lienzo (pintarVacio)
-    const escala = R.n / 39 * R.mp / MP_NORMAL;          // más fotogramas o más píxeles, más minutos
+    const { m } = generado();
+    const escala = m / 39 * R.mp / MP_NORMAL;            // lo que se genera (17n+5) y sus píxeles: más, más minutos
     const lo = Math.max(1, Math.round(MIN_POR_39[0] * escala)), hi = Math.max(lo + 1, Math.round(MIN_POR_39[1] * escala));
+    // un tramo largo no se prohíbe: se avisa con el tiempo y, si puede no caber en la VRAM, con lo que se midió
+    // (DOCUMENTACION/3 LO QUE APRENDIMOS/1: en la RTX 3060 de 12 GB caben ~8 s a 0,4 MP o 5 s a 1 MP; no 8 s a 0,8 MP)
+    const sGen = m / fps(), memoria = sGen > 8 || (sGen > 5 && R.mp > 0.4);
+    const aviso = m > 124 || memoria ? el("span", { class: "max-rt-aviso-largo" },
+      t(memoria ? "app.retocar.tramo.aviso_memoria" : "app.retocar.tramo.aviso_largo", { lo, hi, s: num(sGen, 1) })) : null;
     bajoVideo.replaceChildren(
       el("button", { class: "epl-mini", title: t("app.retocar.reproducir.tooltip"), onclick: () => (video.paused ? reproducirTramo() : video.pause()) },
         t(video.paused ? "app.retocar.reproducir" : "app.retocar.pausa")),
+      el("button", { class: "epl-mini", title: t("app.retocar.todo.tooltip"), disabled: enMarcha(), onclick: todoElClip }, t("app.retocar.todo")),
       el("span", { class: "max-rt-tramo-info" },
-        el("span", {}, t("app.retocar.tramo.inicio", { f: R.f0, s: num(segundos(R.f0), 3) })),
-        el("span", {}, t("app.retocar.tramo.fin", { f: R.f0 + R.n, s: num(segundos(R.f0 + R.n), 3) })),
-        el("b", {}, t("app.retocar.tramo.largo", { n: R.n, s: num(R.n / fps(), 3) }))),
+        el("b", {}, t("app.retocar.tramo.elegido", { a: R.f0, b: fin() - 1, n: R.n, s: num(R.n / fps(), 3) })),
+        el("small", {}, t("app.retocar.tramo.generado", { m }))),
       el("span", { class: "epl-ayuda" }, t("app.retocar.estimado", { lo, hi })),
+      ...(aviso ? [aviso] : []),                          // replaceChildren escribiría «null»
       ...(R.modo === "rectangulo" && R.rect ? [el("span", { class: "epl-ayuda" }, t("app.retocar.rect_info", R.rect))] : []));
   }
 
@@ -377,7 +421,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     const falta = !R.info ? "app.retocar.falta.video" : R.modo === "rectangulo" && !R.rect ? "app.retocar.falta.rect"
       : R.modo === "texto" && !R.texto.trim() ? "app.retocar.falta.texto" : !R.prompt.trim() ? "app.retocar.falta.prompt" : "";
     if (falta) { R.error = t(falta); return pintar(); }
-    const datos = { video: R.video, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001,
+    const datos = { video: R.video, f0: R.f0, n: R.n, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001,
                     mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
                     referencias: R.refs.map(({ refmod, imagen }) => (refmod ? { refmod } : { imagen })),
                     prompt: R.prompt.trim(), semilla: R.semilla, proyecto: A.proyecto, megapixeles: R.mp };
