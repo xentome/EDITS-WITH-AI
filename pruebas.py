@@ -887,17 +887,17 @@ N.registro_nuevo = lambda accion: N.Registro(tempfile.mkdtemp(prefix="traducir_"
 try:
     t20 = 'la chica levanta <Picture 2> y @V1 aparece; en 0:02 la palabra "HOLA" sale'
     enviado20, guardado20 = N._proteger(t20)
-    comprobar("se protegen <Picture N>, las citas @, los tiempos y el texto entre comillas",
-              guardado20 == ["<Picture 2>", "@V1", "0:02", '"HOLA"'] and "{{4}}" in enviado20, (enviado20, guardado20))
-    _resp20[:] = ['Here is the translation: "the girl raises {{1}} and {{2}} appears; at {{3}} the word {{4}} shows up"']
+    comprobar("se protegen <Picture N>, las citas @ y el texto entre comillas (los tiempos no: el LLM debe saber que son un momento)",
+              guardado20 == ["<Picture 2>", "@V1", '"HOLA"'] and "{{3}}" in enviado20 and "0:02" in enviado20, (enviado20, guardado20))
+    _resp20[:] = ['Here is the translation: "the girl raises {{1}} and {{2}} appears; at 0:02 the word {{3}} shows up"']
     r20 = N.traducir(t20, "Spanish")
     comprobar("la traducción vuelve con lo protegido tal cual y sin «Here is…» ni comillas de más",
               r20["texto"] == 'the girl raises <Picture 2> and @V1 appears; at 0:02 the word "HOLA" shows up' and r20["intentos"] == 1, r20)
-    _resp20[:] = ["the girl raises {{1}} and appears", "the girl raises {{1}} and {{2}} appears at {{3}}, the word {{4}}"]
+    _resp20[:] = ["the girl raises {{1}} and appears at 0:02 {{3}}", "the girl raises {{1}} and {{2}} appears at 0:02, the word {{3}}"]
     r20 = N.traducir(t20, "Spanish")
     comprobar("si falta un hueco, se le devuelve al LLM con la causa y el segundo intento vale",
               r20["intentos"] == 2 and "{{2}}" in _vistos20[-1] and "missing" in _vistos20[-1], (r20, _vistos20[-1][:120]))
-    _resp20[:] = ["the girl con la mano raises {{1}} {{2}} {{3}} {{4}}"] * 3
+    _resp20[:] = ["the girl con la mano raises {{1}} {{2}} at 0:02 {{3}}"] * 3
     try:
         N.traducir(t20, "Spanish"); r20 = None
     except N.ErrorUsuario as e:
@@ -912,6 +912,10 @@ try:
     _resp20[:] = []
     r20 = N.traducir("<Picture 1> 0:02", "Spanish")
     comprobar("sin nada que traducir (solo etiquetas o cifras) no se llama al LLM", r20["intentos"] == 0 and r20["texto"] == "<Picture 1> 0:02", r20)
+    comprobar("el gesto y la cámara empiezan por el verbo (sin «she» ni «the camera»); la mayúscula del principio, como el original",
+              N.revisar_traduccion("she raises her hand", "x", 0, "Spanish", "gesto") and not N.revisar_traduccion("raises her hand", "x", 0, "Spanish", "gesto")
+              and N.revisar_traduccion("The camera pushes in", "x", 0, "Spanish", "camara") and N._limpiar("It starts hidden", "empieza") == "it starts hidden"
+              and N.revisar_traduccion("in 2 s", "en 0:02", 0, "Spanish"))
     comprobar("desde otro idioma no se busca español sobrante",
               not N.revisar_traduccion("the girl con her hand", "x", 0, "French") and N.revisar_traduccion("the girl con her hand", "x", 0, "Spanish"))
 finally:

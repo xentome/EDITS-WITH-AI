@@ -105,7 +105,10 @@ export function instalar(ctx) {
     const ro = ce ? null : campo.readOnly;
     if (ce) campo.contentEditable = "false"; else campo.readOnly = true;
     try {
-      const r = await u.api("traducir", { texto, desde: desde(), ...(sel ? { inicio, fin } : {}) });
+      // el campo (cómo se pega en el prompt: el gesto y la cámara empiezan por el verbo) y el pronombre del personaje
+      const pj = Object.values(ctx.S.refs || {}).find((x) => x?.papel === "personaje" && x.pronombre);
+      const r = await u.api("traducir", { texto, desde: desde(), campo: campo.dataset.campo || "", pronombre: pj?.pronombre || "",
+                                          ...(sel ? { inicio, fin } : {}) });
       if (!campo.isConnected) return ctx.avisar(t("traducir.campo_cambio"), "mal");   // se volvió a pintar mientras tanto
       if (ce) campo.contentEditable = "true"; else campo.readOnly = ro;
       // la traducción entra como si la escribieras: Ctrl+Z vuelve a lo de antes

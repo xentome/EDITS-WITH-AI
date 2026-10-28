@@ -1219,10 +1219,11 @@ def describir_imagen(jpeg_b64, papel):
 # ------------------------------------------------------------------ traducir: un campo (o un trozo) al inglés
 # (28 oct) El botón «Traducir a inglés» de cada campo y «Traducir selección» del clic derecho. Siempre AL INGLÉS (H3 lee
 # inglés); el idioma de partida lo elige el usuario en la cabecera. Lo que no se puede tocar (<Picture N>, <Subject 1>,
-# citas @, efectos E1, tiempos y el texto entre comillas, que es texto en pantalla) se cambia por {{1}}, {{2}}… antes de
+# citas @, efectos E1 y el texto entre comillas, que es texto en pantalla) se cambia por {{1}}, {{2}}… antes de
 # mandarlo y se vuelve a poner después: así no se puede perder ni cambiar. El código revisa la respuesta y, si falla, se
 # la devuelve al LLM con la causa (hasta 3 veces); si no pasa, no se toca el texto del usuario. planos/fases/14.
-PROTEGIDO = re.compile(r'<(?:Subject|Picture|Video|Audio) \d+>|@[\w-]+|\bE\d+\b|\b\d{1,2}:\d{2}(?:[.,]\d+)?\b|"[^"\n]*"|“[^”\n]*”')
+PROTEGIDO = re.compile(r'<(?:Subject|Picture|Video|Audio) \d+>|@[\w-]+|\bE\d+\b|"[^"\n]*"|“[^”\n]*”')
+TIEMPO = re.compile(r"\b\d{1,2}:\d{2}(?:[.,]\d+)?\b")
 HUECO_TR = re.compile(r"\{\{(\d+)\}\}")
 MARCA_INI, MARCA_FIN = "<<<", ">>>"
 # palabras que delatan español sin traducir (solo se miran si se traduce desde el español)
@@ -1237,9 +1238,26 @@ Rules:
 - Translate faithfully: keep every detail, the order of the events, the tone and the tense. Do not add, remove, summarize,
   explain or improve anything.
 - Use the natural wording of a video prompt: concrete and visual (camera, light, place, gesture, colors).
-- Keep left and right, colors, numbers and names exactly as they are.
+- Keep left and right, colors, numbers, times (0:02 is a moment: "at 0:02") and names exactly as they are.
 - Words or sentences that are already in English stay exactly as they are.
 - Keep the line breaks."""
+# cómo se pega cada campo en la carta (nucleo.montar): la traducción tiene que encajar ahí
+CAMPOS_TR = {
+    "gesto": "This field continues the sentence \"<Subject 1> ...\": start with the verb and never write the subject (for example "
+             "\"raises her left hand and smiles\").",
+    "camara": "This field continues the sentence \"the camera ...\": start with the verb and never write the subject (for example "
+              "\"slowly pushes in on her face\").",
+    "momento": "This field is what happens in the shot: one or more full sentences.",
+    "luz": "This field is the light of the shot: a short description (for example \"warm golden backlight\").",
+    "lugar": "This field is the place of the shot, described by what is seen.",
+    "estilo": "This field is the drawing or visual style of the shot: a short description.",
+    "encuadre": "This field is the framing of the shot (for example \"high-angle full shot\").",
+    "efecto_frase": "This field says what each cited reference does in the shot.",
+    "sonido": "This field is the sound of the whole edit, besides the music.",
+}
+PRONOMBRE_TR = ("The main character is <Subject 1>, called \"{p}\". Translate possessives and pronouns that refer to the "
+                "character (su, sus, ella, él…) with \"{p}\" forms ({pos}), unless the text clearly talks about someone else.")
+POSESIVO_TR = {"she": "her", "he": "his", "they": "their"}
 SELECCION = """
 The text has a part marked between {ini} and {fin}. Translate ONLY that marked part. The rest of the text is context, so
 your translation fits the sentence around it (grammar, gender, number, which word it refers to). Reply with the English
@@ -1256,15 +1274,19 @@ def _proteger(texto):
 
 
 def _limpiar(respuesta, original):
-    """Lo que el LLM a veces pone alrededor (un «Here is…:», comillas que el original no tenía, espacios)."""
+    """Lo que el LLM a veces pone alrededor (un «Here is…:», comillas que el original no tenía, espacios) y la mayúscula del
+    principio si el original empezaba en minúscula."""
     r = PREAMBULO.sub("", respuesta.strip()).strip()
+    o = original.strip()
+    if o[:1].islower() and r[:1].isupper() and not r[1:2].isupper() and not r.startswith(("I ", "I'")):
+        r = r[0].lower() + r[1:]
     for a, z in (('"', '"'), ("“", "”"), ("'", "'"), ("«", "»")):
         if len(r) > 1 and r.startswith(a) and r.endswith(z) and not original.strip().startswith(a):
             r = r[1:-1].strip()
     return r
 
 
-def revisar_traduccion(respuesta, enviado, n_huecos, desde):
+def revisar_traduccion(respuesta, enviado, n_huecos, desde, campo=None):
     """Los problemas de una traducción (en inglés: se le devuelven al LLM). `enviado`: lo que se tradujo, ya protegido."""
     p = []
     if not respuesta.strip():
@@ -1281,6 +1303,12 @@ def revisar_traduccion(respuesta, enviado, n_huecos, desde):
         p.append("These placeholders do not exist in the text, remove them: " + ", ".join(sobran))
     if MARCA_INI in respuesta or MARCA_FIN in respuesta:
         p.append(f"Do not write the marks {MARCA_INI} and {MARCA_FIN}: only the translation of the marked part.")
+    perdidos = [x for x in TIEMPO.findall(enviado) if x not in respuesta]
+    if perdidos:
+        p.append("Keep these times exactly as written: " + ", ".join(perdidos))
+    sujeto = re.match(r"\s*(?:she|he|they|it|the girl|the boy|the camera)(?=\s)", respuesta, re.I)
+    if campo in ("gesto", "camara") and sujeto:
+        p.append(f"Start with the verb: this text goes right after \"{'<Subject 1>' if campo == 'gesto' else 'the camera'}\", so do not write «{sujeto.group(0).strip()}».")
     if enviado.count("\n") != respuesta.count("\n"):
         p.append(f"Keep the line breaks: the text has {enviado.count(chr(10)) + 1} lines.")
     largo = len(HUECO_TR.sub("", enviado).strip())
@@ -1293,10 +1321,12 @@ def revisar_traduccion(respuesta, enviado, n_huecos, desde):
     return p
 
 
-def traducir(texto, desde="Spanish", inicio=None, fin=None, semilla=1):
+def traducir(texto, desde="Spanish", inicio=None, fin=None, semilla=1, campo=None, pronombre=None):
     """Traduce `texto` (o solo texto[inicio:fin], con el resto como contexto) de `desde` al inglés.
     Devuelve {'texto': la traducción (de la selección, si la hay), 'intentos', 'segundos'} y, con selección, 'inicio' y
-    'fin': el trozo que hay que cambiar por la traducción (la selección sin los espacios de sus bordes)."""
+    'fin': el trozo que hay que cambiar por la traducción (la selección sin los espacios de sus bordes).
+    `campo` (gesto, camara, momento…): cómo se pega en la carta, para que la traducción encaje (el gesto y la cámara empiezan
+    por el verbo). `pronombre` (she, he, they): el del personaje, para traducir bien «su» o «ella»."""
     desde = re.sub(r"[^\w ()'-]+", "", str(desde or "Spanish"), flags=re.U).strip()[:40] or "Spanish"
     seleccion = inicio is not None and fin is not None and 0 <= int(inicio) < int(fin) <= len(texto)
     if seleccion:                       # los espacios de los bordes de la selección se quedan fuera de las marcas
@@ -1314,6 +1344,11 @@ def traducir(texto, desde="Spanish", inicio=None, fin=None, semilla=1):
     # lo protegido de la selección se numera primero (es lo que la respuesta debe traer); el del contexto, después
     enviado, guardado = _proteger(trozo)
     instrucciones = TRADUCTOR.format(desde=desde)
+    if campo in CAMPOS_TR:
+        instrucciones += "\n- " + CAMPOS_TR[campo]
+    if pronombre in POSESIVO_TR:
+        instrucciones += "\n- " + PRONOMBRE_TR.format(p=pronombre, pos=POSESIVO_TR[pronombre])
+    instrucciones += "\n- Keep the capitalization of the start: if the text starts in lowercase, start in lowercase."
     if seleccion:
         # el contexto no lleva huecos (para que el LLM no los copie): lo protegido de alrededor va tal cual
         contenido = texto[:inicio] + MARCA_INI + enviado + MARCA_FIN + texto[fin:]
@@ -1327,7 +1362,7 @@ def traducir(texto, desde="Spanish", inicio=None, fin=None, semilla=1):
         respuesta, final = pedir(reg, f"traducir_{i}", mensajes, False, semilla, tope, temperatura=0)
         limpia = _limpiar(respuesta, trozo)
         problemas = ["The answer was cut: write only the translation."] if final == "length" else \
-            revisar_traduccion(limpia, enviado, len(guardado), desde)
+            revisar_traduccion(limpia, enviado, len(guardado), desde, campo if not seleccion or inicio == 0 else None)
         if not problemas:
             salida = HUECO_TR.sub(lambda m: guardado[int(m.group(1)) - 1], limpia)
             # una selección devuelve también dónde va (sin los espacios de sus bordes, que no se tocan)

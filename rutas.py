@@ -108,7 +108,8 @@ def describir(d):
 
 def traducir(d):
     """Un campo (o la selección de un campo, d.inicio–d.fin) al inglés, desde d.desde (el idioma de la cabecera)."""
-    return nucleo.traducir(str(d.get("texto") or ""), d.get("desde") or "Spanish", d.get("inicio"), d.get("fin"))
+    return nucleo.traducir(str(d.get("texto") or ""), d.get("desde") or "Spanish", d.get("inicio"), d.get("fin"),
+                           campo=d.get("campo"), pronombre=d.get("pronombre"))
 
 
 def tomas(d):

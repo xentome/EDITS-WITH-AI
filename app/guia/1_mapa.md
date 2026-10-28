@@ -27,6 +27,7 @@
 | Header › «Cola (n)» | the job queue | ver_cola, esperar, cancelar, reintentar |
 | Row under the header: «✎ agente · N cambios · Visto» | your marks; a conflict notice if both edited | — |
 | Editor bar › «Resolución» Ancho × Alto · MP · Girar | video size (multiples of 32) | poner_resolucion |
+| Editor bar › «Traducir desde» (Español ▾: 10 languages or one typed by hand) | the language the creative writes in; their «Traducir a inglés» buttons and right click turn it into English | — (you write English yourself) |
 | Step bar «Cara A · 1 · Tomas y referencias» / «Cara B · 2 · Retocar» | the two steps | — |
 | **Step 1 › Referencias**: «Principal» (in every shot) and «Secundarias» (only in shots that cite them), posters with a seal Im1 / V1, «Efectos de texto» | the RefMods sent to H3, each with a role | listar_refmods, poner_referencia, quitar_referencia, poner_efecto_texto |
 | **Step 1 › Texto** row (blue bars) | words on screen with their time | poner_texto |
@@ -39,7 +40,8 @@
 | **Step 2 › Retocar**, tab «Extender video»: the timeline (original · the end H3 sees, light · the new part, pink, with its seconds), «Calidad», «Cuánto del original ve H3», «Cuánto se alarga», «Audio», references, «Qué pasa después» | make a video longer, same shot | ver_extension, extender |
 
 Buttons you do not have as tools (they are the creative's): «Escribir tomas» / «Rehacer esta toma» (the local LLM writes the
-shots), «Describir» (vision writes a reference card), uploading new photos or clips, drawing the mask by hand. If one of these
+shots), «Describir» (vision writes a reference card), «Traducir a inglés» (next to each shot field and «Sonido»; the
+local LLM translates the field, or a selection with right click, into English), uploading new photos or clips, drawing the mask by hand. If one of these
 would help, tell the creative where it is.
 
 ## The cycle of an edit
