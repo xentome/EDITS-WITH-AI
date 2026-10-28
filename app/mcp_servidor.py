@@ -780,6 +780,7 @@ async def extender(video: str, nuevos: int = 68, solape: int = 39, calidad: str 
     untouched; without a known song the original keeps its sound) · modelo (H3's sound for the new part). prompt: OPTIONAL,
     short English, only what happens next with the same camera; empty = same action, same camera. referencias: RefMod
     names or input images (max 4) cited as <Picture N>: the project's character/logo helps colour and identity not drift.
+    The app always adds the video's LAST FRAME as one more reference after yours (yours keep their numbers).
     Check first with ver_extension; read guia://extender. The result can be extended again. Visible in «Cola» (✎ agente)
     and loaded in the «Extender video» tab."""
     nombre = APPC.nombre(proyecto)

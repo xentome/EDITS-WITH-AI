@@ -126,7 +126,7 @@
  "app.extender.prompt": "Qué pasa después (opcional)",
  "app.extender.prompt.ayuda": "En inglés, corto: solo lo que sigue. Sin cambios de toma ni de cámara (eso sería otra toma).",
  "app.extender.prompt.placeholder": "Vacío = sigue la misma acción con la misma cámara. Ej.: she keeps looking up at the logo and breathes softly",
- "app.extender.refs.ayuda": "Las del proyecto ayudan a que no se desvíe el color ni la cara (por ejemplo, el logo). Cítalas en el prompt como <Picture N>.",
+ "app.extender.refs.ayuda": "El último fotograma del video ya va siempre como referencia (la última <Picture N>). Las del proyecto ayudan a que no se desvíe el color ni la cara (por ejemplo, el logo): cítalas como <Picture N>.",
  "app.extender.segundos": "+{s} s",
  "app.extender.solape": "Cuánto del original ve H3",
  "app.extender.solape.ayuda": "Más solape = sigue mejor el movimiento pero tarda más. 39 f es el único que cae exacto en el audio.",

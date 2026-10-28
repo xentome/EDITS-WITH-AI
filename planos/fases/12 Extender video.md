@@ -18,8 +18,18 @@ Lectura: 3 min · 28 oct 2026 · Para los ayudantes y para retomar si se corta. 
 1. ✅ **El servidor:** `extender.py`, latentes en Generar, cola y rutas; `pruebas.py` con su sección; el grafo valida contra `/object_info`.
 2. ✅ **La página:** pestañas en Retocar, línea de tiempo (original · solape resaltado · lo nuevo en otro color, con sus segundos), tiradores con el mismo tacto que Retocar, calidad, audio, prompt con referencias y semilla, encolar.
 3. ✅ **MCP y guía:** herramienta `extender`, sección en la guía, «✎ agente» en la pestaña.
-4. ⬜ **Pruebas reales** (3060, baja resolución, 22–39 f nuevos): un video de la app con latente y un mp4; hoja de la unión.
-5. ⬜ **Cierre:** LEEME, este plano, avisos.
+4. ✅ **Pruebas reales (28 oct, RTX 3060, «borrador rápido», 39 f de solape):**
+   - Backend por línea de órdenes: video de la app de 22 f, solape 22 + 17 nuevos, desde el mp4 → 216 s, guardó su latente.
+   - **Encadenada desde el latente** (por el MCP, como agente; la pestaña la cargó con «✎ agente»): 39 + 34 f a 384×672 → 230 s. Unión limpia: salto 2,9 frente a 1,6–2,1 de un paso normal; mismo brillo. Al final, H3 metió un corte a un primer plano sin el texto (esa prueba aún no llevaba la referencia automática).
+   - **mp4 de fuera** (1280×768, 10 s): la primera vez, con el prompt vacío y sin referencias, conservó el solape pero lo nuevo fue **otra escena** (un cuerpo sin cara: contenido que nadie pidió; borrado). Arreglo: el último fotograma va siempre como referencia y el prompt por defecto la cita (misma persona, misma ropa, mismo sitio). Repetida con la misma semilla → sigue la toma (la misma chica, el texto y la cámara), 222 s; salto en la unión 2,1 frente a 0,2–0,3 (lo nuevo sale más blando en «rápido», subido a 1280×768); brillo 45,1 → 43,8.
+   - Hojas en `~/Escritorio/research_notes/extender_video/prueba_app/`.
+5. ✅ **Cierre:** LEEME, CREDITOS, este plano, avisos.
 
 ## Huecos conocidos
-- (se completa al probar)
+- **Sin probar con la canción de un proyecto** (la guía con `MiniMaxH3AddGuide` y la canción encima) ni a la calidad «original» a 1 MP: el grafo valida y la unión de audio pasa en `pruebas.py` (19), pero falta un render real.
+- **Sin probar un Generar real con el latente:** el `MpiSaveLatent` entra bien en el grafo de Generar y valida en seco.
+- El avance de un trabajo con `MpiSaveLatent` se estima por el tiempo: ese nodo pide su latente de forma perezosa y el proxy lo da como «nodo actual» todo el rato, sin pasos.
+- **El arreglo de la unión del VAE** (decodificar el latente del original con las 5 fichas nuevas siguientes, de xmarre) no está hecho: puede quedar un escalón muy leve en los 5 fotogramas antes de la unión.
+- Una extensión recogida tras reiniciar el servidor no anota su latente (la siguiente pasa por el mp4).
+- Los latentes se acumulan en `ComfyUI/output/latents/` (unos 1–40 MB cada uno); no hay limpieza automática.
+- El modelo Singularity con un prompt pobre puede inventar contenido: por eso el último fotograma va siempre como referencia. Si vuelve a pasar, la primera palanca son las referencias del proyecto.

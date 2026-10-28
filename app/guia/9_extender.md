@@ -22,7 +22,7 @@
 | «Calidad» · `calidad` | rapida (~0.25 MP) · media (~0.5 MP) · **original** | rapida to check the motion quickly (the new part looks softer); original for the final. Only «original» can use the saved latent. |
 | «Audio» · `audio` | **entrada** · modelo | Keep «entrada» (the rule of the app: respect the input audio). «modelo» only if the creative wants H3's sound in the new part. |
 | «Qué pasa después» · `prompt` | optional, short English | Empty = same action, same camera. Write only what happens next: «she keeps looking up at the logo and breathes softly». |
-| References · `referencias` | up to 4, cited as <Picture N> | The project's character / product / logo: they keep colour and identity from drifting. |
+| References · `referencias` | up to 4, cited as <Picture N> | The project's character / product / logo: they keep colour and identity from drifting. The app ALWAYS adds the video's last frame as one more reference, after yours (so yours keep their numbers) and cites it in the prompt itself. |
 
 ## Where the end comes from: latent or mp4
 
@@ -57,6 +57,12 @@
   3 s), **identity** (the face changes a little), small background details that change (numbers, letters), a **freeze**.
 - What to change first: 1) add the project's references (the logo, the character) · 2) another seed · 3) a clearer prompt
   of what happens next · 4) a shorter extension. Chaining many extensions adds drift: other users see it grow after the 4th–6th.
+
+## Why the last frame is always a reference
+
+- Measured on 28 Oct: an outside mp4 extended with an EMPTY prompt and no references → the overlap was kept, but the new part
+  was a different scene (another body, no face). With the last frame as a reference and the prompt citing it («same subject,
+  same clothes, same place»), it continues the shot. Never remove it; if you write a prompt, describe only what happens next.
 
 ## Known limits
 

@@ -126,7 +126,7 @@
  "app.extender.prompt": "What happens next (optional)",
  "app.extender.prompt.ayuda": "In English, short: only what comes next. No shot or camera changes (that would be another shot).",
  "app.extender.prompt.placeholder": "Empty = same action, same camera. E.g.: she keeps looking up at the logo and breathes softly",
- "app.extender.refs.ayuda": "The project's references help keep colour and face from drifting (e.g. the logo). Cite them in the prompt as <Picture N>.",
+ "app.extender.refs.ayuda": "The video's last frame always goes as a reference already (the last <Picture N>). The project's references help keep colour and face from drifting (e.g. the logo): cite them as <Picture N>.",
  "app.extender.segundos": "+{s} s",
  "app.extender.solape": "How much of the original H3 sees",
  "app.extender.solape.ayuda": "More overlap = follows the motion better but takes longer. 39 f is the only one exact on the audio grid.",

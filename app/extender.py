@@ -230,6 +230,16 @@ def _cortar_cola(ruta: str, p: dict, sello: str) -> str:
     return nombre
 
 
+def _ultimo_fotograma(ruta: str, p: dict, sello: str) -> str:
+    """El último fotograma del video (a 24 fps) en un PNG del tamaño que se genera, para la referencia automática."""
+    nombre = f"{CARPETA}/ultimo_{sello}.png"
+    destino = os.path.join(retocar.comfyui_dir(), "input", nombre)
+    os.makedirs(os.path.dirname(destino), exist_ok=True)
+    retocar._ffmpeg("-i", ruta, "-vf", f"fps={FPS:g},select='gte(n\\,{p['total'] - 1})',scale={p['ancho']}:{p['alto']}:flags=lanczos",
+                    "-frames:v", "1", destino)
+    return nombre
+
+
 def _cortar_cancion(p: dict, sello: str) -> str:
     """El trozo de canción que suena durante la ventana (desde donde empieza el solape), para la guía de audio de H3."""
     c = p["cancion"]
@@ -295,10 +305,16 @@ def preparar(datos: dict, sello: str | None = None) -> tuple[dict, dict]:
             "audio_mode": "keep", "fps": FPS, "ramp_ticks": 0, "ramp_out_ticks": 0, "ramp_shape": "cosine"}}
         previo = [N_CODIFICAR, 0]
 
-    # lo nuevo: el latente vacío de la ventana con el prompt y las referencias (una LoadImage por referencia: <Picture N>)
-    prompt = (datos.get("prompt") or "").strip() or (
-        "The same shot continues without a cut: the same subject keeps doing the same action, with the same camera, "
-        "framing, lighting and style.")
+    # lo nuevo: el latente vacío de la ventana con el prompt y las referencias (una LoadImage por referencia: <Picture N>).
+    # El último fotograma del video va SIEMPRE como la última referencia: sin él, con el prompt vacío, H3 (Singularity) se
+    # inventaba otra escena (prueba real del 28 oct con un mp4: el solape bien y lo nuevo, otra persona). Va al final para no
+    # mover los <Picture N> que cita el usuario.
+    refs = refs + [{"imagen": _ultimo_fotograma(retocar.ruta_video(datos["video"]), p, sello) + " [input]"}]
+    k = len(refs)
+    pedido = (datos.get("prompt") or "").strip()
+    prompt = (f"<Picture {k}> is the last frame of the shot so far. The same shot continues without a cut: the same subject, "
+              "with the same clothes, keeps doing the same action in the same place, with the same camera, framing, lighting "
+              "and style.") + (f" {pedido}" if pedido else "")
     modelo = g.pop(N_REF_MODELO)
     g[N_NUEVO] = {"class_type": "MiniMaxH3ReferenceToVideo", "inputs": {
         "clip": [N_CLIP, 0], "prompt": [N_PROMPT, 0], "width": w, "height": h, "length": L, "ref_image_size": "match",
@@ -338,7 +354,7 @@ def preparar(datos: dict, sello: str | None = None) -> tuple[dict, dict]:
                                                          "format": "auto", "codec": "auto", "format.codec": "auto"}}
     semilla = datos.get("semilla")
     g[N_RUIDO]["inputs"]["noise_seed"] = int(semilla) if semilla not in (None, "") else random.randrange(2 ** 32)
-    meta = {"plan": p, "sello": sello, "latente": latente, "referencias": refs, "prompt": (datos.get("prompt") or "").strip(),
+    meta = {"plan": p, "sello": sello, "latente": latente, "referencias": refs[:-1], "prompt": (datos.get("prompt") or "").strip(),
             "proyecto": datos.get("proyecto"), "video": datos.get("video")}
     return g, meta
 
