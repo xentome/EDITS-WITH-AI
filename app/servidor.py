@@ -30,7 +30,7 @@ SALIDAS = os.path.join(APP, "salidas")
 PLANTILLA = os.path.join(APP, "plantillas", "edit_h3.api.json")
 
 DEFECTO = {"comfyui_dir": "~/comfy/ComfyUI", "comfyui_url": "http://127.0.0.1:8188", "proxy_url": "http://127.0.0.1:8199",
-           "puerto": 8300, "llm_url": "http://127.0.0.1:8080", "python_comfyui": "", "liberar_gpu": True}
+           "puerto": 8300, "host": "127.0.0.1", "llm_url": "http://127.0.0.1:8080", "python_comfyui": "", "liberar_gpu": True}
 
 
 def leer_config():
@@ -445,4 +445,4 @@ if __name__ == "__main__":
         sys.exit(0)
     print(f"[MAX EDITOR] http://127.0.0.1:{CONFIG['puerto']}  ·  ComfyUI {CONFIG['comfyui_url']}  ·  "
           f"proxy {CONFIG['proxy_url']}  ·  LLM {CONFIG['llm_url']}  ·  trabajador {python_comfyui()}", flush=True)
-    web.run_app(crear_app(), host="127.0.0.1", port=int(CONFIG["puerto"]), print=None)
+    web.run_app(crear_app(), host=CONFIG.get("host") or "127.0.0.1", port=int(CONFIG["puerto"]), print=None)  # «0.0.0.0» en un pod
