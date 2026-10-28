@@ -825,5 +825,5 @@ def revisar(p: Proyecto) -> tuple[list[str], list[str]]:
     if e["a_mano"]:
         avisos.append("the final prompt was edited by hand in the page: your shot changes do not reach H3")
     for x in getattr(p, "avisos", None) or []:
-        avisos.append(f"page: {x}")
+        avisos.append(f"page gap (informative): {x}")
     return errores, avisos
