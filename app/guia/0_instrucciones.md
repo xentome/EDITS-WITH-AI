@@ -31,7 +31,7 @@ WHERE TO START
 - Read the guide before your first edit: leer_guia("mapa"), leer_guia("h3"), leer_guia("organizar"); before writing shots
   leer_guia("prompts"); after each video leer_guia("revisar"). Full flows with tool calls: leer_guia("recetas").
   Problems: leer_guia("errores"). The same chapters are resources guia://mapa … guia://errores.
-- Prompts of this server: crear_edit, retocar_video, revisar_resultado.
+- Prompts of this server: crear_edit, retocar_video, extender_video, revisar_resultado.
 
-COMING SOON (not available yet, do not improvise it): «Continuar», extending a video from its last frames. Today, a long edit is
-planned as one story in halves and generated as separate clips joined on a cut (guia://organizar).
+EXTEND a video (same shot, no cut): ver_extension, then extender (step «Retocar» › tab «Extender video»); read
+guia://extender first. It continues a shot; a new shot (new place, new camera) is a cut, planned as a shot of an edit.

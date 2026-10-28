@@ -23,5 +23,10 @@
 | page gaps «no place / no light / no action» | the page lists empty fields per shot («action» there = «Gesto») | informative; fill «Gesto» when the shot has a body action; place and light are optional |
 | the song segment moved | the segment must fit inside the song | tell the creative the real start |
 | ver_video: «has no videos yet» | the job is not finished | ver_cola until «hecho» |
+| extender: «the video has N frames: fewer than the overlap» | the video is shorter than solape | use solape=22 (or a longer video) |
+| extender error naming MpiLoadLatent / MpiSaveLatent / NKDAVLatentExtend | ComfyUi-MpiNodes or NKD Basic Tools missing (likely on the pod) | tell the creative; nothing to retry until they are installed |
+| ver_extension says «from the mp4» but the video is the app's | older than 28 Oct, another quality, the latent was deleted, or a retouch changed the end | fine: it works, with a little colour loss; «original» quality uses the latent when there is one |
+| the extension is redder / more contrasted at its end | H3 colour drift, it grows with each chained extension | add the project's references (logo, character), then another seed (guia://extender) |
+| the extension does not move | the original's end was already frozen | tell the creative: continuing a freeze continues it |
 | ver_mascara takes minutes | it runs SAM on the GPU | wait; if > 7 min it returns the job id |
 | unexpected error (…) | a bug in the app or the MCP | tell the creative the exact message; the logs are app/servidor.log and app/salidas/mcp.log |

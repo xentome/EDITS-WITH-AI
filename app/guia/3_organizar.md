@@ -25,7 +25,7 @@
 - Put a cut on the song's strongest hit: H3 cuts there anyway.
 - **Longer than ~5 s on 12 GB**: plan the whole thing as one story in **two halves, each with its own events** (the second half
   cannot be «keeps falling»), generate them as two clips cut on a shot change and join them: the cut does not show ✅. The
-  creative joins them today; «Continuar» (extend a video) is coming soon.
+  creative joins them. To make ONE shot longer without a cut, use «Extender video» (guia://extender).
 
 ## The shot panel, field by field (all in English)
 

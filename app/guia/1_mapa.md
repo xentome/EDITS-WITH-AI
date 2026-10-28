@@ -10,7 +10,7 @@
   editing, it asks them which version to keep. **Nothing you do is hidden.**
 - Everything you touch gets a pink dashed border labelled «✎ agente» until the creative edits it or presses «Visto». Jobs you
   queue carry the same label in «Cola».
-- Generar and Retocar never run directly: they go to the **job queue** (one GPU, one job at a time), with a frozen copy of the
+- Generar, Retocar and Extender never run directly: they go to the **job queue** (one GPU, one job at a time), with a frozen copy of the
   project. Editing after queueing does not change a queued job.
 - Under the hood: the app builds H3's prompt from the fields («montaje»; the code only glues your text with fixed phrases),
   puts it in a ComfyUI workflow template and runs it with the Comfy SDK. You never write the final prompt by hand.
@@ -35,7 +35,8 @@
 | **Step 1 › «Sonido»** + «Audio del video: Tu canción / Audio de H3» | the soundscape line and which audio the video keeps | poner_sonido |
 | **Shot panel** (the selected shot, «Toma k»): «Acción / movimiento» (main field), «Referencias», «Efecto de la referencia» · «Encuadre», «Movimiento de cámara», «Luz», «Lugar» with «Entorno auto / manual / Sin entorno», «Gesto», «Estilo» · «Referencias que usa» | one shot's fields | escribir_toma |
 | «Prompt de la toma» / «Prompt final · lo que recibe H3» | what H3 will read | ver_proyecto(con_prompt=true) |
-| **Step 2 › Retocar**: a video, a frame range, a mask (rectangle or SAM text), references, a prompt | redo one zone of a video | ver_mascara, retocar |
+| **Step 2 › Retocar**, tab «Inpainting / detalle»: a video, a frame range, a mask (rectangle or SAM text), references, a prompt | redo one zone of a video | ver_mascara, retocar |
+| **Step 2 › Retocar**, tab «Extender video»: the timeline (original · the end H3 sees, light · the new part, pink, with its seconds), «Calidad», «Cuánto del original ve H3», «Cuánto se alarga», «Audio», references, «Qué pasa después» | make a video longer, same shot | ver_extension, extender |
 
 Buttons you do not have as tools (they are the creative's): «Escribir tomas» / «Rehacer esta toma» (the local LLM writes the
 shots), «Describir» (vision writes a reference card), uploading new photos or clips, drawing the mask by hand. If one of these
@@ -50,7 +51,7 @@ would help, tell the creative where it is.
 5. **Text** — optional words on screen.
 6. **revisar_proyecto** — fix errors, mention warnings.
 7. **generar** — a quick test first (22 frames, low resolution) unless the creative says otherwise.
-8. **ver_video** — judge it (guia://revisar). Adjust: seed → shot prompt → references → durations; or **retocar** a zone.
+8. **ver_video** — judge it (guia://revisar). Adjust: seed → shot prompt → references → durations; or **retocar** a zone, or **extender** it (same shot, longer).
 
 ## Shot field → place in H3's prompt
 

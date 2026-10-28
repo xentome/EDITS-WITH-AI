@@ -39,7 +39,7 @@ ACTIVOS = ("en_cola", "corriendo", "recuperando")
 
 # los documentos de la guía: guia://<tema> → app/guia/<n>_<tema>.md (el orden es el de lectura)
 TEMAS = {"mapa": "1_mapa.md", "h3": "2_h3.md", "organizar": "3_organizar.md", "prompts": "4_prompts.md", "revisar": "5_revisar.md",
-         "creativo": "6_creativo.md", "recetas": "7_recetas.md", "errores": "8_errores.md"}
+         "creativo": "6_creativo.md", "recetas": "7_recetas.md", "errores": "8_errores.md", "extender": "9_extender.md"}
 
 
 def leer_doc(nombre: str) -> str:
@@ -184,7 +184,8 @@ async def leer_guia(tema: str = "indice") -> str:
     """Read a chapter of the MAX EDITOR agent guide. tema: indice (list) · mapa (the app, its steps and which tool touches
     which zone) · h3 (what MiniMax H3 does and does not do) · organizar (shots, fields, references, text, song) · prompts
     (writing for H3, before/after) · revisar (judging a result, what to change first) · creativo (working with the creative)
-    · recetas (step-by-step flows with tool calls) · errores (problems and ways out). Same text as the guia:// resources."""
+    · recetas (step-by-step flows with tool calls) · errores (problems and ways out) · extender (make a video longer, same
+    shot). Same text as the guia:// resources."""
     tema = (tema or "indice").strip().lower()
     if tema in TEMAS:
         return leer_doc(TEMAS[tema])
@@ -598,6 +599,8 @@ async def listar_videos(proyecto: str = "") -> str:
     vs = await APPC.pedir("GET", "/app/videos?proyecto=" + urllib.parse.quote(nombre))
     return "\n".join(f"- {v['archivo']} · {v.get('tipo') or 'edit'} · {v.get('fecha', '').replace('T', ' ')} · seed {v.get('semilla')}"
                      + (f" · retouch {v['tramo'].get('inicio')}–{v['tramo'].get('fin')} s" if v.get("tipo") == "retoque" and v.get("tramo") else "")
+                     + (f" · extension of {v.get('de')} (+{v['extension'].get('nuevos')} f from frame {v['extension'].get('desde')})"
+                        if v.get("tipo") == "extension" and v.get("extension") else "")
                      for v in vs) or f"(no videos yet in «{nombre}»)"
 
 
@@ -722,6 +725,82 @@ async def retocar(video: str, prompt: str, mascara_texto: str = "", rectangulo: 
             "frames at normal resolution. Visible in «Cola» (✎ agente); wait with esperar(id), then ver_video(video=<new file>).")
 
 
+# ------------------------------------------------------------------ extender (planos/fases/12)
+def _datos_extension(video, nuevos, solape, calidad, audio, prompt, referencias, semilla, proyecto):
+    if audio not in ("entrada", "modelo"):
+        raise ErrorAgente("audio must be «entrada» (keep the input audio: the song carries on) or «modelo» (H3's sound for the new part)")
+    if calidad not in ("rapida", "media", "original"):
+        raise ErrorAgente("calidad must be rapida (~0.25 MP, quick draft) · media (~0.5 MP) · original (the video's size)")
+    refs = [{"refmod": r} if not str(r).lower().endswith((".png", ".jpg", ".jpeg", ".webp")) else {"imagen": r} for r in referencias or []]
+    if len(refs) > 4:
+        raise ErrorAgente("Extend takes at most 4 references (<Picture 1>…<Picture 4>, in this order)")
+    return {"video": video, "nuevos": int(nuevos), "solape": int(solape), "calidad": calidad, "audio_salida": audio,
+            "prompt": (prompt or "").strip(), "referencias": refs, "semilla": int(semilla) if semilla is not None else None,
+            "proyecto": proyecto}
+
+
+def _texto_plan(p: dict) -> str:
+    fuente = ("from its SAVED LATENT (lossless)" if p["fuente"] == "latente"
+              else f"from the mp4, re-encoded (loses a little colour; why: {p['por_que']})")
+    if p["audio_salida"] == "modelo":
+        audio = "original audio kept; the new part sounds with H3's audio"
+    elif p["usa_cancion"]:
+        audio = (f"the song «{p['cancion']['original']}» carries on where it was and is laid on top untouched"
+                 + (" (song taken from the project as it is NOW: the video had no song noted)" if p["cancion_de"] == "proyecto" else "")
+                 + (f"; WARNING the song ends {-p['cancion_sobra_s']:.1f} s early (silence)" if (p.get("cancion_sobra_s") or 0) < 0 else ""))
+    else:
+        audio = "no known song: the original keeps its sound and H3 continues the sound of its last seconds"
+    return (f"«{p['video']}»: {p['total']} f ({p['total'] / 24:.2f} s) + {p['nuevos']} new f ({p['nuevos'] / 24:.2f} s) = "
+            f"{p['duracion_final']} s. H3 sees the last {p['solape']} f and renders {p['ventana']} f at {p['ancho']}×{p['alto']} "
+            f"(quality {p['calidad']}), {fuente}. Audio: {audio}. About {p['minutos'][0]}–{p['minutos'][1]} min."
+            + (" WARNING: long window at this size, it may not fit in 12 GB (try calidad=media or fewer frames)." if p["memoria"] else ""))
+
+
+@herramienta
+async def ver_extension(video: str, nuevos: int = 68, solape: int = 39, calidad: str = "original", audio: str = "entrada",
+                        proyecto: str = "") -> str:
+    """Plan an extension WITHOUT running it (no GPU): says where the tail comes from (saved latent or mp4), which audio will
+    sound, the size H3 renders, the final length and the time. Use it before extender. Same arguments as extender."""
+    d = _datos_extension(video, nuevos, solape, calidad, audio, "", [], None, APPC.nombre(proyecto))
+    p = await APPC.pedir("POST", "/app/extender_plan", d, ok=(200, 400))
+    if "error" in p:
+        raise ErrorAgente(p["error"])
+    return _texto_plan(p)
+
+
+@herramienta
+async def extender(video: str, nuevos: int = 68, solape: int = 39, calidad: str = "original", audio: str = "entrada",
+                   prompt: str = "", referencias: list[str] | None = None, semilla: int | None = None, n: int = 1,
+                   proyecto: str = "") -> str:
+    """Extend a video (step «Retocar» › tab «Extender video»): H3 continues the SAME shot from its last frames, with no cut,
+    and the app glues the new part after the original. video: a file from listar_videos (or «x.mp4 [input]»). nuevos: new
+    frames, rounded to steps of 17 (17 = 0.71 s … 204 = 8.5 s). solape: how much of the end H3 sees: 22 · 39 (default, the
+    only one exact on the audio grid) · 56 · 73. calidad: rapida (~0.25 MP draft) · media (~0.5 MP) · original (the video's
+    size; the only one that uses the saved latent). audio: entrada (default: the song carries on and is laid on top
+    untouched; without a known song the original keeps its sound) · modelo (H3's sound for the new part). prompt: OPTIONAL,
+    short English, only what happens next with the same camera; empty = same action, same camera. referencias: RefMod
+    names or input images (max 4) cited as <Picture N>: the project's character/logo helps colour and identity not drift.
+    Check first with ver_extension; read guia://extender. The result can be extended again. Visible in «Cola» (✎ agente)
+    and loaded in the «Extender video» tab."""
+    nombre = APPC.nombre(proyecto)
+    if not 1 <= int(n) <= MAX_POR_LLAMADA:
+        raise ErrorAgente(f"n must be 1–{MAX_POR_LLAMADA}")
+    d = _datos_extension(video, nuevos, solape, calidad, audio, prompt, referencias, semilla, nombre)
+    for m in __import__("re").finditer(r"<Picture (\d+)>", d["prompt"]):
+        if int(m.group(1)) > len(d["referencias"]):
+            raise ErrorAgente(f"the prompt cites <Picture {m.group(1)}> but only {len(d['referencias'])} reference(s) were given")
+    p = await APPC.pedir("POST", "/app/extender_plan", d, ok=(200, 400))
+    if "error" in p:
+        raise ErrorAgente(p["error"])
+    if d["semilla"] is None:
+        import random
+        d["semilla"] = random.randrange(2 ** 32)
+    r = await APPC.pedir("POST", "/app/cola", {"tipo": "extender", "datos": d, "n": int(n), "origen": "agente"})
+    return (f"Extension queued: {', '.join(r['ids'])} (seed {d['semilla'] if int(n) == 1 else 'random'}). {_texto_plan(p)}\n"
+            f"Wait with esperar(id), then look at the JOIN with ver_video(video=<new file>, desde={max(0, p['total'] / 24 - 1):.2f}, "
+            f"hasta={min(p['duracion_final'], p['total'] / 24 + 1.5):.2f}) and at the end (identity, colour, frozen?).")
+
+
 # ------------------------------------------------------------------ prompts de flujo
 @mcp.prompt(name="crear_edit", title="Create an edit", description="From the creative's idea to a reviewed video, step by step")
 def crear_edit(idea: str = "", proyecto: str = "") -> str:
@@ -742,6 +821,16 @@ def retocar_video(que: str = "", video: str = "") -> str:
             "Read guia://prompts (section Retouch) and guia://recetas («Retouch a logo with SAM»). Steps: listar_videos → ver_video "
             "to find the segment and the zone → ver_mascara (check the pink covers only that) → retocar with a SHORT prompt and "
             "the references as <Picture N> → ver_cola → ver_video of the new file. Retouch the original, not a retouch.")
+
+
+@mcp.prompt(name="extender_video", title="Extend a video", description="Make a video longer, continuing the same shot")
+def extender_video(video: str = "", segundos: float = 0) -> str:
+    return (f"The creative wants to extend {('«' + video + '»') if video else 'a video'}"
+            f"{f' by about {segundos} s' if segundos else ''}.\n"
+            "Read guia://extender. Steps: listar_videos → ver_video (look at the LAST second: is it frozen? what is moving?) → "
+            "ver_extension (latent or mp4, audio, time) → tell the creative and ask before a long one → extender (prompt empty "
+            "unless they say what happens next; the project's references help) → esperar → ver_video around the join and at "
+            "the end. If colour or face drift: references first, then another seed.")
 
 
 @mcp.prompt(name="revisar_resultado", title="Review a result", description="Look at the newest video and say what to change first")
