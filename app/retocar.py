@@ -337,6 +337,23 @@ def preparar(datos: dict) -> tuple[dict, dict]:
                "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
 
 
+def recuperar(datos: dict, rutas: list[str], sello: str) -> tuple[str, dict]:
+    """Para la cola (cola.py): un retoque que ComfyUI terminó mientras el servidor estaba parado. `rutas`: los videos que
+    dejó en su salida. Arma el video completo igual que _despues (solo cambian los fotogramas elegidos)."""
+    vi = info(datos.get("video"))
+    s0, sn = seleccion(datos, vi["fps"], vi["fotogramas"])
+    g0, _ = tramo_generado(s0, sn, vi["fotogramas"])
+    con_audio = [r for r in rutas if "-audio" in os.path.basename(r)]
+    semilla = datos.get("semilla")
+    archivo_tramo, archivo = f"retoque_{sello}_{semilla}_tramo.mp4", f"retoque_{sello}_{semilla}.mp4"
+    os.makedirs(SALIDAS, exist_ok=True)
+    shutil.copyfile((con_audio or rutas)[-1], os.path.join(SALIDAS, archivo_tramo))
+    sustituir(ruta_video(datos["video"]), os.path.join(SALIDAS, archivo_tramo), s0, sn, vi, os.path.join(SALIDAS, archivo), desde=s0 - g0)
+    tramo = {"f0": s0, "n": sn, "inicio": round(s0 / vi["fps"], 3), "fin": round((s0 + sn) / vi["fps"], 3)}
+    return archivo, {"tipo": "retoque", "semilla": semilla, "proyecto": datos.get("proyecto"), "de": datos["video"], "tramo": tramo,
+                     "tramo_video": archivo_tramo, "mascara": datos.get("mascara"), "referencias": datos.get("referencias")}
+
+
 # ---------------------------------------------------------------- vista de la máscara (sin H3)
 ROSA = 0xFF3E8A          # el color con que se pinta la zona que se rehará
 N_ROSA, N_MEZCLA, N_PEGAR, N_GUARDAR_MASCARA = "400", "401", "402", "403"

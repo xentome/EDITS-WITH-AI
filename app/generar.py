@@ -353,6 +353,7 @@ def _correr(tid: str, grafo: dict, opciones: dict, c: dict, despues) -> None:
         cliente = _cliente(c)
         try:
             job = cliente.submit(cliente.workflows.from_json(grafo))
+            _poner(tid, job=job.id)          # el prompt_id de ComfyUI: la cola lo busca en su historial si el servidor se para
             with _cerrojo:
                 _jobs[tid] = job
                 cancelar_ya = _trabajos[tid].get("_cancelar")

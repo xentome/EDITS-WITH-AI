@@ -5,6 +5,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /edit_prompt_llm/<acción>  rutas.ACCIONES, en el trabajador (trabajador.py, con el Python de ComfyUI)
   /view, /upload/image, /minimax_h3/*   reenviados a ComfyUI
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
+  /app/cola, /app/cola/<id>/<acción>, /app/cola/limpiar, /app/cola/pausar   la cola de trabajos (cola.py)
   /app/retocar, /app/retocar_mascara, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
 Arranque: ~/comfy/max_editor_app/.venv/bin/python app/servidor.py  →  http://127.0.0.1:8300
 Configuración: config.json, encima config.local.json (no va a git) y encima las variables MAX_EDITOR_<CLAVE>."""
@@ -59,6 +60,7 @@ _paquete.__path__ = [REPO]
 sys.modules.setdefault(_paquete.__name__, _paquete)
 i18n = importlib.import_module(_paquete.__name__ + ".i18n")
 sys.path.insert(0, APP)
+import cola  # noqa: E402  (la cola de trabajos; su hilo arranca en al_empezar)
 
 
 def t(clave, peticion, **datos):
@@ -140,6 +142,11 @@ class Trabajador:
 TRABAJADOR = Trabajador()
 
 
+# las acciones que usan el LLM local (rutas.ACCIONES con usa_llm): mientras corren, la cola no empieza otro trabajo
+CON_LLM = {"historia", "tomas", "describir"}
+_llm_en_marcha = [0]
+
+
 async def accion(peticion):
     """/edit_prompt_llm/<acción>: igual que la ruta del nodo (__init__.py): GET o POST, ?idioma=, errores en ese idioma."""
     idioma = peticion.query.get("idioma", "es")
@@ -147,7 +154,12 @@ async def accion(peticion):
         datos = await peticion.json() if peticion.method == "POST" else {}
     except ValueError:
         datos = {}
-    r = await TRABAJADOR.pedir(peticion.match_info["accion"], datos, i18n.idioma_de(datos.get("idioma") or idioma))
+    llm = peticion.match_info["accion"] in CON_LLM
+    _llm_en_marcha[0] += llm
+    try:
+        r = await TRABAJADOR.pedir(peticion.match_info["accion"], datos, i18n.idioma_de(datos.get("idioma") or idioma))
+    finally:
+        _llm_en_marcha[0] -= llm
     if "ok" in r:
         return web.json_response(r["ok"])
     if r.get("clave") == "app.error.trabajador":
@@ -338,6 +350,53 @@ async def lanzar_mascara(peticion):
     return web.json_response({"id": tid})
 
 
+# ------------------------------------------------------------------ la cola de trabajos (cola.py)
+async def cola_anadir(peticion):
+    """POST /app/cola {tipo: generar | retocar, valores (generar) | datos (retocar), semilla?, proyecto?, n?} → {ids}.
+    Con n > 1 se encolan n trabajos con semillas aleatorias distintas. Cada uno lleva su foto fija."""
+    d = await peticion.json()
+    if not isinstance(d, dict) or d.get("tipo") not in cola.TIPOS:
+        return error("app.error.sin_valores", peticion)
+    n = max(1, min(50, int(d.get("n") or 1)))
+    if d["tipo"] == "generar":
+        if not isinstance(d.get("valores"), dict):
+            return error("app.error.sin_valores", peticion)
+        proyecto = d.get("proyecto") or ""
+        foto = {"valores": d["valores"], "semilla": d.get("semilla"), "proyecto": proyecto,
+                "prefijo": "max_editor/" + re.sub(r"[^\w-]+", "_", proyecto or "edit")}
+    else:
+        if not isinstance(d.get("datos"), dict):
+            return error("app.error.sin_valores", peticion)
+        foto = dict(d["datos"])
+    semillas = cola.semillas_nuevas(n) if n > 1 else [foto.get("semilla")]
+    return web.json_response({"ids": cola.anadir(d["tipo"], foto, semillas)})
+
+
+async def cola_lista(peticion):
+    return web.json_response(cola.lista())
+
+
+async def cola_uno(peticion):
+    t = cola.uno(peticion.match_info["id"])
+    return web.json_response(t) if t else web.json_response({"error": "no existe"}, status=404)
+
+
+async def cola_accion(peticion):
+    try:
+        return web.json_response(cola.accion(peticion.match_info["id"], peticion.match_info["accion"]))
+    except KeyError:
+        return web.json_response({"error": "no existe"}, status=404)
+
+
+async def cola_limpiar(peticion):
+    return web.json_response(cola.limpiar())
+
+
+async def cola_pausar(peticion):
+    d = await peticion.json()
+    return web.json_response(cola.pausar(bool((d or {}).get("pausada"))))
+
+
 async def video_info(peticion):
     """GET /app/video_info?video= → {ancho, alto, fps, fotogramas, duracion, audio}."""
     r = retocar()
@@ -402,6 +461,9 @@ async def salud(peticion):
 async def al_empezar(app):
     app["http"] = ClientSession(timeout=ClientTimeout(total=None, sock_connect=5))
     asyncio.create_task(TRABAJADOR.arrancar())               # que librosa esté cargado antes del primer «montar»
+    # la cola de trabajos: su hilo procesa lo pendiente aunque nadie tenga la página abierta
+    cola.arrancar({"generar": generar, "retocar": retocar, "llm_ocupado": lambda: _llm_en_marcha[0] > 0,
+                   "comfyui_url": CONFIG["comfyui_url"], "comfyui_dir": os.path.expanduser(CONFIG.get("comfyui_dir") or "~/comfy/ComfyUI")})
 
 
 async def al_terminar(app):
@@ -432,6 +494,12 @@ def crear_app():
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)
     app.router.add_post("/app/retocar", lanzar_retoque)
     app.router.add_post("/app/retocar_mascara", lanzar_mascara)
+    app.router.add_get("/app/cola", cola_lista)
+    app.router.add_post("/app/cola", cola_anadir)
+    app.router.add_post("/app/cola/limpiar", cola_limpiar)
+    app.router.add_post("/app/cola/pausar", cola_pausar)
+    app.router.add_get("/app/cola/{id}", cola_uno)
+    app.router.add_post("/app/cola/{id}/{accion}", cola_accion)
     app.router.add_get("/app/video_info", video_info)
     app.router.add_get("/app/video", ver_video)
     app.router.add_get("/app/foto_referencia", foto_referencia)
