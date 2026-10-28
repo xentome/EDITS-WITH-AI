@@ -555,11 +555,12 @@ async def ver_cola(id: str = "") -> str:
 
 
 @herramienta
-async def esperar(id: str, max_segundos: int = 300) -> str:
-    """Wait until a queued job ends (hecho / error / cancelado / interrumpido) or max_segundos pass (at most 600), checking
+async def esperar(id: str, max_segundos: int = 240) -> str:
+    """Wait until a queued job ends (hecho / error / cancelado / interrumpido) or max_segundos pass (at most 240: some clients
+    cut a silent tool at 300 s), checking
     every 10 s on the server, then report it like ver_cola. Use it instead of polling when you cannot schedule a wake-up;
     call it again if the job is still running. A 22-frame test takes ~3 min, plus the jobs ahead of it."""
-    t0, limite = time.time(), max(10, min(600, int(max_segundos)))
+    t0, limite = time.time(), max(10, min(240, int(max_segundos)))
     while True:
         x = await APPC.pedir("GET", "/app/cola/" + urllib.parse.quote(id), ok=(200, 404))
         if "error" in x:

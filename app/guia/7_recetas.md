@@ -5,7 +5,9 @@
 
 ## A · Quick end-to-end test (22 frames, ~3 min) — tested 28 Oct ✅
 
-Use it to check the plan cheaply before a long render, or to learn the app.
+Use it to check the plan cheaply before a long render, or to learn the app. It checks the pipeline, the references and the identity — **not the timing**: in
+under 1 s, cuts and words came out earlier than asked in both test renders 🟢 (TETO asked at 0.50 s, seen at 0.34 s; DULCE at
+0.17 s). Judge timing on a full-length render.
 ```
 estado()                                             # GPU free? queue empty?
 crear_proyecto(nombre="test_x")                      # or abrir_proyecto(<theirs>)
