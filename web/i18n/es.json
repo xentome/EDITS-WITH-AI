@@ -16,6 +16,7 @@
  "app.error.carpeta": "No se pudo abrir la carpeta {carpeta}",
  "app.error.comfyui": "ComfyUI no responde en {url}: ábrelo y vuelve a probar.",
  "app.error.no_existe": "No existe el proyecto «{nombre}».",
+ "app.error.no_existe_trabajo": "Ese trabajo ya no está en la cola.",
  "app.error.nombre": "Nombre de proyecto no válido: usa letras, números, espacios, - y _.",
  "app.error.proxy": "El proxy no responde en {url}: arráncalo (app/arrancar.sh) y vuelve a probar.",
  "app.error.sin_generar": "Falta app/generar.py: esta copia de la app aún no puede hacer videos.",

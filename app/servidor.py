@@ -378,14 +378,14 @@ async def cola_lista(peticion):
 
 async def cola_uno(peticion):
     t = cola.uno(peticion.match_info["id"])
-    return web.json_response(t) if t else web.json_response({"error": "no existe"}, status=404)
+    return web.json_response(t) if t else error("app.error.no_existe_trabajo", peticion, 404)
 
 
 async def cola_accion(peticion):
     try:
         return web.json_response(cola.accion(peticion.match_info["id"], peticion.match_info["accion"]))
     except KeyError:
-        return web.json_response({"error": "no existe"}, status=404)
+        return error("app.error.no_existe_trabajo", peticion, 404)
 
 
 async def cola_limpiar(peticion):

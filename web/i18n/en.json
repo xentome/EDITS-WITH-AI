@@ -16,6 +16,7 @@
  "app.error.carpeta": "Could not open the folder {carpeta}",
  "app.error.comfyui": "ComfyUI is not responding at {url}: start it and try again.",
  "app.error.no_existe": "There is no project «{nombre}».",
+ "app.error.no_existe_trabajo": "That job is no longer in the queue.",
  "app.error.nombre": "Invalid project name: use letters, numbers, spaces, - and _.",
  "app.error.proxy": "The proxy is not responding at {url}: start it (app/arrancar.sh) and try again.",
  "app.error.sin_generar": "app/generar.py is missing: this copy of the app can't make videos yet.",
