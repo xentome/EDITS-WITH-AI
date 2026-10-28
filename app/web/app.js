@@ -25,7 +25,8 @@ const ajustes = {
   get: (k) => (k === i18n.AJUSTE ? leerLocal(GUARDA_IDIOMA) || "auto" : k === "Comfy.Locale" ? navigator.language : undefined),
   set: (k, x) => { if (k === i18n.AJUSTE) { ponerLocal(GUARDA_IDIOMA, x); tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso)); pintarCabecera(); retoque?.pintar(); } },
 };
-const appFalso = { graph: null, extensionManager: { setting: ajustes, toast: { add() {} } } };
+// maxEditor: la ventana sabe que corre en la app (p. ej., el audio del video solo se elige aquí; en el nodo, el grafo es del usuario)
+const appFalso = { graph: null, maxEditor: true, extensionManager: { setting: ajustes, toast: { add() {} } } };
 const textos = await i18n.cargarTextos();
 let tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso));
 const t = (clave, datos) => tr.t(clave, datos);

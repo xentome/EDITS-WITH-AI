@@ -116,6 +116,39 @@ def _copiar_valores(grafo: dict, valores: dict) -> None:
             entradas[nombre] = valor
 
 
+def _estado(grafo: dict) -> dict:
+    """El estado que guarda la ventana en el nodo PromptDelEdit (vacío si no hay o está dañado)."""
+    for nid in _por_tipo(grafo, NODO_PROMPT_DEL_EDIT):
+        bruto = grafo[nid].get("inputs", {}).get("estado") or "{}"
+        try:
+            return json.loads(bruto) if isinstance(bruto, str) else dict(bruto)
+        except ValueError:
+            return {}
+    return {}
+
+
+# el audio del video (27 oct): «cancion» (por defecto: la del LoadAudio, la que eligió el usuario; H3 solo la usa de guía)
+# o «modelo» (lo que genera H3, decodificado por el VAEDecodeAudio). Un proyecto viejo, sin el campo, va con la canción.
+AUDIOS_SALIDA = ("cancion", "modelo")
+NODO_VIDEO, NODO_DECODIFICAR_AUDIO = "CreateVideo", "VAEDecodeAudio"
+
+
+def audio_salida(grafo: dict) -> str:
+    a = _estado(grafo).get("audio_salida")
+    return a if a in AUDIOS_SALIDA else "cancion"
+
+
+def _poner_audio(grafo: dict, cual: str) -> None:
+    """Con «modelo», el CreateVideo toma el audio del VAEDecodeAudio (el de H3); con «cancion», se queda como en la plantilla."""
+    if cual != "modelo":
+        return
+    deco = _por_tipo(grafo, NODO_DECODIFICAR_AUDIO)
+    if not deco:
+        raise ErrorGenerar(f"la plantilla no tiene {NODO_DECODIFICAR_AUDIO}: no puedo usar el audio de H3")
+    for nid in _por_tipo(grafo, NODO_VIDEO):
+        grafo[nid]["inputs"]["audio"] = [deco[0], 0]
+
+
 def _leer_prompt(grafo: dict) -> str:
     for nid in _por_tipo(grafo, NODO_PROMPT_DEL_EDIT):
         bruto = grafo[nid].get("inputs", {}).get("estado") or "{}"
@@ -147,6 +180,7 @@ def preparar(valores: dict, opciones: dict | None = None) -> dict:
     grafo = plantilla()
     _copiar_valores(grafo, valores)
     prompt = _leer_prompt(grafo)
+    _poner_audio(grafo, audio_salida(grafo))          # antes de quitar el PromptDelEdit, que guarda la opción
 
     builders = _por_tipo(grafo, NODO_BUILDER)
     if not builders:

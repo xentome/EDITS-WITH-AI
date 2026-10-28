@@ -44,6 +44,8 @@ export async function abrir(node, app) {
     // lo que antes daba la receta, ahora a la vista: el estilo de todo el edit, el de las palabras y los efectos de texto
     estilo: guardado.estilo || "", estilo_palabras: guardado.estilo_palabras || "", efectos: guardado.efectos || {},
     sonido: guardado.sonido || "",            // renglón «Sonido»: vacío = la frase «sonido» de frases.json
+    // el audio del video generado (27 oct, solo en la app): «cancion» (por defecto) o «modelo» (el de H3); app/generar.py
+    audio_salida: guardado.audio_salida === "modelo" ? "modelo" : "cancion",
     // las frases de unión que cambió el usuario (panel «Frases del código»); las demás, las de frases.json (frasesBase).
     // trozos: el prompt por trozos con su origen; lineasRef: los dos renglones de arriba de cada referencia (su ficha)
     frases: guardado.frases || {}, frasesBase: {}, trozos: [], lineasRef: {},
@@ -65,7 +67,7 @@ export async function abrir(node, app) {
         secAudio = el("div", { class: "epl-audio" }), secSonido = el("div", { class: "epl-sonido" });
   secTiempo.append(secTexto, secLinea, secAudio, secSonido);   // la fila de texto, encima de las tomas (26 oct)
 
-  const ctx = { u, node, app, graph, S, wf, guardado, biblioteca: {}, cajitas: {}, caja,
+  const ctx = { u, node, app, graph, S, wf, guardado, enApp: !!app?.maxEditor, biblioteca: {}, cajitas: {}, caja,
                 secToma, secRefs, secLinea, secTexto, secAudio, secSonido, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
   ctx.avisar = (texto, tipo = "") => { estado.textContent = texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
@@ -189,7 +191,7 @@ export async function abrir(node, app) {
     W(node, "palabras").value = S.palabras;
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
-                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, sonido: S.sonido, frases: S.frases, plan: S.plan, prompt: S.prompt,
+                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, sonido: S.sonido, audio_salida: S.audio_salida, frases: S.frases, plan: S.plan, prompt: S.prompt,
                                                a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, idioma: tr.idioma, toma_elegida: S.elegida,
                                                guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);

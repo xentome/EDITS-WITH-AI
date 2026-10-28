@@ -385,4 +385,8 @@ textarea.epl-final{min-height:40vh}
 .epl-gestor-subir .epl-ic{font-size:30px}.epl-gestor-subir b{font-size:16px}.epl-gestor-subir span{font-size:12px;opacity:.85}
 .epl-biblio-item.en-proyecto{opacity:.75}
 .epl-ya-esta{position:absolute;top:10px;left:10px;z-index:1;font-size:11px;padding:2px 6px;background:rgba(0,0,0,.75);color:#F6EAD2;border:1px solid rgba(246,234,210,.5)}
+/* (27 oct) el audio del video, junto al sonido (solo en la app) */
+.epl-sonido{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.epl-sonido .epl-sonido-campo{flex:1 1 600px;margin:0}
+.epl-audio-salida{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.epl-audio-salida .epl-fila{margin:0;gap:4px}.epl-audio-salida .epl-ayuda{margin:0;max-width:60ch}
+.epl-audio-salida-et{font-size:12px;color:#9aa3b2}
 `;

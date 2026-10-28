@@ -380,3 +380,4 @@ body.tema-casete .epl-hueco-anadir,body.tema-casete .epl-gestor-subir{border-col
 body.tema-casete .epl-hueco-anadir b,body.tema-casete .epl-gestor-subir b{font:800 18px/1 var(--k-titulo);letter-spacing:.04em;text-transform:uppercase}
 body.tema-casete .epl-hueco-anadir span,body.tema-casete .epl-gestor-subir span{font-family:var(--k-rotulo);color:#C9C2D8}
 body.tema-casete .epl-ya-esta{font-family:var(--k-rotulo);text-transform:uppercase;letter-spacing:.06em;border-radius:3px}
+body.tema-casete .epl-audio-salida-et{font:700 12px/1 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-suave)}
