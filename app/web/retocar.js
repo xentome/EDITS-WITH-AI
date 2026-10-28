@@ -180,11 +180,11 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   }
   const fotogramaEn = (x) => { const r = linea.getBoundingClientRect(); return (x - r.left) / r.width * total(); };
   /* elegir la selección (27 oct, rehecho a petición del usuario): cada borde se mueve de fotograma en fotograma, con una
-   * aceleración como la de un ratón. Despacio, ~0,15 fotogramas por píxel (preciso, nunca salta); rápido, la ganancia sube
-   * con la velocidad (suavizada) hasta 3 f/px y cubre tramos grandes. La curva es continua: g(v) = 0,15 + 2,85 · s(v/1,6),
+   * aceleración como la de un ratón. Despacio, ~0,04 fotogramas por píxel (1 fotograma cada ~25 px: preciso, nunca salta); rápido, la ganancia sube
+   * con la velocidad (suavizada) hasta 0,8 f/px. Más lenta a petición del usuario (27 oct). La curva es continua: g(v) = 0,04 + 0,76 · s(v/3),
    * con s(x) = x² (3 − 2x) entre 0 y 1 (smoothstep), v en px/ms. Lo que queda de fotograma se acumula (sin saltos ni tirones);
    * al soltar no hay inercia. Pointer Lock (o captura del puntero) para no perderlo al salir de la barra. */
-  const GANANCIA_MIN = 0.15, GANANCIA_MAX = 3, V_PLENA = 1.6, SUAVE = 0.25;
+  const GANANCIA_MIN = 0.04, GANANCIA_MAX = 0.8, V_PLENA = 3, SUAVE = 0.25;
   const ganancia = (v) => { const x = Math.min(1, Math.max(0, v / V_PLENA)); return GANANCIA_MIN + (GANANCIA_MAX - GANANCIA_MIN) * x * x * (3 - 2 * x); };
   const fin = () => R.f0 + R.n;                // exclusivo: la selección es [f0, f0+n)
   // mueve un borde d fotogramas; el otro se queda quieto (al cruzarse se para en 1 fotograma)
