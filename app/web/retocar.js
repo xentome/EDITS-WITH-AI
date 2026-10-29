@@ -66,9 +66,10 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   const regla = el("div", { class: "max-rt-regla" }, minis, marcas, cursorRegla);
   const etCarril = el("div", { class: "max-rt-et-carril" });
   const izq = el("div", { class: "max-rt-izq" }, marco, transporte, verFila, regla, etCarril, linea, bajoVideo);
-  // las dos pestañas de Inpainting/detalle (29 oct): «Tapar» y «Mejorar» (Super Resolution y HDR)
+  /* las dos pestañas de Inpainting/detalle (29 oct): «Tapar» y «Mejorar» (Super Resolution y HDR). Van arriba del cuadro de la
+   * derecha, encima de «Qué tapar» o de «Super Resolution» (pedido de Jonathan, 29 oct), no en una fila propia */
   const subBar = el("div", { class: "max-rt-sub", role: "tablist" });
-  sec.append(cabeza, subBar, el("div", { class: "max-rt-cuerpo" }, izq, lado));
+  sec.append(cabeza, el("div", { class: "max-rt-cuerpo" }, izq, lado));
 
   const fps = () => R.info?.fps || 24;
   const mejorando = () => R.sub === "mejorar";
@@ -713,8 +714,8 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     cabeza.replaceChildren(el("span", {}, t("app.retocar.titulo")),
       el("span", { class: "max-rt-nombre", title: nombre }, nombre ? t("app.retocar.video", { video: nombre }) : ""),
       el("span", { class: "der" }, el("span", { class: "epl-ayuda" }, t("app.retocar.desde_videos")),
-        el("button", { class: "epl-boton epl-azul max-rt-cargar", title: t("app.retocar.cargar.tooltip"), disabled: enMarcha(),
-          onclick: () => archivoVideo.click() }, t("app.retocar.cargar"))));
+        el("button", { class: "epl-boton max-rt-cargar", title: t("app.retocar.cargar.tooltip"), disabled: enMarcha(),
+          onclick: () => archivoVideo.click() }, icono("subir"), " " + t("app.retocar.cargar"))));
     const [w, h] = R.info ? [R.info.ancho, R.info.alto] : [16, 9];
     marco.style.aspectRatio = `${w} / ${h}`;
     marco.style.width = `min(100%, calc(62vh * ${w} / ${h}))`;   // cabe a lo ancho y a lo alto sin deformarse
@@ -729,7 +730,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     pintarBajo();
     pintarAvance();
     if (mejorando()) {
-      lado.replaceChildren(...ladoMejorar(), ...(R.error ? [el("div", { class: "max-rt-error" }, R.error)] : []), avanceEl);
+      lado.replaceChildren(subBar, ...ladoMejorar(), ...(R.error ? [el("div", { class: "max-rt-error" }, R.error)] : []), avanceEl);
       return;
     }
     const ocupado = enMarcha();
@@ -763,7 +764,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
         pintar();
       } }, el("img", { src: r.vista || "", alt: r.nombre || "" }), el("small", {}, r.nombre || "")))
         : el("span", { class: "epl-ayuda" }, t("app.retocar.refs.sin_stack"))) : null;
-    lado.replaceChildren(
+    lado.replaceChildren(subBar,
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.mascara"),
           info(R.modo === "texto" ? "app.retocar.mascara.texto.ayuda" : R.rect ? "app.retocar.mascara.rect.ayuda_hecho" : "app.retocar.mascara.rect.ayuda")),
         el("div", { class: "max-rt-fila" }, modoBoton("texto", "app.retocar.mascara.texto"), modoBoton("rectangulo", "app.retocar.mascara.rect")),

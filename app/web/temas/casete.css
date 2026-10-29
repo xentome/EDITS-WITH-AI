@@ -136,6 +136,12 @@ body.tema-casete .max-boton.max-boton-videos{background:var(--k-ok) !important;c
   font:800 16px/1 var(--k-rotulo) !important;letter-spacing:.05em;min-height:42px;padding:8px 16px !important;display:inline-flex;align-items:center;gap:8px}
 body.tema-casete .max-boton.max-boton-videos:hover{background:#5BD686 !important;border-color:#5BD686 !important}
 body.tema-casete .max-boton.max-boton-videos svg{width:20px;height:20px}
+/* (29 oct) «Cargar video» de Retocar: grande y verde lima, como «Videos» */
+body.tema-casete .max-rt-cargar{background:var(--k-ok) !important;color:var(--k-tinta) !important;border:1px solid var(--k-ok) !important;
+  min-height:50px !important;padding:0 24px !important;font:800 18px/1 var(--k-titulo) !important;letter-spacing:.05em;text-transform:uppercase;
+  display:inline-flex !important;align-items:center;gap:8px;box-shadow:0 0 0 3px color-mix(in srgb,var(--k-ok) 25%,transparent)}
+body.tema-casete .max-rt-cargar:hover{background:#5BD686 !important;border-color:#5BD686 !important}
+body.tema-casete .max-rt-cargar svg{width:22px;height:22px}
 body.tema-casete .max-vid-cab{color:var(--k-ok)}
 body.tema-casete .max-vid-cab>b{font:800 28px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase;color:var(--k-crema)}
 body.tema-casete .max-vid-cuenta,body.tema-casete .max-vid-info span,body.tema-casete .max-vid-origen{font-family:var(--k-rotulo);color:var(--k-suave)}

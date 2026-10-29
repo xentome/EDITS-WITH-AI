@@ -108,3 +108,10 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **Probado** en una app de prueba (:8310): el estado del editor retomado es idéntico al de la generación (solo cambia la hora de guardado), con su semilla; también desde una mejora.
 - **Límite:** los videos hechos antes del 29 oct que ya no estén en la cola no se pueden retomar (el mp4 guarda el grafo, pero no el estado del editor).
 
+## 10 · Pestañas dentro del cuadro, «Cargar video» grande y preview en el pod ✅ (29 oct)
+
+- Las pestañas «Tapar» y «Mejorar» ya no tienen fila propia: van arriba del cuadro de la derecha, encima de «Qué tapar» o de «Super Resolution», y ocupan su ancho a medias.
+- «Cargar video» es grande y verde lima, como «Videos», con su icono de subir.
+- **Preview en el pod:** ComfyUI sí guardaba el preview (`/max_editor/preview` daba n = 20). La página lo descartaba: comparaba la hora del preview con «empezado», una hora sin zona que en el pod es UTC; el navegador en México la leía como hora local y el trabajo parecía empezar dentro de 6 h. Ahora `/app/cola` da `hace_s` (segundos que lleva el trabajo, medidos en el servidor) y la página compara `edad_s` del preview con eso: los dos relojes son del servidor.
+- Queda: la hora de cada fila de la cola sigue saliendo en la hora del pod (UTC).
+

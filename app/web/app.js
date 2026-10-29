@@ -102,7 +102,7 @@ const preview = (() => {
       boton("x", "app.preview.cerrar", () => { P.abierto = false; guardar(); pintar(); pintarAvance(); }));
     const u = P.ultimo;
     if (!u) {
-      visor.replaceChildren(el("div", { class: "max-vacio" }, t(a && (Date.now() / 1000 - (Date.parse(a.empezado) / 1000 || 0)) > 90 ? "app.preview.sin_datos" : "app.preview.esperando")));
+      visor.replaceChildren(el("div", { class: "max-vacio" }, t(a && (a.hace_s || 0) > 90 ? "app.preview.sin_datos" : "app.preview.esperando")));
       info.replaceChildren();
       return;
     }
@@ -119,8 +119,10 @@ const preview = (() => {
     P.mirando = true;
     try {
       const r = await pedir("/max_editor/preview?desde=" + P.n);
-      const empezo = Date.parse(P.trabajo.empezado || "") / 1000 || 0;
-      if (!r.igual && r.datos && r.t >= empezo - 2) {   // solo lo de este trabajo (no el último de otro)
+      /* solo lo de este trabajo (no el último de otro): el preview tiene menos edad que el trabajo. Las dos edades las mide el
+       * servidor (ComfyUI y la app): con el reloj del navegador fallaba en un pod, que va en UTC (29 oct) */
+      const lleva = P.trabajo.hace_s ?? Infinity;
+      if (!r.igual && r.datos && (r.edad_s ?? 0) <= lleva + 3) {
         const bin = Uint8Array.from(atob(r.datos), (c) => c.charCodeAt(0));
         if (P.url) URL.revokeObjectURL(P.url);
         P.url = URL.createObjectURL(new Blob([bin], { type: r.mime }));

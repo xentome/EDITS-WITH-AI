@@ -75,8 +75,15 @@ def _ahora() -> str:
 
 
 def _publico(t: dict) -> dict:
-    """Lo que ve la página: todo menos la foto fija (pesa: son los valores de todo el proyecto)."""
-    return {k: v for k, v in t.items() if k != "foto"}
+    """Lo que ve la página: todo menos la foto fija (pesa: son los valores de todo el proyecto).
+    `hace_s`: cuántos segundos lleva el trabajo, medido aquí. La página no puede leer «empezado» con su propio reloj: esa hora
+    va sin zona y en un pod es UTC, así que en México el trabajo parecía empezar dentro de 6 h y el preview nunca salía (29 oct)."""
+    r = {k: v for k, v in t.items() if k != "foto"}
+    try:
+        r["hace_s"] = round(max(0.0, (datetime.now() - datetime.fromisoformat(t["empezado"])).total_seconds()), 1) if t.get("empezado") else None
+    except (TypeError, ValueError):
+        r["hace_s"] = None
+    return r
 
 
 # ---------------------------------------------------------------- lo que pide la página
