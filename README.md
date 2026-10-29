@@ -6,45 +6,106 @@
 - You write an idea and pick your references and the part of the song. A **local LLM** writes the story and the shots, and code places the timing on the beats.
 - You press **Generate**: the app sends the workflow to your ComfyUI through the **official Comfy SDK** and shows you the video.
 
-## Requirements
+## Install
 
-- **Linux** with an **NVIDIA GPU** (tested on an RTX 3060 12 GB). About 75 GB free for the models.
-- **ComfyUI** with MiniMax H3 support, plus the custom nodes and models listed in [app/plantillas/LEEME.md](app/plantillas/LEEME.md):
-  - custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VDN-H3 and ComfyUI-MiniMax-H3-SPEED;
-  - models: H3 Singularity int8, its Qwen3-VL text encoder, the video and audio VAEs, taeh3 and VDN (sizes and sources in [MODELOS.md](MODELOS.md));
-  - optional, for «cover with SAM 3.1» (Tapar): `sam3.1_multiplex_fp16.safetensors` in `models/checkpoints/` (the SAM3 node ships with ComfyUI).
-- **llama.cpp** (`llama-server`) with **Qwen3.8 27B** and its `mmproj` (vision) at `http://127.0.0.1:8080`. The app uses the OpenAI-style API (`/v1/chat/completions`, model `qwen3.8-27b`). This is how we run it:
-  ```
-  llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B-BF16.gguf \
-    --alias qwen3.8-27b --host 127.0.0.1 --port 8080 --jinja -ngl 99 -fa on -c 16384 --parallel 1
-  ```
-- **Python 3.10+** (or `uv`), plus `ffmpeg` and `ffprobe`.
-- In your ComfyUI's Python: `numpy`, `Pillow` and `librosa` ([app/requirements-comfyui.txt](app/requirements-comfyui.txt)).
+> **You need:** Linux, an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
+> **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](#no-gpu-or-no-comfyui-use-runpod)**: it sets up everything and you only use the app.
 
-## Install from scratch
+Pick one of three ways. All three run the same installer, `app/instalar.sh`, which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
+- it puts **11 node packs** in `ComfyUI/custom_nodes/`, each at the exact commit we tested, and never overwrites a pack you already have;
+- it installs their Python dependencies into ComfyUI's Python with **torch, torchvision, torchaudio and numpy frozen**;
+- it downloads the **models from HuggingFace** (resumable) and checks each **sha256**;
+- it never patches ComfyUI itself, and it can be run again: what is already there is skipped.
 
-1. Install ComfyUI, the custom nodes and the models above. Check that ComfyUI opens at `http://127.0.0.1:8188`.
-2. Get this repo. It can live inside `ComfyUI/custom_nodes/` (then you also get the ComfyUI node) or anywhere else:
-   ```
-   git clone https://github.com/xentome/EDITS-WITH-AI.git
-   cd EDITS-WITH-AI
-   ```
-3. Install the app. It creates `app/.venv` and does not touch ComfyUI's Python:
-   ```
-   app/instalar.sh --comfyui /path/to/ComfyUI
-   ```
-   - `--comfyui` is needed if ComfyUI is not in `~/comfy/ComfyUI`. It is saved in `app/config.local.json`.
-   - If it says ComfyUI's Python lacks librosa, run the command it prints.
-   - `--escritorio` adds «MAX EDITOR» to your applications menu.
-4. Start ComfyUI and `llama-server`.
-5. Start the app:
-   ```
-   app/arrancar.sh
-   ```
-   It checks ComfyUI and the LLM, starts the SDK proxy and the app server if they are not running, and opens `http://127.0.0.1:8300/`. Safe to run again: nothing is started twice.
-6. To stop it: `app/parar.sh`. It stops the app server and the proxy; ComfyUI and the LLM are left alone.
+### 1. One command (Linux)
 
-After updating the code: `app/arrancar.sh --reiniciar`. The scripts speak Spanish if your system is in Spanish, English otherwise.
+```
+git clone https://github.com/xentome/EDITS-WITH-AI.git && cd EDITS-WITH-AI && app/instalar.sh --comfyui ~/ComfyUI --retocar
+```
+
+Then start (or restart) ComfyUI and run `app/arrancar.sh`: the app opens at `http://127.0.0.1:8300`.
+
+| Option | What it does |
+|---|---|
+| `--comfyui DIR` | where your ComfyUI is (saved in `app/config.local.json`) |
+| `--retocar` | also Retouch and Extend video (7 more packs + SAM 3.1, 1.7 GB) |
+| `--modelos DIR` | a `models/` folder where you already have the models: they are linked, not downloaded (repeatable) |
+| `--dry-run` | shows what it would do, changes nothing |
+| `--comprobar` | the doctor: says what is missing and how to fix it (same as `app/arrancar.sh --comprobar`) |
+| `--sin-modelos` / `--solo-modelos` | everything but the model downloads / only the models |
+| `--forzar` | moves packs you already have to the tested commit (only if they have no local changes) |
+| `--verificar` | full sha256 check of the models you already have |
+| `--sin-preguntas` | answers yes to everything (pods, scripts) |
+| `--escritorio` | adds «MAX EDITOR» to your applications menu |
+
+### 2. A few clicks
+
+1. Download the repo (`git clone` above, or GitHub › Code › Download ZIP and unzip it).
+2. Double-click **`Instalar MAX EDITOR.desktop`** in the repo folder (your file manager may ask you to trust it). A terminal opens, installs everything and adds **MAX EDITOR** to your applications menu.
+3. Start ComfyUI, then open **MAX EDITOR** from the menu.
+
+### 3. With an AI agent
+
+Paste this into Claude Code, Codex or any coding agent with a terminal:
+
+```
+Install MAX EDITOR (https://github.com/xentome/EDITS-WITH-AI) on this Linux PC and check that it works.
+1. Find my ComfyUI folder (the one with main.py) and the Python it runs with. If there is no ComfyUI, stop and
+   tell me to use the RunPod template in the README.
+2. Clone the repo and run: app/instalar.sh --comfyui <my ComfyUI> --retocar --dry-run
+   Show me what it would change (packs, pip packages, GB to download) and ask before continuing.
+3. If I already have H3 models in another ComfyUI, add --modelos <that ComfyUI>/models so they are linked.
+4. Run the same command without --dry-run. Do not patch ComfyUI, do not change torch or numpy, do not delete files.
+5. Ask me to restart ComfyUI (or do it if it is yours to restart), then run app/arrancar.sh --comprobar --retocar
+   and fix what it reports until it says "All good".
+6. Start the app with app/arrancar.sh and connect yourself to its MCP:
+   claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp
+   Then call estado and leer_guia("mapa") and tell me in 3 lines what you can do in the app.
+```
+
+### Requirements and times
+
+| | Tested | Notes |
+|---|---|---|
+| OS | Linux (CachyOS) | Windows/macOS not tested |
+| GPU | NVIDIA RTX 3060 **12 GB**, driver 615 | with less VRAM we don't know if it fits: use RunPod |
+| RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; plan for **64 GB RAM + swap** or more |
+| Disk | **68 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
+| ComfyUI | **v0.39.0**, Python 3.14, torch 2.13 + CUDA 13.0 | launched with `--enable-dynamic-vram --reserve-vram 0.5 --use-ck-attention` |
+| Install | ~1 min without models (packs + dependencies) | downloading the models: ~1.5 h at 100 Mb/s, ~20 min at 500 Mb/s |
+| One video | 22 frames at 544×960 ≈ **3 min**; 5 s at 1 MP (768×1344) ≈ **16 min** | on the RTX 3060 |
+
+Step by step for judges, with how to check each step: **[REPRODUCE.md](REPRODUCE.md)**.
+
+### Not enough RAM, VRAM or disk
+
+These exist and are public, but **we have not tested them with MAX EDITOR**; the templates use the files above. To try one, load it in ComfyUI and change the file name in the loader node of `app/plantillas/edit_h3.api.json`.
+
+| Option | Saves | Link |
+|---|---|---|
+| H3 Singularity v1.3 **pruned int8** (21 GB instead of 34 GB) | ~13 GB RAM and disk | [WarmBloodAban/Minimax-h3_Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) |
+| H3 Singularity v1.3 **pruned w4a8** (11.8 GB) | ~22 GB RAM and disk | same repo |
+| Text encoder **nvfp4** (15.7 GB instead of 27 GB) | ~11 GB RAM and disk; NVFP4 is made for RTX 50 (Blackwell) GPUs | [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/text_encoders) |
+| More swap (zram) | lets 46 GB of RAM hold the 61 GB of models | your distro's `zram-generator` |
+| Lower resolution (544×960) and short shots | VRAM and time | the resolution row in the app |
+
+### No GPU, or no ComfyUI: use RunPod
+
+A RunPod template with ComfyUI, the nodes, the models and MAX EDITOR already installed (it runs this same installer with `--sin-preguntas`): **link coming soon**. You only open the app in your browser.
+
+### Optional: the local LLM
+
+The app opens and generates without it (you write the shots yourself). With it, «Write shots», «Describe» and «Translate» work. We run **llama.cpp** (`llama-server`) with **Qwen3.8 27B** and its `mmproj` (vision) at `http://127.0.0.1:8080` (OpenAI-style API, model `qwen3.8-27b`):
+```
+llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B-BF16.gguf \
+  --alias qwen3.8-27b --host 127.0.0.1 --port 8080 --jinja -ngl 99 -fa on -c 16384 --parallel 1
+```
+
+### Start, stop, update
+
+- `app/arrancar.sh`: checks ComfyUI and the LLM, starts the SDK proxy, the app and the MCP if they are not running, and opens the browser. Safe to run again.
+- `app/parar.sh`: stops the app, the MCP and the proxy. ComfyUI and the LLM are left alone.
+- After updating the code: `app/arrancar.sh --reiniciar`. The scripts speak Spanish if your system is in Spanish, English otherwise.
 
 ## How to use it
 

@@ -1,52 +1,44 @@
 # MAX EDITOR
 
-> 4 min de lectura · actualizado el 26 oct 2026 · English: [README.md](../README.md)
+> 4 min de lectura · actualizado el 28 oct 2026 · English: [README.md](../README.md)
 
 **En resumen**
 - MAX EDITOR hace edits musicales verticales con **MiniMax H3**, en tu PC y sin servicios de pago.
 - Escribes una idea y eliges tus referencias y el trozo de la canción. Un **LLM local** escribe la historia y las tomas, y el código pone los tiempos en los beats.
 - Pulsas **Generar**: la app manda el workflow a tu ComfyUI con el **SDK oficial de Comfy** y te enseña el video.
 
-## Qué necesitas
+## Instalar
 
-- **Linux** con una **GPU NVIDIA** (probado con una RTX 3060 de 12 GB). Unos 75 GB libres para los modelos.
-- **ComfyUI** con soporte de MiniMax H3, más los custom nodes y los modelos de [plantillas/LEEME.md](plantillas/LEEME.md):
-  - custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder, ComfyUI-KJNodes, ComfyUI-VDN-H3 y ComfyUI-MiniMax-H3-SPEED;
-    para Retocar y Extender, además ComfyUI-NKD-Basic-Tools y ComfyUi-MpiNodes (guarda y carga el latente de H3);
-  - modelos: H3 Singularity int8, su codificador Qwen3-VL, los VAE de video y audio, taeh3 y VDN (lista en [MODELOS.md](../MODELOS.md));
-  - opcional, para «Tapar»: `sam3.1_multiplex_fp16.safetensors` en `models/checkpoints/` (el nodo SAM3 ya viene con ComfyUI).
-- **llama.cpp** (`llama-server`) con **Qwen3.8 27B** y su `mmproj` (visión), en `http://127.0.0.1:8080`. La app lo llama por la API de OpenAI (`/v1/chat/completions`, modelo `qwen3.8-27b`). Así lo arrancamos nosotros:
-  ```
-  llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B-BF16.gguf \
-    --alias qwen3.8-27b --host 127.0.0.1 --port 8080 --jinja -ngl 99 -fa on -c 16384 --parallel 1
-  ```
-- **Python 3.10 o más nuevo** (o `uv`), y `ffmpeg` y `ffprobe`.
-- En el Python de tu ComfyUI: `numpy`, `Pillow` y `librosa` ([requirements-comfyui.txt](requirements-comfyui.txt)).
+> **Necesitas:** Linux, una GPU NVIDIA de 12 GB, un [ComfyUI](https://docs.comfy.org/installation) v0.39.0 o más nuevo que ya funcione, unos 70 GB de disco y 64 GB de RAM + swap.
+> **¿No lo tienes, o no conoces ComfyUI?** Usa la **plantilla de RunPod** (abajo): lo deja todo listo y tú solo usas la app.
 
-## Instalar desde cero
+Los tres caminos usan el mismo instalador, `app/instalar.sh`, que lee una sola lista de piezas ([instalacion/comfy-build.yaml](instalacion/comfy-build.yaml)):
+- pone **11 packs de nodos** en `ComfyUI/custom_nodes/`, cada uno en el commit probado, sin pisar los que ya tienes;
+- instala sus dependencias en el Python de ComfyUI con **torch, torchvision, torchaudio y numpy congelados**;
+- baja los **modelos de HuggingFace** (se reanuda si se corta) y comprueba su **sha256**;
+- nunca parchea ComfyUI y se puede repetir: lo que ya está se salta.
 
-1. Instala ComfyUI, los custom nodes y los modelos de arriba. Comprueba que ComfyUI abre en `http://127.0.0.1:8188`.
-2. Baja este repo. Puede ir dentro de `ComfyUI/custom_nodes/` (así también tienes el nodo) o en cualquier carpeta:
-   ```
-   git clone https://github.com/xentome/EDITS-WITH-AI.git
-   cd EDITS-WITH-AI
-   ```
-3. Instala la app. Crea `app/.venv` y no toca el Python de ComfyUI:
-   ```
-   app/instalar.sh --comfyui /ruta/a/ComfyUI
-   ```
-   - `--comfyui` hace falta si ComfyUI no está en `~/comfy/ComfyUI`. Se guarda en `app/config.local.json`.
-   - Si te dice que al Python de ComfyUI le falta librosa, copia la orden que te enseña.
-   - `--escritorio` añade «MAX EDITOR» al menú de aplicaciones.
-4. Arranca ComfyUI y `llama-server`.
-5. Arranca la app:
-   ```
-   app/arrancar.sh
-   ```
-   Mira ComfyUI y el LLM, arranca el proxy y el servidor si no corren, y abre `http://127.0.0.1:8300/`. Puedes ejecutarlo varias veces: no duplica nada.
-6. Para pararla: `app/parar.sh`. Para el servidor y el proxy; ComfyUI y el LLM siguen como estaban.
+**1. Una orden (Linux)**
+```
+git clone https://github.com/xentome/EDITS-WITH-AI.git && cd EDITS-WITH-AI && app/instalar.sh --comfyui ~/ComfyUI --retocar
+```
+Luego arranca (o reinicia) ComfyUI y ejecuta `app/arrancar.sh`. Opciones: `--modelos DIR` (enlaza modelos que ya tienes), `--dry-run` (enseña lo que haría), `--comprobar` (el doctor), `--sin-preguntas` (para un pod), `--forzar`, `--verificar`, `--escritorio`. La tabla completa está en el [README](../README.md#install).
 
-Después de actualizar el código: `app/arrancar.sh --reiniciar`.
+**2. Pocos clics:** baja el repo y haz doble clic en **`Instalar MAX EDITOR.desktop`**. Se abre una terminal, lo instala todo y añade **MAX EDITOR** al menú de aplicaciones.
+
+**3. Con un agente de IA:** pega en Claude Code, Codex u otro el prompt de la sección «With an AI agent» del [README](../README.md#3-with-an-ai-agent). Instala, comprueba con el doctor y, al final, el agente se conecta al MCP de la app.
+
+**Requisitos y tiempos (probado):** RTX 3060 de 12 GB, 46 GB de RAM + 92 GB de swap zram, ComfyUI v0.39.0. Instalar sin modelos: ~1 min. Bajar los modelos: ~1,5 h a 100 Mb/s. Un video de 22 fotogramas a 544×960: ~3 min; 5 s a 1 MP: ~16 min. Para jueces, paso a paso: [REPRODUCE.md](../REPRODUCE.md). Alternativas más ligeras (sin probar con la app): README › «Not enough RAM, VRAM or disk».
+
+**Sin GPU o sin ComfyUI: RunPod.** Una plantilla con ComfyUI, los nodos, los modelos y MAX EDITOR ya instalados (usa este mismo instalador con `--sin-preguntas`): **enlace pronto**.
+
+**Opcional, el LLM local:** la app abre y genera sin él (tú escribes las tomas). Con él funcionan «Escribir tomas», «Describir» y «Traducir». Nosotros usamos **llama.cpp** con **Qwen3.8 27B** y su `mmproj` en `http://127.0.0.1:8080`:
+```
+llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B-BF16.gguf \
+  --alias qwen3.8-27b --host 127.0.0.1 --port 8080 --jinja -ngl 99 -fa on -c 16384 --parallel 1
+```
+
+**Arrancar y parar:** `app/arrancar.sh` mira ComfyUI y el LLM, arranca el proxy, la app y el MCP si no corren y abre `http://127.0.0.1:8300/`. `app/parar.sh` los para; ComfyUI y el LLM siguen como estaban. Después de actualizar el código: `app/arrancar.sh --reiniciar`.
 
 ## Usarla
 
