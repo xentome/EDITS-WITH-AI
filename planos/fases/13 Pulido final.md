@@ -59,3 +59,20 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **El sonido:** un renglón que crece con el texto (`field-sizing: content`, 16 px). El borde y el fondo cian van más suaves, y el título baja a 16 px. El panel pasó de unos 230 px a 118 px de alto. El botón «Añadir canción», de 64 a 46 px, con menos brillo.
 - **La duración:** 42 px de alto, con borde, fondo y rótulo violeta, números de 18 px y un brillo suave. Solo CSS (`casete.css`), sin cambios en el código.
 - **Aún más bajo (Jonathan):** el título, el texto y «Traducir» van en un solo renglón y «Audio del video» queda debajo. El panel pasó de 118 a 74 px.
+
+## 6 · Los submenús: análisis y prototipo (en curso)
+
+- **Pedido:** pulir la ficha de una referencia, «Añadir referencia» y los dos apartados de Retocar. Antes, ver qué hacen mal frente a los principios del artículo de Figma.
+- **Análisis (28 oct):** 29 propuestas.
+  - A1–A6: ficha. Título humano, ayuda en «ⓘ», «Quitar» en rojo que pregunta, la ventana crece con la pantalla, 2 pestañas y «Listo» con «se guarda solo».
+  - B1–B7: añadir. Título corto, «Subir» en la cabecera y zona de soltar solo al arrastrar, tamaño con nombre, barra fija con «Añadir N», tarjetas con el papel en color, filtros por tipo, ventana accesible.
+  - C1–C7: Inpainting. Regla con miniaturas donde un clic salta, «👁 Máscara», pantalla grande, una sola fila de transporte de 40 px, nombres claros, pastilla «Elegido» y acción fija.
+  - D1–D6: Extender. Botones de 40 px y atajos de largo; orden nuevo (largo, qué pasa, audio, referencias, «Más opciones»); sin jerga; acción fija; el mismo transporte; la semilla recordada.
+  - E1–E3: la misma cabecera, un solo tamaño de botón y las ayudas en «ⓘ».
+- **Jonathan:** «aplicaremos TODAS» primero en prototipos. Prototipo: `app/web/prototipo_submenus.html?menu=ficha|anadir|inpainting|extender&variant=P1|P2|P3`, desechable y fuera de git, con los RefMods y un video de verdad; no guarda ni genera nada.
+  - Ficha: P1 ventana grande con 2 pestañas · P2 panel lateral · P3 navegación a la izquierda con tarjetas.
+  - Añadir: P1 galería con barra fija · P2 carpetas a la izquierda y bandeja · P3 lista con vista previa.
+  - Inpainting: P1 visor a la izquierda · P2 cine arriba y ajustes en 3 columnas · P3 por pasos.
+  - Extender: P1 columna ordenada · P2 la línea de tiempo manda · P3 tres preguntas grandes.
+- Falta: que Jonathan elija y aplicarlo a la app.
+
