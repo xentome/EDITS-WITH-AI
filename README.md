@@ -93,7 +93,7 @@ Install MAX EDITOR (https://github.com/xentome/EDITS-WITH-AI) on this Linux PC a
 | Disk | **68 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
 | ComfyUI | **v0.39.0**, Python 3.14, torch 2.13 + CUDA 13.0 | launched with `--enable-dynamic-vram --reserve-vram 0.5 --use-ck-attention` |
 | Install | ~1 min without models (packs + dependencies) | downloading the models: ~1.5 h at 100 Mb/s, ~20 min at 500 Mb/s |
-| One video | 22 frames at 544×960 ≈ **3 min**; 5 s at 1 MP (768×1344) ≈ **16 min** | on the RTX 3060 |
+| One video | 22 frames at 544×960 ≈ **3 min**; 5 s at 1 MP (768×1344) ≈ **17 min** | on the RTX 3060 |
 
 Step by step for judges, with how to check each step: **[REPRODUCE.md](REPRODUCE.md)**.
 

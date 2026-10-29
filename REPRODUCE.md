@@ -14,7 +14,7 @@
 | 5 | `app/arrancar.sh --comprobar --retocar` | 20 s | `✓ ComfyUI loads all the nodes` and `✓ All good.` |
 | 6 | `app/arrancar.sh` | 10 s | the browser opens `http://127.0.0.1:8300` with a project (a new empty one on a fresh install) |
 | 7 | In the app: resolution **544×960**, length **22 frames**, then **Generate** | ~3 min on an RTX 3060 | a short video appears under **Mis videos** |
-| 8 | Optional: 5 s at 768×1344 | ~16 min on an RTX 3060 | the full-quality edit |
+| 8 | Optional: 5 s at 768×1344 | ~17 min on an RTX 3060 | the full-quality edit |
 | 9 | Optional: an agent drives the app: `claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp` | 1 min | the agent's changes appear in the page with a pink «✎ agent» mark |
 
 Already have the H3 models in another ComfyUI? Add `--modelos /that/ComfyUI/models` to step 3: they are linked, not downloaded.

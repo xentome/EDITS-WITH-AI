@@ -3,7 +3,7 @@
 Lectura: 2 min · 28 oct 2026 · Sesión «INSTALADOR» (el handoff decía «14», pero ese número ya era «Traducir»).
 
 **En resumen**
-- `app/instalar.sh` instala todo con una orden. Lee `app/instalacion/comfy-build.yaml`, la única lista de piezas: 11 packs con su commit, 14 archivos de modelos con su repo de HF, revisión, tamaño y sha256.
+- `app/instalar.sh` instala todo con una orden. Lee `app/instalacion/comfy-build.yaml`, la única lista de piezas: 10 packs con su commit (hasta el 29 oct eran 11: se quitó SPEED, de licencia no comercial), 14 archivos de modelos con su repo de HF, revisión, tamaño y sha256.
 - Tres caminos en el README: una orden, doble clic en `Instalar MAX EDITOR.desktop` y un prompt para un agente.
 - Doctor: `app/arrancar.sh --comprobar [--retocar]`. Prueba en limpio: `app/instalacion/prueba_en_limpio.sh`, **todo PASS** el 28 oct.
 
