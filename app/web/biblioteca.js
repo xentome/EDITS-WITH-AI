@@ -57,15 +57,15 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
   /* (29 oct, Jonathan: «los proyectos no parecen proyectos») la tarjeta es una carpeta de trabajo: el nombre arriba con su
    * icono, la idea, el último video como portada (con hojas detrás), las caritas de sus referencias y de qué está hecho */
   function tarjetaProyecto(p) {
-    const vs = de(p.nombre), r = p.resumen || {};
+    const vs = de(p.nombre), r = p.resumen || {}, hay = !!p.resumen;      // sin resumen: un servidor sin reiniciar
     const piezas = [
-      [icono("tomas"), t("app.biblio.n_tomas", { n: r.tomas || 0 })],
-      [icono("persona"), t("app.biblio.n_refs", { n: r.n_refs || 0 })],
+      hay ? [icono("tomas"), t("app.biblio.n_tomas", { n: r.tomas || 0 })] : null,
+      hay ? [icono("persona"), t("app.biblio.n_refs", { n: r.n_refs || 0 })] : null,
       r.cancion ? [icono("musica"), t("app.biblio.cancion")] : null,
       [icono("video"), t("app.biblio.n_videos", { n: vs.length })]].filter(Boolean);
     return el("button", { class: "max-bib-proy" + (B.elegido === p.nombre ? " elegido" : "") + (A.proyecto === p.nombre ? " actual" : ""),
-                          title: t("app.biblio.abrir.tooltip"), "aria-pressed": String(B.elegido === p.nombre),
-                          onclick: () => { B.elegido = p.nombre; pintar(); }, ondblclick: () => abrirElegido(p.nombre) },
+                          title: t("app.biblio.abrir.tooltip"), "aria-pressed": String(B.elegido === p.nombre), "data-proyecto": p.nombre,
+                          onclick: () => elegir(p.nombre), ondblclick: () => abrirElegido(p.nombre) },
       el("span", { class: "max-bib-proy-cab" }, icono("capas"),
         el("b", {}, p.nombre === EJEMPLO ? t("app.proyecto.ejemplo_opcion", { nombre: p.nombre }) : p.nombre),
         A.proyecto === p.nombre ? el("span", { class: "max-bib-abierto" }, t("app.biblio.abierto")) : null),
@@ -77,6 +77,20 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
           r.n_refs > r.refs.length ? el("span", { class: "max-bib-carita letra" }, "+" + (r.n_refs - r.refs.length)) : null) : null,
         ...piezas.map(([ic, texto]) => el("span", { class: "max-bib-pieza" }, ic, texto))),
       el("small", {}, t("app.biblio.editado", { fecha: fecha(p.guardado) })));
+  }
+  /* elegir un proyecto no vuelve a pintar la ventana (29 oct, Jonathan: «me regresa hasta arriba»): solo cambia el
+   * marco de las tarjetas y el pie, y la lista se queda donde estaba */
+  function elegir(nombre) {
+    B.elegido = nombre;
+    caja.querySelectorAll(".max-bib-proy").forEach((x) => {
+      const si = x.dataset.proyecto === nombre;
+      x.classList.toggle("elegido", si);
+      x.setAttribute("aria-pressed", String(si));
+    });
+    const pie = caja.querySelector(".max-bib-elegido");
+    if (pie) pie.textContent = t("app.biblio.elegido", { nombre });
+    const abrir = caja.querySelector(".max-bib-abrir");
+    if (abrir) abrir.disabled = false;
   }
   function tarjetaVideo(v) {
     return el("button", { class: "max-bib-vid" + (B.video === v.archivo ? " elegido" : ""), "aria-pressed": String(B.video === v.archivo),
@@ -139,16 +153,20 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
       }
     }
     pintarCentro();
+    // lo mismo a la vista (pestaña y carpeta): la lista se queda donde estaba; otra carpeta empieza arriba
+    const vista = `${B.tab}|${B.carpeta}`, antes = caja.querySelector(".max-bib-centro")?.scrollTop || 0, mismaTab = caja.dataset.vista === vista;
+    caja.dataset.vista = vista;
     caja.replaceChildren(
       el("div", { class: "max-bib-cab" }, el("b", { class: "max-bib-titulo" }, t(proyectos ? "app.biblio.proyectos" : "app.biblio.titulo_biblioteca")), buscar,
         el("span", { class: "max-derecha" }), nuevo, ejemplo,
         el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrar }, icono("x"))),
       el("div", { class: "max-bib-cuerpo" + (proyectos ? "" : " con-panel") }, lado, centro, ...(proyectos ? [] : [panelTraer()])),
       ...(proyectos ? [el("div", { class: "max-bib-pie" },
-        el("span", {}, B.elegido ? t("app.biblio.elegido", { nombre: B.elegido }) : t("app.biblio.elige")),
+        el("span", { class: "max-bib-elegido" }, B.elegido ? t("app.biblio.elegido", { nombre: B.elegido }) : t("app.biblio.elige")),
         el("span", { class: "max-derecha" }),
         el("button", { class: "max-boton max-vid-accion", onclick: cerrar }, t("app.proyecto.cancelar")),
         el("button", { class: "max-generar max-bib-abrir", disabled: !B.elegido, onclick: () => abrirElegido() }, icono("adelante"), " " + t("app.biblio.abrir")))] : []));
+    if (mismaTab) centro.scrollTop = antes;
   }
 
   async function abrir(tab = "proyectos") {

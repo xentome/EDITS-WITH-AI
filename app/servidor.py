@@ -255,7 +255,9 @@ def resumen_proyecto(valores: dict) -> dict:
     refs = [x for x in pila.get("picks") or [] if isinstance(x, dict) and x.get("on", True)]
     return {"idea": str((valores.get("74") or {}).get("idea") or "")[:140],
             "tomas": len(plan.get("tomas") or []),
-            "refs": [{"nombre": x.get("label") or x.get("name") or "", "refmod": x.get("preview") or x.get("name") or ""} for x in refs[:4]],
+            # el nombre que le puso el usuario en su ficha («the girl»), si no el del archivo
+            "refs": [{"nombre": ((estado.get("refs") or {}).get(x.get("name")) or {}).get("nombre") or x.get("label") or x.get("name") or "",
+                      "refmod": x.get("preview") or x.get("name") or ""} for x in refs[:4]],
             "n_refs": len(refs),
             "cancion": bool((valores.get("72") or {}).get("audio")),
             "duracion": (valores.get("74") or {}).get("duracion_s")}
