@@ -17,7 +17,7 @@
 6. ✅ `CREDITOS.md` con las 11 piezas del instalador. Ojo: **ComfyUI-MiniMax-H3-SPEED es PolyForm Noncommercial** (también en el README).
 7. ✅ README: capturas (`docs/capturas/`, hechas con un navegador aparte sobre un proyecto vacío) y «What's in this repo».
 8. ✅ Historial reescrito (git filter-branch en una copia, cambio atómico del master local): sin `maqueta/inspiracion/img/` y con el correo noreply de GitHub en los 182 commits; mismo árbol final. El historial viejo queda solo en local, en la etiqueta `respaldo-historial-viejo`. `git config user.email` del repo = el noreply.
-9. ⬜ Force push: el sistema de permisos no deja hacerlo a Claude. Lo lanza Jonathan:
+9. ✅ Force push hecho por Jonathan (29 oct): GitHub master = 75e1f92. Comando usado:
    `git push --force-with-lease=master:7d93eecc658ea6722baff4f221a1caa5fe92db4d origin master`
    No subir etiquetas (`--tags`): `respaldo-historial-viejo` lleva las fotos.
 
