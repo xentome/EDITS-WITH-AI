@@ -42,8 +42,8 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 ## Usarla
 
-1. **Abre el ejemplo.** La primera vez se abre solo. El ejemplo del repo no cambia nunca: al elegirlo, la app hace una copia tuya («mi ejemplo») y abre esa.
-   - Las fotos y los RefMods del ejemplo no van en el repo. En otro PC verás las tarjetas vacías: pon tus referencias con **+ Añadir** o **⬆ Subir foto o video**.
+1. **Tu primer proyecto.** La primera vez la app abre el ejemplo si lo hay y, si no, crea un proyecto vacío. El ejemplo no cambia nunca: al elegirlo, la app hace una copia tuya («mi ejemplo») y abre esa.
+   - Pon tus referencias con **+ Añadir** o **⬆ Subir foto o video**.
 2. **La historia:** escribe la idea y el estilo, y pulsa **Escribir historia**. Luego **Escribir tomas**.
 3. **Las tomas:** toca una toma en la línea de tiempo para ver y cambiar su prompt. Arrastra el borde entre tomas para mover el corte. El candado guarda lo tuyo: el LLM no lo cambia.
 4. **La canción:** en la ventana de audio, **Cambiar canción** y arrastra la onda hasta el trozo que quieres. Tú eliges el trozo; la app no lo decide.
