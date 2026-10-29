@@ -9,7 +9,7 @@
 ## Install
 
 > **You need:** Linux, an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
-> **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](#no-gpu-or-no-comfyui-use-runpod)**: it sets up everything and you only use the app.
+> **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](RUNPOD.md)**: it sets up everything and you only use the app.
 
 Pick one of three ways. All three run the same installer, `app/instalar.sh`, which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
 - it puts **11 node packs** in `ComfyUI/custom_nodes/`, each at the exact commit we tested, and never overwrites a pack you already have;
@@ -91,7 +91,7 @@ These exist and are public, but **we have not tested them with MAX EDITOR**; the
 
 ### No GPU, or no ComfyUI: use RunPod
 
-A RunPod template with ComfyUI, the nodes, the models and MAX EDITOR already installed (it runs this same installer with `--sin-preguntas`): **link coming soon**. You only open the app in your browser.
+A RunPod template with ComfyUI, the nodes, the models, the local LLM and MAX EDITOR already installed (it runs this same installer with `--sin-preguntas`). You pick a GPU with 24 GB or more, wait about 11 minutes and open the app in your browser. Steps, times and cost: **[RUNPOD.md](RUNPOD.md)**.
 
 ### Optional: the local LLM
 
