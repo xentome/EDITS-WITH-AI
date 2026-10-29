@@ -74,5 +74,6 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
   - Añadir: P1 galería con barra fija · P2 carpetas a la izquierda y bandeja · P3 lista con vista previa.
   - Inpainting: P1 visor a la izquierda · P2 cine arriba y ajustes en 3 columnas · P3 por pasos.
   - Extender: P1 columna ordenada · P2 la línea de tiempo manda · P3 tres preguntas grandes.
-- Falta: que Jonathan elija y aplicarlo a la app.
+- **Elegidas (Jonathan, 28 oct):** Inpainting P1, Extender P1, Ficha P3 y Añadir P2 («las carpetas son una gran idea»). Las carpetas son las subcarpetas de `ComfyUI/models/refmods/`, de donde Fantastic lee los RefMods. Al tamaño real, el pie de «Añadir» P2 se veía cortado; ya está corregido en el prototipo.
+- Falta: aplicarlo a la app. También falta el preview en vivo (opción A, B, C o A+C, sin elegir).
 
