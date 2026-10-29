@@ -98,3 +98,13 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **Probado de punta a punta** en una app de prueba (:8310, con su propia cola): SR ×2 + HDR desde la interfaz, en 16 s; el resultado sale en 2752 × 1600 HLG de 10 bits y se carga en la línea de tiempo.
 - **Pendiente:** herramienta MCP `mejorar_video`, si Jonathan la quiere.
 
+## 9 · Videos más grande y «Retomar prompt» ✅ (29 oct)
+
+- **Pedido de Jonathan:** el botón Videos más visible y más grande, la ventana y su texto más grandes, y poder volver a cargar el prompt de un video ya generado como punto de partida.
+- **Color:** verde lima (`--k-ok`, #3FC46E), elegido por Jonathan.
+- **Ventana:** hasta 1720 px de ancho y en dos columnas: el video, qué es, y los botones grandes Retomar prompt · Poner en Retocar · Extender; a la derecha, la lista con texto de 17–18 px.
+- **Dónde se guarda:** cada Generar hecho guarda sus valores en `app/salidas/valores/<video>.json` (`cola._guardar_valores`). Al arrancar, se rellenan los de los trabajos que siguen en la cola. `GET /app/valores_video` los devuelve, siguiendo «de» desde un retoque, una extensión o una mejora hasta su Generar. `/app/videos` dice `prompt_de` en cada video.
+- **Al retomar:** pregunta «En este proyecto» (lo reemplaza) o «En una copia nueva» («<proyecto> retomado»), y pone la semilla de ese video.
+- **Probado** en una app de prueba (:8310): el estado del editor retomado es idéntico al de la generación (solo cambia la hora de guardado), con su semilla; también desde una mejora.
+- **Límite:** los videos hechos antes del 29 oct que ya no estén en la cola no se pueden retomar (el mp4 guarda el grafo, pero no el estado del editor).
+

@@ -130,7 +130,24 @@ body.tema-casete .max-avance .max-texto{font-family:var(--k-rotulo);font-size:13
 body.tema-casete .max-avance.mal .max-texto{color:var(--k-error)}
 body.tema-casete .max-pop,body.tema-casete .max-videos-caja{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;box-shadow:0 16px 40px rgba(0,0,0,.55)}
 body.tema-casete .max-video:hover{background:var(--k-tinta3)}
-body.tema-casete .max-video.actual{border-color:var(--k-crema)}
+body.tema-casete .max-video.actual{border-color:var(--k-ok);background:rgba(63,196,110,.1)}
+/* (29 oct) Videos en verde lima (elegido por el usuario): el botón de la cabecera, más grande, y su ventana */
+body.tema-casete .max-boton.max-boton-videos{background:var(--k-ok) !important;color:var(--k-tinta) !important;border-color:var(--k-ok) !important;
+  font:800 16px/1 var(--k-rotulo) !important;letter-spacing:.05em;min-height:42px;padding:8px 16px !important;display:inline-flex;align-items:center;gap:8px}
+body.tema-casete .max-boton.max-boton-videos:hover{background:#5BD686 !important;border-color:#5BD686 !important}
+body.tema-casete .max-boton.max-boton-videos svg{width:20px;height:20px}
+body.tema-casete .max-vid-cab{color:var(--k-ok)}
+body.tema-casete .max-vid-cab>b{font:800 28px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase;color:var(--k-crema)}
+body.tema-casete .max-vid-cuenta,body.tema-casete .max-vid-info span,body.tema-casete .max-vid-origen{font-family:var(--k-rotulo);color:var(--k-suave)}
+body.tema-casete .max-vid-info b{font:700 20px/1.2 var(--k-rotulo);color:var(--k-crema)}
+body.tema-casete .max-vid-confirmar>b{font:700 18px var(--k-rotulo);color:var(--k-crema)}
+body.tema-casete .max-boton.max-vid-accion{font-size:16px !important;min-height:48px}
+body.tema-casete .max-boton.max-vid-retomar{background:var(--k-ok) !important;color:var(--k-tinta) !important;border-color:var(--k-ok) !important;font-weight:800 !important}
+body.tema-casete .max-boton.max-vid-retomar:hover{background:#5BD686 !important}
+body.tema-casete .max-boton.max-vid-retomar:disabled{background:transparent !important;color:var(--k-suave) !important;border-color:var(--k-linea) !important;opacity:.6}
+body.tema-casete .max-video-txt{font:600 18px/1.15 var(--k-rotulo);color:var(--k-texto)}
+body.tema-casete .max-video small{font:500 15px var(--k-rotulo)}
+body.tema-casete .max-video-prompt{color:var(--k-ok)}
 body.tema-casete .max-video small,body.tema-casete .max-vacio{color:var(--k-suave)}
 body.tema-casete .max-cargando{color:var(--k-suave)}
 body.tema-casete .epl-resolucion{background:var(--k-tinta) !important;border:1px solid var(--k-linea) !important;padding:2px 8px !important}
@@ -359,7 +376,6 @@ body.tema-casete .max-rt-prompt.soltar{outline:2px dashed var(--k-crema) !import
 /* la ventana de los videos, como la ficha: tinta, rótulo en Big Shoulders y su ✕ */
 body.tema-casete .max-videos{background:rgba(10,7,13,.78)}
 body.tema-casete .max-videos-caja{border-radius:8px}
-body.tema-casete .max-videos-caja>.max-fila:first-child b{font:800 20px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
 body.tema-casete .max-videos-caja video{border-radius:0}
 body.tema-casete .max-rt-tramo-info{font-family:var(--k-mono);color:var(--k-suave)}body.tema-casete .max-rt-tramo-info b{color:var(--k-crema)}
 body.tema-casete .max-rt-asa{width:12px}

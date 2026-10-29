@@ -199,7 +199,7 @@ function pintarCabecera() {
         util.icono("semilla"), " " + t("app.semilla.otra"))),
     el("button", { class: "max-generar", disabled: !A.node, title: t("app.generar.tooltip"), onclick: () => generar(1) }, t("app.generar")),
     el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola, botonEncolar),
-    el("button", { class: "max-boton", title: t("app.videos.tooltip"), onclick: () => { A.verVideos = !A.verVideos; pintarVideos(); } },
+    el("button", { class: "max-boton max-boton-videos", title: t("app.videos.tooltip"), onclick: () => { A.verVideos = !A.verVideos; pintarVideos(); } },
       util.icono("video"), " " + t("app.videos.boton", { n: A.videos.length })),
     el("button", { class: "max-boton" + (activos ? " max-cola-activa" : ""), title: t("app.cola.tooltip"), onclick: () => { A.verCola = !A.verCola; pintarCola(); } },
       util.icono("menu"), " " + t("app.cola.boton", { n: activos })),
@@ -295,7 +295,8 @@ async function guardarProyecto(nombre = A.proyecto, nuevo = false, forzar = fals
   if (r.status === 409 && j.clave === "app.error.conflicto") { A.conflicto = { rev: j.rev }; pintarAgente(); return; }
   if (!r.ok || j.error) throw new Error(j.error || r.statusText);
   if (propio || nombre === A.proyecto) { A.guardadoJSON = texto; A.rev = j.rev ?? A.rev; A.sucio = false; }
-  avisar(t("app.proyecto.guardado", { nombre, hora: new Date().toLocaleTimeString(tr.locale) }), "bien");
+  // un aviso importante (p. ej. «Prompt retomado») no lo tapa el «guardado» del autoguardado que llega justo después
+  if (Date.now() > (A.avisoFijo || 0)) avisar(t("app.proyecto.guardado", { nombre, hora: new Date().toLocaleTimeString(tr.locale) }), "bien");
   return j;
 }
 
@@ -551,46 +552,90 @@ function ponerVideo(archivo) {
   if (reproductor.getAttribute("src") !== src) { reproductor.pause(); reproductor.setAttribute("src", src); reproductor.load(); reproductor.play().catch(() => {}); }
   return reproductor;
 }
+/* (29 oct, a petición del usuario) la ventana es grande y en dos columnas: a la izquierda el video elegido, su información y
+ * sus acciones en botones grandes (Retomar prompt · Retocar · Extender); a la derecha la lista. «Retomar prompt» carga los
+ * valores con que se generó ese video (o, en un retoque, extensión o mejora, los de su Generar de origen: prompt_de) en este
+ * proyecto (reemplaza lo de ahora, tras confirmarlo) o en una copia nueva, y pone su semilla */
+const ICONO_VIDEO = { retoque: "retoque", extension: "tomas", mejora: "grande", retomar: "texto" };   // tipo o acción → util.icono
+function describirVideo(x) {
+  return x.tipo === "retoque" ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
+    : x.tipo === "extension" ? t("app.videos.extension", { s: tr.num((x.extension?.nuevos || 0) / 24, 2), semilla: x.semilla ?? "?" })
+    : x.tipo === "mejora" ? t("app.videos.mejora", { que: [x.superres ? "×" + tr.num(x.superres.escala, x.superres.escala % 1 ? 1 : 0) : "",
+                                                           x.hdr ? t("app.retocar.mejorar.hdr") : ""].filter(Boolean).join(" · ") })
+    : t("app.videos.semilla", { semilla: x.semilla ?? "?" });
+}
+async function retomarPrompt(x, donde) {
+  try {
+    const d = await pedir("/app/valores_video?video=" + encodeURIComponent(x.archivo));
+    A.retomar = null;
+    A.verVideos = false;
+    pintarVideos();
+    let nombre = A.proyecto;
+    if (donde === "copia") {
+      const base = t("app.videos.retomar.nombre_copia", { proyecto: A.proyecto }), usados = new Set(A.proyectos.map((p) => p.nombre));
+      nombre = base;
+      for (let i = 2; usados.has(nombre); i++) nombre = `${base} ${i}`;
+      await pedir("/app/proyecto/" + encodeURIComponent(nombre), { valores: d.valores, nuevo: true });
+      await cargarProyectos();
+    }
+    await abrirProyecto(nombre, d.valores);
+    const w = semillaW();                                 // la semilla del video (con «+ Cola ×N» no es la del campo)
+    if (w && d.semilla != null && d.semilla !== "") w.value = +d.semilla;
+    await guardarProyecto(nombre, false, true);          // lo retomado ya es el proyecto (también en disco)
+    ponerFase("tomas");
+    avisar(t(donde === "copia" ? "app.videos.retomar.hecho_copia" : "app.videos.retomar.hecho",
+             { fecha: (d.fecha || "").replace("T", " ").slice(0, 16), semilla: d.semilla ?? "?", proyecto: nombre }), "bien");
+    A.avisoFijo = Date.now() + 8000;
+  } catch (e) { avisar(t("app.videos.retomar.error", { error: e.message }), "mal"); }
+}
 function pintarVideos() {
   panelVideos.className = "max-videos" + (A.verVideos ? " ver" : "");
-  if (!A.verVideos) { soltarVideo(); return cajaVideos.replaceChildren(); }   // cerrada: fuera el reproductor (que no siga sonando)
+  if (!A.verVideos) { A.retomar = null; soltarVideo(); return cajaVideos.replaceChildren(); }   // cerrada: fuera el reproductor
   cajaVideos.setAttribute("aria-label", t("app.videos.titulo", { proyecto: A.proyecto }));
   const actual = A.videos.find((x) => x.archivo === A.videoActual);
   const fecha = (x) => (x.fecha || "").replace("T", " ");
   if (!actual) soltarVideo();
+  const ir = (x, accion) => (e) => {
+    e.stopPropagation();
+    A.verVideos = false;
+    pintarVideos();
+    ponerFase("retocar");
+    if (accion === "retocar") { extension.verInpaint(); retoque.cargar(x.archivo).then(retoque.ver); }
+    else extension.cargar(x.archivo).then(extension.ver);
+  };
+  const grande = (clase, clave, tooltip, accion, ic, extra = {}) => el("button", { class: "max-boton max-vid-accion " + clase, title: t(tooltip), onclick: accion, ...extra },
+    util.icono(ic), " " + t(clave));
+  const acciones = !actual ? null : A.retomar === actual.archivo
+    ? el("div", { class: "max-vid-confirmar", role: "group" },
+        el("b", {}, t("app.videos.retomar.donde")),
+        grande("max-vid-retomar", "app.videos.retomar.aqui", "app.videos.retomar.aqui.tooltip", () => retomarPrompt(actual, "aqui"), "check"),
+        grande("", "app.videos.retomar.copia", "app.videos.retomar.copia.tooltip", () => retomarPrompt(actual, "copia"), "mas"),
+        el("button", { class: "max-boton max-vid-accion", onclick: () => { A.retomar = null; pintarVideos(); } }, t("app.proyecto.cancelar")))
+    : el("div", { class: "max-vid-acciones" },
+        grande("max-vid-retomar", "app.videos.retomar", "app.videos.retomar.tooltip", () => { A.retomar = actual.archivo; pintarVideos(); }, ICONO_VIDEO.retomar,
+               actual.prompt_de ? {} : { disabled: true, title: t("app.videos.retomar.sin") }),
+        grande("", "app.videos.retocar", "app.videos.retocar.tooltip", ir(actual, "retocar"), ICONO_VIDEO.retoque),
+        grande("", "app.videos.extender", "app.videos.extender.tooltip", ir(actual, "extender"), ICONO_VIDEO.extension));
+  const origen = actual?.prompt_de && actual.prompt_de !== actual.archivo ? el("small", { class: "max-vid-origen" }, t("app.videos.retomar.origen")) : null;
   cajaVideos.replaceChildren(...[       // sin los null (replaceChildren escribiría «null»)
-    el("div", { class: "max-fila" }, el("b", {}, t("app.videos.titulo", { proyecto: A.proyecto })),
-      el("button", { class: "max-boton max-derecha", title: t("app.videos.carpeta.tooltip"),
+    el("div", { class: "max-fila max-vid-cab" }, util.icono("video"), el("b", {}, t("app.videos.titulo", { proyecto: A.proyecto })),
+      el("span", { class: "max-vid-cuenta" }, t("app.videos.cuenta", { n: A.videos.length })),
+      el("button", { class: "max-boton max-derecha max-vid-accion", title: t("app.videos.carpeta.tooltip"),
                      onclick: () => pedir("/app/abrir_carpeta", {}).catch((e) => avisar(e.message, "mal")) }, t("app.videos.carpeta")),
       el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrarVideos }, util.icono("x"))),
-    actual ? ponerVideo(actual.archivo) : null,
-    actual ? el("div", { class: "max-fila" }, el("small", {}, t("app.videos.info", { fecha: fecha(actual), semilla: actual.semilla ?? "?",
-                                                                                     s: tr.num(actual.segundos || 0, 0) }))) : null,
-    el("div", { class: "max-lista" }, A.videos.length ? A.videos.map((x) =>
-      el("div", { class: "max-video" + (x.archivo === A.videoActual ? " actual" : ""), onclick: () => { A.videoActual = x.archivo; pintarVideos(); } },
-        util.icono(x.tipo === "retoque" ? "retoque" : "video"),
-        el("div", {}, el("div", {}, fecha(x)), el("small", {}, x.tipo === "retoque"
-          ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
-          : x.tipo === "extension" ? t("app.videos.extension", { s: tr.num((x.extension?.nuevos || 0) / 24, 2), semilla: x.semilla ?? "?" })
-          : x.tipo === "mejora" ? t("app.videos.mejora", { que: [x.superres ? "×" + tr.num(x.superres.escala, x.superres.escala % 1 ? 1 : 0) : "",
-                                                                   x.hdr ? t("app.retocar.mejorar.hdr") : ""].filter(Boolean).join(" · ") })
-          : t("app.videos.semilla", { semilla: x.semilla ?? "?" }))),
-        el("button", { class: "max-boton max-derecha", title: t("app.videos.retocar.tooltip"), onclick: (e) => {
-          e.stopPropagation();
-          A.verVideos = false;
-          pintarVideos();
-          ponerFase("retocar");
-          extension.verInpaint();
-          retoque.cargar(x.archivo).then(retoque.ver);
-        } }, t("app.videos.retocar")),
-        el("button", { class: "max-boton", title: t("app.videos.extender.tooltip"), onclick: (e) => {
-          e.stopPropagation();
-          A.verVideos = false;
-          pintarVideos();
-          ponerFase("retocar");
-          extension.cargar(x.archivo).then(extension.ver);
-        } }, t("app.videos.extender"))))
-      : el("div", { class: "max-vacio" }, t("app.videos.vacio")))].filter(Boolean));
+    A.videos.length ? el("div", { class: "max-vid-cuerpo" },
+      el("div", { class: "max-vid-izq" }, ...[actual ? ponerVideo(actual.archivo) : null,
+        actual ? el("div", { class: "max-vid-info" }, el("b", {}, describirVideo(actual)),
+                    el("span", {}, t(actual.semilla == null ? "app.videos.info_sin_semilla" : "app.videos.info",
+                                     { fecha: fecha(actual), semilla: actual.semilla, s: tr.num(actual.segundos || 0, 0) }))) : null,
+        acciones, origen].filter(Boolean)),
+      el("div", { class: "max-lista" }, A.videos.map((x) =>
+        el("button", { class: "max-video" + (x.archivo === A.videoActual ? " actual" : ""), "aria-pressed": String(x.archivo === A.videoActual),
+                       onclick: () => { A.videoActual = x.archivo; A.retomar = null; pintarVideos(); } },
+          util.icono(ICONO_VIDEO[x.tipo] || "video"),
+          el("span", { class: "max-video-txt" }, el("span", {}, fecha(x)), el("small", {}, describirVideo(x))),
+          x.prompt_de ? el("span", { class: "max-video-prompt", title: t("app.videos.retomar.hay") }, util.icono(ICONO_VIDEO.retomar)) : null))))
+      : el("div", { class: "max-vacio" }, t("app.videos.vacio"))].filter(Boolean));
 }
 
 /* ---- el agente (MCP, planos/fases/11 MCP.md): un agente cambia el MISMO proyecto por el servidor y aquí se ve.
