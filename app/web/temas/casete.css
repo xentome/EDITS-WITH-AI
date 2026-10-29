@@ -627,3 +627,33 @@ body.tema-casete .max-ex-mas{border:1px solid var(--k-linea);border-radius:8px;p
 body.tema-casete .max-ex-mas>summary{min-height:44px;display:flex;align-items:center;gap:10px;cursor:pointer;font:700 15px/1 var(--k-rotulo);letter-spacing:.07em;text-transform:uppercase;color:var(--k-suave)}
 body.tema-casete .max-ex-mas[open]{padding-bottom:10px}
 body.tema-casete .max-ex-mas-resumen{font:600 12px var(--k-mono);letter-spacing:0;text-transform:none;color:var(--k-suave);border:1px solid var(--k-linea2);border-radius:999px;padding:3px 9px}
+/* (29 oct) la ventana «Proyectos» (biblioteca.js) */
+body.tema-casete .max-bib{background:rgba(10,7,13,.78)}
+body.tema-casete .max-bib-caja{background:var(--k-tinta2);border-color:var(--k-linea2);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+body.tema-casete .max-bib-cab,body.tema-casete .max-bib-pie{border-color:var(--k-linea)}
+body.tema-casete .max-bib-pie{background:var(--k-tinta)}
+body.tema-casete .max-bib-titulo{font:900 34px/1 var(--k-titulo);letter-spacing:.03em;color:var(--k-texto)}
+body.tema-casete .max-bib-lado,body.tema-casete .max-bib-traer,body.tema-casete .max-bib-proy,body.tema-casete .max-bib-vid{background:var(--k-tinta)}
+body.tema-casete .max-bib-lado{border-color:var(--k-linea)}body.tema-casete .max-bib-traer{border-color:var(--k-linea)}
+body.tema-casete .max-bib-tab{font:800 21px/1 var(--k-titulo);letter-spacing:.05em;color:var(--k-suave)}
+body.tema-casete .max-bib-tab.activa{background:var(--k-tinta3);color:var(--k-crema)}
+body.tema-casete .max-bib-carpeta,body.tema-casete .max-bib-tab{justify-content:flex-start !important;text-align:left !important;width:100%}
+body.tema-casete .max-bib-carpeta{font:600 15px var(--k-texto-f);color:var(--k-texto);padding:0 10px 0 14px !important}
+body.tema-casete .max-bib-carpeta span{text-align:left}
+body.tema-casete .max-bib-carpeta:hover{background:var(--k-tinta3)}
+body.tema-casete .max-bib-carpeta.activa{background:rgba(34,228,255,.12);color:var(--k-cian)}
+body.tema-casete .max-bib-proy b{font:800 20px/1.1 var(--k-titulo);letter-spacing:.04em}
+body.tema-casete .max-bib-proy:hover,body.tema-casete .max-bib-vid:hover{border-color:var(--k-linea2)}
+body.tema-casete .max-bib-proy.elegido{border-color:var(--k-naranja)}
+body.tema-casete .max-bib-vid.elegido{border-color:var(--k-cian)}
+body.tema-casete .max-bib-abierto{font:700 12px var(--k-rotulo);color:var(--k-ok)}
+body.tema-casete .max-bib-rotulo{font:700 13px var(--k-rotulo);letter-spacing:.08em;color:var(--k-suave)}
+body.tema-casete .max-bib-mini.vacia{background:repeating-linear-gradient(135deg,var(--k-tinta3) 0 12px,var(--k-tinta2) 12px 24px)}
+body.tema-casete .max-bib-mini.vacia span,body.tema-casete .max-bib-tipo{font-family:var(--k-rotulo)}
+body.tema-casete .max-bib-traer h3{font:800 24px/1 var(--k-titulo);letter-spacing:.05em;color:var(--k-cian)}
+body.tema-casete .max-bib-aviso{border-color:var(--k-cian)}
+body.tema-casete .max-bib-buscar{background:var(--k-tinta) !important;color:var(--k-texto) !important;border:1px solid var(--k-linea2) !important;border-radius:6px}
+body.tema-casete .max-bib-retocar{background:var(--k-naranja) !important;border-color:var(--k-naranja) !important;color:var(--k-tinta) !important}
+body.tema-casete .max-boton.max-boton-proyecto{background:var(--k-crema) !important;color:var(--k-tinta) !important;border-color:var(--k-crema) !important;
+  font:800 16px/1 var(--k-rotulo) !important;letter-spacing:.04em;min-height:40px}
+

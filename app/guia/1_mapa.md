@@ -19,11 +19,11 @@
 
 | Zone in the page | What it is | Tools |
 |---|---|---|
-| Header › «Proyecto» list, «Nuevo», «Guardar como» | which project is open | listar_proyectos, abrir_proyecto, crear_proyecto |
+| Header › the project button (cream, its name) opens the «Proyectos» window, which also opens on its own when the app starts: tab «Proyectos» = a card per project with its last video (still; it plays on hover), date and video count, «Abrir proyecto», «Nuevo proyecto», «Abrir el ejemplo»; tab «Biblioteca» = ALL videos in one folder per project (folders are only a view: files stay in app/salidas/), and a video from any folder can be brought into the open project («Poner en Retocar», «Extender», «Retomar su prompt»). Also «Guardar como» in the header | which project is open | listar_proyectos, abrir_proyecto, crear_proyecto |
 | Header › green dots ComfyUI · Proxy · LLM | services | estado |
 | Header › «Semilla del video» + «Otra semilla» | the seed of the next video | poner_semilla |
 | Header › «GENERAR», «Encolar ×N» | queue the edit | generar |
-| Header › «Videos (n)» (big lime-green button) › a big window: left, the chosen video, what it is and big buttons «Retomar prompt» (asks «En este proyecto» — replaces it — or «En una copia nueva»; loads the prompt, shots, references and seed that video was generated with; for a retouch, extension or enhancement, those of the Generar video it came from; greyed out for videos made before Oct 29) · «Poner en Retocar» · «Extender»; right, the list (a «T» mark = its prompt can be reused) | the project's results | listar_videos, ver_video |
+| Header › «Videos (n)» (big orange button) › a big window: left, the chosen video, what it is and big buttons «Retomar prompt» (asks «En este proyecto» — replaces it — or «En una copia nueva»; loads the prompt, shots, references and seed that video was generated with; for a retouch, extension or enhancement, those of the Generar video it came from; greyed out for videos made before Oct 29) · «Poner en Retocar» · «Extender»; right, the list (a «T» mark = its prompt can be reused) | the project's results | listar_videos, ver_video |
 | Header › «Cola (n)» | the job queue | ver_cola, esperar, cancelar, reintentar |
 | Row under the header: «✎ agente · N cambios · Visto» | your marks. Your changes always win: the page reloads them on its own, even over the user's unsaved edits (it waits only while they type in a field), and shows «the agent changed the project» | — |
 | Editor bar › «Resolución» Ancho × Alto · MP · Girar | video size (multiples of 32) | poner_resolucion |

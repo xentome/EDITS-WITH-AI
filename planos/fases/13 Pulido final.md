@@ -133,3 +133,11 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Jonathan: los videos resaltaban más que Generar. Ahora Videos va donde estaba Generar, en naranja, y Generar va donde estaba Videos, en verde lima y un poco más grande (`max-generar-cab`). Retocar y Mejorar siguen en naranja.
 - Ctrl+Enter (⌘+Enter en Mac), desde cualquier sitio de la página: Generar (un trabajo más en la cola). Sale en el tooltip de Generar.
 
+## 14 · Ventana «Proyectos» y biblioteca global (variante P1) ✅ (29 oct)
+
+- Prototipo: `app/web/prototipo_biblioteca.html` (P1 gestor estilo Resolve · P2 dos mitades · P3 estantería). Jonathan eligió **P1**. Decidido antes: carpetas solo en la vista (los archivos siguen en `app/salidas/`), y cada proyecto con su último video, que se mueve al pasar el ratón.
+- `app/web/biblioteca.js`: la ventana sale al arrancar (el último proyecto ya está abierto detrás) y con el botón del proyecto de la cabecera, que sustituye al desplegable y a «Nuevo».
+  - «Proyectos»: una tarjeta por proyecto (último video, fecha, cuántos videos); clic elige, doble clic o «Abrir proyecto» abre; «Nuevo proyecto», «Abrir el ejemplo», buscar.
+  - «Biblioteca»: todos los videos, una carpeta por proyecto (y «(sin proyecto)»). El video elegido se ve a la derecha y se trae al proyecto abierto sin copiarlo: «Poner en Retocar», «Extender» o «Retomar su prompt» (aquí o en una copia). Mismo camino que «Videos» (`usarVideo` en app.js).
+- `GET /app/miniatura?video=`: un JPG del segundo 1 con ffmpeg, guardado una vez en `app/salidas/miniaturas/`; así la ventana no abre decenas de videos a la vez (el límite de ~6 conexiones del navegador).
+

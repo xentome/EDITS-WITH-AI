@@ -371,6 +371,38 @@ def origen_prompt(archivo: str, todas: dict) -> str | None:
     return None
 
 
+MINIATURAS = os.path.join(SALIDAS, "miniaturas")
+
+
+def hacer_miniatura(origen: str, destino: str) -> bool:
+    """Un fotograma (al segundo 1, o el primero si dura menos) a 480 px de ancho, en JPG. Devuelve si salió."""
+    os.makedirs(MINIATURAS, exist_ok=True)
+    temporal = destino + ".tmp.jpg"
+    for t in ("1", "0"):
+        try:
+            subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-y", "-ss", t, "-i", origen, "-frames:v", "1", "-vf", "scale=480:-2",
+                            "-q:v", "4", temporal], timeout=30, check=True, capture_output=True)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if os.path.getsize(temporal) > 0:
+            os.replace(temporal, destino)
+            return True
+    return False
+
+
+async def miniatura(peticion):
+    """GET /app/miniatura?video=<archivo de app/salidas> → JPG (29 oct, ventana «Proyectos»: cada tarjeta con su último video).
+    Se hace una vez con ffmpeg y se guarda en app/salidas/miniaturas/; así la ventana no abre decenas de videos a la vez."""
+    origen = archivo_dentro(SALIDAS, os.path.basename(peticion.query.get("video", "")))
+    if not origen:
+        raise web.HTTPNotFound()
+    destino = os.path.join(MINIATURAS, os.path.basename(origen) + ".jpg")
+    if not os.path.isfile(destino) or os.path.getmtime(destino) < os.path.getmtime(origen):
+        if not await asyncio.get_running_loop().run_in_executor(None, hacer_miniatura, origen, destino):
+            raise web.HTTPNotFound()
+    return web.FileResponse(destino, headers={"Cache-Control": "max-age=86400"})
+
+
 async def valores_video(peticion):
     """GET /app/valores_video?video= → {valores, semilla, proyecto, fecha, video}: con qué se generó (o su origen)."""
     try:
@@ -574,6 +606,7 @@ def crear_app():
     app.router.add_get("/app/trabajo/{id}", trabajo)
     app.router.add_post("/app/cancelar/{id}", cancelar)
     app.router.add_get("/app/videos", videos)
+    app.router.add_get("/app/miniatura", miniatura)
     app.router.add_get("/app/valores_video", valores_video)
     app.router.add_get("/app/salidas/{ruta:[^/]+}", servir(SALIDAS))
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)

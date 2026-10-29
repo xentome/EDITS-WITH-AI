@@ -17,6 +17,7 @@ const v = "?v=" + Date.now();
 const [core, i18n, util] = await Promise.all(["editor_core.js", "editor/i18n.js", "editor/util.js"].map((f) => import(NODO + f + v)));
 const retocarJS = await import("./retocar.js" + v);
 const extenderJS = await import("./extender.js" + v);
+const bibliotecaJS = await import("./biblioteca.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
@@ -169,10 +170,9 @@ function pintarCabecera() {
   document.title = A.proyecto ? `${t("app.nombre")} · ${A.proyecto}` : t("app.nombre");
   const s = A.salud, punto = (k, clave) => el("span", { class: s[k] === undefined ? "" : s[k] ? "si" : "no",
     title: t(s[k] ? "app.salud.responde" : "app.salud.no_responde", { url: s[k + "_url"] || "" }) }, t(clave));
-  const lista = el("select", { title: t("app.proyecto.abrir"), onchange: (e) => abrirProyecto(e.target.value) },
-    ...A.proyectos.map((p) => el("option", { value: p.nombre, selected: p.nombre === A.proyecto },
-      p.nombre === EJEMPLO ? t("app.proyecto.ejemplo_opcion", { nombre: p.nombre }) : p.nombre)));
-  if (A.proyecto && !A.proyectos.some((p) => p.nombre === A.proyecto)) lista.prepend(el("option", { value: A.proyecto, selected: true }, A.proyecto));
+  // (29 oct) el proyecto ya no es un desplegable: este botón abre la ventana «Proyectos» (biblioteca.js)
+  const lista = el("button", { class: "max-boton max-boton-proyecto", title: t("app.proyecto.abrir"), onclick: () => biblioteca.abrir() },
+    util.icono("capas"), el("span", {}, A.proyecto || t("app.biblio.proyectos")), util.icono("abajo"));
   const w = semillaW();
   const semilla = el("input", { type: "number", min: 0, step: 1, value: w ? w.value : "", disabled: !w,
                                 onchange: (e) => ponerSemilla(Math.max(0, Math.round(+e.target.value || 0))) });
@@ -189,7 +189,6 @@ function pintarCabecera() {
     el("span", { class: "max-nombre" }, t("app.nombre")),
     el("span", { class: "max-sep" }),
     el("span", { class: "max-grupo" }, el("span", { class: "max-aviso" }, t("app.proyecto.titulo")), lista,
-      el("button", { class: "max-boton", title: t("app.proyecto.nuevo.tooltip"), onclick: (e) => pedirNombre(e.target, "nuevo") }, t("app.proyecto.nuevo")),
       el("button", { class: "max-boton", title: t("app.proyecto.guardar_como.tooltip"), onclick: (e) => pedirNombre(e.target, "como") }, t("app.proyecto.guardar_como"))),
     el("span", { class: "max-aviso " + A.aviso[1], title: A.aviso[0] }, A.aviso[0]),
     el("span", { class: "max-salud max-derecha", title: t("app.salud.tooltip") }, punto("comfyui", "app.salud.comfyui"),
@@ -253,7 +252,7 @@ async function cambiarIdioma(i) {
 }
 
 // ---- pedir un nombre (nuevo proyecto o guardar como): una cajita debajo del botón, sin diálogos del navegador
-function pedirNombre(boton, modo) {
+function pedirNombre(boton, modo, alListo = null) {
   A.pop?.remove();
   const entrada = el("input", { placeholder: t("app.proyecto.nombre.placeholder"), value: modo === "como" ? A.proyecto + " 2" : "" });
   const listo = async () => {
@@ -263,6 +262,7 @@ function pedirNombre(boton, modo) {
       if (modo === "nuevo") await crearProyecto(nombre);
       else await guardarComo(nombre);
       cerrar();
+      alListo?.();
     } catch (e) { aviso.textContent = e.message; }
   };
   const aviso = el("span", { class: "max-aviso mal" });
@@ -596,6 +596,20 @@ async function retomarPrompt(x, donde) {
     A.avisoFijo = Date.now() + 8000;
   } catch (e) { avisar(t("app.videos.retomar.error", { error: e.message }), "mal"); }
 }
+// un video de la biblioteca (o de «Videos») en el proyecto abierto: Retocar, Extender o Retomar su prompt (aquí o en una copia)
+function usarVideo(x, accion, donde = "aqui") {
+  if (accion === "retomar") return retomarPrompt(x, donde);
+  A.verVideos = false;
+  pintarVideos();
+  ponerFase("retocar");
+  if (accion === "retocar") { extension.verInpaint(); retoque.cargar(x.archivo).then(retoque.ver); }
+  else extension.cargar(x.archivo).then(extension.ver);
+}
+// ---- la ventana «Proyectos» (biblioteca.js): sale al abrir la app y con el botón del proyecto de la cabecera
+const biblioteca = bibliotecaJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, EJEMPLO,
+  abrirProyecto: (n) => abrirProyecto(n), abrirEjemplo: () => abrirEjemplo(), cargarProyectos: () => cargarProyectos(),
+  pedirNombre: (b, m, f) => pedirNombre(b, m, f), describir: (x) => describirVideo(x), usarVideo });
+
 function pintarVideos() {
   panelVideos.className = "max-videos" + (A.verVideos ? " ver" : "");
   if (!A.verVideos) { A.retomar = null; soltarVideo(); return cajaVideos.replaceChildren(); }   // cerrada: fuera el reproductor
@@ -603,14 +617,7 @@ function pintarVideos() {
   const actual = A.videos.find((x) => x.archivo === A.videoActual);
   const fecha = (x) => (x.fecha || "").replace("T", " ");
   if (!actual) soltarVideo();
-  const ir = (x, accion) => (e) => {
-    e.stopPropagation();
-    A.verVideos = false;
-    pintarVideos();
-    ponerFase("retocar");
-    if (accion === "retocar") { extension.verInpaint(); retoque.cargar(x.archivo).then(retoque.ver); }
-    else extension.cargar(x.archivo).then(extension.ver);
-  };
+  const ir = (x, accion) => (e) => { e.stopPropagation(); usarVideo(x, accion); };
   const grande = (clase, clave, tooltip, accion, ic, extra = {}) => el("button", { class: "max-boton max-vid-accion " + clase, title: t(tooltip), onclick: accion, ...extra },
     util.icono(ic), " " + t(clave));
   const acciones = !actual ? null : A.retomar === actual.archivo
@@ -766,6 +773,7 @@ try {
     : A.proyectos.some((p) => p.nombre === "ejemplo") ? "ejemplo" : A.proyectos[0]?.nombre;
   if (nombre) await abrirProyecto(nombre);
   else await crearProyecto(t("app.proyecto.primero"));
+  biblioteca.abrir();                                    // (29 oct) al abrir la app, la ventana «Proyectos» (el último ya está abierto detrás)
 } catch (e) {
   avisar(t("app.error.arrancar", { error: e.message }), "mal");
 }
