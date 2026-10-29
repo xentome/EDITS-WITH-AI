@@ -103,9 +103,10 @@ printf '{"host": "0.0.0.0", "python_comfyui": "%s", "liberar_gpu": true}\n' $V/b
 bash $R/app/instalar.sh --comfyui $C --retocar --sin-preguntas --sin-modelos > $LOG/instalar.log 2>&1 ||
   { echo "AVISO: instalar.sh --sin-modelos terminó con avisos (normal mientras faltan modelos):"; grep -E '✗|!' $LOG/instalar.log | tail -8 | sed 's/^/  /'; }
 mkdir -p $M/refmods $C/input
-if [ -d /opt/recibido/extras ]; then  # solo en pruebas (h3pod): RefMods y audios de ejemplo que no son públicos
+if [ -d /opt/recibido/extras ]; then  # solo en pruebas (h3pod): RefMods, audios y proyectos que no son públicos
   cp -r /opt/recibido/extras/refmods/. $M/refmods/ 2>/dev/null || true
   cp -r /opt/recibido/extras/input/. $C/input/ 2>/dev/null || true
+  cp -r /opt/recibido/extras/proyectos/. $R/app/proyectos/ 2>/dev/null || true
 fi
 
 # ---------------------------------------------------------------- 3. ComfyUI arranca en la GPU con todos los nodos de la app
