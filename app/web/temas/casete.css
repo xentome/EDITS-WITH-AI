@@ -12,7 +12,7 @@
  * (index.html y web/editor/estilos.js). Se activa con <body class="tema-casete">; desde el 28 oct es el único tema (trama, azul, coral y amarillo se quitaron). */
 body.tema-casete{--k-tinta:#17121C;--k-tinta2:#211A29;--k-tinta3:#2C2336;--k-linea:#3E3349;--k-linea2:#54465F;--k-suave:#A99DB5;--k-texto:#EFE6F2;
   --k-naranja:#FF7A1A;--k-naranja2:#FF9140;--k-cobalto:#2546D6;--k-rosa:#FF3E8A;--k-crema:#F6EAD2;--k-crema-txt:#4A3E36;
-  --k-estante:#18183A;--k-estante-linea:#2B2F66;--k-aviso:#F7C83A;--k-error:#FF6B6B;--k-ok:#3FC46E;
+  --k-estante:#18183A;--k-estante-linea:#2B2F66;--k-aviso:#F7C83A;--k-error:#FF6B6B;--k-ok:#3FC46E;--k-cian:#22E4FF;
   --k-titulo:"Big Shoulders Display","Oswald","Arial Narrow",Impact,sans-serif;
   --k-rotulo:"Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif;
   --k-texto-f:"Barlow","Helvetica Neue",Arial,sans-serif;
@@ -461,3 +461,18 @@ body.tema-casete .epl-trad-menu button{color:var(--k-texto);font:500 15px var(--
 body.tema-casete .epl-trad-menu button:hover,body.tema-casete .epl-trad-menu button:focus-visible{background:var(--k-tinta3)}
 body.tema-casete .epl-trad-menu small{color:var(--k-suave)}
 body.tema-casete .epl-s-toma .epl-c2-et .epl-trad-boton{font:600 13px/1 var(--k-texto-f) !important;text-transform:none;letter-spacing:0;color:var(--k-crema) !important}
+
+/* ---------------------------------------------------------------- (28 oct) el sonido y la canción, en cian eléctrico
+ * (lo eligió Jonathan: el naranja es de Generar). El panel del sonido y el botón grande «Añadir canción» */
+body.tema-casete .epl-sonido-panel{border-color:var(--k-cian) !important;background:rgba(34,228,255,.07) !important}
+body.tema-casete .epl-sonido-cab h3{font:800 20px/1 var(--k-titulo);letter-spacing:.07em;color:var(--k-cian)}
+body.tema-casete .epl-sonido-panel textarea{font:500 18px/1.45 var(--k-texto-f) !important;background:var(--k-tinta) !important;
+  border:1px solid rgba(34,228,255,.45) !important;color:var(--k-texto) !important}
+body.tema-casete .epl-sonido-panel textarea:focus{border-color:var(--k-cian) !important}
+body.tema-casete .epl-anadir-cancion{background:var(--k-cian) !important;color:#06141A !important;font-family:var(--k-rotulo)}
+body.tema-casete .epl-anadir-cancion:hover{background:#6FF0FF !important}
+body.tema-casete .epl-anadir-txt b{font:800 21px/1 var(--k-titulo);letter-spacing:.05em;text-transform:uppercase}
+body.tema-casete .epl-anadir-txt small{font:600 14px/1.2 var(--k-texto-f)}
+body.tema-casete .epl-mini.epl-cambiar-cancion{background:var(--k-cian) !important;border-color:var(--k-cian) !important;color:#06141A !important;
+  font:700 14px/1 var(--k-rotulo) !important;letter-spacing:.05em;text-transform:uppercase;min-height:36px}
+body.tema-casete .epl-mini.epl-cambiar-cancion:hover{background:#6FF0FF !important}

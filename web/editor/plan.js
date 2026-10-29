@@ -332,11 +332,17 @@ export function instalar(ctx) {
         el("button", { class: "epl-mini epl-seg" + (sale === k ? " fijo" : ""), "aria-pressed": String(sale === k), "data-audio": k,
                        disabled: !S.audio, onclick: () => { S.audio_salida = k; ctx.programarGuardado(); ctx.pintarSonido(); } }, t(clave)))),
       el("span", { class: "epl-ayuda" }, t(S.audio ? "linea.audio.ayuda" : "linea.audio.sin_cancion")));
-    const sonido = el("input", { "data-campo": "sonido", placeholder: t("linea.sonido.placeholder"), value: S.sonido,
-                                 oninput: (e) => { S.sonido = e.target.value; ctx.pedirMontaje(); } });
-    secSonido?.replaceChildren(el("label", { class: "epl-campo ancho epl-sonido-campo", title: t("linea.sonido.tooltip") },
-      el("span", {}, el("i", { class: "epl-icono" }, u.icono("sonido")), t("linea.sonido")), sonido),
-      ctx.botonTraducir ? ctx.botonTraducir(sonido) : null, audio);
+    /* (28 oct) su propio panel, cian como el botón de la canción: título grande y un texto de 3 renglones. Es un solo
+     * renglón del prompt (overall_soundscape): Intro no hace salto de línea */
+    const sonido = el("textarea", { rows: 3, "data-campo": "sonido", "aria-label": t("linea.sonido"), title: t("linea.sonido.tooltip"),
+      placeholder: t(S.audio ? "linea.sonido.placeholder" : "linea.sonido.placeholder_sin"),
+      onkeydown: (e) => { if (e.key === "Enter") e.preventDefault(); },
+      oninput: (e) => { S.sonido = e.target.value.replace(/\s*\n\s*/g, " "); ctx.pedirMontaje(); } }, S.sonido);
+    secSonido?.replaceChildren(el("section", { class: "epl-sonido-panel" },
+      el("div", { class: "epl-sonido-cab" },
+        el("h3", {}, el("i", { class: "epl-icono" }, u.icono("sonido")), t("linea.sonido.titulo")),
+        ctx.botonTraducir ? ctx.botonTraducir(sonido) : null),
+      sonido, audio));
   };
 
   // ---- 2 · prompt de la toma elegida

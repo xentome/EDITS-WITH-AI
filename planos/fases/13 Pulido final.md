@@ -42,3 +42,14 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
   - Agente: sin canción ya no es un error de `revisar_proyecto`, solo un aviso (`agente.py`, `mcp_servidor.py`, `app/guia/3_organizar.md`, `1_mapa.md`, `8_errores.md`).
 - **Comprobado:** `prueba_generar.py --seco` (grafo sin canción sin enlaces rotos), `pruebas.py` TODO BIEN y la ventana en el navegador aparte. Falta un render de verdad sin canción.
 
+## 4 · Sonido y canción más visibles ✅
+
+- **Por qué:** Jonathan no veía el campo del sonido y no encontraba cómo añadir una canción: sin canción no había ningún botón, solo «Sin audio conectado».
+- **Lo que eligió:** cian eléctrico `#22E4FF` (`--k-cian` en casete.css; el naranja es de Generar) y un panel propio para el sonido.
+- **Lo que cambió:**
+  - `audio.js`: sin canción sale un botón grande cian, «Añadir canción o audio de referencia». Abre la lista de input/ (también sin canción) o recibe el archivo soltado encima. «Cambiar canción» también va en cian.
+  - `plan.js`: «Sonido del video» va en su panel cian, con título grande y un texto de 3 renglones a 18 px. Intro no hace salto de línea, porque es un solo renglón del prompt. Sin canción, el ejemplo dice cómo escribirlo.
+  - Claves i18n: `audio.anadir`, `audio.anadir.sub`, `audio.anadir.tooltip`, `linea.sonido.titulo`, `linea.sonido.placeholder_sin`.
+- **El prompt sin canción** (`nucleo.py`, `rutas.montar`, `frases.json`): no nombra `<Audio 1>`. Sin `def.audio` ni `ret.audio`, el resumen es «An edit of…» y la summary queda en «[reference generation]». Frases nuevas: `resumen.sin_cancion`, `sonido.sin_cancion` y `musica.sin_cancion`. Prueba en la sección 8d de pruebas.py.
+- **Comprobado:** 1440×900 y 2548×1284, con canción y sin ella; el botón abre la lista de 56 audios.
+

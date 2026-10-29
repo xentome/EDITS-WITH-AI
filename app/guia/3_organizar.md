@@ -95,4 +95,4 @@ Lessons that decide these fields:
 - Keep «Audio del video» on «Tu canción» (the song as is): H3's regenerated audio added bangs ✅. «Sonido» empty = only the
   music, the safest.
 - **No song is allowed** (28 oct): Generate works without one. The video then carries the sound H3 invents, guided only by
-  «Sonido» — so write there what it should sound like (ambience, voice, music style). The cuts go evenly (no beats).
+  «Sonido» — so write there what it should sound like (ambience, voice, music style). The cuts go evenly (no beats). The prompt then never names <Audio 1> (summary, retention, music lines change).

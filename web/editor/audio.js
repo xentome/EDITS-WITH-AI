@@ -48,7 +48,7 @@ export function instalar(ctx) {
   const boton = el("button", { class: "epl-play", "aria-label": t("audio.reproducir"), onclick: () => alternar() }, u.icono("play"));
   const barra = el("canvas", { class: "epl-barra-cv" });
   const datos = el("div", { class: "epl-audio-info" });
-  const cambiar = el("button", { class: "epl-mini epl-cambiar-cancion", onclick: () => ctx.abrirCanciones() });
+  const cambiar = el("button", { class: "epl-mini epl-cambiar-cancion epl-boton-cancion", onclick: () => ctx.abrirCanciones() });
   function rotular() {
     onda.title = t("audio.onda.tooltip");
     boton.title = t("audio.play.tooltip");
@@ -295,9 +295,27 @@ export function instalar(ctx) {
     c.fill();
   }
 
+  /* sin canción (28 oct): un botón grande, cian, para añadirla (la lista de input/ o subirla); también se puede soltar el
+   * archivo encima. Sin LoadAudio en el workflow (el nodo, en un grafo del usuario) no hay dónde ponerla: solo el aviso */
   ctx.pintarAudio = function pintarAudio() {
     if (!S.audio) {
-      secAudio.replaceChildren(el("p", { class: "epl-vacio" }, t("audio.sin_audio")));
+      const nota = el("p", { class: "epl-vacio" }, t("audio.sin_audio"));
+      if (!W(wf.audioNodo || {}, "audio")) return secAudio.replaceChildren(nota);
+      const zona = el("div", { class: "epl-sin-cancion" },
+        el("button", { class: "epl-anadir-cancion epl-boton-cancion", title: t("audio.anadir.tooltip"), onclick: () => ctx.abrirCanciones() },
+          el("span", { class: "epl-anadir-icono" }, u.icono("musica")),
+          el("span", { class: "epl-anadir-txt" }, el("b", {}, t("audio.anadir")), el("small", {}, t("audio.anadir.sub")))),
+        nota);
+      zona.addEventListener("dragover", (e) => { e.preventDefault(); zona.classList.add("soltar"); });
+      zona.addEventListener("dragleave", () => zona.classList.remove("soltar"));
+      zona.addEventListener("drop", async (e) => {
+        e.preventDefault(); zona.classList.remove("soltar");
+        const a = [...e.dataTransfer.files].find((f) => /^audio\//.test(f.type) || /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i.test(f.name));
+        if (!a) return ctx.avisar(t("audio.no_es_audio"), "mal");
+        try { ctx.avisar(t("audio.subiendo", { nombre: a.name })); await ctx.cambiarCancion(await ctx.subirCancion(a)); }
+        catch (err) { ctx.avisar(t("audio.cancion_error", { error: err.message }), "mal"); }
+      });
+      secAudio.replaceChildren(zona);
       return;
     }
     rotular();
@@ -372,7 +390,6 @@ export function instalar(ctx) {
 
   // la ventanita: lista de input/ con buscador, «Subir desde el PC» y soltar un archivo encima
   ctx.abrirCanciones = async function abrirCanciones() {
-    if (!S.audio) return;
     let lista = null;                                       // null: aún cargando
     const filtro = el("input", { style: { flex: 1 }, oninput: () => pintar() });
     const rejilla = el("div", { class: "epl-canciones" });
@@ -392,9 +409,9 @@ export function instalar(ctx) {
       if (!lista) return rejilla.replaceChildren(el("p", { class: "epl-vacio" }, t("comun.cargando")));
       const q = filtro.value.toLowerCase();
       rejilla.replaceChildren(...lista.filter((x) => x.nombre.toLowerCase().includes(q)).map((x) =>
-        el("div", { class: "epl-cancion" + (x.nombre === S.audio.original ? " actual" : ""), title: x.nombre, "data-nombre": x.nombre,
+        el("div", { class: "epl-cancion" + (x.nombre === S.audio?.original ? " actual" : ""), title: x.nombre, "data-nombre": x.nombre,
                     onclick: () => elegir(x.nombre) },
-          el("b", {}, x.nombre), el("small", {}, t(x.nombre === S.audio.original ? "audio.cancion.info_actual" : "audio.cancion.info",
+          el("b", {}, x.nombre), el("small", {}, t(x.nombre === S.audio?.original ? "audio.cancion.info_actual" : "audio.cancion.info",
                                                     { mb: u.num(x.mb), fecha: x.fecha })))));
       if (!rejilla.children.length) rejilla.append(el("p", { class: "epl-vacio" }, t(lista.length ? "comun.nada_con_ese_nombre" : "audio.sin_audios")));
     };

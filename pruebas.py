@@ -326,6 +326,12 @@ comprobar("lo que escribe el usuario va tal cual a overall_soundscape; vacío, e
           "overall_soundscape:\nwhooshes and impact hits accent each cut and word\n\nnon_diegetic_music:" in p8s and
           "overall_soundscape:\n" + N.FRASES["sonido"] + "\n" in prompt and N.entradas_de_estado({"sonido": "x"})["sonido"] == "x", p8s[-300:])
 
+p8n, _, _ = N.montar_plan({**e8, "sin_cancion": True}, plan8)
+p8n2, _, _ = N.montar_plan({**e8, "sin_cancion": True, "sonido": "soft rain"}, plan8)
+comprobar("sin canción (28 oct): el prompt no nombra <Audio 1> y el sonido es el de la casa sin canción o el tuyo",
+          "<Audio 1>" not in p8n and "[reference generation] " in p8n and N.FRASES["sonido.sin_cancion"] in p8n
+          and N.FRASES["musica.sin_cancion"] in p8n and "overall_soundscape:\nsoft rain\n" in p8n2 and "<Audio 1>" in prompt, p8n[-400:])
+
 print("8e · Interfaz P10 (27 oct): estilo por toma, «Principal» en todas las tomas y sin historia")
 plan8e = N.ajustar_plan(None, 2)
 for t8e in plan8e["tomas"]:

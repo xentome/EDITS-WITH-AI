@@ -32,6 +32,8 @@ def beats(d):
 
 def montar(d):
     b = beats(d)
+    if "audio" in d and not d["audio"]:     # sin canción (28 oct): el prompt no nombra <Audio 1>
+        d["entradas"] = {**d["entradas"], "sin_cancion": True}
     # con los trozos: la ventana pinta cada uno del color de quien lo escribió, y la ficha enseña los renglones de arriba
     prompt, avisos, ini, extra = nucleo.montar_plan(d["entradas"], d["plan"], b, d.get("idioma"), con_trozos=True)
     # los beats van a la línea de tiempo: al soltar un borde arrastrado, se pega al más cercano

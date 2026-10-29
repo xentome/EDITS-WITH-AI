@@ -202,7 +202,9 @@ def perfil_de(menu, entradas=None):
             "revisar_pronombre": pron if len(ps) == 1 and pron in CONTRARIO else "",
             "estilo": (e.get("estilo") or "").strip().rstrip("."),
             # lo que escriba el usuario en «Sonido» va tal cual a overall_soundscape; vacío, la frase «sonido» de frases.json
-            "sonido": (e.get("sonido") or "").strip()}
+            "sonido": (e.get("sonido") or "").strip(),
+            # sin canción (28 oct, rutas.montar lo marca): el prompt no nombra <Audio 1>; el sonido lo inventa H3
+            "cancion": not e.get("sin_cancion")}
 
 
 def atuendos(menu):
@@ -1079,8 +1081,9 @@ def renglones_referencias(C, perfil, menu, textos=()):
     for tag, r in menu["letra"].items():   # la tipografía de cada palabra
         palabras = C.lista([trozo('"') + de_usuario(x["texto"]) + trozo('"') for x in textos if x["letra"] == tag])
         poner([tag], r, "letra", tag=tag, palabras=palabras)
-    arriba.append(C.pegar("def.audio"))
-    abajo.append(C.pegar("ret.audio"))
+    if perfil.get("cancion", True):
+        arriba.append(C.pegar("def.audio"))
+        abajo.append(C.pegar("ret.audio"))
     return arriba, abajo, por_tag
 
 
@@ -1142,17 +1145,19 @@ def montar(perfil, menu, plan, ini, textos, idioma="es", frases=None):
     arriba, abajo, por_tag = renglones_referencias(C, perfil, menu, textos)
     fijo = lambda c: de_campo(plan[c], c in plan.get("fijos", []))
     # el arco y el look ya no se piden en la ventana (27 oct, sin Historia): si están, van; si no, no son un hueco
-    resumen = C.pegar("resumen", protagonista="<Subject 1>", estilo=de_usuario(perfil["estilo"]), arco=fijo("arco"))
+    sin = "" if perfil.get("cancion", True) else ".sin_cancion"     # sin canción, las frases que no nombran <Audio 1>
+    resumen = C.pegar("resumen" + sin, protagonista="<Subject 1>", estilo=de_usuario(perfil["estilo"]), arco=fijo("arco"))
     estilo = (C.pegar("estilo.linea", estilo=de_usuario(perfil["estilo"]), look=fijo("look")) +
               C.pegar("estilo.fondo", fondo=fijo("fondo")) + C.pegar("estilo.refs", tags=C.lista(list(menu["estilo"]))))
     # sin palabras se dice arriba; con palabras no se anuncian antes de su momento (H3 las ponía en el segundo 0)
     trozos = (trozo("subject_definitions:\n") + unir(C, arriba, "") +
-              trozo("\n\nsummary:\n[reference generation + audio reference] ") + resumen +
+              trozo("\n\nsummary:\n[reference generation + audio reference] " if not sin else "\n\nsummary:\n[reference generation] ")
+              + resumen +
               trozo("\n\nretention_analysis:\n") + unir(C, abajo, "") +
               trozo("\n\ndetailed_description:\n") + unir(C, [estilo + ([] if textos else C.pegar("texto.ninguno"))] + lineas +
                                                            [C.pegar("texto.ninguno_mas") if textos else []], "") +
-              trozo("\n\noverall_soundscape:\n") + (trozo(perfil["sonido"], "tu") if perfil["sonido"] else C.pegar("sonido")) +
-              trozo("\n\nnon_diegetic_music:\n") + C.pegar("musica"))
+              trozo("\n\noverall_soundscape:\n") + (trozo(perfil["sonido"], "tu") if perfil["sonido"] else C.pegar("sonido" + sin)) +
+              trozo("\n\nnon_diegetic_music:\n") + C.pegar("musica" + sin))
     juntos = []
     for x in trozos:   # trozos seguidos del mismo origen y la misma frase, en uno
         if juntos and juntos[-1][1:] == x[1:]:

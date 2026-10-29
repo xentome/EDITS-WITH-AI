@@ -13,6 +13,7 @@
  "def.letra": "{tag} is the typography reference[[ for {palabras}]].",
  "def.audio": "<Audio 1> is the music reference.",
  "resumen": "A music edit of {protagonista}[[ ({estilo})]], cut on the beat of <Audio 1>[[: {arco}]].",
+ "resumen.sin_cancion": "An edit of {protagonista}[[ ({estilo})]][[: {arco}]].",
  "ret.personaje": "{sujeto}: fully_preserved - [[{nombre}'s ]]face, hair and features from {tags} stay the same in every shot.",
  "ret.objeto": "{sujeto}: fully_preserved - the shape, colors, materials and markings of the {nombre|object} from {tag} wherever it appears.",
  "ret.lugar": "{tag}: fully_preserved - the {nombre|place}: its layout, architecture, colors and light fixtures stay the same in every shot set there; any person in it is not transferred.",
@@ -46,6 +47,8 @@
  "texto.hasta_varias": " They stay on screen until {fin}.",
  "sonido": "Only the music of <Audio 1>, unchanged, with no dialogue and no added sound effects.",
  "musica": "The song in <Audio 1> plays unchanged throughout the whole video.",
+ "sonido.sin_cancion": "Natural sound that matches what happens on screen, with no dialogue.",
+ "musica.sin_cancion": "No song: any music follows overall_soundscape.",
  "toma.accion": "{accion}.",
  "toma.efecto_ref": "{frase}."
 }
