@@ -520,11 +520,16 @@ body.tema-casete .epl-duracion .epl-dur-entrada{font:700 18px/1 var(--k-mono) !i
 
 
 /* (28 oct) el preview en vivo */
-body.tema-casete .max-preview{background:var(--k-tinta) !important;border-color:var(--k-linea) !important}
-body.tema-casete .max-preview.flotante{background:var(--k-tinta2) !important;border-color:var(--k-linea2) !important}
-body.tema-casete .max-preview-cab b{font:800 17px/1 var(--k-titulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-crema)}
-body.tema-casete .max-preview-info{font:600 13px var(--k-mono);color:var(--k-suave)}
-body.tema-casete .max-ver-preview.fijo{border-color:var(--k-naranja) !important;color:#FFB27A !important}
+/* (29 oct) la cortina del preview (variante P1) y su botón, en cian */
+body.tema-casete .max-preview{background:#0B080E}
+body.tema-casete .max-preview.abierta{border-top-color:var(--k-linea);border-bottom-color:var(--k-cian)}
+body.tema-casete .max-preview-tit b{font:800 22px/1 var(--k-titulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-cian)}
+body.tema-casete .max-preview-info{font:600 14px var(--k-mono);color:var(--k-suave)}
+body.tema-casete .max-preview-pasos i{background:var(--k-tinta3);border-color:var(--k-linea2)}
+body.tema-casete .max-preview-pasos i.si{background:var(--k-cian);border-color:var(--k-cian)}
+body.tema-casete .max-preview-punto.quieto{background:var(--k-linea2)}
+body.tema-casete .max-ver-preview{background:var(--k-cian);font:900 20px/1 var(--k-titulo);letter-spacing:.06em}
+body.tema-casete .max-ver-preview:hover{background:#6CEEFF}
 
 /* (28 oct) el gestor de RefMods P2 */
 body.tema-casete .epl-g2-cab,body.tema-casete .epl-g2-lado{border-color:var(--k-linea) !important}

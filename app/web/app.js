@@ -58,92 +58,91 @@ const extension = extenderJS.crear({ el, icono: util.icono, mirarCola: () => mir
                                      avisar: (x, tipo) => avisar(x, tipo), alTerminar: () => cargarVideos(), retoque });
 
 /* ---- el preview en vivo (28 oct, planos/fases/13 §7): lo que manda el nodo «Model Preview Override» de la plantilla,
- * guardado dentro de ComfyUI por vista_previa.py y leído por GET /max_editor/preview. Se despliega con «Ver preview» en la
- * fila del avance (debajo de la cabecera) o se saca a una ventana flotante que se arrastra por su título. Se recuerda
- * abierto o cerrado, y dónde estaba la ventana. */
+ * guardado dentro de ComfyUI por vista_previa.py y leído por GET /max_editor/preview.
+ * (29 oct, variante P1 de app/web/prototipo_preview.html, elegida por Jonathan) una cortina dentro de la cabecera: se abre y
+ * se cierra con el botón cian de la fila del avance (que ya enseña el preview en chiquito y el paso) y, al abrirse, baja el
+ * editor en vez de taparlo. Si llega un paso nuevo con la cortina cerrada, el botón destella. Se recuerda abierta o cerrada. */
 const GUARDA_PREVIEW = "max-editor-preview";
 const preview = (() => {
-  const P = { abierto: false, flotante: false, x: null, y: null, n: 0, url: "", ultimo: null, trabajo: null, mirando: false };
-  try { Object.assign(P, JSON.parse(leerLocal(GUARDA_PREVIEW) || "{}")); } catch { /* sin guardar: cerrado */ }
-  P.n = 0; P.url = ""; P.ultimo = null;
-  const guardar = () => ponerLocal(GUARDA_PREVIEW, JSON.stringify({ abierto: P.abierto, flotante: P.flotante, x: P.x, y: P.y }));
-  const caja = el("div", { class: "max-preview", hidden: true });
-  const vid = el("video", { autoplay: true, loop: true, muted: true, playsinline: true });
-  const img = el("img", { alt: "" });
+  const P = { abierto: false, n: 0, url: "", ultimo: null, trabajo: null, mirando: false };
+  try { P.abierto = !!JSON.parse(leerLocal(GUARDA_PREVIEW) || "{}").abierto; } catch { /* sin guardar: cerrada */ }
+  const guardar = () => ponerLocal(GUARDA_PREVIEW, JSON.stringify({ abierto: P.abierto }));
+  const medio = () => el("video", { autoplay: true, loop: true, muted: true, playsinline: true });
+  const vid = medio(), img = el("img", { alt: "" });
+  const miniVid = medio(), miniImg = el("img", { alt: "" });
   const visor = el("div", { class: "max-preview-visor" });
-  const info = el("div", { class: "max-preview-info" });
-  const cabeza = el("div", { class: "max-preview-cab" });
-  caja.append(cabeza, visor, info);
-  // arrastrar la ventana flotante por su título
-  cabeza.addEventListener("pointerdown", (e) => {
-    if (!P.flotante || e.target.closest("button")) return;
-    const r = caja.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
-    const mover = (ev) => { P.x = Math.max(0, Math.min(innerWidth - 120, ev.clientX - dx)); P.y = Math.max(0, Math.min(innerHeight - 60, ev.clientY - dy)); colocar(); };
-    const soltar = () => { removeEventListener("pointermove", mover); removeEventListener("pointerup", soltar); guardar(); };
-    addEventListener("pointermove", mover); addEventListener("pointerup", soltar);
-  });
-  function colocar() {
-    caja.classList.toggle("flotante", P.flotante);
-    if (P.flotante && P.x !== null) Object.assign(caja.style, { left: P.x + "px", top: P.y + "px", right: "auto", bottom: "auto" });
-    else Object.assign(caja.style, { left: "", top: "", right: "", bottom: "" });
-    if (P.flotante && caja.parentNode !== document.body) document.body.append(caja);
-    if (!P.flotante && caja.parentNode !== cab) cab.append(caja);
-  }
-  const boton = (icono, clave, accion) => el("button", { class: "max-boton", title: t(clave), "aria-label": t(clave), onclick: accion }, util.icono(icono));
+  const lado = el("div", { class: "max-preview-lado" });
+  const caja = el("div", { class: "max-preview", "aria-hidden": "true" },
+    el("div", { class: "max-preview-dentro" }, el("div", { class: "max-preview-cuerpo" }, visor, lado)));
+  // el botón no se vuelve a crear al repintar el avance (cada 2 s): así su video chiquito no empieza de cero
+  const mini = el("span", { class: "max-preview-mini" });
+  const rotulo = el("span", { class: "max-preview-rotulo" });
+  const paso = el("span", { class: "max-preview-k" });
+  const boton = el("button", { class: "max-ver-preview", title: t("app.preview.tooltip"), onclick: () => alternar() },
+    mini, rotulo, paso, el("span", { class: "max-preview-flecha" }, util.icono("abajo")));
+  const kn = (u) => (u?.paso != null ? `${u.paso}/${u.total ?? "?"}` : "—");
+  const poner = (pieza, url) => { if (pieza.getAttribute("src") !== url) pieza.setAttribute("src", url); return pieza; };
   function pintar() {
-    const a = P.trabajo;
-    caja.hidden = !(P.abierto && (a || (P.flotante && P.ultimo)));
-    if (caja.hidden) return;
-    colocar();
-    cabeza.replaceChildren(el("b", {}, t("app.preview.titulo")),
-      el("span", { class: "max-derecha" }),
-      P.flotante ? boton("abajo", "app.preview.acoplar", () => { P.flotante = false; guardar(); pintar(); })
-                 : boton("arriba", "app.preview.flotante", () => { P.flotante = true; guardar(); pintar(); }),
-      boton("x", "app.preview.cerrar", () => { P.abierto = false; guardar(); pintar(); pintarAvance(); }));
-    const u = P.ultimo;
-    if (!u) {
-      visor.replaceChildren(el("div", { class: "max-vacio" }, t(a && (a.hace_s || 0) > 90 ? "app.preview.sin_datos" : "app.preview.esperando")));
-      info.replaceChildren();
-      return;
-    }
-    const pieza = /^video\//.test(u.mime) ? vid : img;
-    if (pieza.getAttribute("src") !== P.url) pieza.setAttribute("src", P.url);
-    if (visor.firstChild !== pieza) visor.replaceChildren(pieza);
-    info.replaceChildren(...[
-      el("span", {}, u.paso != null ? t("app.preview.paso", { k: u.paso, n: u.total ?? "?" }) : ""),
-      u.ms_paso ? el("span", {}, t("app.preview.por_paso", { s: tr.num(u.ms_paso / 1000, 1) })) : null,
-      !a ? el("button", { class: "max-boton", onclick: () => { A.verVideos = true; pintarVideos(); } }, t("app.preview.ver_video")) : null].filter(Boolean));
+    const a = P.trabajo, u = P.ultimo, abierta = P.abierto && !!a;
+    caja.classList.toggle("abierta", abierta);
+    caja.setAttribute("aria-hidden", String(!abierta));
+    boton.setAttribute("aria-expanded", String(abierta));
+    boton.classList.toggle("sin", !u);
+    rotulo.textContent = t(abierta ? "app.preview.ocultar" : "app.preview.ver");
+    paso.textContent = kn(u);
+    const video = u && /^video\//.test(u.mime);
+    mini.replaceChildren(...(u ? [poner(video ? miniVid : miniImg, P.url)] : [util.icono("ojo")]));
+    if (!a) return;
+    if (!u) visor.replaceChildren(el("div", { class: "max-vacio" }, t((a.hace_s || 0) > 90 ? "app.preview.sin_datos" : "app.preview.esperando")));
+    else { const pieza = poner(video ? vid : img, P.url); if (visor.firstChild !== pieza) visor.replaceChildren(pieza); }
+    const total = u?.total || 0, hecho = u?.paso || 0;
+    lado.replaceChildren(...[
+      el("div", { class: "max-preview-tit" }, el("span", { class: "max-preview-punto" + (u ? "" : " quieto") }), el("b", {}, t("app.preview.titulo"))),
+      total ? el("div", { class: "max-preview-pasos" }, ...Array.from({ length: total }, (_, i) => el("i", { class: i < hecho ? "si" : "" }))) : null,
+      el("div", { class: "max-preview-info" },
+        u?.paso != null ? el("span", {}, t("app.preview.paso", { k: u.paso, n: u.total ?? "?" })) : null,
+        u?.ms_paso ? el("span", {}, t("app.preview.por_paso", { s: tr.num(u.ms_paso / 1000, 1) })) : null,
+        u?.ms_paso && total > hecho ? el("span", {}, t("app.preview.faltan", { s: Math.round((total - hecho) * u.ms_paso / 1000) })) : null),
+      el("p", { class: "epl-ayuda" }, t("app.preview.ayuda")),
+      el("button", { class: "max-boton max-preview-recoger", onclick: () => alternar() }, util.icono("arriba"), " " + t("app.preview.recoger"))
+    ].filter(Boolean));
+  }
+  function destellar() {
+    boton.classList.remove("nuevo");
+    void boton.offsetWidth;                    // vuelve a empezar la animación
+    boton.classList.add("nuevo");
   }
   async function mirar() {
-    if (P.mirando || !P.abierto || !P.trabajo) return;
+    if (P.mirando || !P.trabajo) return;
     P.mirando = true;
     try {
       const r = await pedir("/max_editor/preview?desde=" + P.n);
       /* solo lo de este trabajo (no el último de otro): el preview tiene menos edad que el trabajo. Las dos edades las mide el
        * servidor (ComfyUI y la app): con el reloj del navegador fallaba en un pod, que va en UTC (29 oct) */
-      const lleva = P.trabajo.hace_s ?? Infinity;
+      const lleva = P.trabajo?.hace_s ?? Infinity;
       if (!r.igual && r.datos && (r.edad_s ?? 0) <= lleva + 3) {
         const bin = Uint8Array.from(atob(r.datos), (c) => c.charCodeAt(0));
         if (P.url) URL.revokeObjectURL(P.url);
         P.url = URL.createObjectURL(new Blob([bin], { type: r.mime }));
         P.ultimo = { mime: r.mime, paso: r.paso, total: r.total, ms_paso: r.ms_paso };
+        if (!P.abierto) destellar();
       }
       P.n = r.n || P.n;
     } catch { /* ComfyUI sin el nodo nuevo o sin reiniciar: se queda «esperando» */ }
     P.mirando = false;
     pintar();
   }
+  // se mira aunque la cortina esté cerrada: el botón enseña el preview en chiquito
   setInterval(mirar, 1000);
+  function alternar() { P.abierto = !P.abierto; guardar(); pintar(); mirar(); }
   return {
-    caja,
+    caja, boton,
     // lo llama pintarAvance con el trabajo que corre (o null): un trabajo nuevo empieza sin preview
     ponerTrabajo(a) {
       if (a && a.id !== P.trabajo?.id) { P.ultimo = null; if (P.url) URL.revokeObjectURL(P.url); P.url = ""; }
       P.trabajo = a || null;
       pintar();
     },
-    abierto: () => P.abierto,
-    alternar() { P.abierto = !P.abierto; guardar(); pintar(); mirar(); },
   };
 })();
 
@@ -465,9 +464,7 @@ function pintarAvance() {
                                            p: Math.round((a.avance || 0) * 100), s: seg, quedan });
   const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.avance || 0) * 100) + "%" } }));
   filaAvance.replaceChildren(el("span", { class: "max-texto", title: a.mensaje || "" }, texto), barra,
-    a.tipo === "generar" ? el("button", { class: "max-boton max-ver-preview" + (preview.abierto() ? " fijo" : ""), title: t("app.preview.tooltip"),
-                                          "aria-expanded": String(preview.abierto()), onclick: () => { preview.alternar(); pintarAvance(); } },
-      util.icono("ojo"), " " + t(preview.abierto() ? "app.preview.ocultar" : "app.preview.ver")) : null,
+    a.tipo === "generar" ? preview.boton : null,
     el("button", { class: "max-boton", onclick: () => colaAccion(a.id, "cancelar") }, t("app.avance.cancelar")),
     el("button", { class: "max-boton", onclick: () => { A.verCola = true; pintarCola(); } }, t("app.cola.ver")));
 }

@@ -115,3 +115,10 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **Preview en el pod:** ComfyUI sí guardaba el preview (`/max_editor/preview` daba n = 20). La página lo descartaba: comparaba la hora del preview con «empezado», una hora sin zona que en el pod es UTC; el navegador en México la leía como hora local y el trabajo parecía empezar dentro de 6 h. Ahora `/app/cola` da `hace_s` (segundos que lleva el trabajo, medidos en el servidor) y la página compara `edad_s` del preview con eso: los dos relojes son del servidor.
 - Queda: la hora de cada fila de la cola sigue saliendo en la hora del pod (UTC).
 
+## 11 · Preview en cortina (variante P1) ✅ (29 oct)
+
+- Prototipo: `app/web/prototipo_preview.html` (P1 cortina que empuja · P2 cajón lateral · P3 desplegable del botón). Jonathan eligió **P1**.
+- El preview ya no es una ventana encima de todo ni flotante: es una cortina debajo de la fila del avance que se abre y se cierra con un botón cian grande (con el preview en chiquito y «2/5»). Como va dentro de la cabecera fija, al abrirse baja el editor (`--max-alto`) en vez de taparlo.
+- Al lado del video: «Preview en vivo», una barra por paso, «Paso k de n», s por paso, faltan ≈ s y «Recoger». Con la cortina cerrada, el botón destella cuando llega un paso nuevo.
+- Se quitó la ventana flotante (y sus textos `app.preview.flotante/acoplar/cerrar/ver_video`).
+
