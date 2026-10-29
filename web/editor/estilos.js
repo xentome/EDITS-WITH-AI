@@ -391,19 +391,19 @@ textarea.epl-final{min-height:40vh}
 .epl-audio-salida-et{font-size:12px;color:#9aa3b2}
 /* (28 oct) el sonido, en su propio panel (cian, como el botón de la canción), y sin canción el botón grande para añadirla */
 .epl-sonido{display:block;margin-top:12px}
-.epl-sonido-panel{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:8px;border:1.5px solid #22E4FF;background:rgba(34,228,255,.07)}
+.epl-sonido-panel{display:flex;flex-direction:column;gap:6px;padding:8px 12px;border-radius:6px;border:1px solid rgba(34,228,255,.45);background:rgba(34,228,255,.035)}
 .epl-sonido-cab{display:flex;align-items:center;gap:12px}
-.epl-sonido-cab h3{margin:0;display:flex;align-items:center;gap:8px;font-size:18px;text-transform:uppercase;letter-spacing:.07em;color:#22E4FF}
+.epl-sonido-cab h3{margin:0;display:flex;align-items:center;gap:8px;font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:#22E4FF}
 .epl-sonido-cab .epl-trad-boton{margin-left:auto}
-.epl-sonido-panel textarea{width:100%;box-sizing:border-box;font-size:18px;line-height:1.45;min-height:calc(3 * 1.45em + 20px);padding:10px 12px;resize:vertical}
+.epl-sonido-panel textarea{width:100%;box-sizing:border-box;font-size:16px;line-height:1.4;field-sizing:content;min-height:calc(1.4em + 14px);padding:6px 10px;resize:none}
 .epl-sin-cancion{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:6px 0}
 .epl-sin-cancion.soltar .epl-anadir-cancion{outline:3px dashed #22E4FF;outline-offset:4px}
-.epl-anadir-cancion{display:inline-flex;align-items:center;gap:14px;min-height:64px;padding:10px 26px 10px 18px;border-radius:10px;cursor:pointer;
-  border:0;background:#22E4FF;color:#06141A;box-shadow:0 0 0 2px rgba(34,228,255,.35),0 0 26px rgba(34,228,255,.45);text-align:left}
-.epl-anadir-cancion:hover{background:#6FF0FF;box-shadow:0 0 0 3px rgba(34,228,255,.5),0 0 36px rgba(34,228,255,.6)}
-.epl-anadir-icono svg{width:30px;height:30px}
-.epl-anadir-txt{display:flex;flex-direction:column;gap:3px}.epl-anadir-txt b{font-size:19px;letter-spacing:.03em}.epl-anadir-txt small{font-size:13px;opacity:.85}
-.epl-mini.epl-cambiar-cancion{background:#22E4FF;border-color:#22E4FF;color:#06141A;font-weight:700;min-height:36px;padding:0 14px;box-shadow:0 0 16px rgba(34,228,255,.35)}
+.epl-anadir-cancion{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:6px 18px 6px 12px;border-radius:8px;cursor:pointer;
+  border:0;background:#22E4FF;color:#06141A;box-shadow:0 0 14px rgba(34,228,255,.3);text-align:left}
+.epl-anadir-cancion:hover{background:#6FF0FF}
+.epl-anadir-icono svg{width:22px;height:22px}
+.epl-anadir-txt{display:flex;flex-direction:column;gap:3px}.epl-anadir-txt b{font-size:16px;letter-spacing:.03em}.epl-anadir-txt small{font-size:13px;opacity:.85}
+.epl-mini.epl-cambiar-cancion{background:#22E4FF;border-color:#22E4FF;color:#06141A;font-weight:700;min-height:36px;padding:0 14px;box-shadow:none}
 .epl-mini.epl-cambiar-cancion:hover{background:#6FF0FF}
 /* (27 oct) la fila de la cabecera, en una rejilla fija: el título, el estado (una línea con «…», el texto entero en su
  * tooltip), la resolución anclada (no se mueve aunque el estado cambie de largo) y el idioma y «se guarda solo» a la derecha */

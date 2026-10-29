@@ -464,15 +464,26 @@ body.tema-casete .epl-s-toma .epl-c2-et .epl-trad-boton{font:600 13px/1 var(--k-
 
 /* ---------------------------------------------------------------- (28 oct) el sonido y la canción, en cian eléctrico
  * (lo eligió Jonathan: el naranja es de Generar). El panel del sonido y el botón grande «Añadir canción» */
-body.tema-casete .epl-sonido-panel{border-color:var(--k-cian) !important;background:rgba(34,228,255,.07) !important}
-body.tema-casete .epl-sonido-cab h3{font:800 20px/1 var(--k-titulo);letter-spacing:.07em;color:var(--k-cian)}
-body.tema-casete .epl-sonido-panel textarea{font:500 18px/1.45 var(--k-texto-f) !important;background:var(--k-tinta) !important;
+body.tema-casete .epl-sonido-panel{border-color:rgba(34,228,255,.45) !important;background:rgba(34,228,255,.035) !important}
+body.tema-casete .epl-sonido-cab h3{font:800 16px/1 var(--k-titulo);letter-spacing:.07em;color:var(--k-cian)}
+body.tema-casete .epl-sonido-panel textarea{font:500 16px/1.4 var(--k-texto-f) !important;background:var(--k-tinta) !important;
   border:1px solid rgba(34,228,255,.45) !important;color:var(--k-texto) !important}
 body.tema-casete .epl-sonido-panel textarea:focus{border-color:var(--k-cian) !important}
 body.tema-casete .epl-anadir-cancion{background:var(--k-cian) !important;color:#06141A !important;font-family:var(--k-rotulo)}
 body.tema-casete .epl-anadir-cancion:hover{background:#6FF0FF !important}
-body.tema-casete .epl-anadir-txt b{font:800 21px/1 var(--k-titulo);letter-spacing:.05em;text-transform:uppercase}
-body.tema-casete .epl-anadir-txt small{font:600 14px/1.2 var(--k-texto-f)}
+body.tema-casete .epl-anadir-txt b{font:800 17px/1 var(--k-titulo);letter-spacing:.05em;text-transform:uppercase}
+body.tema-casete .epl-anadir-txt small{font:600 12px/1.2 var(--k-texto-f)}
 body.tema-casete .epl-mini.epl-cambiar-cancion{background:var(--k-cian) !important;border-color:var(--k-cian) !important;color:#06141A !important;
   font:700 14px/1 var(--k-rotulo) !important;letter-spacing:.05em;text-transform:uppercase;min-height:36px}
 body.tema-casete .epl-mini.epl-cambiar-cancion:hover{background:#6FF0FF !important}
+
+/* (28 oct) la duración, más alta y en violeta eléctrico (lo eligió Jonathan): manda en todo el edit */
+body.tema-casete{--k-violeta:#A35BFF}
+body.tema-casete .epl-duracion{min-height:40px;padding:0 12px !important;gap:8px !important;border:1.5px solid var(--k-violeta) !important;
+  background:rgba(163,91,255,.10) !important;box-shadow:0 0 12px rgba(163,91,255,.25)}
+body.tema-casete .epl-duracion .epl-dur-et{font:700 13px/1 var(--k-rotulo);letter-spacing:.08em;text-transform:uppercase;color:var(--k-violeta)}
+body.tema-casete .epl-duracion .epl-dur-igual{color:var(--k-violeta)}
+body.tema-casete .epl-duracion .epl-dur-num{font:700 18px/1 var(--k-mono) !important;color:#E2CCFF !important;border-bottom:1px dashed var(--k-violeta);padding:3px 4px}
+body.tema-casete .epl-duracion .epl-dur-num:hover,body.tema-casete .epl-duracion .epl-dur-num.arrastrando,
+body.tema-casete .epl-duracion .epl-dur-num:focus-visible{background:var(--k-violeta) !important;color:var(--k-tinta) !important}
+body.tema-casete .epl-duracion .epl-dur-entrada{font:700 18px/1 var(--k-mono) !important}

@@ -53,3 +53,9 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **El prompt sin canción** (`nucleo.py`, `rutas.montar`, `frases.json`): no nombra `<Audio 1>`. Sin `def.audio` ni `ret.audio`, el resumen es «An edit of…» y la summary queda en «[reference generation]». Frases nuevas: `resumen.sin_cancion`, `sonido.sin_cancion` y `musica.sin_cancion`. Prueba en la sección 8d de pruebas.py.
 - **Comprobado:** 1440×900 y 2548×1284, con canción y sin ella; el botón abre la lista de 56 audios.
 
+## 5 · Menos alto el sonido, más visible la duración ✅
+
+- **Por qué:** Jonathan: «hazlo mucho menos alto, no debe resaltar tanto»; y «la duración sí debe resaltar más, un poco más alta y con un color especial». Eligió violeta eléctrico `#A35BFF` (`--k-violeta`).
+- **El sonido:** un renglón que crece con el texto (`field-sizing: content`, 16 px). El borde y el fondo cian van más suaves, y el título baja a 16 px. El panel pasó de unos 230 px a 118 px de alto. El botón «Añadir canción», de 64 a 46 px, con menos brillo.
+- **La duración:** 42 px de alto, con borde, fondo y rótulo violeta, números de 18 px y un brillo suave. Solo CSS (`casete.css`), sin cambios en el código.
+
