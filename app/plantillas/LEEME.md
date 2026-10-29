@@ -46,7 +46,7 @@
 |---|---|
 | `Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors` | `diffusion_models/` |
 | `qwen3vl_32b_minimax_h3_int8_convrot.safetensors` | `text_encoders/` |
-| `minimax_h3_video_vae_int8_convrot kj.safetensors` | `vae/` |
+| `minimax_h3_video_vae_int8_convrot.safetensors` | `vae/` |
 | `minimax_h3_audio_vae_fp32.safetensors` | `vae/` |
 | `taeh3.safetensors` | `vae_approx/` |
 | `vdn-minimax-h3-int8-convrot-comfyui` (carpeta) | `vdn/` |

@@ -49,7 +49,7 @@
  "5": {
   "class_type": "VAELoader",
   "inputs": {
-   "vae_name": "minimax_h3_video_vae_int8_convrot kj.safetensors"
+   "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
   }
  },
  "6": {

@@ -126,7 +126,7 @@ def tomas(d):
 # Fantastic junta varias fotos en un solo RefMod (un fotograma cada una) y H3 lo recibe como <Video N>. Las fotos de cada
 # cajita se apuntan al lado del RefMod, en <nombre>.cajita.json, para que el editor pueda enseñarlas (el RefMod solo
 # guarda la primera como vista previa). planos/4 El editor.md.
-VAE_H3 = "minimax_h3_video_vae_int8_convrot kj.safetensors"
+VAE_H3 = "minimax_h3_video_vae_int8_convrot.safetensors"
 IMAGENES = (".png", ".jpg", ".jpeg", ".webp")
 
 
