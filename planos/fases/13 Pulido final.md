@@ -142,3 +142,10 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - `GET /app/miniatura?video=`: un JPG del segundo 1 con ffmpeg, guardado una vez en `app/salidas/miniaturas/`; así la ventana no abre decenas de videos a la vez (el límite de ~6 conexiones del navegador).
 - (29 oct, Jonathan: «no se ve ninguna miniatura… los proyectos parecen videos») Sin reiniciar el servidor, `/app/miniatura` no existe: la tarjeta usa entonces el primer fotograma del propio video. La tarjeta de un proyecto es ahora una carpeta de trabajo: nombre arriba con su icono y una franja violeta (verde el abierto), la idea, el último video como portada con hojas detrás y el sello «último video», las caritas de sus referencias (`/app/miniatura?refmod=`, 160 px) y fichas «N tomas · N referencias · canción · N videos», «Editado …». `/app/proyectos` trae `resumen` (servidor.resumen_proyecto).
 
+## 15 · Extender: «Audio de entrada» continúa la canción ✅ (29 oct)
+
+- Jonathan: «Audio de entrada» = seguir la canción con la que se generó el video desde el segundo en que acaba; «Audio del modelo» = H3 genera a partir del audio del video.
+- Fallaba porque, con «Audio de H3» en Generar, la fila del historial anotaba `audio: None` (generar.cancion_de) y Extender creía que no había canción. Ahora se anota siempre la canción (guió a H3 igual); `sin_cancion: True` solo si de verdad no había. Los videos de antes sin canción anotada usan la del proyecto ahora.
+- `extender.unir`: el original suena tal cual y en lo nuevo va la canción desde `inicio_s + total/24` (antes, la canción entera encima, y un original con el audio de H3 perdía su sonido). Las dos partes con el mismo formato (48 kHz estéreo). Comprobado con el video de «chica pasto cielo»: lo nuevo coincide con la canción en el segundo 9,25 (correlación 0,98).
+- Una extensión anota la canción aunque se haga con «Audio del modelo», para que otra extensión pueda continuarla.
+

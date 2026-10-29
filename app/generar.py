@@ -275,9 +275,11 @@ def latente_de(grafo: dict) -> str | None:
 
 
 def cancion_de(estado: dict) -> dict | None:
-    """La canción que suena en el video (para Extender): {original, inicio_s}, o None si el video lleva el audio del modelo."""
+    """La canción con la que se hizo el video (para Extender): {original, inicio_s}, o None si no tenía canción.
+    (29 oct, Jonathan) También con «Audio de H3»: la canción guió a H3 igual, y «Audio de entrada» de Extender la continúa
+    desde donde acaba el video. Antes se anotaba None y Extender creía que no había canción."""
     a = estado.get("audio") or {}
-    if estado.get("audio_salida", "cancion") == "modelo" or not a.get("original"):
+    if not a.get("original"):
         return None
     try:
         return {"original": a["original"], "inicio_s": float(a.get("inicio_s") or 0)}
@@ -407,6 +409,8 @@ def _despues_edit(tid: str, grafo: dict, job, opciones: dict):
     archivo = f"edit_{datetime.now():%Y%m%d_%H%M%S}_{semilla}{ext}"
     o.to_file(os.path.join(SALIDAS, archivo))
     fila = {"semilla": semilla, "proyecto": opciones.get("proyecto"), "audio": opciones.get("_audio")}
+    if not opciones.get("_audio"):
+        fila["sin_cancion"] = True             # de verdad sin canción (Extender no busca la del proyecto)
     latente = latente_de(grafo)
     if latente:
         try:

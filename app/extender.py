@@ -142,7 +142,7 @@ def _cancion_del_proyecto(proyecto: str | None) -> dict | None:
                 continue
             e = json.loads(e)
             a = e.get("audio") or {}
-            if e.get("audio_salida", "cancion") != "modelo" and a.get("original"):
+            if a.get("original"):                     # con «Audio de H3» también: la canción guió el video
                 return {"original": a["original"], "inicio_s": float(a.get("inicio_s") or 0)}
     except (OSError, ValueError, TypeError, AttributeError):
         pass
@@ -159,8 +159,11 @@ def cancion(video: str) -> tuple[dict | None, str]:
         fila = filas.get(fila.get("de"))
     if not fila:
         return None, "ninguna"
-    if "audio" in fila:
-        return (fila["audio"], "anotada") if fila["audio"] else (None, "ninguna")
+    if fila.get("audio"):
+        return fila["audio"], "anotada"
+    if fila.get("sin_cancion") or ("audio" in fila and fila.get("tipo") == "extension"):
+        return None, "ninguna"
+    # sin canción anotada: un video de antes del 29 oct (con «Audio de H3» se anotaba None) → la del proyecto ahora
     c = _cancion_del_proyecto(fila.get("proyecto"))
     return (c, "proyecto") if c else (None, "ninguna")
 
@@ -254,24 +257,28 @@ def _cortar_cancion(p: dict, sello: str) -> str:
 
 
 def unir(original: str, ventana: str, p: dict, destino: str) -> None:
-    """El original (a 24 fps) + lo nuevo de la ventana (sin el solape, al tamaño del original). Audio: la canción intacta
-    desde su inicio (si se usa), o el audio original + el de H3 en lo nuevo."""
+    """El original (a 24 fps) + lo nuevo de la ventana (sin el solape, al tamaño del original). Audio: el del original tal
+    cual y, en lo nuevo, la canción justo desde el segundo en que acaba el original (si se usa) o lo que generó H3.
+    (29 oct) Antes, con la canción, se ponía la canción entera encima y el original perdía su sonido si era el de H3."""
     vi, s, n, total = p["info"], p["solape"], p["nuevos"], p["total"]
     W, H = vi["ancho"], vi["alto"]
     norm = f"scale={W}:{H}:flags=lanczos,setsar=1,format=yuv420p"
     filtros = [f"[0:v]fps={FPS:g},trim=end_frame={total},setpts=PTS-STARTPTS,{norm}[a]",
                f"[1:v]tpad=stop_mode=clone:stop={n},trim=start_frame={s}:end_frame={s + n},setpts=PTS-STARTPTS,{norm}[b]",
                "[a][b]concat=n=2:v=1:a=0[v]"]
-    entradas, dur_total = ["-i", original, "-i", ventana], (total + n) / FPS
+    entradas = ["-i", original, "-i", ventana]
+    orig = (f"[0:a]aresample=48000,asetpts=PTS-STARTPTS,apad=whole_dur={total / FPS:.6f},atrim=duration={total / FPS:.6f}[oa]"
+            if vi["audio"] else f"anullsrc=r=48000:cl=stereo,atrim=duration={total / FPS:.6f}[oa]")
     if p["usa_cancion"]:
-        t0 = float(p["cancion"].get("inicio_s") or 0)
+        t0 = float(p["cancion"].get("inicio_s") or 0) + total / FPS      # donde acaba el original, en la canción
         entradas += ["-ss", f"{t0:.6f}", "-i", _ruta_cancion(p["cancion"])]
-        filtros.append(f"[2:a]asetpts=PTS-STARTPTS,apad=whole_dur={dur_total:.6f},atrim=duration={dur_total:.6f}[au]")
+        nuevo = f"[2:a]aresample=48000,asetpts=PTS-STARTPTS,apad=whole_dur={n / FPS:.6f},atrim=duration={n / FPS:.6f}[na]"
     else:
-        orig = (f"[0:a]aresample=48000,asetpts=PTS-STARTPTS,apad=whole_dur={total / FPS:.6f},atrim=duration={total / FPS:.6f}[oa]"
-                if vi["audio"] else f"anullsrc=r=48000:cl=stereo,atrim=duration={total / FPS:.6f}[oa]")
-        filtros += [orig, f"[1:a]aresample=48000,atrim=start={s / FPS:.6f}:duration={n / FPS:.6f},asetpts=PTS-STARTPTS,"
-                          f"apad=whole_dur={n / FPS:.6f}[na]", "[oa][na]concat=n=2:v=0:a=1[au]"]
+        nuevo = (f"[1:a]aresample=48000,atrim=start={s / FPS:.6f}:duration={n / FPS:.6f},asetpts=PTS-STARTPTS,"
+                 f"apad=whole_dur={n / FPS:.6f}[na]")
+    # las dos partes con el mismo formato (una canción mono o a 44,1 kHz no se puede pegar tal cual a la de H3)
+    fmt = "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo"
+    filtros += [orig.replace("[oa]", f",{fmt}[oa]"), nuevo.replace("[na]", f",{fmt}[na]"), "[oa][na]concat=n=2:v=0:a=1[au]"]
     retocar._ffmpeg(*entradas, "-filter_complex", ";".join(filtros), "-map", "[v]", "-map", "[au]", "-r", f"{FPS:g}",
                     "-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
                     "-movflags", "+faststart", destino)
@@ -383,7 +390,7 @@ def _fila(meta: dict, semilla, ventana_archivo: str) -> dict:
                           "desde": p["total"], "ventana": p["ventana"], "ancho": p["ancho"], "alto": p["alto"]},
             "ventana_video": ventana_archivo, "latente": meta["latente"], "latente_wh": [p["ancho"], p["alto"]],
             # la canción sigue anotada (así otra extensión la continúa); None = sin canción conocida
-            "audio": p["cancion"] if p["usa_cancion"] else None, "audio_salida": p["audio_salida"],
+            "audio": p["cancion"], "audio_salida": p["audio_salida"],
             "referencias": meta["referencias"], "prompt": meta["prompt"]}
 
 
