@@ -338,11 +338,12 @@ export function instalar(ctx) {
       placeholder: t(S.audio ? "linea.sonido.placeholder" : "linea.sonido.placeholder_sin"),
       onkeydown: (e) => { if (e.key === "Enter") e.preventDefault(); },
       oninput: (e) => { S.sonido = e.target.value.replace(/\s*\n\s*/g, " "); ctx.pedirMontaje(); } }, S.sonido);
+    // el título, el texto y «Traducir» en un renglón; debajo, qué audio lleva el video (28 oct: lo más bajo posible)
     secSonido?.replaceChildren(el("section", { class: "epl-sonido-panel" },
       el("div", { class: "epl-sonido-cab" },
         el("h3", {}, el("i", { class: "epl-icono" }, u.icono("sonido")), t("linea.sonido.titulo")),
-        ctx.botonTraducir ? ctx.botonTraducir(sonido) : null),
-      sonido, audio));
+        sonido, ctx.botonTraducir ? ctx.botonTraducir(sonido) : null),
+      audio));
   };
 
   // ---- 2 · prompt de la toma elegida

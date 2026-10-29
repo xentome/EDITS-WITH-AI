@@ -391,11 +391,11 @@ textarea.epl-final{min-height:40vh}
 .epl-audio-salida-et{font-size:12px;color:#9aa3b2}
 /* (28 oct) el sonido, en su propio panel (cian, como el botón de la canción), y sin canción el botón grande para añadirla */
 .epl-sonido{display:block;margin-top:12px}
-.epl-sonido-panel{display:flex;flex-direction:column;gap:6px;padding:8px 12px;border-radius:6px;border:1px solid rgba(34,228,255,.45);background:rgba(34,228,255,.035)}
-.epl-sonido-cab{display:flex;align-items:center;gap:12px}
-.epl-sonido-cab h3{margin:0;display:flex;align-items:center;gap:8px;font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:#22E4FF}
-.epl-sonido-cab .epl-trad-boton{margin-left:auto}
-.epl-sonido-panel textarea{width:100%;box-sizing:border-box;font-size:16px;line-height:1.4;field-sizing:content;min-height:calc(1.4em + 14px);padding:6px 10px;resize:none}
+.epl-sonido-panel{display:flex;flex-direction:column;gap:4px;padding:6px 10px;border-radius:6px;border:1px solid rgba(34,228,255,.45);background:rgba(34,228,255,.035)}
+.epl-sonido-cab{display:flex;align-items:center;gap:10px}
+.epl-sonido-cab h3{margin:0;flex:none;white-space:nowrap;display:flex;align-items:center;gap:8px;font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:#22E4FF}
+.epl-sonido-cab .epl-trad-boton{flex:none}
+.epl-sonido-panel textarea{flex:1;min-width:0;box-sizing:border-box;font-size:15px;line-height:1.3;field-sizing:content;min-height:calc(1.3em + 10px);padding:4px 10px;resize:none}
 .epl-sin-cancion{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:6px 0}
 .epl-sin-cancion.soltar .epl-anadir-cancion{outline:3px dashed #22E4FF;outline-offset:4px}
 .epl-anadir-cancion{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:6px 18px 6px 12px;border-radius:8px;cursor:pointer;

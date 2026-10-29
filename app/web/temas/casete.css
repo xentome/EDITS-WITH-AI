@@ -466,7 +466,7 @@ body.tema-casete .epl-s-toma .epl-c2-et .epl-trad-boton{font:600 13px/1 var(--k-
  * (lo eligió Jonathan: el naranja es de Generar). El panel del sonido y el botón grande «Añadir canción» */
 body.tema-casete .epl-sonido-panel{border-color:rgba(34,228,255,.45) !important;background:rgba(34,228,255,.035) !important}
 body.tema-casete .epl-sonido-cab h3{font:800 16px/1 var(--k-titulo);letter-spacing:.07em;color:var(--k-cian)}
-body.tema-casete .epl-sonido-panel textarea{font:500 16px/1.4 var(--k-texto-f) !important;background:var(--k-tinta) !important;
+body.tema-casete .epl-sonido-panel textarea{font:500 15px/1.3 var(--k-texto-f) !important;background:var(--k-tinta) !important;
   border:1px solid rgba(34,228,255,.45) !important;color:var(--k-texto) !important}
 body.tema-casete .epl-sonido-panel textarea:focus{border-color:var(--k-cian) !important}
 body.tema-casete .epl-anadir-cancion{background:var(--k-cian) !important;color:#06141A !important;font-family:var(--k-rotulo)}

@@ -58,4 +58,4 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **Por qué:** Jonathan: «hazlo mucho menos alto, no debe resaltar tanto»; y «la duración sí debe resaltar más, un poco más alta y con un color especial». Eligió violeta eléctrico `#A35BFF` (`--k-violeta`).
 - **El sonido:** un renglón que crece con el texto (`field-sizing: content`, 16 px). El borde y el fondo cian van más suaves, y el título baja a 16 px. El panel pasó de unos 230 px a 118 px de alto. El botón «Añadir canción», de 64 a 46 px, con menos brillo.
 - **La duración:** 42 px de alto, con borde, fondo y rótulo violeta, números de 18 px y un brillo suave. Solo CSS (`casete.css`), sin cambios en el código.
-
+- **Aún más bajo (Jonathan):** el título, el texto y «Traducir» van en un solo renglón y «Audio del video» queda debajo. El panel pasó de 118 a 74 px.
