@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
-# MAX EDITOR: instala el entorno de la app en app/.venv (Python 3.10+, con uv si lo tienes; si no, python3 -m venv).
-# No toca el Python de ComfyUI: solo comprueba que tenga lo que necesita el trabajador y, si falta, te dice la orden.
-# Opciones: --comfyui DIR   dónde está tu ComfyUI (se guarda en app/config.local.json)
-#           --escritorio    crea un acceso directo «MAX EDITOR» en el menú de aplicaciones (Linux)
+# MAX EDITOR: instala todo lo que la app necesita, con una sola orden. Se puede repetir: lo que ya está se salta.
+#   1. el entorno de la app en app/.venv (Python 3.10+, con uv si lo tienes; si no, python3 -m venv);
+#   2. en tu ComfyUI (app/instalacion/instalar.py, que lee app/instalacion/comfy-build.yaml): los packs de nodos en su
+#      commit, sus dependencias con torch y numpy congelados y los modelos de HuggingFace con su sha256.
+# Nunca parchea ComfyUI ni pisa un pack que ya tengas: solo añade.
+# Opciones: --comfyui DIR     dónde está tu ComfyUI (se guarda en app/config.local.json)
+#           --retocar         también Retocar y Extender video (7 packs más + SAM 3.1, 1,7 GB)
+#           --modelos DIR     una carpeta models/ donde ya tienes los modelos: se enlazan en vez de bajarlos (repetible)
+#           --dry-run         enseña lo que haría sin cambiar nada (solo crea app/.venv si falta)
+#           --comprobar       el doctor: dice qué falta y cómo arreglarlo, sin cambiar nada
+#           --solo-modelos / --sin-modelos   solo los modelos / todo menos bajar modelos
+#           --forzar          cambia al commit probado los packs que estén en otro
+#           --verificar       comprueba el sha256 completo de los modelos que ya tienes
+#           --sin-preguntas   contesta sí a todo (para un pod o un script)
+#           --escritorio      crea un acceso directo «MAX EDITOR» en el menú de aplicaciones (Linux)
 set -euo pipefail
 APP="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 REPO="$(dirname "$APP")"
@@ -10,12 +21,18 @@ VENV="${MAX_EDITOR_VENV:-$APP/.venv}"
 case "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" in es*) ES=1 ;; *) ES=0 ;; esac
 decir() { if [ "$ES" = 1 ]; then echo "$1"; else echo "$2"; fi; }
 
-COMFYUI=""; ESCRITORIO=0
+COMFYUI=""; ESCRITORIO=0; RETOCAR=0; SIN_PREGUNTAS=0; SOLO_MIRAR=0; PASAR=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --comfyui) COMFYUI="${2:?}"; shift 2 ;;
     --escritorio) ESCRITORIO=1; shift ;;
-    *) decir "Opción desconocida: $1" "Unknown option: $1"; exit 2 ;;
+    --modelos) PASAR+=("--modelos" "${2:?}"); shift 2 ;;
+    --retocar) RETOCAR=1; shift ;;
+    --sin-preguntas|-y) SIN_PREGUNTAS=1; PASAR+=("--sin-preguntas"); shift ;;
+    --dry-run|--comprobar) SOLO_MIRAR=1; PASAR+=("$1"); shift ;;
+    --solo-modelos|--sin-modelos|--forzar|--verificar|--pip) PASAR+=("$1"); shift ;;
+    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    *) decir "Opción desconocida: $1 (mira app/instalar.sh --help)" "Unknown option: $1 (see app/instalar.sh --help)"; exit 2 ;;
   esac
 done
 
@@ -44,7 +61,9 @@ else
 fi
 
 # 2. dónde está ComfyUI
-if [ -n "$COMFYUI" ]; then
+if [ -n "$COMFYUI" ] && [ "$SOLO_MIRAR" = 1 ]; then
+  export MAX_EDITOR_COMFYUI_DIR; MAX_EDITOR_COMFYUI_DIR="$(readlink -f "$COMFYUI")"   # mirar no guarda nada
+elif [ -n "$COMFYUI" ]; then
   "$VENV/bin/python" - "$APP/config.local.json" "$(readlink -f "$COMFYUI")" <<'PY'
 import json, sys
 ruta, carpeta = sys.argv[1], sys.argv[2]
@@ -65,22 +84,22 @@ if [ -f "$DIR/main.py" ]; then
 else
   decir "✗ No encuentro ComfyUI en $DIR. Vuelve a ejecutar: app/instalar.sh --comfyui /ruta/a/ComfyUI" \
         "✗ ComfyUI not found at $DIR. Run again: app/instalar.sh --comfyui /path/to/ComfyUI"
+  decir "  ¿No tienes ComfyUI? Instálalo (https://docs.comfy.org/installation) o usa la plantilla de RunPod del README." \
+        "  No ComfyUI? Install it (https://docs.comfy.org/installation) or use the RunPod template in the README."
+  exit 1
 fi
 
-# 3. el Python de ComfyUI (el trabajador lo usa para el audio y las fotos): solo se comprueba
-if "$PYC" -c 'import numpy, PIL, librosa' 2>/dev/null; then
-  decir "✓ El Python de ComfyUI tiene numpy, Pillow y librosa ($PYC)" "✓ ComfyUI's Python has numpy, Pillow and librosa ($PYC)"
-else
-  decir "✗ Al Python de ComfyUI ($PYC) le falta numpy, Pillow o librosa. Instálalos tú con:" \
-        "✗ ComfyUI's Python ($PYC) lacks numpy, Pillow or librosa. Install them yourself with:"
-  echo "    \"$PYC\" -m pip install -r \"$APP/requirements-comfyui.txt\""
-  decir "  (si no es ese Python, pon el bueno en app/config.local.json: {\"python_comfyui\": \"/ruta/python\"})" \
-        "  (if that is not the right Python, set it in app/config.local.json: {\"python_comfyui\": \"/path/python\"})"
+# 3. tu ComfyUI: packs de nodos, dependencias y modelos (lo hace instalar.py; no se para si algo falta)
+if [ "$RETOCAR" = 0 ] && [ "$SIN_PREGUNTAS" = 0 ] && [ "$SOLO_MIRAR" = 0 ] && [ -t 0 ]; then
+  if [ "$ES" = 1 ]; then read -r -p "  ? ¿Instalo también Retocar y Extender video (7 packs más + SAM 3.1, 1,7 GB)? [S/n] " r
+  else read -r -p "  ? Also install Retouch and Extend video (7 more packs + SAM 3.1, 1.7 GB)? [Y/n] " r; fi
+  case "${r,,}" in ""|s|si|sí|y|yes) RETOCAR=1 ;; esac
 fi
-for prog in ffmpeg ffprobe; do
-  command -v "$prog" >/dev/null 2>&1 || decir "✗ Falta $prog (la app lo usa para la canción y los videos subidos)." \
-                                              "✗ $prog is missing (the app uses it for the song and uploaded videos)."
-done
+[ "$RETOCAR" = 1 ] && PASAR+=("--retocar")
+CODIGO=0
+"$VENV/bin/python" "$APP/instalacion/instalar.py" --comfyui-dir "$DIR" --python-comfyui "$PYC" \
+  --comfyui-url "$(leer comfyui_url)" ${PASAR[@]+"${PASAR[@]}"} || CODIGO=$?
+[ "$SOLO_MIRAR" = 1 ] && exit "$CODIGO"
 
 # 4. acceso directo (opcional)
 if [ "$ESCRITORIO" = 1 ]; then
@@ -98,4 +117,11 @@ EOF
 fi
 
 chmod +x "$APP/arrancar.sh" "$APP/parar.sh"
-decir "Listo. Arranca la app con: app/arrancar.sh" "Done. Start the app with: app/arrancar.sh"
+if [ "$CODIGO" = 0 ]; then
+  decir "Listo. Arranca ComfyUI (o reinícialo si ya estaba abierto) y luego la app: app/arrancar.sh" \
+        "Done. Start ComfyUI (or restart it if it was open), then the app: app/arrancar.sh"
+else
+  decir "Casi: arregla lo de arriba y vuelve a ejecutar app/instalar.sh (lo hecho se salta)." \
+        "Almost: fix the items above and run app/instalar.sh again (what is done is skipped)."
+fi
+exit "$CODIGO"

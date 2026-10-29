@@ -1,0 +1,221 @@
+# MAX EDITOR: la lista de piezas (fuente única de verdad del instalador, app/instalacion/instalar.py).
+# Viene de ~/comfy/max_editor_build/comfy-build.yaml (comfy build init, 27 oct 2026), completada el 28 oct:
+# repos de HF con revisión fija, VDN como git, los packs de Retocar y Extender y SAM 3.1.
+# Grupos: «edit» (lo mínimo para generar) y «retocar» (Retocar y Extender video; instalar.sh --retocar).
+# Cada modelo: dónde va dentro de ComfyUI/models (localPath), de dónde se baja (repo + revision + path de HF),
+# su tamaño y su sha256 (comprobados en la API de HF el 28 oct 2026). «alias»: otro nombre con el mismo archivo.
+schema: comfy-build/1
+name: max-editor-h3
+definition:
+  schema: distribution-definition/0
+  baseComfyVersion: v0.39.0
+  models:
+    - filename: Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors
+      localPath: diffusion_models/Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors
+      repo: WarmBloodAban/Minimax-h3_Singularity
+      revision: 1259cf16cd0b655ba691a32fb46a409142762972
+      path: Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors
+      sha256: 551915097b8727537a82f3a2c5acec965165ec84e780b3e9a5f28ce867fddf08
+      sizeBytes: 34004507622
+      grupo: edit
+    - filename: qwen3vl_32b_minimax_h3_int8_convrot.safetensors
+      localPath: text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors
+      repo: Comfy-Org/MiniMax-H3
+      revision: e5eb578a89295337b8ff433a035929ce0279e0b6
+      path: text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors
+      sha256: bc2ced0fbea64757fa9acddccfc0b3f4819d1dcf1da6c124d690d368be283923
+      sizeBytes: 27141342152
+      grupo: edit
+    - filename: minimax_h3_video_vae_int8_convrot.safetensors
+      localPath: vae/minimax_h3_video_vae_int8_convrot.safetensors
+      repo: Comfy-Org/MiniMax-H3
+      revision: e5eb578a89295337b8ff433a035929ce0279e0b6
+      path: vae/minimax_h3_video_vae_int8_convrot.safetensors
+      sha256: 52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e
+      sizeBytes: 2811065184
+      alias: ["minimax_h3_video_vae_int8_convrot kj.safetensors"]   # el mismo archivo con el nombre de kijai
+      grupo: edit
+    - filename: minimax_h3_audio_vae_fp32.safetensors
+      localPath: vae/minimax_h3_audio_vae_fp32.safetensors
+      repo: Comfy-Org/MiniMax-H3
+      revision: e5eb578a89295337b8ff433a035929ce0279e0b6
+      path: vae/minimax_h3_audio_vae_fp32.safetensors
+      sha256: 8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+      sizeBytes: 605254808
+      grupo: edit
+    - filename: taeh3.safetensors
+      localPath: vae_approx/taeh3.safetensors
+      repo: Kijai/MiniMax-H3-TAE
+      revision: a213ac8bf2f148b4f32372279a7f207846978900
+      path: vae_approx/taeh3.safetensors
+      sha256: f0f60fa072089997f817402098c2fd90777cb2660dd79cf5df42fc1e3e08e527
+      sizeBytes: 9791388
+      grupo: edit
+    # VDN: una carpeta entera (pesos + sus JSON). Los JSON no son LFS: su sha256 se midió en la copia local.
+    - filename: adapter_model.safetensors
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/default/adapter_model.safetensors
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: adapters/default/adapter_model.safetensors
+      sha256: 58558fef506f88bb41649242de9b9b3a365da806b51b2e96afbbe1625222058a
+      sizeBytes: 334026912
+      grupo: edit
+    - filename: adapter_config.json
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/default/adapter_config.json
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: adapters/default/adapter_config.json
+      sha256: 89e0ff8920b9629b826eb99ab6150cce6924a53aa445186d1b493225fd091b96
+      sizeBytes: 415
+      grupo: edit
+    - filename: adapter_model.safetensors
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/turbo/adapter_model.safetensors
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: adapters/turbo/adapter_model.safetensors
+      sha256: 24fc93c82fe84dc45d0627f4e72c637bc387d282ba18f60ed3b7f8c81089392c
+      sizeBytes: 851452696
+      grupo: edit
+    - filename: adapter_config.json
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/turbo/adapter_config.json
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: adapters/turbo/adapter_config.json
+      sha256: 627968f670747c29cd7a0d3f8c75166e501d70f9e829b5cd3242a8f14cefbc18
+      sizeBytes: 22264
+      grupo: edit
+    - filename: model_int8_convrot_comfyui.safetensors
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/linear_branch/model_int8_convrot_comfyui.safetensors
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: linear_branch/model_int8_convrot_comfyui.safetensors
+      sha256: 1fa18c3ebd94caa804ae3dc3a93df7ae069d8f5c363a00b6eb5288112c0f5abc
+      sizeBytes: 2304371056
+      grupo: edit
+    - filename: config.json
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/linear_branch/config.json
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: linear_branch/config.json
+      sha256: decb06ac7e664610f677fb445318502b3c51f9c1b8603a2cdd00b16042be5bc8
+      sizeBytes: 465
+      grupo: edit
+    - filename: metadata.json
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/metadata.json
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: metadata.json
+      sha256: 54054ceb1c91b3fdf7fa0278e4a8841c127e8cf666b5e240d69613661f9d3e9e
+      sizeBytes: 463
+      grupo: edit
+    - filename: model_spec.json
+      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/model_spec.json
+      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
+      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
+      path: model_spec.json
+      sha256: 4171f4384e952f1f73467981a893440c03298af4956b947e2c8a857ba9f5a62b
+      sizeBytes: 25705
+      grupo: edit
+    - filename: sam3.1_multiplex_fp16.safetensors
+      localPath: checkpoints/sam3.1_multiplex_fp16.safetensors
+      repo: Comfy-Org/sam3.1
+      revision: 7bb8374780a725b4353ed31f3a9395c9742b5621
+      path: checkpoints/sam3.1_multiplex_fp16.safetensors
+      sha256: 9ba99c92703c2e8b4f47de2d34a539bb8e18923049e238b780d70dbe6368eb03
+      sizeBytes: 1745546848
+      grupo: retocar
+  customNodes:
+    # el edit (app/plantillas/edit_h3.api.json)
+    - name: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
+      localPath: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
+      source: git
+      repository: https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
+      gitRef: 01b6d8d91180c6994840e34312a65febe02cc4f5
+      grupo: edit
+    - name: ComfyUI-MiniMax-H3-SPEED
+      localPath: ComfyUI-MiniMax-H3-SPEED
+      source: git
+      repository: https://github.com/StanLukuvka/ComfyUI-MiniMax-H3-SPEED
+      gitRef: 3ca5471e30508beb41a47589d7d58ac25bec0c80
+      grupo: edit
+    - name: ComfyUI-VDN-H3                     # el fork VDN-H3-Plus de xmarre, en la carpeta con el nombre original
+      localPath: ComfyUI-VDN-H3
+      source: git
+      repository: https://github.com/xmarre/ComfyUI-VDN-H3-Plus
+      gitRef: b78e94d0365ffc5059924a048af707e565d0380e
+      grupo: edit
+    - name: comfyui-kjnodes
+      localPath: comfyui-kjnodes
+      source: git
+      repository: https://github.com/kijai/ComfyUI-KJNodes
+      gitRef: d3cfe21625e5170126ce06fbfcfe1d88108688c3
+      grupo: edit
+    # Retocar (app/plantillas/retocar.api.json) y Extender video (app/extender.py)
+    - name: ComfyUI_Comfyroll_CustomNodes      # CR Aspect Ratio
+      localPath: ComfyUI_Comfyroll_CustomNodes
+      source: git
+      repository: https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes
+      gitRef: d78b780ae43fcf8c6b7c6505e6ffb4584281ceca
+      grupo: retocar
+    - name: ComfyUI-NKD-Basic-Tools            # NKDAVLatent, NKDAVLatentExtend, NKDMaskOps
+      localPath: ComfyUI-NKD-Basic-Tools
+      source: git
+      repository: https://github.com/Nekodificador/ComfyUI-NKD-Basic-Tools
+      gitRef: 79448c0fc22a50e1ab82358500045344f12288c5
+      grupo: retocar
+    - name: ComfyUI-MiniMaxH3-Tools            # MiniMaxH3XPromptLint
+      localPath: minimax-h3-tools
+      source: git
+      repository: https://github.com/Rinne414/ComfyUI-MiniMaxH3-Tools
+      gitRef: 3b038841834d4b29f81f4769face9f1b403f1c67
+      grupo: retocar
+    - name: ComfyUi-MpiNodes                   # MpiSaveLatent, MpiLoadLatent (Extender)
+      localPath: ComfyUi-MpiNodes
+      source: git
+      repository: https://github.com/MadPonyInteractive/ComfyUi-MpiNodes
+      gitRef: bc92a1b83278bf5b982ca15b2e65de2e55d84a4b
+      grupo: retocar
+    # estos tres vienen del Registry de Comfy (sin tag en git): zip de cdn.comfy.org con su sha256
+    - name: comfyui-videohelpersuite           # VHS_VideoCombine
+      localPath: comfyui-videohelpersuite
+      source: registry
+      repository: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite
+      version: 1.7.9
+      downloadUrl: https://cdn.comfy.org/kosinkadink/comfyui-videohelpersuite/1.7.9/node.zip
+      zipSha256: ac63991d8b237afe5b2cd2b287a14b4a4d40ff203c0f2ee9d5fe61059f57cdf8
+      grupo: retocar
+    - name: maskvidexperiments                 # MVEx_SubjectCrop, MVEx_SubjectUncrop, MVEx_MaskCleanup
+      localPath: MaskVidExperiments
+      source: registry
+      repository: https://github.com/drozbay/MaskVidExperiments
+      version: 0.2.0
+      downloadUrl: https://cdn.comfy.org/drozbay/maskvidexperiments/0.2.0/node.zip
+      zipSha256: 28d91da240b627186e44ab6c10d722ff47d54942d351a0c04c47e528e8d4bf47
+      grupo: retocar
+    - name: comfyui-nkd-preview-tools          # NKDTimeline
+      localPath: comfyui-nkd-preview-tools
+      source: registry
+      repository: https://github.com/Nekodificador/ComfyUI-NKD-Preview-Tools
+      version: 3.12.0
+      downloadUrl: https://cdn.comfy.org/nekodificador/comfyui-nkd-preview-tools/3.12.0/node.zip
+      zipSha256: 050977c0e40b2c151717f19e205c3ad9ef95b6dc8e78fb1a6bbb33a3bc01492b
+      grupo: retocar
+  # nodos que deben existir al final (para --comprobar: GET /object_info de ComfyUI)
+  nodosNecesarios:
+    edit: [UNETLoader, CLIPLoader, VAELoader, MiniMaxH3SigmaShift, ModelAttentionBackend, ModelPreviewOverrideKJ,
+           ApplyVDNH3, MiniMaxChunkFeedForward, MiniMaxH3RefModStack, LoadAudio, MiniMaxH3PromptBuilder,
+           MiniMaxH3FantasticRefModTextEncode, MiniMaxH3AddGuide, RandomNoise, BasicScheduler, BasicGuider,
+           MiniMaxH3SPEEDSampler, VAEDecode, VAEDecodeAudio, MiniMaxH3FantasticEditComposite, CreateVideo, SaveVideo]
+    retocar: ["CR Aspect Ratio", CheckpointLoaderSimple, GetImageSizeAndCount, MVEx_MaskCleanup, MVEx_SubjectCrop,
+              MVEx_SubjectUncrop, MiniMaxH3ReferenceToVideo, MiniMaxH3TokenCounter, MiniMaxH3XPromptLint, NKDAVLatent,
+              NKDAVLatentExtend, NKDMaskOps, NKDMaskOpsLean, NKDTimeline, SAM3_TrackToMask, SAM3_VideoTrack,
+              SamplerCustomAdvanced, VHS_VideoCombine, VRAM_Debug, MpiSaveLatent, MpiLoadLatent, GetVideoComponents,
+              LoadVideo, MiniMaxH3FantasticObjectMask]
+  pipDependencies: ''
+  environment:          # donde se probó (PC de Jonathan, 28 oct 2026)
+    arch: x86_64
+    os: Linux
+    pythonVersion: 3.14.7
+    torch: 2.13.0+cu130
+    gpu: NVIDIA GeForce RTX 3060 12 GB (driver 615.71.09)
+    ram: 46 GB + 92 GB de swap zram
