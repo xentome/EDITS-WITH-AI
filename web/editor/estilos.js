@@ -384,6 +384,43 @@ textarea.epl-final{min-height:40vh}
 .epl-gestor-subir:hover,.epl-gestor-subir.epl-soltando{border-color:#F6EAD2;background:rgba(246,234,210,.06)}
 .epl-gestor-subir .epl-ic{font-size:30px}.epl-gestor-subir b{font-size:16px}.epl-gestor-subir span{font-size:12px;opacity:.85}
 .epl-biblio-item.en-proyecto{opacity:.75}
+/* (28 oct) el gestor de RefMods, variante P2: cabecera común, tipos y carpetas a la izquierda, galería y barra fija abajo */
+.epl-modal.epl-g2{width:min(1400px,96%);height:90%;max-height:90%;padding:0;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.epl-g2-cab{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #2e3440}
+.epl-g2-cab-t{flex:1;min-width:0}.epl-g2-cab h2{margin:0;font-size:24px;line-height:1.05}.epl-g2-cab p{margin:4px 0 0;font-size:13px;color:#8a93a3}
+.epl-g2-busca{position:relative;display:flex;align-items:center}.epl-g2-busca .epl-ic{position:absolute;left:10px;pointer-events:none;opacity:.7}
+.epl-g2-buscar{width:300px;min-height:40px;padding-left:34px !important;font-size:15px}
+.epl-g2-subir,.epl-g2-x{min-height:40px}.epl-g2-x{width:40px;padding:0;justify-content:center}
+.epl-g2-cuerpo{flex:1;min-height:0;display:flex}
+.epl-g2-lado{width:280px;flex:none;overflow:auto;padding:12px;border-right:1px solid #2e3440;display:flex;flex-direction:column;gap:2px}
+.epl-g2-lado-t{margin:10px 0 6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3}.epl-g2-lado-t:first-child{margin-top:0}
+.epl-g2-op{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-height:38px;padding:6px 10px;border:0;border-radius:6px;background:none;color:inherit;text-align:left;font-size:14px;cursor:pointer}
+.epl-g2-op span{flex:1;min-width:0;text-align:left;line-height:1.25;overflow-wrap:anywhere}.epl-g2-op small{opacity:.6;font-variant-numeric:tabular-nums}
+.epl-g2-op:hover{background:rgba(255,255,255,.05)}.epl-g2-op.si{background:rgba(255,255,255,.09)}
+.epl-g2-galeria{flex:1;min-width:0;overflow:auto;padding:12px 16px 16px}
+.epl-g2-arriba{display:flex;align-items:center;gap:12px;margin-bottom:10px}.epl-g2-arriba .epl-ayuda{flex:1;margin:0}
+.epl-g2-tam{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.epl-g2-tam .epl-mini{width:40px;height:40px}
+.epl-g2-rejilla{margin-top:0}
+.epl-g2-carta{display:flex;flex-direction:column;padding:0;text-align:left;overflow:hidden;color:inherit;font:inherit}
+.epl-g2-img{display:block;aspect-ratio:3/4;background:#0d1015;overflow:hidden}
+.epl-g2-img img{width:100%;height:100% !important;object-fit:cover !important;border-radius:0 !important}
+.epl-g2-txt{display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px}
+.epl-g2-txt b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+.epl-g2-papel-p{align-self:flex-start;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#17121C;background:#A99DB5}
+.epl-g2-papel-p.p-personaje{background:#3FC46E}.epl-g2-papel-p.p-ropa{background:#FF9140}.epl-g2-papel-p.p-pose{background:#C9A5FF}
+.epl-g2-papel-p.p-fondo{background:#6FA8FF}.epl-g2-papel-p.p-estilo{background:#FF3E8A}.epl-g2-papel-p.p-video{background:#22E4FF}.epl-g2-papel-p.p-cajita{background:#F7C83A}
+.epl-g2-pie{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid #2e3440;background:#12151b}
+.epl-g2-cuenta{font-size:20px;white-space:nowrap;opacity:.6}.epl-g2-cuenta.si{opacity:1}
+.epl-g2-bandeja{display:flex;gap:5px;min-width:0;overflow:hidden}.epl-g2-bandeja img{width:32px;height:42px;object-fit:cover;border-radius:4px;border:1px solid #3d4a5c}
+.epl-g2-quitar{min-height:40px}.epl-g2-esp{flex:1}.epl-g2-pie .epl-aviso{margin:0;font-size:13px}
+.epl-g2-papel{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.epl-g2-papel select{min-height:40px;font-size:15px;text-transform:none;letter-spacing:0}
+.epl-g2-anadir{min-height:48px;padding:0 24px;font-size:20px}
+.epl-g2-soltar{position:absolute;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:rgba(15,11,19,.92);border:3px dashed #22E4FF;border-radius:inherit;color:#22E4FF;pointer-events:none}
+.epl-g2-soltar .epl-ic{font-size:40px}.epl-g2-soltar b{font-size:28px}.epl-g2-soltar span{font-size:14px;opacity:.85}
+.epl-g2.epl-g2-arrastrando .epl-g2-soltar{display:flex}
 .epl-ya-esta{position:absolute;top:10px;left:10px;z-index:1;font-size:11px;padding:2px 6px;background:rgba(0,0,0,.75);color:#F6EAD2;border:1px solid rgba(246,234,210,.5)}
 /* (27 oct) el audio del video, junto al sonido (solo en la app) */
 .epl-sonido{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.epl-sonido .epl-sonido-campo{flex:1 1 600px;margin:0}

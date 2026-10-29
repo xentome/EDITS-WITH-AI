@@ -495,3 +495,28 @@ body.tema-casete .max-preview.flotante{background:var(--k-tinta2) !important;bor
 body.tema-casete .max-preview-cab b{font:800 17px/1 var(--k-titulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-crema)}
 body.tema-casete .max-preview-info{font:600 13px var(--k-mono);color:var(--k-suave)}
 body.tema-casete .max-ver-preview.fijo{border-color:var(--k-naranja) !important;color:#FFB27A !important}
+
+/* (28 oct) el gestor de RefMods P2 */
+body.tema-casete .epl-g2-cab,body.tema-casete .epl-g2-lado{border-color:var(--k-linea) !important}
+body.tema-casete .epl-g2-cab h2{font:800 24px/1.05 var(--k-titulo);letter-spacing:.03em;color:var(--k-crema)}
+body.tema-casete .epl-g2-cab p{font-family:var(--k-texto-f);color:var(--k-suave)}
+body.tema-casete .epl-g2-subir{border-color:var(--k-cian) !important;color:var(--k-cian) !important;background:transparent !important}
+body.tema-casete .epl-g2-lado{background:rgba(0,0,0,.15)}
+body.tema-casete .epl-g2-lado-t{font-family:var(--k-rotulo);color:var(--k-suave)}
+body.tema-casete .epl-g2-op{font:600 14px var(--k-texto-f);color:var(--k-suave)}
+body.tema-casete .epl-g2-op small{font-family:var(--k-mono)}
+body.tema-casete .epl-g2-op.si{background:var(--k-tinta3);color:var(--k-crema)}
+body.tema-casete .epl-g2-tam,body.tema-casete .epl-g2-papel{font-family:var(--k-rotulo);color:var(--k-crema)}
+body.tema-casete .epl-g2-carta{padding:0 !important}
+body.tema-casete .epl-g2-carta.marcada{border-color:var(--k-naranja) !important;border-width:3px !important;outline:none !important;background:var(--k-tinta) !important}
+body.tema-casete .epl-g2-carta .epl-check{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-radius:50% !important}
+body.tema-casete .epl-g2-txt b{font-family:var(--k-texto-f);color:var(--k-texto)}
+body.tema-casete .epl-g2-papel-p{font-family:var(--k-rotulo)}
+body.tema-casete .epl-g2-pie{background:var(--k-tinta) !important;border-color:var(--k-linea) !important}
+body.tema-casete .epl-g2-cuenta{font:800 20px var(--k-titulo);color:var(--k-suave)}body.tema-casete .epl-g2-cuenta.si{color:var(--k-naranja)}
+body.tema-casete .epl-g2-anadir{background:var(--k-naranja) !important;border-color:var(--k-naranja) !important;color:var(--k-tinta) !important;
+  font:800 20px/1 var(--k-titulo) !important;box-shadow:3px 3px 0 var(--k-rosa)}
+body.tema-casete .epl-g2-anadir:disabled{opacity:.45;box-shadow:none}
+body.tema-casete .epl-g2-soltar{background:rgba(23,18,28,.94);border-color:var(--k-cian)}
+body.tema-casete .epl-g2-soltar b{font:800 28px var(--k-titulo);text-transform:uppercase}
+

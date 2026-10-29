@@ -387,16 +387,31 @@ export function instalar(ctx) {
       el("button", { class: "epl-mini", title: t("comun.mas_grandes"), onclick: () => poner(tam + 40) }, "+"));
   };
 
-  /* biblioteca de RefMods con selección múltiple: tocar una foto la marca o la desmarca (✓); «Añadir (N)» mete todas las
-   * marcadas en el Stack, en el orden en que se marcaron, y cierra. Buscar no borra lo marcado. */
+  /* biblioteca de RefMods con selección múltiple (28 oct, variante P2 elegida por el usuario): a la izquierda los tipos y
+   * las carpetas (las de models/refmods, con su nombre bonito) con cuántos tiene cada uno; a la derecha la galería. Tocar
+   * una foto la marca o la desmarca (✓); abajo, una barra fija con las elegidas, el papel y «Añadir N», que las mete en el
+   * Stack en el orden en que se marcaron. «Subir foto o video» va en la cabecera y la zona para soltar archivos sale solo
+   * al arrastrarlos encima. Buscar o filtrar no borra lo marcado. */
   // opciones (la letra de una palabra, textos.js): {papel, alAnadir(nombres)}: el papel elegido y qué hacer al añadir
+  const TIPOS = ["todo", "personaje", "ropa", "pose", "fondo", "estilo", "video", "cajita"];
+  const CONCEPTO_TIPO = { identity: "personaje", clothing: "ropa", pose_motion: "pose", pose: "pose", background: "fondo", scene: "fondo", style: "estilo" };
+  const FUENTE_TIPO = { stack: "cajita" }, CLASE_TIPO = { video: "video" }, ICONO_CARPETA = "carpeta";
+  const tipoDe = (it) => FUENTE_TIPO[it.visual?.source] || CLASE_TIPO[it.visual?.kind] || CONCEPTO_TIPO[it.concept] || "otro";
+  const GUARDA_GESTOR = "max-editor-gestor";       // el último tipo y carpeta elegidos (en este navegador)
   ctx.abrirBiblioteca = function abrirBiblioteca(lado, opciones = {}) {
     const marcadas = [];                                   // nombres, en el orden en que se marcaron
     let papel = opciones.papel || "";                      // "" = el que ya tenía o el de su concepto
-    const filtro = el("input", { oninput: () => pintar(), style: { flex: 1 } });
-    const rejilla = el("div", { class: "epl-biblio-rejilla" });
+    let vista = { tipo: "todo", carpeta: null };           // carpeta null = todas
+    try { Object.assign(vista, JSON.parse(localStorage.getItem(GUARDA_GESTOR) || "{}")); } catch { /* todas */ }
+    const recordar = () => { try { localStorage.setItem(GUARDA_GESTOR, JSON.stringify(vista)); } catch { /* solo esta vez */ } };
+    const filtro = el("input", { class: "epl-g2-buscar", oninput: () => pintar() });
+    const rejilla = el("div", { class: "epl-biblio-rejilla epl-g2-rejilla" });
+    const lateral = el("nav", { class: "epl-g2-lado" });
     const aviso = el("p", { class: "epl-aviso epl-biblio-aviso" });
-    const anadir = el("button", { class: "epl-boton epl-verde epl-grande epl-biblio-anadir", onclick: () => {
+    const bandeja = el("span", { class: "epl-g2-bandeja" });
+    const cuenta = el("b", { class: "epl-g2-cuenta" });
+    const quitarMarcas = el("button", { class: "epl-mini epl-g2-quitar", onclick: () => { marcadas.length = 0; pintar(); contar(); } });
+    const anadir = el("button", { class: "epl-boton epl-g2-anadir epl-biblio-anadir", onclick: () => {
       const its = marcadas.map((n) => ctx.biblioteca[n]).filter(Boolean);
       try {
         ctx.anadirVariosDeBiblioteca(its, lado, papel);
@@ -407,58 +422,88 @@ export function instalar(ctx) {
       } catch (e) { aviso.textContent = "⚠ " + e.message; }
     } });
     const v = ctx.capa(lado);
-    v.modal.classList.add("epl-gestor-modal");          // el gestor de RefMods: una ventana centrada, como la ficha
-    rejilla.addEventListener("click", (e) => { if (e.target === rejilla) ctx.abrirSubir(lado, opciones); });   // un hueco vacío
-    /* arriba, una franja grande para subir fotos o un video del PC (clic o soltar): sigue en «Subir foto o video»
-     * (subir.js), con su recorte y la creación del RefMod; lo que se cree entra en el mismo grupo */
+    v.modal.classList.add("epl-gestor-modal", "epl-g2");
     const archivoSubir = el("input", { type: "file", accept: "image/*,video/*", multiple: true, style: { display: "none" },
       onchange: (e) => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) ctx.abrirSubir(lado, { ...opciones, archivos: fs }); } });
-    const franja = el("button", { class: "epl-gestor-subir", title: t("referencias.gestor.subir.tooltip"), onclick: () => archivoSubir.click() },
-      u.icono("subir"), el("b", {}, t("referencias.gestor.subir")), el("span", {}, t("referencias.gestor.subir.ayuda")));
-    soltarArchivos(franja, (fs) => ctx.abrirSubir(lado, { ...opciones, archivos: fs }));
+    // la zona para soltar: tapa la ventana solo mientras se arrastran archivos encima
+    const zona = el("div", { class: "epl-g2-soltar" }, u.icono("subir"), el("b", {}, t("referencias.gestor.soltar")), el("span", {}, t("referencias.gestor.subir.ayuda")));
+    soltarArchivos(v.modal, (fs) => { v.modal.classList.remove("epl-g2-arrastrando"); ctx.abrirSubir(lado, { ...opciones, archivos: fs }); });
+    v.modal.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) v.modal.classList.add("epl-g2-arrastrando"); });
+    v.modal.addEventListener("dragleave", (e) => { if (!v.modal.contains(e.relatedTarget)) v.modal.classList.remove("epl-g2-arrastrando"); });
     const enProyecto = new Set(wf.items.map((r) => r.ref).filter(Boolean));
+    const todos = () => Object.values(ctx.biblioteca).filter((it) => it.visual);
+    const pasa = (it, tipo = vista.tipo, carpeta = vista.carpeta) => (tipo === "todo" || tipoDe(it) === tipo) && (carpeta === null || (it.folder || "") === carpeta);
     // toda la ventana (también al cambiar de idioma): lo buscado y lo marcado se conservan
     v.repintar = () => {
       filtro.placeholder = t("referencias.biblioteca.buscar");
       v.modal.replaceChildren(
-        el("div", { class: "epl-tit" }, t(lado === "izq" ? "referencias.biblioteca.titulo_izq" : "referencias.biblioteca.titulo_der"),
-          el("span", { class: "der" }, filtro, ctx.controlTamano((x) => rejilla.style.setProperty("--epl-tam", x + "px"), "epl-tam-biblioteca", 270),
-            el("button", { class: "epl-mini epl-cerrar-ficha", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: () => v.cerrar() }, u.icono("x")))),
-        franja, archivoSubir,
-        el("p", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda")),
-        rejilla,
-        el("div", { class: "epl-biblio-pie" }, aviso,
-          el("label", { title: t("referencias.biblioteca.papel.tooltip") }, t("referencias.ficha.papel") + " ",
+        el("div", { class: "epl-g2-cab" },
+          el("div", { class: "epl-g2-cab-t" }, el("h2", {}, t(lado === "izq" ? "referencias.gestor.titulo_izq" : "referencias.gestor.titulo_der")),
+            el("p", {}, t(lado === "izq" ? "referencias.gestor.sub_izq" : "referencias.gestor.sub_der"))),
+          el("label", { class: "epl-g2-busca" }, u.icono("buscar"), filtro),
+          el("button", { class: "epl-boton epl-g2-subir", title: t("referencias.gestor.subir.tooltip"), onclick: () => archivoSubir.click() },
+            u.icono("subir"), " " + t("referencias.gestor.subir")),
+          el("button", { class: "epl-boton epl-g2-x epl-cerrar-ficha", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: () => v.cerrar() }, u.icono("x"))),
+        archivoSubir,
+        el("div", { class: "epl-g2-cuerpo" }, lateral,
+          el("div", { class: "epl-g2-galeria" },
+            el("div", { class: "epl-g2-arriba" }, el("span", { class: "epl-ayuda" }, t("referencias.biblioteca.ayuda_corta")),
+              el("span", { class: "epl-g2-tam" }, el("span", {}, t("referencias.gestor.tamano")),
+                ctx.controlTamano((x) => rejilla.style.setProperty("--epl-tam", x + "px"), "epl-tam-biblioteca", 210))),
+            rejilla)),
+        el("div", { class: "epl-g2-pie" }, cuenta, bandeja, quitarMarcas, aviso, el("span", { class: "epl-g2-esp" }),
+          el("label", { class: "epl-g2-papel", title: t("referencias.biblioteca.papel.tooltip") }, el("span", {}, t("referencias.ficha.papel")),
             el("select", { class: "epl-biblio-papel", onchange: (e) => { papel = e.target.value; } },
               el("option", { value: "", selected: !papel }, t("referencias.biblioteca.papel.auto")),
               ...PAPELES_LADO[lado].map((p) => el("option", { value: p, selected: papel === p }, papelLargo(p))))),
-          anadir));
+          anadir),
+        zona);
       pintar();
       contar();
     };
     const contar = () => {
-      anadir.textContent = t("referencias.biblioteca.anadir", { n: marcadas.length });
+      anadir.replaceChildren(u.icono("mas"), " " + t("referencias.gestor.anadir", { n: marcadas.length || "" }));
       anadir.disabled = !marcadas.length;
+      cuenta.textContent = t(marcadas.length === 1 ? "referencias.gestor.elegida" : "referencias.gestor.elegidas", { n: marcadas.length });
+      cuenta.classList.toggle("si", marcadas.length > 0);
+      bandeja.replaceChildren(...marcadas.slice(0, 12).map((n) => el("img", { src: u.vistaRefmod(ctx.biblioteca[n]?.preview || n), alt: "", title: n })));
+      quitarMarcas.textContent = t("referencias.gestor.quitar_marcas");
+      quitarMarcas.hidden = !marcadas.length;
       aviso.textContent = "";
     };
+    const pintarLado = () => {
+      const lista = todos();
+      const boton = (activo, texto, n, alTocar, icono) => el("button", { class: "epl-g2-op" + (activo ? " si" : ""), onclick: alTocar },
+        icono ? u.icono(icono) : null, el("span", {}, texto), el("small", {}, String(n)));
+      lateral.replaceChildren(
+        el("div", { class: "epl-g2-lado-t" }, t("referencias.gestor.tipo")),
+        ...TIPOS.map((k) => boton(vista.tipo === k, t(`referencias.tipo.${k}`), lista.filter((it) => pasa(it, k, vista.carpeta)).length,
+                                  () => { vista.tipo = k; recordar(); pintar(); })),
+        el("div", { class: "epl-g2-lado-t" }, t("referencias.gestor.carpetas")),
+        boton(vista.carpeta === null, t("referencias.gestor.todas"), lista.length, () => { vista.carpeta = null; recordar(); pintar(); }, ICONO_CARPETA),
+        ...ctx.carpetas().map(([c, n]) => boton(vista.carpeta === c, ctx.nombreCarpeta(c), n, () => { vista.carpeta = c; recordar(); pintar(); }, ICONO_CARPETA)));
+    };
     const pintar = () => {
+      pintarLado();
       const q = filtro.value.toLowerCase();
-      rejilla.replaceChildren(...Object.values(ctx.biblioteca).filter((it) => it.visual && it.name.toLowerCase().includes(q))
-        .map((it) => {
-          const item = el("div", { class: "epl-biblio-item" + (marcadas.includes(it.name) ? " marcada" : "") + (enProyecto.has(it.name) ? " en-proyecto" : ""), title: it.name,
-                                   "data-nombre": it.name, onclick: () => {
-            const i = marcadas.indexOf(it.name);
-            if (i >= 0) marcadas.splice(i, 1); else marcadas.push(it.name);
-            item.classList.toggle("marcada", i < 0);
-            contar();
-          } },
-            el("span", { class: "epl-check" }, "✓"),
-            enProyecto.has(it.name) ? el("span", { class: "epl-ya-esta" }, t("referencias.biblioteca.en_proyecto")) : null,
-            el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
-            el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${ctx.nombreCarpeta(it.folder)} · ${it.concept || ""}` +
-              (it.visual?.source === "stack" ? t("referencias.biblioteca.cajita_de", { n: it.visual.t }) : "")));
-          return item;
-        }));
+      const its = todos().filter((it) => pasa(it) && (it.name.toLowerCase().includes(q) || (it.label || "").toLowerCase().includes(q)));
+      rejilla.replaceChildren(...(its.length ? its.map((it) => {
+        const tipo = tipoDe(it);
+        const item = el("button", { class: "epl-biblio-item epl-g2-carta" + (marcadas.includes(it.name) ? " marcada" : "") + (enProyecto.has(it.name) ? " en-proyecto" : ""),
+                                    title: `${it.name}\n${ctx.nombreCarpeta(it.folder)}`, "data-nombre": it.name, "aria-pressed": String(marcadas.includes(it.name)), onclick: () => {
+          const i = marcadas.indexOf(it.name);
+          if (i >= 0) marcadas.splice(i, 1); else marcadas.push(it.name);
+          item.classList.toggle("marcada", i < 0);
+          item.setAttribute("aria-pressed", String(i < 0));
+          contar();
+        } },
+          el("span", { class: "epl-check" }, u.icono("check")),
+          enProyecto.has(it.name) ? el("span", { class: "epl-ya-esta" }, t("referencias.biblioteca.en_proyecto")) : null,
+          el("span", { class: "epl-g2-img" }, el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" })),
+          el("span", { class: "epl-g2-txt" }, el("b", { class: "nombre" }, it.label || it.name),
+            el("span", { class: "epl-g2-papel-p p-" + tipo }, tipo === "cajita" ? t("referencias.gestor.cajita_de", { n: it.visual.t }) : t(`referencias.tipo.${tipo}`))));
+        return item;
+      }) : [el("p", { class: "epl-vacio" }, t("comun.nada_con_ese_nombre"))]));
     };
     v.repintar();
     filtro.focus();

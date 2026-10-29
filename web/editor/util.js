@@ -33,6 +33,13 @@ const ICONOS = {
   chispa: "M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z",
   percha: "M12 7a2 2 0 1 1 2-2M12 7v2L3 16h18l-9-7", figura: "M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12 7v7M7 10l5 2 5-2M9 21l3-7 3 7",
   caja: "M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10", imagen: "M3 4h18v16H3zM9 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM21 16l-5-5-9 9",
+  // (28 oct) los de los submenús
+  check: "M5 12l5 5 9-10", buscar: "M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM20 20l-4.5-4.5", papelera: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3",
+  persona: "M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4 21a8 8 0 0 1 16 0", tomas: "M3 5h18v14H3zM9 5v14M15 5v14",
+  ajustes: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1",
+  grande: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5", bucle: "M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3",
+  mudo: "M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6", ojono: "M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6",
+  azar: "M3 3h18v18H3zM8 8h.01M16 16h.01M12 12h.01", texto: "M5 6h14M12 6v13", flotar: "M14 4h6v6M20 4l-8 8M10 6H4v14h14v-6",
 };
 export function icono(nombre) {
   const s = document.createElement("span");
