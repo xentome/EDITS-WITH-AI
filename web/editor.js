@@ -96,7 +96,7 @@ app.registerExtension({
       rotular(this);
       return r;
     };
-    /* Workflows de antes de quitar las recetas: sus valores empiezan por la receta («Teto city pop») y todos los demás
+    /* Workflows de antes de quitar las recetas: sus valores empiezan por la receta («city pop») y todos los demás
      * irían un sitio corridos. Se quita ese primer valor (y se recuerda, para avisar en el editor). planos/3. */
     const configurar = nodeType.prototype.configure;
     nodeType.prototype.configure = function (info) {
