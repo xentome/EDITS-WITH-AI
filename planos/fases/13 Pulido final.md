@@ -75,5 +75,17 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
   - Inpainting: P1 visor a la izquierda · P2 cine arriba y ajustes en 3 columnas · P3 por pasos.
   - Extender: P1 columna ordenada · P2 la línea de tiempo manda · P3 tres preguntas grandes.
 - **Elegidas (Jonathan, 28 oct):** Inpainting P1, Extender P1, Ficha P3 y Añadir P2 («las carpetas son una gran idea»). Las carpetas son las subcarpetas de `ComfyUI/models/refmods/`, de donde Fantastic lee los RefMods. Al tamaño real, el pie de «Añadir» P2 se veía cortado; ya está corregido en el prototipo.
-- Falta: aplicarlo a la app. También falta el preview en vivo (opción A, B, C o A+C, sin elegir).
+- Aplicado a la app (28 oct): ver §7.
+
+## 7 · Errores, preview en vivo, carpetas y los 4 submenús ✅ (28 oct)
+
+- **Videos se trababa:** cada clic creaba un `<video>` nuevo y el viejo seguía descargando; con los de Retocar y Extender se llenaban las ~6 conexiones del navegador. Ahora hay un solo reproductor, que cambia de archivo y suelta el anterior (`app.js`). Con la lista vacía salía «nullnull»: arreglado.
+- **El número de la cola mentía:** decía «×3», pero Generar encola 1 y el botón no cambiaba al escribir el número. Ahora empieza en 1 y el botón se pone al día al momento (cara A, Retocar y Extender).
+- **Preview en vivo (A+C):** el nodo «Model Preview Override» de la plantilla manda el preview solo al proxy, que no lo reenvía. `vista_previa.py`, dentro de ComfyUI, guarda el último y lo da en `GET /max_editor/preview`, y la app lo reenvía. En la fila del avance, «▸ Ver preview» lo despliega, y «^» lo saca a una ventana flotante que se arrastra; la app recuerda si quedó abierto y dónde. **Necesita reiniciar ComfyUI una vez.**
+- **Carpetas:** al subir, se elige la carpeta o se crea una nueva (sin acentos y sin «..»; `rutas.subir_refmods`). Los nombres salen bonitos (`ctx.nombreCarpeta`: «Efectos edit › Clips»).
+- **Añadir (P2):** tipos (del concept del RefMod) y carpetas a la izquierda, galería y barra fija «N elegidas · Papel · AÑADIR N»; la zona de soltar sale solo al arrastrar.
+- **Ficha (P3):** nombre legible y pastilla con la etiqueta; «Quién es · Dónde se usa · Avanzado» con la foto a la izquierda; Avanzado en tarjetas; «Quitar» en rojo, que pregunta antes; «Listo». Ayudas en «ⓘ» (`ctx.info`).
+- **Inpainting (P1):** una regla con miniaturas sobre el carril del tramo, donde tocar va a ese momento; una fila de transporte (solo lo elegido, bucle, silencio, ½×, 👁, ⛶); la máscara se esconde al sonar; ayudas en «ⓘ»; el bloque de Retocar fijo abajo.
+- **Extender (P1):** el mismo transporte; primero «Cuánto se alarga» (− / + violeta y atajos), luego qué pasa, audio y referencias; «Más opciones» plegado.
+- Guía del agente (`1_mapa.md`, `3_organizar.md`) al día. Comprobado en el navegador aparte a 1440 y 2548; `pruebas.py` sale TODO BIEN.
 
