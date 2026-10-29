@@ -150,7 +150,7 @@
  "app.fases.tomas": "Tomas y referencias",
  "app.generar": "Generar",
  "app.generar.sin_prompt": "No hay prompt: escribe el plan primero (Escribir historia y Escribir tomas, o el prompt final a mano).",
- "app.generar.tooltip": "Hacer el video con H3 en ComfyUI, con el prompt final de abajo y la semilla del video",
+ "app.generar.tooltip": "Hacer el video con H3 en ComfyUI, con el prompt final de abajo y la semilla del video (atajo: Ctrl+Enter)",
  "app.nombre": "MAX EDITOR",
  "app.preview.ayuda": "Lo que H3 está haciendo, paso a paso: se ve borroso al principio y se aclara en cada paso.",
  "app.preview.esperando": "Esperando el primer paso de H3…",

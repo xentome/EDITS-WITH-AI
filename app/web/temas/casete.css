@@ -100,6 +100,11 @@ body.tema-casete .max-generar{background:var(--k-naranja) !important;color:var(-
 body.tema-casete .max-generar:hover{background:var(--k-naranja2) !important}
 body.tema-casete .max-generar:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--k-rosa) !important}
 body.tema-casete .max-generar:disabled{background:#6E4A33 !important;color:var(--k-tinta) !important;box-shadow:none !important}
+/* (29 oct, Jonathan) Generar de la cabecera en verde lima (el que tenía Videos); Retocar y Mejorar siguen en naranja */
+body.tema-casete .max-generar.max-generar-cab{background:var(--k-ok) !important;box-shadow:3px 3px 0 #1E6B3C !important;font-size:24px !important;min-height:46px;padding:10px 28px}
+body.tema-casete .max-generar.max-generar-cab:hover{background:#5BD686 !important}
+body.tema-casete .max-generar.max-generar-cab:active{box-shadow:1px 1px 0 #1E6B3C !important}
+body.tema-casete .max-generar.max-generar-cab:disabled{background:#2E5A3D !important;box-shadow:none !important}
 
 /* ---------------------------------------------------------------- la cabecera de la app y la del editor */
 body.tema-casete .max-cab,body.tema-casete .epl-cabecera{background:var(--k-tinta) !important;border-bottom:1px solid var(--k-linea) !important}
@@ -131,10 +136,10 @@ body.tema-casete .max-avance.mal .max-texto{color:var(--k-error)}
 body.tema-casete .max-pop,body.tema-casete .max-videos-caja{background:var(--k-tinta2) !important;border:1px solid var(--k-linea) !important;box-shadow:0 16px 40px rgba(0,0,0,.55)}
 body.tema-casete .max-video:hover{background:var(--k-tinta3)}
 body.tema-casete .max-video.actual{border-color:var(--k-ok);background:rgba(63,196,110,.1)}
-/* (29 oct) Videos en verde lima (elegido por el usuario): el botón de la cabecera, más grande, y su ventana */
-body.tema-casete .max-boton.max-boton-videos{background:var(--k-ok) !important;color:var(--k-tinta) !important;border-color:var(--k-ok) !important;
+/* (29 oct) Videos, más grande: en naranja (el de Generar antes; Jonathan, 29 oct). Su ventana sigue en verde */
+body.tema-casete .max-boton.max-boton-videos{background:var(--k-naranja) !important;color:var(--k-tinta) !important;border-color:var(--k-naranja) !important;
   font:800 16px/1 var(--k-rotulo) !important;letter-spacing:.05em;min-height:42px;padding:8px 16px !important;display:inline-flex;align-items:center;gap:8px}
-body.tema-casete .max-boton.max-boton-videos:hover{background:#5BD686 !important;border-color:#5BD686 !important}
+body.tema-casete .max-boton.max-boton-videos:hover{background:var(--k-naranja2) !important;border-color:var(--k-naranja2) !important}
 body.tema-casete .max-boton.max-boton-videos svg{width:20px;height:20px}
 /* (29 oct) «Cargar video» de Retocar: grande y verde lima, como «Videos» */
 body.tema-casete .max-rt-cargar{background:var(--k-ok) !important;color:var(--k-tinta) !important;border:1px solid var(--k-ok) !important;

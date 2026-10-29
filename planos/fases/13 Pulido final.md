@@ -128,3 +128,8 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Si el agente cambia el proyecto, la página carga lo suyo aunque haya cambios sin guardar (solo espera si se está escribiendo en un campo) y sale «El agente cambió el proyecto: ya está al día». Un guardado que choca (409) también carga lo del agente.
 - El duplicado de la interfaz al fondo: dos recargas a la vez montaban dos editores. Ahora hay una sola recarga a la vez (`A.recargando`), y `editor_core.abrir` quita cualquier `.epl-fondo` justo antes de montar el suyo.
 
+## 13 · Generar verde a la derecha, Videos naranja y Ctrl+Enter ✅ (29 oct)
+
+- Jonathan: los videos resaltaban más que Generar. Ahora Videos va donde estaba Generar, en naranja, y Generar va donde estaba Videos, en verde lima y un poco más grande (`max-generar-cab`). Retocar y Mejorar siguen en naranja.
+- Ctrl+Enter (⌘+Enter en Mac), desde cualquier sitio de la página: Generar (un trabajo más en la cola). Sale en el tooltip de Generar.
+

@@ -150,7 +150,7 @@
  "app.fases.tomas": "Shots and references",
  "app.generar": "Generate",
  "app.generar.sin_prompt": "There is no prompt: write the plan first (Write story and Write shots, or the final prompt by hand).",
- "app.generar.tooltip": "Make the video with H3 in ComfyUI, using the final prompt below and the video seed",
+ "app.generar.tooltip": "Make the video with H3 in ComfyUI, using the final prompt below and the video seed (shortcut: Ctrl+Enter)",
  "app.nombre": "MAX EDITOR",
  "app.preview.ayuda": "What H3 is doing, step by step: blurry at first, clearer with every step.",
  "app.preview.esperando": "Waiting for H3's first step…",

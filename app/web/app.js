@@ -198,10 +198,11 @@ function pintarCabecera() {
     el("label", { class: "max-grupo max-semilla", title: t("app.semilla.tooltip") }, el("span", {}, t("app.semilla")), semilla,
       el("button", { class: "max-boton", disabled: !w, title: t("app.semilla.otra.tooltip"), onclick: () => ponerSemilla(semillaNueva()) },
         util.icono("semilla"), " " + t("app.semilla.otra"))),
-    el("button", { class: "max-generar", disabled: !A.node, title: t("app.generar.tooltip"), onclick: () => generar(1) }, t("app.generar")),
-    el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola, botonEncolar),
+    // (29 oct, Jonathan) Videos en naranja donde estaba Generar, y Generar en verde donde estaba Videos (atajo: Ctrl+Enter)
     el("button", { class: "max-boton max-boton-videos", title: t("app.videos.tooltip"), onclick: () => { A.verVideos = !A.verVideos; pintarVideos(); } },
       util.icono("video"), " " + t("app.videos.boton", { n: A.videos.length })),
+    el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola, botonEncolar),
+    el("button", { class: "max-generar max-generar-cab", disabled: !A.node, title: t("app.generar.tooltip"), onclick: () => generar(1) }, t("app.generar")),
     el("button", { class: "max-boton" + (activos ? " max-cola-activa" : ""), title: t("app.cola.tooltip"), onclick: () => { A.verCola = !A.verCola; pintarCola(); } },
       util.icono("menu"), " " + t("app.cola.boton", { n: activos })),
     el("span", { class: "max-grupo max-idioma", title: t("comun.idioma.tooltip") }, idioma("es", "ES"), idioma("en", "EN")));
@@ -396,6 +397,15 @@ async function mirarSalud() {
 }
 
 // ---- generar: se encola (1 con la semilla de ahora, o n con semillas aleatorias); el servidor los hace de uno en uno
+// Ctrl+Enter (⌘+Enter en Mac): Generar, es decir, un trabajo más en la cola, desde cualquier sitio de la página (29 oct)
+let generando = false;
+document.addEventListener("keydown", async (e) => {
+  if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.repeat || !A.node || generando) return;
+  e.preventDefault();
+  generando = true;
+  try { await generar(1); } finally { generando = false; }
+});
+
 async function generar(n = 1) {
   if (!A.ctx) return;
   const fallo = (texto) => avisar(texto, "mal");
