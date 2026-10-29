@@ -12,16 +12,16 @@
 | 3 | **Deploy On-Demand**. Keep the template's 100 GB container disk | — | the pod appears in *Pods* |
 | 4 | Wait while it installs. Click the pod → **Logs**: every line starts with `[h3]` | **~11 min** (tested 29 Oct on an RTX 4090) | the last line is `[h3] [...s] LISTO` |
 | 5 | **Connect → HTTP Service 8300 (MAX EDITOR)** | — | the MAX EDITOR page opens |
-| 6 | **Generate** a short video (5 s at 960×544) | **~2.5 min** on an RTX 4090 | a short video appears under **Mis videos** |
+| 6 | **Generate** a short video (5 s at 960×544) | **~3.5 min** on an RTX 4090 | a short video appears under **Mis videos** |
 | 7 | Retocar: pick that video → **Inpainting** (mask by text with SAM 3.1) or **Extender** (continues the video) | **~1.5 min** each | a new video appears |
 | 8 | Download what you want from **Mis videos**, then **Terminate** the pod (stopping it still bills the disk) | 1 min | the pod is gone from *Pods* |
 
-What the log says while it installs: `COMFY OK` (ComfyUI runs on the GPU with all 54 node types the app uses), `MODELOS OK` (≈81 GB, every file checked by sha256), `PRUEBA OK` (video and audio VAE on the GPU), `LLM OK`, `APP OK … mcp: true`, `LISTO`.
+What the log says while it installs: `COMFY OK` (ComfyUI runs on the GPU with every node type the app uses), `MODELOS OK` (≈81 GB, every file checked by sha256), `PRUEBA OK` (video and audio VAE on the GPU), `LLM OK`, `APP OK … mcp: true`, `LISTO`.
 
 ## What runs in the pod
 
 - `runpod/bootstrap.sh` (the template's start script) clones this repo and runs `runpod/arranque.sh`.
-- `runpod/arranque.sh`: ComfyUI **v0.39.0** with torch 2.13 + CUDA 13 (the same versions the app was built on), `app/instalar.sh --comfyui … --retocar --sin-preguntas` (11 node packs at a fixed commit), the models from Hugging Face (all public; no HF token needed) checked with `app/instalar.sh --verificar`, the local LLM (Qwen3.8-27B in llama.cpp, for «Escribir historia») and the app.
+- `runpod/arranque.sh`: ComfyUI **v0.39.0** with torch 2.13 + CUDA 13 (the same versions the app was built on), `app/instalar.sh --comfyui … --retocar --sin-preguntas` (10 node packs at a fixed commit), the models from Hugging Face (all public; no HF token needed) checked with `app/instalar.sh --verificar`, the local LLM (Qwen3.8-27B in llama.cpp, for «Escribir historia») and the app.
 - Ports: **8300** MAX EDITOR · **8301** its MCP (`claude mcp add max-editor --transport http https://<pod-id>-8301.proxy.runpod.net/mcp`) · 8188 ComfyUI.
 
 ## Good to know
