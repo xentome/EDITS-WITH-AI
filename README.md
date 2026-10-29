@@ -109,8 +109,8 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 ## How to use it
 
-1. **Open the example.** It opens by itself the first time. The example in the repo never changes: choosing it makes your own copy («my example») and opens that.
-   - The example's photos and RefMods are not in the repo. On another PC the cards will be empty: add your own references with **+ Add** or **⬆ Upload photo or video**.
+1. **Your first project.** The first time, the app opens the example if there is one and, if not, creates an empty project. The example never changes: choosing it makes your own copy («my example») and opens that.
+   - Add your references with **+ Add** or **⬆ Upload photo or video**.
 2. **The story:** write the idea and the style, then press **Write story**, then **Write shots**.
 3. **The shots:** click a shot on the timeline to see and change its prompt. Drag the border between shots to move the cut. The lock keeps your text: the LLM won't change it.
 4. **The song:** in the audio window, **Change song** and drag the waveform to the part you want. You choose the part; the app does not.

@@ -208,7 +208,7 @@ for _tema, _archivo in TEMAS.items():
 # ------------------------------------------------------------------ proyectos
 @herramienta
 async def listar_proyectos() -> str:
-    """The projects in the app (header › «Proyecto» list), newest first. «ejemplo» is read-only: copy it with crear_proyecto."""
+    """The projects in the app (header › «Proyecto» list), newest first. «ejemplo», if there is one, is read-only: copy it with crear_proyecto."""
     ps = await APPC.pedir("GET", "/app/proyectos")
     return "\n".join(f"- {p['nombre']} · saved {p.get('guardado') or '?'} · rev {p.get('rev', 0)}"
                      f"{' · last change by the agent' if p.get('autor') == 'agente' else ''}" for p in ps) or "(no projects)"

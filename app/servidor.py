@@ -231,7 +231,7 @@ async def ver_plantilla(peticion):
 
 # ------------------------------------------------------------------ proyectos: app/proyectos/<nombre>.json
 NOMBRE = re.compile(r"^[\w][\w .-]{0,79}$")
-EJEMPLO = "ejemplo"        # va en git: es de solo lectura; la app lo abre como plantilla de un proyecto nuevo (app.js)
+EJEMPLO = "ejemplo"        # si existe, es de solo lectura; la app lo abre como plantilla de un proyecto nuevo (app.js)
 
 
 def ruta_proyecto(nombre):
