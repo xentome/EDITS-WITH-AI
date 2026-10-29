@@ -34,3 +34,5 @@ Lectura: 2 min · 28 oct 2026 · Sesión «INSTALADOR» (el handoff decía «14�
 ## Notas
 - La prueba en limpio usa el Python de ComfyUI de Jonathan (`~/ComfyUI-CLI/.venv`). Las dependencias ya estaban, así que no cambió nada; un juez con otro Python sí las instalaría.
 - `nkd-preview-tools` 3.12.0 sale como «Flagged» en el Registry de Comfy (el zip se baja igual y su sha256 está fijado). Solo usamos NKDTimeline en Retocar.
+- Decisión de Jonathan (28 oct): el ejemplo nuevo se hará más tarde, con el edit de la demo y sus archivos. El `ejemplo.json` de hoy usa 4 RefMods y un `.wav` que no están en el repo. Lo vio RUNPOD.
+- ✅ RUNPOD probó el instalador en un pod: 54 de 54 nodos y 14 modelos con sha256 OK; un pod nuevo queda listo en 11 min. README y LEEME enlazan a `RUNPOD.md`.
