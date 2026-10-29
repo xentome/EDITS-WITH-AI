@@ -404,8 +404,13 @@ def subir_refmods(d):
     import os
     import re
     t0 = time.time()
-    base = re.sub(r"[^A-Za-z0-9._-]+", "_", (d.get("nombre") or "").strip()).strip("._")
-    carpeta = re.sub(r"[^A-Za-z0-9._/-]+", "_", (d.get("carpeta") or "subidas").strip()).strip("/.")
+    import unicodedata
+    # sin acentos (Ñ → N) y sin lo que no va en un nombre de archivo; la carpeta (28 oct: la elige o la crea el usuario) por
+    # trozos, sin «.» ni «..», para que nunca salga de models/refmods
+    llano = lambda x: unicodedata.normalize("NFKD", str(x or "")).encode("ascii", "ignore").decode()
+    base = re.sub(r"[^A-Za-z0-9._-]+", "_", llano(d.get("nombre")).strip()).strip("._")
+    trozos = [re.sub(r"[^A-Za-z0-9._-]+", "_", p.strip()).strip("._") for p in llano(d.get("carpeta") or "subidas").split("/")]
+    carpeta = "/".join(p for p in trozos if p) or "subidas"
     if not base:
         raise ErrorUsuario("errores.subir_sin_nombre")
     rels = list(dict.fromkeys(f.removesuffix(" [input]") for f in d.get("fotos") or [] if f))

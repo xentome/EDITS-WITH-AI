@@ -1,6 +1,6 @@
 /* «⬆ Subir» (en «+ Añadir» y en las mitades vacías): una o varias fotos, o un video, desde el PC (elegir o soltar encima)
- * → input/minimax_h3/ (con /upload/image de ComfyUI) → RefMod nuevo en subidas/ (rutas.subir_refmods) → al Stack, con el
- * papel y el nombre elegidos.
+ * → input/minimax_h3/ (con /upload/image de ComfyUI) → RefMod nuevo en la carpeta elegida (por defecto subidas/; se puede
+ * crear una nueva, 28 oct) (rutas.subir_refmods) → al Stack, con el papel y el nombre elegidos.
  *   - Fotos: varias de un mismo personaje pueden ir juntas en una cajita; «tapar al subir» las tapa (cara y pelo).
  *   - Video (uno cada vez): recortar el cuadro, opcional («✂ Cortar»: un recuadro con tiradores en cada lado y esquina;
  *     con Ctrl crece entero), elegir un tramo opcional (una línea de tiempo con sus fotogramas, desde / hasta) y el modo.
@@ -9,6 +9,13 @@
  * Solo exporta funciones (ComfyUI importa todos los .js de web/). Las utilidades llegan en ctx.u. Planos: ../../planos/4. */
 
 const MIN = 0.04;   // lo mínimo de un recorte (de 0 a 1) y de un tramo (s)
+// la última carpeta elegida al subir (en este navegador; sin almacenamiento, subidas/)
+const GUARDA_CARPETA = "max-editor-carpeta-subir";
+const leerCarpeta = () => { try { return localStorage.getItem(GUARDA_CARPETA) || "subidas"; } catch { return "subidas"; } };
+const ponerCarpeta = (c) => { try { localStorage.setItem(GUARDA_CARPETA, c); } catch { /* solo esta vez */ } };
+// lo mismo que hace el servidor con el nombre (rutas.subir_refmods): sin acentos y sin lo que no va en un archivo
+const llano = (x) => String(x || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+const carpetaLimpia = (c) => llano(c).split("/").map((p) => p.trim().replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+|[._]+$/g, "")).filter(Boolean).join("/");
 
 /* Añade ctx.subirFoto y ctx.abrirSubir. Usa de ctx: u, S, wf, caja, capa, PAPELES_LADO, papelLargo, cargarBiblioteca,
  * anadirVariosDeBiblioteca, taparTarjeta, avisar. */
@@ -102,7 +109,8 @@ export function instalar(ctx) {
   ctx.abrirSubir = function abrirSubir(lado, opciones = {}) {
     const papel0 = opciones.papel || ctx.PAPELES_LADO[lado][0];
     const st = { papel: papel0, nombre: "", tapar: lado === "der" && papel0 !== "letra", juntar: true, fotos: [],
-                 video: null, modo: "completo" };      // video: {f, url, recorte, tramo: null | {desde, hasta}, dur}
+                 video: null, modo: "completo",       // video: {f, url, recorte, tramo: null | {desde, hasta}, dur}
+                 carpeta: leerCarpeta(), nueva: null };   // nueva: el nombre de una carpeta nueva mientras se escribe
     const aviso = el("p", { class: "epl-aviso" });
     const archivo = el("input", { type: "file", accept: "image/*,video/*", multiple: true, style: { display: "none" },
                                   onchange: (e) => { anadir(e.target.files); e.target.value = ""; } });
@@ -201,6 +209,26 @@ export function instalar(ctx) {
         caja2);
     }
 
+    // dónde se guarda el RefMod: una carpeta de las que hay o una nueva (se crea al guardar)
+    const campoCarpeta = () => {
+      const hay = ctx.carpetas().filter(([c]) => c);
+      if (!hay.some(([c]) => c === "subidas")) hay.unshift(["subidas", 0]);
+      if (st.carpeta && !hay.some(([c]) => c === st.carpeta)) hay.unshift([st.carpeta, 0]);   // la nueva de la última vez
+      const NUEVA = "\u0000nueva";
+      const sel = el("select", { class: "epl-subir-carpeta", onchange: (e) => {
+        if (e.target.value === NUEVA) { st.nueva = ""; pintar(); document.querySelector(".epl-subir-carpeta-nueva")?.focus(); return; }
+        st.carpeta = e.target.value; st.nueva = null; ponerCarpeta(st.carpeta);
+      } }, ...hay.map(([c, n]) => el("option", { value: c, selected: st.nueva === null && st.carpeta === c },
+              ctx.nombreCarpeta(c) + (n ? ` (${n})` : ""))),
+        el("option", { value: NUEVA, selected: st.nueva !== null }, t("referencias.subir.carpeta.nueva")));
+      if (st.nueva === null) return sel;
+      const limpia = carpetaLimpia(st.nueva);
+      return el("div", { class: "epl-subir-carpeta-fila" }, sel,
+        el("input", { class: "epl-subir-carpeta-nueva", value: st.nueva, placeholder: t("referencias.subir.carpeta.nueva.placeholder"),
+                      oninput: (e) => { st.nueva = e.target.value; const s = e.target.nextElementSibling;
+                                        if (s) s.textContent = carpetaLimpia(st.nueva) ? t("referencias.subir.carpeta.sera", { nombre: ctx.nombreCarpeta(carpetaLimpia(st.nueva)) }) : ""; } }),
+        el("small", { class: "epl-ayuda" }, limpia ? t("referencias.subir.carpeta.sera", { nombre: ctx.nombreCarpeta(limpia) }) : ""));
+    };
     const pintar = () => {
       const varias = st.fotos.length > 1, hay = st.video || st.fotos.length;
       const modo = (m) => el("label", { class: "epl-sv-modo", title: t(`referencias.subir.modo.${m}.tooltip`) },
@@ -224,6 +252,7 @@ export function instalar(ctx) {
               ...ctx.PAPELES_LADO[lado].map((p) => el("option", { value: p, selected: st.papel === p }, ctx.papelLargo(p)))),
             el("label", {}, t(st.papel === "personaje" ? "referencias.subir.nombre_personaje" : "referencias.subir.nombre")),
             el("input", { class: "epl-subir-nombre", value: st.nombre, placeholder: t("referencias.subir.nombre.placeholder"), oninput: (e) => { st.nombre = e.target.value; } }),
+            el("label", {}, t("referencias.subir.carpeta")), campoCarpeta(),
             el("label", {}, t("referencias.subir.modo")),
             el("div", { class: "epl-sv-modos" }, modo("comprimido"), modo("completo")),
             varias ? el("label", { style: { display: "flex", gap: "6px", alignItems: "center" } },
@@ -264,7 +293,9 @@ export function instalar(ctx) {
           if (st.video) ajustes[rel] = { recorte: x.recorte, tramo: x.tramo };
         }
         fase = "referencias.subir.creando";
-        const res = await api("subir_refmods", { nombre: st.nombre.trim(), papel: st.papel, fotos: rels, juntar, modo: st.modo, ajustes });
+        const carpeta = st.nueva !== null ? carpetaLimpia(st.nueva) || "subidas" : st.carpeta || "subidas";
+        ponerCarpeta(carpeta);
+        const res = await api("subir_refmods", { nombre: st.nombre.trim(), papel: st.papel, fotos: rels, juntar, modo: st.modo, ajustes, carpeta });
         creados = res.creados;
         await ctx.cargarBiblioteca();
         const nombre = st.nombre.trim();

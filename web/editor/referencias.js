@@ -222,6 +222,16 @@ export function instalar(ctx) {
   };
 
   // datos de Fantastic (ficha, concepto, vista previa) de cada RefMod, y las fotos de cada cajita
+  /* las carpetas de models/refmods (28 oct): su nombre bonito («efectos_edit/clips» → «Efectos edit › Clips»; la raíz,
+   * «Sin carpeta») y la lista de las que hay, con cuántos RefMods tiene cada una */
+  ctx.nombreCarpeta = (c) => !c ? t("referencias.carpeta.raiz")
+    : c.split("/").map((p) => { const x = p.replace(/[_-]+/g, " ").trim(); return x.charAt(0).toUpperCase() + x.slice(1); }).join(" › ");
+  ctx.carpetas = () => {
+    const n = new Map();
+    for (const it of Object.values(ctx.biblioteca)) n.set(it.folder || "", (n.get(it.folder || "") || 0) + 1);
+    return [...n].sort((a, b) => (a[0] === "") - (b[0] === "") || a[0].localeCompare(b[0]));
+  };
+
   ctx.cargarBiblioteca = async function cargarBiblioteca() {
     try {
       const lib = await (await fetch("/minimax_h3/refmods", { cache: "no-store" })).json();
@@ -445,7 +455,7 @@ export function instalar(ctx) {
             el("span", { class: "epl-check" }, "✓"),
             enProyecto.has(it.name) ? el("span", { class: "epl-ya-esta" }, t("referencias.biblioteca.en_proyecto")) : null,
             el("img", { src: u.vistaRefmod(it.preview), alt: "", loading: "lazy" }),
-            el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${it.folder || ""} · ${it.concept || ""}` +
+            el("div", { class: "nombre" }, it.label || it.name), el("small", {}, `${ctx.nombreCarpeta(it.folder)} · ${it.concept || ""}` +
               (it.visual?.source === "stack" ? t("referencias.biblioteca.cajita_de", { n: it.visual.t }) : "")));
           return item;
         }));

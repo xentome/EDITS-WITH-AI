@@ -389,6 +389,7 @@ textarea.epl-final{min-height:40vh}
 .epl-sonido{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.epl-sonido .epl-sonido-campo{flex:1 1 600px;margin:0}
 .epl-audio-salida{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.epl-audio-salida .epl-fila{margin:0;gap:4px}.epl-audio-salida .epl-ayuda{margin:0;max-width:60ch}
 .epl-audio-salida-et{font-size:12px;color:#9aa3b2}
+.epl-subir-carpeta-fila{display:flex;flex-direction:column;gap:6px}.epl-subir-carpeta-fila small{margin:0}
 /* (28 oct) el sonido, en su propio panel (cian, como el botón de la canción), y sin canción el botón grande para añadirla */
 .epl-sonido{display:block;margin-top:12px}
 .epl-sonido-panel{display:flex;flex-direction:column;gap:4px;padding:6px 10px;border-radius:6px;border:1px solid rgba(34,228,255,.45);background:rgba(34,228,255,.035)}
