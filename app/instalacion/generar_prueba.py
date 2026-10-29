@@ -29,7 +29,6 @@ grafo = generar.preparar({"74": {"estado": json.dumps({"v": 4, "prompt": PROMPT,
                           "72": {"audio": ""},
                           "9": {"width": 544, "height": 960, "length": 22}},
                          {"semilla": SEMILLA, "prefijo": "max_editor/prueba_limpia"})
-grafo = {k: v for k, v in grafo.items() if v.get("class_type") != "MpiSaveLatent"}
 pid = pedir("/prompt", {"prompt": grafo})["prompt_id"]
 print("prompt", pid, flush=True)
 t0 = time.time()
