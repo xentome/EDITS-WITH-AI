@@ -1,10 +1,11 @@
 """Prueba de app/generar.py por línea de comandos: un edit corto (22 fotogramas, casi 1 s) con un prompt escrito a mano.
 
-Toma el prompt y las referencias del workflow que salió bien el 26 oct (~/comfy/max_editor_app/pruebas/wf_h3_api.json);
-esos RefMods existen en el ComfyUI local, pero no van en la plantilla.
+Prueba de desarrollo del autor: toma el prompt y las referencias de un workflow que salió bien el 26 oct y que solo está
+en su PC (MAX_EDITOR_PRUEBA_WF, por defecto ~/comfy/max_editor_app/pruebas/wf_h3_api.json); esos RefMods no van en el
+repo. En otro PC, para probar un render usa app/instalacion/generar_prueba.py.
 
-  ~/comfy/max_editor_app/.venv/bin/python app/pruebas/prueba_generar.py           # prueba sin GPU y render
-  ~/comfy/max_editor_app/.venv/bin/python app/pruebas/prueba_generar.py --seco    # solo la prueba sin GPU
+  app/.venv/bin/python app/pruebas/prueba_generar.py           # prueba sin GPU y render
+  app/.venv/bin/python app/pruebas/prueba_generar.py --seco    # solo la prueba sin GPU
 
 Antes de lanzar mira la cola de ComfyUI: si hay algo corriendo o pendiente, espera (nunca interrumpe).
 """
@@ -18,7 +19,7 @@ APP = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, APP)
 import generar  # noqa: E402
 
-ORIGEN = os.path.expanduser("~/comfy/max_editor_app/pruebas/wf_h3_api.json")
+ORIGEN = os.path.expanduser(os.environ.get("MAX_EDITOR_PRUEBA_WF", "~/comfy/max_editor_app/pruebas/wf_h3_api.json"))
 
 
 def valores_de_prueba() -> dict:

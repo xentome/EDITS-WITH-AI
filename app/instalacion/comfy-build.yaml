@@ -1,5 +1,5 @@
 # MAX EDITOR: la lista de piezas (fuente única de verdad del instalador, app/instalacion/instalar.py).
-# Viene de ~/comfy/max_editor_build/comfy-build.yaml (comfy build init, 27 oct 2026), completada el 28 oct:
+# Nació con «comfy build init» (27 oct 2026), completada el 28 oct:
 # repos de HF con revisión fija, VDN como git, los packs de Retocar y Extender y SAM 3.1.
 # Grupos: «edit» (lo mínimo para generar) y «retocar» (Retocar y Extender video; instalar.sh --retocar).
 # Cada modelo: dónde va dentro de ComfyUI/models (localPath), de dónde se baja (repo + revision + path de HF),

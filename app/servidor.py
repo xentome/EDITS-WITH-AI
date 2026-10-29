@@ -7,7 +7,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
   /app/cola, /app/cola/<id>/<acción>, /app/cola/limpiar, /app/cola/pausar   la cola de trabajos (cola.py)
   /app/retocar, /app/retocar_mascara, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
-Arranque: ~/comfy/max_editor_app/.venv/bin/python app/servidor.py  →  http://127.0.0.1:8300
+Arranque: app/arrancar.sh (o app/.venv/bin/python app/servidor.py)  →  http://127.0.0.1:8300
 Configuración: config.json, encima config.local.json (no va a git) y encima las variables MAX_EDITOR_<CLAVE>."""
 import asyncio
 import importlib

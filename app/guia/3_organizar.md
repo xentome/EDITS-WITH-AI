@@ -1,7 +1,7 @@
 # 3 · How to organise a video that works
 
-> Shots, their fields, references, text and song. Examples are real fields from edits the creative approved (recipes in
-> `~/Escritorio/experimentos_edit/receta_*`). Use them to learn the SHAPE, not to copy their aesthetic.
+> Shots, their fields, references, text and song. Examples are real fields from edits the creative approved (recipes from the
+> author's tests; they are not in the repo). Use them to learn the SHAPE, not to copy their aesthetic.
 
 ## The plan before the fields
 

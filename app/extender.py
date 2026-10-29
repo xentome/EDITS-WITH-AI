@@ -1,5 +1,5 @@
 """Extender un video de MAX EDITOR: H3 sigue la MISMA toma desde el final del video, sin corte, y la app pega lo nuevo
-detrás del original. Plano: ../planos/fases/12 Extender video.md (método: ~/Escritorio/research_notes/extender_video/).
+detrás del original. Plano: ../planos/fases/12 Extender video.md (el método salió de las notas de investigación del autor, fuera del repo).
 
 Cómo: la cola del video (el «solape», 39 fotogramas por defecto) se planta al principio de un latente vacío y se marca
 «no tocar» con una máscara de ruido (😺NKD AV Latent Extend: el workflow de drozbay/ablejones en un nodo). El núcleo de
