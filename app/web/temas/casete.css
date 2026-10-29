@@ -487,3 +487,11 @@ body.tema-casete .epl-duracion .epl-dur-num{font:700 18px/1 var(--k-mono) !impor
 body.tema-casete .epl-duracion .epl-dur-num:hover,body.tema-casete .epl-duracion .epl-dur-num.arrastrando,
 body.tema-casete .epl-duracion .epl-dur-num:focus-visible{background:var(--k-violeta) !important;color:var(--k-tinta) !important}
 body.tema-casete .epl-duracion .epl-dur-entrada{font:700 18px/1 var(--k-mono) !important}
+
+
+/* (28 oct) el preview en vivo */
+body.tema-casete .max-preview{background:var(--k-tinta) !important;border-color:var(--k-linea) !important}
+body.tema-casete .max-preview.flotante{background:var(--k-tinta2) !important;border-color:var(--k-linea2) !important}
+body.tema-casete .max-preview-cab b{font:800 17px/1 var(--k-titulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-crema)}
+body.tema-casete .max-preview-info{font:600 13px var(--k-mono);color:var(--k-suave)}
+body.tema-casete .max-ver-preview.fijo{border-color:var(--k-naranja) !important;color:#FFB27A !important}

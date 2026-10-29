@@ -10,7 +10,7 @@ import importlib
 import json
 import time
 
-from . import i18n, nucleo, rutas
+from . import i18n, nucleo, rutas, vista_previa
 
 t = i18n.t
 
@@ -114,6 +114,17 @@ def _registrar_rutas():
             if torch.cuda.mem_get_info()[0] / 2 ** 30 >= 9:
                 return
             await asyncio.sleep(0.5)
+
+    # el preview en vivo de la app (vista_previa.py): se guarda el último del nodo Model Preview Override
+    vista_previa.instalar(srv)
+
+    @srv.routes.get("/max_editor/preview")
+    async def preview(request):
+        try:
+            desde = int(request.query.get("desde") or 0)
+        except ValueError:
+            desde = 0
+        return web.json_response(vista_previa.leer(desde), headers={"Cache-Control": "no-store"})
 
     @srv.routes.route("*", "/edit_prompt_llm/{accion}")
     async def manejar(request):

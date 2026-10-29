@@ -46,6 +46,19 @@ button{font:inherit;cursor:pointer}
 .max-avance.mal .max-barra b{background:var(--max-rojo)}
 .max-avance .max-texto{min-width:280px;font-size:12px}
 .max-avance.mal .max-texto{color:var(--max-rojo)}
+/* el preview en vivo (28 oct): debajo de la fila del avance, o en una ventana flotante que se arrastra por su título */
+.max-preview{display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;border-top:1px solid var(--max-borde);background:#0b0e12}
+.max-preview[hidden]{display:none}
+.max-preview-cab{display:flex;align-items:center;gap:6px}
+.max-preview-cab .max-boton{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.max-preview-visor{display:flex;align-items:center;justify-content:center;background:#000;border-radius:6px;overflow:hidden;min-height:120px}
+.max-preview-visor video,.max-preview-visor img{display:block;max-width:100%;max-height:44vh;object-fit:contain}
+.max-preview-visor .max-vacio{padding:24px;text-align:center}
+.max-preview-info{display:flex;align-items:center;gap:14px;font-size:13px}
+.max-preview.flotante{position:fixed;z-index:10010;right:20px;bottom:20px;width:min(460px,90vw);border:1px solid var(--max-borde);border-radius:8px;
+  box-shadow:0 16px 40px rgba(0,0,0,.55)}
+.max-preview.flotante .max-preview-cab{cursor:move}
+.max-preview.flotante .max-preview-visor video,.max-preview.flotante .max-preview-visor img{max-height:60vh}
 /* la ventana del nodo, pegada debajo de la cabecera y siempre abierta */
 body .epl-fondo{top:var(--max-alto);background:none;align-items:stretch}
 body .epl-fondo .epl-caja{width:100vw;height:auto;flex:1;border:0;box-shadow:none}

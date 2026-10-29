@@ -3,7 +3,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /                          la app (web/index.html: cabecera, Generar, proyectos)
   /edit_prompt_llm/web/*     los archivos de ../web (la ventana del nodo, tal cual, sin copiarlos)
   /edit_prompt_llm/<acción>  rutas.ACCIONES, en el trabajador (trabajador.py, con el Python de ComfyUI)
-  /view, /upload/image, /minimax_h3/*   reenviados a ComfyUI
+  /view, /upload/image, /minimax_h3/*, /max_editor/preview   reenviados a ComfyUI (el preview: vista_previa.py del nodo)
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
   /app/cola, /app/cola/<id>/<acción>, /app/cola/limpiar, /app/cola/pausar   la cola de trabajos (cola.py)
   /app/retocar, /app/retocar_mascara, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
@@ -531,7 +531,7 @@ def crear_app():
     app.router.add_get("/app/web/{ruta:.+}", servir(WEB_APP))
     app.router.add_get("/edit_prompt_llm/web/{ruta:.+}", servir(WEB_NODO))
     app.router.add_route("*", "/edit_prompt_llm/{accion}", accion)
-    for ruta in ("/view", "/upload/image", "/minimax_h3/{resto:.*}"):
+    for ruta in ("/view", "/upload/image", "/minimax_h3/{resto:.*}", "/max_editor/preview"):
         app.router.add_route("*", ruta, reenviar)
     app.router.add_get("/app/plantilla", ver_plantilla)
     app.router.add_get("/app/proyectos", lista_proyectos)
