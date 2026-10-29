@@ -241,6 +241,26 @@ def ruta_proyecto(nombre):
     return os.path.join(PROYECTOS, nombre + ".json")
 
 
+def resumen_proyecto(valores: dict) -> dict:
+    """De qué está hecho un proyecto, para su tarjeta en la ventana «Proyectos» (29 oct): la idea, cuántas tomas, sus
+    referencias (las 4 primeras, con su RefMod para la carita), si lleva canción y la duración. Solo lo que el proyecto
+    cambió respecto a la plantilla: lo que falta es lo de la plantilla (sin idea, sin canción)."""
+    def leer(nodo, campo):
+        try:
+            return json.loads((valores.get(nodo) or {}).get(campo) or "{}") or {}
+        except (TypeError, ValueError):
+            return {}
+    estado, pila = leer("74", "estado"), leer("7", "stack_state")
+    plan = estado.get("plan") if isinstance(estado.get("plan"), dict) else {}
+    refs = [x for x in pila.get("picks") or [] if isinstance(x, dict) and x.get("on", True)]
+    return {"idea": str((valores.get("74") or {}).get("idea") or "")[:140],
+            "tomas": len(plan.get("tomas") or []),
+            "refs": [{"nombre": x.get("label") or x.get("name") or "", "refmod": x.get("preview") or x.get("name") or ""} for x in refs[:4]],
+            "n_refs": len(refs),
+            "cancion": bool((valores.get("72") or {}).get("audio")),
+            "duracion": (valores.get("74") or {}).get("duracion_s")}
+
+
 async def lista_proyectos(peticion):
     out = []
     os.makedirs(PROYECTOS, exist_ok=True)
@@ -251,7 +271,8 @@ async def lista_proyectos(peticion):
                     p = json.load(fh) or {}
             except (OSError, ValueError):
                 continue
-            out.append({"nombre": a[:-5], "guardado": p.get("guardado", ""), "rev": int(p.get("rev") or 0), "autor": p.get("autor") or ""})
+            out.append({"nombre": a[:-5], "guardado": p.get("guardado", ""), "rev": int(p.get("rev") or 0), "autor": p.get("autor") or "",
+                        "resumen": resumen_proyecto(p.get("valores") or {})})
     return web.json_response(sorted(out, key=lambda p: p["guardado"] or "", reverse=True))
 
 
@@ -374,31 +395,41 @@ def origen_prompt(archivo: str, todas: dict) -> str | None:
 MINIATURAS = os.path.join(SALIDAS, "miniaturas")
 
 
-def hacer_miniatura(origen: str, destino: str) -> bool:
-    """Un fotograma (al segundo 1, o el primero si dura menos) a 480 px de ancho, en JPG. Devuelve si salió."""
+def hacer_miniatura(origen: str, destino: str, ancho: int = 480) -> bool:
+    """Un fotograma (al segundo 1, o el primero si dura menos o es una foto) a `ancho` px, en JPG. Devuelve si salió."""
     os.makedirs(MINIATURAS, exist_ok=True)
     temporal = destino + ".tmp.jpg"
     for t in ("1", "0"):
         try:
-            subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-y", "-ss", t, "-i", origen, "-frames:v", "1", "-vf", "scale=480:-2",
+            subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-y", "-ss", t, "-i", origen, "-frames:v", "1", "-vf", f"scale={ancho}:-2",
                             "-q:v", "4", temporal], timeout=30, check=True, capture_output=True)
         except (OSError, subprocess.SubprocessError):
             continue
-        if os.path.getsize(temporal) > 0:
+        if os.path.isfile(temporal) and os.path.getsize(temporal) > 0:
             os.replace(temporal, destino)
             return True
     return False
 
 
 async def miniatura(peticion):
-    """GET /app/miniatura?video=<archivo de app/salidas> → JPG (29 oct, ventana «Proyectos»: cada tarjeta con su último video).
-    Se hace una vez con ffmpeg y se guarda en app/salidas/miniaturas/; así la ventana no abre decenas de videos a la vez."""
-    origen = archivo_dentro(SALIDAS, os.path.basename(peticion.query.get("video", "")))
+    """GET /app/miniatura?video=<archivo de app/salidas> | ?refmod=<RefMod> → JPG (29 oct, ventana «Proyectos»: cada tarjeta
+    con su último video y las caritas de sus referencias). Se hace una vez con ffmpeg y se guarda en app/salidas/miniaturas/;
+    así la ventana no abre decenas de videos ni fotos grandes a la vez."""
+    q = peticion.query
+    if q.get("refmod"):
+        try:
+            origen = retocar().ruta_foto_referencia({"refmod": q["refmod"]})
+        except Exception:
+            raise web.HTTPNotFound()
+        nombre, ancho = "ref_" + re.sub(r"[^\w-]+", "_", q["refmod"])[:120], 160
+    else:
+        origen = archivo_dentro(SALIDAS, os.path.basename(q.get("video", "")))
+        nombre, ancho = os.path.basename(origen or ""), 480
     if not origen:
         raise web.HTTPNotFound()
-    destino = os.path.join(MINIATURAS, os.path.basename(origen) + ".jpg")
+    destino = os.path.join(MINIATURAS, nombre + ".jpg")
     if not os.path.isfile(destino) or os.path.getmtime(destino) < os.path.getmtime(origen):
-        if not await asyncio.get_running_loop().run_in_executor(None, hacer_miniatura, origen, destino):
+        if not await asyncio.get_running_loop().run_in_executor(None, hacer_miniatura, origen, destino, ancho):
             raise web.HTTPNotFound()
     return web.FileResponse(destino, headers={"Cache-Control": "max-age=86400"})
 

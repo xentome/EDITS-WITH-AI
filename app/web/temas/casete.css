@@ -656,4 +656,12 @@ body.tema-casete .max-bib-buscar{background:var(--k-tinta) !important;color:var(
 body.tema-casete .max-bib-retocar{background:var(--k-naranja) !important;border-color:var(--k-naranja) !important;color:var(--k-tinta) !important}
 body.tema-casete .max-boton.max-boton-proyecto{background:var(--k-crema) !important;color:var(--k-tinta) !important;border-color:var(--k-crema) !important;
   font:800 16px/1 var(--k-rotulo) !important;letter-spacing:.04em;min-height:40px}
+body.tema-casete .max-bib-proy{border-top-color:var(--k-violeta)}
+body.tema-casete .max-bib-proy.actual{border-top-color:var(--k-ok)}
+body.tema-casete .max-bib-proy-cab .ic,body.tema-casete .max-bib-proy-cab svg{color:var(--k-violeta)}
+body.tema-casete .max-bib-idea{font-family:var(--k-texto-f);color:var(--k-suave)}
+body.tema-casete .max-bib-portada::before,body.tema-casete .max-bib-portada::after{background:var(--k-tinta3);border-color:var(--k-linea2)}
+body.tema-casete .max-bib-sello{font-family:var(--k-rotulo)}
+body.tema-casete .max-bib-pieza{background:var(--k-tinta2);border-color:var(--k-linea2);font:600 12px var(--k-rotulo);letter-spacing:.04em;text-transform:uppercase;color:var(--k-crema)}
+body.tema-casete .max-bib-carita{border-color:var(--k-tinta);background:var(--k-violeta)}
 

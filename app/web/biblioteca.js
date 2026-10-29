@@ -28,18 +28,25 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     return [...m.entries()];
   }
 
-  // la miniatura: una imagen quieta; al pasar el ratón, el video en silencio (se suelta al salir)
-  function mini(v) {
-    if (!v) return el("div", { class: "max-bib-mini vacia" }, el("span", {}, t("app.biblio.sin_videos")));
-    const img = el("img", { src: "/app/miniatura?video=" + encodeURIComponent(v.archivo), alt: "", loading: "lazy" });
-    const caja = el("div", { class: "max-bib-mini" }, img,
-      v.tipo ? el("span", { class: "max-bib-tipo" }, describir(v).split(" · ")[0]) : null);
-    caja.addEventListener("mouseenter", () => {
-      const vid = el("video", { src: urlVideo(v.archivo), muted: true, loop: true, autoplay: true, playsinline: true });
-      caja.append(vid);
-    });
-    caja.addEventListener("mouseleave", () => caja.querySelectorAll("video").forEach((x) => { x.pause(); x.removeAttribute("src"); x.load(); x.remove(); }));
+  /* la miniatura: una imagen quieta (GET /app/miniatura); si el servidor aún no la sabe hacer (sin reiniciar tras
+   * actualizar), el primer fotograma del propio video. Al pasar el ratón, el video en silencio (se suelta al salir) */
+  function mini(v, vacio = "app.biblio.sin_videos") {
+    if (!v) return el("div", { class: "max-bib-mini vacia" }, el("span", {}, t(vacio)));
+    const caja = el("div", { class: "max-bib-mini" });
+    const img = el("img", { src: "/app/miniatura?video=" + encodeURIComponent(v.archivo), alt: "", loading: "lazy",
+                            onerror: () => img.replaceWith(el("video", { src: urlVideo(v.archivo) + "#t=1", muted: true, preload: "metadata", playsinline: true })) });
+    caja.append(...[img, v.tipo ? el("span", { class: "max-bib-tipo" }, describir(v).split(" · ")[0]) : null].filter(Boolean));
+    caja.addEventListener("mouseenter", () => caja.append(el("video", { class: "max-bib-mueve", src: urlVideo(v.archivo), muted: true, loop: true, autoplay: true, playsinline: true })));
+    caja.addEventListener("mouseleave", () => caja.querySelectorAll(".max-bib-mueve").forEach((x) => { x.pause(); x.removeAttribute("src"); x.load(); x.remove(); }));
     return caja;
+  }
+  // la carita de una referencia (personaje, producto…): su foto pequeña o, si no hay, su inicial
+  function carita(r) {
+    const inicial = () => el("span", { class: "max-bib-carita letra", title: r.nombre }, (r.nombre || "?").slice(0, 1).toUpperCase());
+    if (!r.refmod) return inicial();
+    const img = el("img", { class: "max-bib-carita", src: "/app/miniatura?refmod=" + encodeURIComponent(r.refmod), alt: r.nombre, title: r.nombre, loading: "lazy",
+                            onerror: () => img.replaceWith(inicial()) });
+    return img;
   }
 
   function abrirElegido(nombre = B.elegido) {
@@ -47,15 +54,29 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     cerrar();
     if (nombre !== A.proyecto) (nombre === EJEMPLO ? abrirEjemplo() : abrirProyecto(nombre));
   }
+  /* (29 oct, Jonathan: «los proyectos no parecen proyectos») la tarjeta es una carpeta de trabajo: el nombre arriba con su
+   * icono, la idea, el último video como portada (con hojas detrás), las caritas de sus referencias y de qué está hecho */
   function tarjetaProyecto(p) {
-    const vs = de(p.nombre);
+    const vs = de(p.nombre), r = p.resumen || {};
+    const piezas = [
+      [icono("tomas"), t("app.biblio.n_tomas", { n: r.tomas || 0 })],
+      [icono("persona"), t("app.biblio.n_refs", { n: r.n_refs || 0 })],
+      r.cancion ? [icono("musica"), t("app.biblio.cancion")] : null,
+      [icono("video"), t("app.biblio.n_videos", { n: vs.length })]].filter(Boolean);
     return el("button", { class: "max-bib-proy" + (B.elegido === p.nombre ? " elegido" : "") + (A.proyecto === p.nombre ? " actual" : ""),
                           title: t("app.biblio.abrir.tooltip"), "aria-pressed": String(B.elegido === p.nombre),
                           onclick: () => { B.elegido = p.nombre; pintar(); }, ondblclick: () => abrirElegido(p.nombre) },
-      mini(vs[0]),
-      el("b", {}, p.nombre === EJEMPLO ? t("app.proyecto.ejemplo_opcion", { nombre: p.nombre }) : p.nombre,
+      el("span", { class: "max-bib-proy-cab" }, icono("capas"),
+        el("b", {}, p.nombre === EJEMPLO ? t("app.proyecto.ejemplo_opcion", { nombre: p.nombre }) : p.nombre),
         A.proyecto === p.nombre ? el("span", { class: "max-bib-abierto" }, t("app.biblio.abierto")) : null),
-      el("small", {}, t("app.biblio.proyecto.info", { fecha: fecha(p.guardado), n: vs.length })));
+      el("span", { class: "max-bib-idea" }, r.idea || t("app.biblio.sin_idea")),
+      el("span", { class: "max-bib-portada" }, mini(vs[0], "app.biblio.sin_videos_proy"),
+        vs[0] ? el("span", { class: "max-bib-sello" }, t("app.biblio.ultimo")) : null),
+      el("span", { class: "max-bib-piezas" },
+        r.refs?.length ? el("span", { class: "max-bib-caritas" }, ...r.refs.map(carita),
+          r.n_refs > r.refs.length ? el("span", { class: "max-bib-carita letra" }, "+" + (r.n_refs - r.refs.length)) : null) : null,
+        ...piezas.map(([ic, texto]) => el("span", { class: "max-bib-pieza" }, ic, texto))),
+      el("small", {}, t("app.biblio.editado", { fecha: fecha(p.guardado) })));
   }
   function tarjetaVideo(v) {
     return el("button", { class: "max-bib-vid" + (B.video === v.archivo ? " elegido" : ""), "aria-pressed": String(B.video === v.archivo),
