@@ -20,7 +20,7 @@
 | «Cuánto se alarga» · `nuevos` | steps of 17 frames: 17 (0.71 s), 34, 51, 68 (2.8 s, default) … 204 (8.5 s) | What the creative asks. H3 renders solape + nuevos, so a long one costs memory (see below). |
 | «Cuánto del original ve H3» · `solape` | 22 · **39** · 56 · 73 frames | Keep **39**: it is the only one exact on the audio grid (39 f = 65 audio steps). 22 = faster but follows the motion less; 56/73 = more memory of the motion, slower. |
 | «Calidad» · `calidad` | rapida (~0.25 MP) · media (~0.5 MP) · **original** | rapida to check the motion quickly (the new part looks softer); original for the final. Only «original» can use the saved latent. |
-| «Audio» · `audio` | **entrada** · modelo | Keep «entrada» (the rule of the app: respect the input audio). «modelo» only if the creative wants H3's sound in the new part. |
+| «Audio» · `audio` | **entrada** · modelo | «entrada»: the song the video was made with carries on from the exact second the video ends (the original keeps its sound). «modelo»: H3 makes the new part's sound from the video's own audio. Keep «entrada» unless the creative asks for H3's sound. |
 | «Qué pasa después» · `prompt` | optional, short English | Empty = same action, same camera. Write only what happens next: «she keeps looking up at the logo and breathes softly». |
 | References · `referencias` | up to 4, cited as <Picture N> | The project's character / product / logo: they keep colour and identity from drifting. The app ALWAYS adds the video's last frame as one more reference, after yours (so yours keep their numbers) and cites it in the prompt itself. |
 
