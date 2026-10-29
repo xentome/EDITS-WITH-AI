@@ -285,11 +285,10 @@
   },
   "36": {
     "_meta": {
-      "title": "VDN + SPEED calibrado — conservar estos parámetros"
+      "title": "Muestreo VDN 8 pasos (SamplerCustomAdvanced, euler)"
     },
-    "class_type": "MiniMaxH3SPEEDSampler",
+    "class_type": "SamplerCustomAdvanced",
     "inputs": {
-      "Tolerance (Delta)": 0.005,
       "guider": [
         "35",
         0
@@ -302,16 +301,23 @@
         "33",
         0
       ],
-      "noise_amplitude": 21.599632292358844,
-      "noise_decay_exponent": 0.9255106391029458,
-      "noise_policy": "direct_coarse",
-      "sampler_name": "euler",
-      "seed_offset": 10000,
+      "sampler": [
+        "361",
+        0
+      ],
       "sigmas": [
         "32",
         0
-      ],
-      "stages": 2
+      ]
+    }
+  },
+  "361": {
+    "_meta": {
+      "title": "Sampler euler"
+    },
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
     }
   },
   "37": {

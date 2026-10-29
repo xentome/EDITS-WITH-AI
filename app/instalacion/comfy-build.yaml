@@ -132,12 +132,6 @@ definition:
       repository: https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
       gitRef: 01b6d8d91180c6994840e34312a65febe02cc4f5
       grupo: edit
-    - name: ComfyUI-MiniMax-H3-SPEED
-      localPath: ComfyUI-MiniMax-H3-SPEED
-      source: git
-      repository: https://github.com/StanLukuvka/ComfyUI-MiniMax-H3-SPEED
-      gitRef: 3ca5471e30508beb41a47589d7d58ac25bec0c80
-      grupo: edit
     - name: ComfyUI-VDN-H3                     # el fork VDN-H3-Plus de xmarre, en la carpeta con el nombre original
       localPath: ComfyUI-VDN-H3
       source: git
@@ -205,7 +199,7 @@ definition:
     edit: [UNETLoader, CLIPLoader, VAELoader, MiniMaxH3SigmaShift, ModelAttentionBackend, ModelPreviewOverrideKJ,
            ApplyVDNH3, MiniMaxChunkFeedForward, MiniMaxH3RefModStack, LoadAudio, MiniMaxH3PromptBuilder,
            MiniMaxH3FantasticRefModTextEncode, MiniMaxH3AddGuide, RandomNoise, BasicScheduler, BasicGuider,
-           MiniMaxH3SPEEDSampler, VAEDecode, VAEDecodeAudio, MiniMaxH3FantasticEditComposite, CreateVideo, SaveVideo]
+           KSamplerSelect, SamplerCustomAdvanced, VAEDecode, VAEDecodeAudio, MiniMaxH3FantasticEditComposite, CreateVideo, SaveVideo]
     retocar: ["CR Aspect Ratio", CheckpointLoaderSimple, GetImageSizeAndCount, MVEx_MaskCleanup, MVEx_SubjectCrop,
               MVEx_SubjectUncrop, MiniMaxH3ReferenceToVideo, MiniMaxH3TokenCounter, MiniMaxH3XPromptLint, NKDAVLatent,
               NKDAVLatentExtend, NKDMaskOps, NKDMaskOpsLean, NKDTimeline, SAM3_TrackToMask, SAM3_VideoTrack,

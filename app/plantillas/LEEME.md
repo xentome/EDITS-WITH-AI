@@ -26,7 +26,7 @@
 | 9 | MiniMaxH3FantasticRefModTextEncode | Codifica prompt y referencias. Aquí van ancho, alto y `length` (fotogramas). |
 | 73 | MiniMaxH3AddGuide | Mete la canción como guía del audio. |
 | 33 | RandomNoise | La semilla del video. |
-| 32, 35, 36 | BasicScheduler, BasicGuider, MiniMaxH3SPEEDSampler | El muestreo (8 pasos, 2 etapas). |
+| 32, 35, 36, 361 | BasicScheduler, BasicGuider, SamplerCustomAdvanced, KSamplerSelect | El muestreo (8 pasos, euler), todo nodos de ComfyUI. |
 | 18, 19 | VAEDecode, VAEDecodeAudio | Imagen y sonido. |
 | 26 | MiniMaxH3FantasticEditComposite | Si se edita un clip con máscara (borrado), pega lo regenerado sobre el original; si no, deja pasar los fotogramas. |
 | 20, 21 | CreateVideo, SaveVideo | Junta imagen y canción y guarda el mp4 (`max_editor/edit`). |
@@ -36,7 +36,6 @@
 - **ComfyUI-Fantastic-MiniMaxH3-PromptBuilder** (github.com/Adudeguyman): PromptBuilder, RefModStack, RefModTextEncode y EditComposite.
 - **ComfyUI-KJNodes** (github.com/kijai): ModelPreviewOverrideKJ y MiniMaxChunkFeedForward.
 - **ComfyUI-VDN-H3** (en esta máquina, el fork github.com/xmarre/ComfyUI-VDN-H3-Plus): ApplyVDNH3.
-- **ComfyUI-MiniMax-H3-SPEED** (github.com/StanLukuvka): MiniMaxH3SPEEDSampler.
 - **edit_prompt_llm** (este repo): PromptDelEdit, solo para abrir la ventana dentro de ComfyUI. Para generar no hace falta.
 - El resto viene con ComfyUI: SigmaShift, AddGuide, ModelAttentionBackend, los cargadores, el muestreo, CreateVideo y SaveVideo. Hace falta una versión de ComfyUI con soporte de MiniMax H3.
 

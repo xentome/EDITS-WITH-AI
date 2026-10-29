@@ -4,10 +4,11 @@
 
 ## Nodos de ComfyUI que instala `app/instalar.sh`
 
+Todos son open source menos uno: ComfyUI_Comfyroll_CustomNodes no publica licencia (solo lo usa Retocar). (Hasta el 29 oct el edit usaba ComfyUI-MiniMax-H3-SPEED de StanLukuvka, que es PolyForm Noncommercial; se cambió por el muestreador de ComfyUI para que todo sea abierto.)
+
 | Qué | Para qué | Autor | Licencia |
 |---|---|---|---|
 | ComfyUI-Fantastic-MiniMaxH3-PromptBuilder | RefMods, Stack, Prompt Builder y Text Encode de H3 | Adudeguyman | MIT |
-| ComfyUI-MiniMax-H3-SPEED | acelerar H3 en el edit | StanLukuvka | **PolyForm Noncommercial 1.0.0** (solo uso no comercial) |
 | ComfyUI-VDN-H3 (fork VDN-H3-Plus) | muestreo en 8 pasos | OpenVDN · fork de xmarre | Apache-2.0 |
 | ComfyUI-KJNodes | vista previa del modelo | kijai | GPL-3.0 |
 | ComfyUI_Comfyroll_CustomNodes | Retocar: CR Aspect Ratio | Suzie1 | sin licencia publicada ❓ |

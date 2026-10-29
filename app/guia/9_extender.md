@@ -66,7 +66,7 @@
 
 ## Known limits
 
-- SPEED cannot be used here (it refuses noise masks); Extend runs Singularity + VDN turbo, 8 steps, like Retocar.
+- Extend runs Singularity + VDN turbo, 8 steps (SamplerCustomAdvanced, euler), like the edit and Retocar.
 - The last ~5 frames before the join were decoded without «future» frames (VAE window): a very slight seam is possible.
   The fix (decode the original's latent with the next 5 new tokens) is noted for later, not built.
 - An extension recovered after a server restart does not note its latent: extending it again goes through the mp4.

@@ -345,7 +345,7 @@ def preparar(datos: dict, sello: str | None = None) -> tuple[dict, dict]:
             "positive": [N_NUEVO, 0], "latent": [N_EXTENDER, 0], "frame_idx": 0, "audio_vae": [N_VAE_AUDIO, 0], "audio": [N_CANCION, 0]}}
         condicion = [N_GUIA, 0]
 
-    # el sampler que admite máscaras (el SPEED no): euler, 8 pasos con el adaptador turbo del VDN, como Retocar
+    # el sampler de ComfyUI (admite máscaras): euler, 8 pasos con el adaptador turbo del VDN, como Retocar
     g[N_GUIADOR] = {"class_type": "BasicGuider", "inputs": {"model": [N_MODELO, 0], "conditioning": condicion}}
     g[N_SAMPLER] = {"class_type": "SamplerCustomAdvanced", "inputs": {
         "noise": [N_RUIDO, 0], "guider": [N_GUIADOR, 0], "sampler": ["30", 0], "sigmas": ["31", 0], "latent_image": [N_EXTENDER, 0]}}

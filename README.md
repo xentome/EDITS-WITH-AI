@@ -32,7 +32,7 @@
 > **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](RUNPOD.md)**: it sets up everything and you only use the app.
 
 Pick one of three ways. All three run the same installer, `app/instalar.sh`, which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
-- it puts **11 node packs** in `ComfyUI/custom_nodes/`, each at the exact commit we tested, and never overwrites a pack you already have;
+- it puts **10 node packs** in `ComfyUI/custom_nodes/`, each at the exact commit we tested, and never overwrites a pack you already have;
 - it installs their Python dependencies into ComfyUI's Python with **torch, torchvision, torchaudio and numpy frozen**;
 - it downloads the **models from HuggingFace** (resumable) and checks each **sha256**;
 - it never patches ComfyUI itself, and it can be run again: what is already there is skipped.
@@ -197,8 +197,7 @@ The same repo is also a ComfyUI custom node, «Prompt del edit (LLM)», with the
 
 - The code in this repository is **Apache-2.0** ([LICENSE](LICENSE)).
 - **MiniMax H3 has its own license: commercial use needs a separate license from MiniMax, and some regions are excluded.**
-- **ComfyUI-MiniMax-H3-SPEED**, one of the node packs the installer adds, is **PolyForm Noncommercial 1.0.0**: non-commercial use only.
-- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-VDN-H3 (OpenVDN; VDN-H3-Plus fork by xmarre), ComfyUI-MiniMax-H3-SPEED (StanLukuvka); the 7 packs for Touch up and Extend are listed in CREDITOS.md.
+- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-VDN-H3 (OpenVDN; VDN-H3-Plus fork by xmarre); the 7 packs for Touch up and Extend are listed in CREDITOS.md.
 - Tools: ComfyUI, comfy-sdk and comfy-api-proxy (Comfy Org), llama.cpp (ggml-org), librosa.
 - Models: MiniMax H3 (MiniMax), Qwen3-VL and Qwen3.8 (Qwen), VDN for H3 (OpenVDN, int8 by drbaph).
 - Full list with licenses: [CREDITOS.md](CREDITOS.md) and [MODELOS.md](MODELOS.md).

@@ -1,8 +1,8 @@
 {
   "id": "bb256ef4-339d-4a28-b753-eaddd297f594",
   "revision": 0,
-  "last_node_id": 76,
-  "last_link_id": 125,
+  "last_node_id": 77,
+  "last_link_id": 126,
   "nodes": [
     {
       "id": 1,
@@ -1648,14 +1648,14 @@
     },
     {
       "id": 36,
-      "type": "MiniMaxH3SPEEDSampler",
+      "type": "SamplerCustomAdvanced",
       "pos": [
         1385.3780026828217,
         -0.06343701383149725
       ],
       "size": [
         430,
-        300
+        110
       ],
       "flags": {},
       "order": 27,
@@ -1674,6 +1674,12 @@
           "link": 59
         },
         {
+          "localized_name": "sampler",
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 126
+        },
+        {
           "localized_name": "sigmas",
           "name": "sigmas",
           "type": "SIGMAS",
@@ -1684,69 +1690,6 @@
           "name": "latent_image",
           "type": "LATENT",
           "link": 61
-        },
-        {
-          "localized_name": "stages",
-          "name": "stages",
-          "type": "INT",
-          "widget": {
-            "name": "stages"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "noise_policy",
-          "name": "noise_policy",
-          "type": "COMBO",
-          "widget": {
-            "name": "noise_policy"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "Tolerance (Delta)",
-          "name": "Tolerance (Delta)",
-          "type": "FLOAT",
-          "widget": {
-            "name": "Tolerance (Delta)"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "noise_amplitude",
-          "name": "noise_amplitude",
-          "type": "FLOAT",
-          "widget": {
-            "name": "noise_amplitude"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "noise_decay_exponent",
-          "name": "noise_decay_exponent",
-          "type": "FLOAT",
-          "widget": {
-            "name": "noise_decay_exponent"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "seed_offset",
-          "name": "seed_offset",
-          "type": "INT",
-          "widget": {
-            "name": "seed_offset"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "sampler_name",
-          "name": "sampler_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "sampler_name"
-          },
-          "link": null
         }
       ],
       "outputs": [
@@ -1768,35 +1711,12 @@
           "links": null
         }
       ],
-      "title": "VDN + SPEED calibrado — conservar estos parámetros",
+      "title": "Muestreo VDN 8 pasos (SamplerCustomAdvanced, euler)",
       "properties": {
-        "aux_id": "StanLukuvka/ComfyUI-MiniMax-H3-SPEED",
-        "ver": "3ca5471e30508beb41a47589d7d58ac25bec0c80",
-        "Node name for S&R": "MiniMaxH3SPEEDSampler",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "SamplerCustomAdvanced"
       },
-      "widgets_values": [
-        2,
-        "direct_coarse",
-        0.005,
-        21.599632292358844,
-        0.9255106391029458,
-        10000,
-        "euler"
-      ],
-      "widgets_values_named": {
-        "stages": 2,
-        "noise_policy": "direct_coarse",
-        "Tolerance (Delta)": 0.005,
-        "noise_amplitude": 21.599632292358844,
-        "noise_decay_exponent": 0.9255106391029458,
-        "seed_offset": 10000,
-        "sampler_name": "euler"
-      }
+      "widgets_values": []
     },
     {
       "id": 33,
@@ -2751,6 +2671,51 @@
       },
       "widgets_values": [],
       "widgets_values_named": {}
+    },
+    {
+      "id": 77,
+      "type": "KSamplerSelect",
+      "pos": [
+        1385.3780026828217,
+        -140.0634370138315
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "SAMPLER",
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "slot_index": 0,
+          "links": [
+            126
+          ]
+        }
+      ],
+      "title": "Sampler euler",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler"
+      ]
     }
   ],
   "links": [
@@ -2927,7 +2892,7 @@
       32,
       0,
       36,
-      2,
+      3,
       "SIGMAS"
     ],
     [
@@ -2935,7 +2900,7 @@
       9,
       2,
       36,
-      3,
+      4,
       "LATENT"
     ],
     [
@@ -3081,6 +3046,14 @@
       21,
       0,
       "VIDEO"
+    ],
+    [
+      126,
+      77,
+      0,
+      36,
+      2,
+      "SAMPLER"
     ]
   ],
   "groups": [],
