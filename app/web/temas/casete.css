@@ -538,3 +538,39 @@ body.tema-casete .epl-info-pop{font-family:var(--k-texto-f)}
 
 body.tema-casete .epl-f3-tarjeta .epl-mini{min-height:40px !important;padding:0 14px !important;font-size:13px !important}
 body.tema-casete .epl-f3-tarjeta input[type=checkbox]{width:20px;height:20px}
+
+/* (28 oct) Retocar P1: la regla con miniaturas (tocar = ir), el cabezal, la máscara que se esconde al sonar, ⛶ y la
+ * acción fija abajo de la columna */
+body.tema-casete .max-rt-regla{position:relative;height:66px;border-radius:6px;overflow:hidden;background:#0b080e;border:1px solid var(--k-linea2);cursor:pointer;touch-action:none}
+body.tema-casete .max-rt-regla[hidden],body.tema-casete .max-rt-et-carril[hidden]{display:none}
+body.tema-casete .max-rt-minis{position:absolute;inset:0 0 18px 0;display:flex}
+body.tema-casete .max-rt-minis img{flex:1;min-width:0;height:100%;object-fit:cover;opacity:.8}
+body.tema-casete .max-rt-marcas{position:absolute;left:0;right:0;bottom:0;height:18px;background:rgba(0,0,0,.78);font:600 10px var(--k-mono);color:var(--k-suave)}
+body.tema-casete .max-rt-marcas span{position:absolute;bottom:3px;transform:translateX(-50%);white-space:nowrap}
+body.tema-casete .max-rt-marcas span:first-child{transform:none;padding-left:4px}
+body.tema-casete .max-rt-marcas span:last-child{transform:translateX(-100%);padding-right:4px}
+body.tema-casete .max-rt-cabezal{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--k-naranja);pointer-events:none;z-index:2}
+body.tema-casete .max-rt-cabezal::before{content:"";position:absolute;top:0;left:-6px;border:7.5px solid transparent;border-top:10px solid var(--k-naranja)}
+body.tema-casete .max-rt-et-carril{margin:2px 0 -4px;font:700 12px var(--k-rotulo);letter-spacing:.08em;text-transform:uppercase;color:var(--k-suave)}
+body.tema-casete .max-rt-cursor{width:3px !important;background:var(--k-naranja) !important}
+body.tema-casete .max-rt-linea{height:38px !important}
+body.tema-casete .max-rt-transporte{gap:6px !important}
+body.tema-casete .max-rt-transporte .epl-mini{min-height:40px !important;min-width:40px;font-size:13px !important}
+body.tema-casete .max-rt-transporte .epl-mini.fijo{border-color:var(--k-naranja) !important;color:#FFB27A !important}
+body.tema-casete .max-rt-play{width:52px !important;height:52px !important;background:var(--k-crema) !important;color:var(--k-tinta) !important;border-color:var(--k-crema) !important}
+body.tema-casete .max-rt-sep{width:1px;height:28px;background:var(--k-linea2);margin:0 4px}
+body.tema-casete .max-rt-esp{flex:1}
+body.tema-casete .max-rt-lectura{font:600 15px var(--k-mono) !important;color:var(--k-crema)}
+body.tema-casete .max-rt-marco .max-rt-rect{transition:opacity .2s}
+body.tema-casete .max-rt-marco.sonando .max-rt-rect,body.tema-casete .max-rt-marco.sin-rect .max-rt-rect{opacity:0;pointer-events:none}
+body.tema-casete .max-rt-pastilla{padding:8px 14px;border-radius:8px;background:rgba(255,62,138,.12);border:1px solid rgba(255,62,138,.6);flex-wrap:wrap}
+body.tema-casete .max-rt-pastilla b{font:700 15px var(--k-mono);color:#FFC2DA !important}
+body.tema-casete .max-rt-bajo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+body.tema-casete .max-rt-bajo .epl-mini,body.tema-casete .max-rt-ver .epl-mini,body.tema-casete .max-rt-lado .epl-mini{min-height:40px !important;padding:0 14px !important;font-size:13px !important}
+body.tema-casete .max-rt-etiqueta{display:flex;align-items:center;gap:8px}
+body.tema-casete .max-rt-final{position:sticky;bottom:0;z-index:3;margin-top:8px;padding:12px;border:1px solid var(--k-linea2);border-radius:8px;background:var(--k-tinta);flex-wrap:wrap;gap:10px}
+/* ⛶ pantalla grande: el mismo visor, transporte y línea a toda la ventana */
+body.tema-casete .max-rt-izq.max-rt-cine{position:fixed;inset:0;z-index:2147483000;background:#050306;padding:16px 24px;gap:10px;overflow:auto}
+body.tema-casete .max-rt-izq.max-rt-cine .max-rt-marco{width:auto !important;height:calc(100vh - 290px);max-width:100%;align-self:center}
+body.max-rt-con-cine{overflow:hidden}
+
