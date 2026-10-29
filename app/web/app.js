@@ -45,7 +45,7 @@ async function pedir(ruta, cuerpo) {
 // ---- estado de la app
 const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", guardadoJSON: "", proyectos: [], salud: {},
             trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null,
-            cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 3, colaVista: {},
+            cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 1, colaVista: {},
             fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas",
             // el agente (MCP, planos/fases/11): rev del proyecto que se cargó, marcas «✎ agente», cambios sin guardar y choque
             rev: 0, marcas: [], sucio: false, conflicto: null };
@@ -88,8 +88,13 @@ function pintarCabecera() {
   const semilla = el("input", { type: "number", min: 0, step: 1, value: w ? w.value : "", disabled: !w,
                                 onchange: (e) => ponerSemilla(Math.max(0, Math.round(+e.target.value || 0))) });
   const activos = A.cola.trabajos.filter((x) => x.estado === "en_cola" || x.estado === "corriendo" || x.estado === "recuperando").length;
+  // (28 oct) el botón dice siempre cuántos va a encolar: se pone al día al escribir el número (antes seguía diciendo ×3)
+  const botonEncolar = el("button", { class: "max-boton", disabled: !A.node, onclick: () => generar(A.colaN) }, util.icono("mas"), " " + t("app.cola.encolar", { n: A.colaN }));
   const nCola = el("input", { type: "number", min: 1, max: 20, step: 1, value: A.colaN, class: "max-cola-n", "aria-label": t("app.cola.n"),
-                              title: t("app.cola.n"), onchange: (e) => { A.colaN = Math.max(1, Math.min(20, Math.round(+e.target.value || 1))); } });
+                              title: t("app.cola.n"), oninput: (e) => {
+                                A.colaN = Math.max(1, Math.min(20, Math.round(+e.target.value || 1)));
+                                botonEncolar.replaceChildren(util.icono("mas"), " " + t("app.cola.encolar", { n: A.colaN }));
+                              } });
   const idioma = (i, texto) => el("button", { class: "max-boton" + (tr.idioma === i ? " fijo" : ""), onclick: () => cambiarIdioma(i) }, texto);
   filaCab.replaceChildren(
     el("span", { class: "max-nombre" }, t("app.nombre")),
@@ -105,8 +110,7 @@ function pintarCabecera() {
       el("button", { class: "max-boton", disabled: !w, title: t("app.semilla.otra.tooltip"), onclick: () => ponerSemilla(semillaNueva()) },
         util.icono("semilla"), " " + t("app.semilla.otra"))),
     el("button", { class: "max-generar", disabled: !A.node, title: t("app.generar.tooltip"), onclick: () => generar(1) }, t("app.generar")),
-    el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola,
-      el("button", { class: "max-boton", disabled: !A.node, onclick: () => generar(A.colaN) }, util.icono("mas"), " " + t("app.cola.encolar", { n: A.colaN }))),
+    el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola, botonEncolar),
     el("button", { class: "max-boton", title: t("app.videos.tooltip"), onclick: () => { A.verVideos = !A.verVideos; pintarVideos(); } },
       util.icono("video"), " " + t("app.videos.boton", { n: A.videos.length })),
     el("button", { class: "max-boton" + (activos ? " max-cola-activa" : ""), title: t("app.cola.tooltip"), onclick: () => { A.verCola = !A.verCola; pintarCola(); } },
@@ -446,18 +450,28 @@ async function cargarVideos() {
   pintarVideos();
 }
 
+/* un solo reproductor (28 oct): cambia de archivo en vez de crearse de nuevo. Antes cada clic dejaba un <video> viejo
+ * descargando; con los de Retocar y Extender se llenaban las ~6 conexiones del navegador y el nuevo se quedaba trabado */
+const reproductor = el("video", { controls: true, autoplay: true, loop: true, playsinline: true });
+function soltarVideo() { reproductor.pause(); reproductor.removeAttribute("src"); reproductor.load(); }
+function ponerVideo(archivo) {
+  const src = "/app/salidas/" + encodeURIComponent(archivo);
+  if (reproductor.getAttribute("src") !== src) { reproductor.pause(); reproductor.setAttribute("src", src); reproductor.load(); reproductor.play().catch(() => {}); }
+  return reproductor;
+}
 function pintarVideos() {
   panelVideos.className = "max-videos" + (A.verVideos ? " ver" : "");
-  if (!A.verVideos) return cajaVideos.replaceChildren();     // cerrada: fuera el reproductor (que no siga sonando)
+  if (!A.verVideos) { soltarVideo(); return cajaVideos.replaceChildren(); }   // cerrada: fuera el reproductor (que no siga sonando)
   cajaVideos.setAttribute("aria-label", t("app.videos.titulo", { proyecto: A.proyecto }));
   const actual = A.videos.find((x) => x.archivo === A.videoActual);
   const fecha = (x) => (x.fecha || "").replace("T", " ");
-  cajaVideos.replaceChildren(
+  if (!actual) soltarVideo();
+  cajaVideos.replaceChildren(...[       // sin los null (replaceChildren escribiría «null»)
     el("div", { class: "max-fila" }, el("b", {}, t("app.videos.titulo", { proyecto: A.proyecto })),
       el("button", { class: "max-boton max-derecha", title: t("app.videos.carpeta.tooltip"),
                      onclick: () => pedir("/app/abrir_carpeta", {}).catch((e) => avisar(e.message, "mal")) }, t("app.videos.carpeta")),
       el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrarVideos }, util.icono("x"))),
-    actual ? el("video", { src: "/app/salidas/" + encodeURIComponent(actual.archivo), controls: true, autoplay: true, loop: true }) : null,
+    actual ? ponerVideo(actual.archivo) : null,
     actual ? el("div", { class: "max-fila" }, el("small", {}, t("app.videos.info", { fecha: fecha(actual), semilla: actual.semilla ?? "?",
                                                                                      s: tr.num(actual.segundos || 0, 0) }))) : null,
     el("div", { class: "max-lista" }, A.videos.length ? A.videos.map((x) =>
@@ -482,7 +496,7 @@ function pintarVideos() {
           ponerFase("retocar");
           extension.cargar(x.archivo).then(extension.ver);
         } }, t("app.videos.extender"))))
-      : el("div", { class: "max-vacio" }, t("app.videos.vacio"))));
+      : el("div", { class: "max-vacio" }, t("app.videos.vacio")))].filter(Boolean));
 }
 
 /* ---- el agente (MCP, planos/fases/11 MCP.md): un agente cambia el MISMO proyecto por el servidor y aquí se ve.

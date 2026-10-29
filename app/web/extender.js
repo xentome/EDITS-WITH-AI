@@ -458,9 +458,12 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
           el("input", { type: "number", min: 0, step: 1, value: R.semilla, onchange: (e) => { R.semilla = Math.max(0, Math.round(+e.target.value || 0)); guardar(); } }),
           el("button", { class: "epl-mini", title: t("app.semilla.otra.tooltip"), onclick: () => { R.semilla = Math.floor(Math.random() * 2 ** 32); guardar(); pintar(); } }, icono("semilla"))),
         el("span", { class: "max-rt-cola", title: t("app.cola.encolar.tooltip") },
-          el("input", { type: "number", min: 1, max: 20, step: 1, value: R.colaN || 3, class: "max-cola-n", "aria-label": t("app.cola.n"),
-                        onchange: (e) => { R.colaN = Math.max(1, Math.min(20, Math.round(+e.target.value || 1))); pintar(); } }),
-          el("button", { class: "max-boton", disabled: !R.info, onclick: () => extender(R.colaN || 3) }, icono("mas"), " " + t("app.cola.encolar", { n: R.colaN || 3 }))),
+          el("input", { type: "number", min: 1, max: 20, step: 1, value: R.colaN || 1, class: "max-cola-n", "aria-label": t("app.cola.n"),
+                        oninput: (e) => {          // el botón dice al momento cuántos encola (28 oct: antes, ×3 hasta repintar)
+                          R.colaN = Math.max(1, Math.min(20, Math.round(+e.target.value || 1)));
+                          e.target.nextElementSibling?.replaceChildren(icono("mas"), " " + t("app.cola.encolar", { n: R.colaN }));
+                        } }),
+          el("button", { class: "max-boton", disabled: !R.info, onclick: () => extender(R.colaN || 1) }, icono("mas"), " " + t("app.cola.encolar", { n: R.colaN || 1 }))),
         el("button", { class: "max-generar max-rt-boton max-ex-boton", disabled: !R.info, title: t("app.extender.boton.tooltip"), onclick: () => extender(1) },
           t("app.extender.boton", { s: seg(R.nuevos) }))),
       ...(R.error ? [el("div", { class: "max-rt-error" }, R.error)] : []),
