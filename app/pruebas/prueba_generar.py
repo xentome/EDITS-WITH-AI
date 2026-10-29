@@ -47,6 +47,13 @@ def prueba_seca() -> None:
     assert g["21"]["inputs"]["filename_prefix"] == "max_editor/prueba_generar"
     sin_semilla = generar.preparar(v, {"semilla": None})
     assert sin_semilla["33"]["inputs"]["noise_seed"] == generar.plantilla()["33"]["inputs"]["noise_seed"]
+    # sin canción (28 oct) también se genera: sin LoadAudio ni AddGuide, y el video lleva el audio de H3
+    sin = generar.preparar({**v, "72": {"audio": ""}}, {"semilla": 1})
+    tipos = {n["class_type"] for n in sin.values()}
+    assert "LoadAudio" not in tipos and "MiniMaxH3AddGuide" not in tipos, tipos
+    assert all(not (generar.es_enlace(x) and x[0] not in sin) for n in sin.values() for x in n["inputs"].values()), "enlace roto"
+    assert sin["35"]["inputs"]["conditioning"] == ["9", 0] and sin["20"]["inputs"]["audio"] == ["19", 0]
+    assert "audio_1" not in sin["8"]["inputs"]
     # la plantilla sola no tiene prompt: error claro, sin excepción hacia fuera
     tid = generar.iniciar({}, {})
     e = generar.estado(tid)

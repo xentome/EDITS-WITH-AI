@@ -420,6 +420,7 @@
  "linea.audio.ayuda": "Tu canción: el video suena con el audio que elegiste (H3 solo la usa de guía). Audio de H3: el sonido que genera el modelo.",
  "linea.audio.cancion": "Tu canción",
  "linea.audio.modelo": "Audio de H3",
+ "linea.audio.sin_cancion": "Sin canción: el video suena con el audio que crea H3 a partir de «Sonido». Escribe ahí cómo debe sonar.",
  "linea.ayuda": "Toca una toma para ver su prompt · arrastra un borde para cambiar lo que duran · + añade una",
  "linea.borde.etiqueta": "{a} s | {b} s",
  "linea.borde.tooltip": "Arrastra para alargar una toma y acortar la otra",

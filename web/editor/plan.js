@@ -321,15 +321,17 @@ export function instalar(ctx) {
   // ---- el sonido de todo el edit: un renglón al final de la pestaña (27 oct). Va tal cual a overall_soundscape; vacío,
   // la frase «sonido» de frases.json
   /* y, en la app (no en el nodo de ComfyUI, donde el grafo es del usuario), qué audio lleva el video generado: tu canción
-   * (por defecto; H3 solo la usa de guía) o el audio que genera H3 (app/generar.py conecta el CreateVideo a uno u otro) */
+   * (por defecto; H3 solo la usa de guía) o el audio que genera H3 (app/generar.py conecta el CreateVideo a uno u otro).
+   * Sin canción (28 oct) solo queda el de H3, hecho con «Sonido»; la elección guardada no se toca, vuelve con la canción */
   const AUDIOS = [["cancion", "linea.audio.cancion"], ["modelo", "linea.audio.modelo"]];
   ctx.pintarSonido = function pintarSonido() {
+    const sale = S.audio ? S.audio_salida : "modelo";
     const audio = !ctx.enApp ? null : el("div", { class: "epl-audio-salida" },
       el("span", { class: "epl-audio-salida-et", id: "epl-audio-salida-et" }, t("linea.audio")),
       el("span", { class: "epl-fila", role: "group", "aria-labelledby": "epl-audio-salida-et" }, ...AUDIOS.map(([k, clave]) =>
-        el("button", { class: "epl-mini epl-seg" + (S.audio_salida === k ? " fijo" : ""), "aria-pressed": String(S.audio_salida === k),
-                       "data-audio": k, onclick: () => { S.audio_salida = k; ctx.programarGuardado(); ctx.pintarSonido(); } }, t(clave)))),
-      el("span", { class: "epl-ayuda" }, t("linea.audio.ayuda")));
+        el("button", { class: "epl-mini epl-seg" + (sale === k ? " fijo" : ""), "aria-pressed": String(sale === k), "data-audio": k,
+                       disabled: !S.audio, onclick: () => { S.audio_salida = k; ctx.programarGuardado(); ctx.pintarSonido(); } }, t(clave)))),
+      el("span", { class: "epl-ayuda" }, t(S.audio ? "linea.audio.ayuda" : "linea.audio.sin_cancion")));
     const sonido = el("input", { "data-campo": "sonido", placeholder: t("linea.sonido.placeholder"), value: S.sonido,
                                  oninput: (e) => { S.sonido = e.target.value; ctx.pedirMontaje(); } });
     secSonido?.replaceChildren(el("label", { class: "epl-campo ancho epl-sonido-campo", title: t("linea.sonido.tooltip") },

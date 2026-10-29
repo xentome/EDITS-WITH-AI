@@ -150,6 +150,32 @@ def _poner_audio(grafo: dict, cual: str) -> None:
         grafo[nid]["inputs"]["audio"] = [deco[0], 0]
 
 
+# sin canción (28 oct): se puede generar solo con el prompt; el sonido lo inventa H3 a partir del de la línea «Sonido»
+NODO_GUIA = "MiniMaxH3AddGuide"
+
+
+def _sin_cancion(grafo: dict) -> bool:
+    audios = _por_tipo(grafo, NODO_AUDIO)
+    return bool(audios) and all(not str(grafo[nid]["inputs"].get("audio") or "").strip() for nid in audios)
+
+
+def _quitar_cancion(grafo: dict) -> None:
+    """Quita el LoadAudio vacío. El AddGuide que solo anclaba la canción se salta (quien lo usaba recibe su `positive`);
+    las demás entradas que apuntaban al LoadAudio (audio_1 del Builder…) las borra _quitar_nodos."""
+    audios = set(_por_tipo(grafo, NODO_AUDIO))
+    for nid in _por_tipo(grafo, NODO_GUIA):
+        entradas = grafo[nid]["inputs"]
+        if not (es_enlace(entradas.get("audio")) and entradas["audio"][0] in audios) or es_enlace(entradas.get("image")):
+            continue
+        for nodo in grafo.values():
+            for k, v in nodo.get("inputs", {}).items():
+                if es_enlace(v) and v[0] == nid:
+                    nodo["inputs"][k] = entradas["positive"]
+        grafo.pop(nid)
+    for nid in audios:
+        grafo.pop(nid)
+
+
 def _leer_prompt(grafo: dict) -> str:
     for nid in _por_tipo(grafo, NODO_PROMPT_DEL_EDIT):
         bruto = grafo[nid].get("inputs", {}).get("estado") or "{}"
@@ -181,8 +207,12 @@ def preparar(valores: dict, opciones: dict | None = None) -> dict:
     grafo = plantilla()
     _copiar_valores(grafo, valores)
     prompt = _leer_prompt(grafo)
-    opciones["_audio"] = cancion_de(_estado(grafo))  # lo anota _despues_edit (la fila del historial)
-    _poner_audio(grafo, audio_salida(grafo))          # antes de quitar el PromptDelEdit, que guarda la opción
+    sin_cancion = _sin_cancion(grafo)
+    opciones["_audio"] = None if sin_cancion else cancion_de(_estado(grafo))  # lo anota _despues_edit (la fila del historial)
+    # antes de quitar el PromptDelEdit, que guarda la opción; sin canción, el video lleva el audio de H3 (el de tu prompt)
+    _poner_audio(grafo, "modelo" if sin_cancion else audio_salida(grafo))
+    if sin_cancion:
+        _quitar_cancion(grafo)
 
     builders = _por_tipo(grafo, NODO_BUILDER)
     if not builders:
@@ -194,10 +224,6 @@ def preparar(valores: dict, opciones: dict | None = None) -> dict:
         if not es_enlace(actual) or actual[0] in quitados:
             grafo[nid]["inputs"]["prompt_text"] = prompt
     _quitar_nodos(grafo)
-
-    for nid in _por_tipo(grafo, NODO_AUDIO):
-        if not str(grafo[nid]["inputs"].get("audio") or "").strip():
-            raise ErrorGenerar("falta la canción: elige el audio en la ventana primero")
 
     semilla = opciones.get("semilla")
     if semilla is not None:

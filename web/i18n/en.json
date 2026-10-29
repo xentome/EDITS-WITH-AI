@@ -420,6 +420,7 @@
  "linea.audio.ayuda": "Your song: the video plays the audio you chose (H3 only uses it as a guide). H3 audio: the sound the model generates.",
  "linea.audio.cancion": "Your song",
  "linea.audio.modelo": "H3 audio",
+ "linea.audio.sin_cancion": "No song: the video plays the audio H3 makes from «Sound». Write there what it should sound like.",
  "linea.ayuda": "Click a shot to see its prompt · drag an edge to change how long they last · + adds one",
  "linea.borde.etiqueta": "{a} s | {b} s",
  "linea.borde.tooltip": "Drag to lengthen one shot and shorten the other",

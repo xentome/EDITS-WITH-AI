@@ -32,3 +32,13 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **Qué va a git y qué no** (antes del push, 28 oct):
   - Sí: `PRODUCT.md`, `.impeccable/surfaces/` (el contrato del tema) y `.impeccable/mocks/decision/r3/r3-casete.html` (la maqueta elegida, citada en la fase 9); la `maqueta/` (Jonathan quiso guardarla: la del 24 oct, el dibujo del panel del 26 oct y las páginas de inspiración, con sus propias fotos).
   - No (se quedan en el PC, en `.gitignore`): el resto de `.impeccable/` (rondas descartadas, su caché y una imagen de otra marca, «ARCMAIL», que no puede ir en un repo público), `app/ui-prototipo/` (el prototipo React de P10, superado) y `app/web/prototipo_*.html` (el del panel de la toma).
+
+## 3 · Generar sin canción ✅
+
+- **Por qué:** Jonathan quiso generar solo con el prompt de sonido; sin canción, «Generar» fallaba con «falta la canción».
+- **Lo que cambió:**
+  - `app/generar.py`: con el LoadAudio vacío, se quita, se salta el `MiniMaxH3AddGuide` que solo anclaba la canción (el guía recibe el `positive` del Text Encode) y el `CreateVideo` toma el audio del `VAEDecodeAudio`. El `audio_1` del Builder es opcional y se borra solo.
+  - En la ventana (`plan.js`), sin canción, «Tu canción» sale apagado, «Audio de H3» marcado y la ayuda dice que escribas en «Sonido» cómo debe sonar. La elección guardada no se toca y vuelve al poner una canción. Clave i18n nueva: `linea.audio.sin_cancion`.
+  - Agente: sin canción ya no es un error de `revisar_proyecto`, solo un aviso (`agente.py`, `mcp_servidor.py`, `app/guia/3_organizar.md`, `1_mapa.md`, `8_errores.md`).
+- **Comprobado:** `prueba_generar.py --seco` (grafo sin canción sin enlaces rotos), `pruebas.py` TODO BIEN y la ventana en el navegador aparte. Falta un render de verdad sin canción.
+

@@ -355,6 +355,7 @@ export function instalar(ctx) {
     S.cortes = [];
     await cargar();
     ctx.pintarAudio();
+    ctx.pintarSonido?.();
     ctx.pedirMontaje();
     ctx.avisar(t("audio.cancion_lista", { nombre, dur: info ? reloj(info.duracion) : "?" }), "bien");
   };

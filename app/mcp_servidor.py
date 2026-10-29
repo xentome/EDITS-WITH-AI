@@ -481,7 +481,7 @@ async def poner_sonido(descripcion: str | None = None, audio_salida: str | None 
 # ------------------------------------------------------------------ revisar y generar
 @herramienta
 async def revisar_proyecto(proyecto: str = "") -> str:
-    """Check the project before generating: ERRORS block Generate (no song, invalid length, cited references that do not
+    """Check the project before generating: ERRORS block Generate (invalid length, cited references that do not
     exist…) and WARNINGS are lessons from real tests (empty main field, negations in the camera, too-short shots, two
     identical shots, heavy for 12 GB, not vertical…). Also says if the GPU is busy. Fix errors; tell the creative the
     warnings that matter."""

@@ -94,3 +94,5 @@ Lessons that decide these fields:
 - The segment lasts as long as the edit; changing the duration rewrites the cut for you.
 - Keep «Audio del video» on «Tu canción» (the song as is): H3's regenerated audio added bangs ✅. «Sonido» empty = only the
   music, the safest.
+- **No song is allowed** (28 oct): Generate works without one. The video then carries the sound H3 invents, guided only by
+  «Sonido» — so write there what it should sound like (ambience, voice, music style). The cuts go evenly (no beats).

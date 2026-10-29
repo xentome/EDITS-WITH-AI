@@ -12,7 +12,7 @@
 | error naming a node type that does not exist | a custom node is missing. **On the cloud pod the Retocar nodes are missing** | tell the creative; Generar may still work there |
 | «out of memory» / CUDA OOM | too many frames × megapixels for the GPU | lower the resolution or the length (12 GB: 5 s at 1 MP max; 8 s at 0.4 MP), close the LLM, retry |
 | «interrumpido» | the app restarted while it ran and the job was not found in ComfyUI | reintentar(id) |
-| generar refuses: «cannot generate yet» | revisar_proyecto errors (no song, invalid length, a cited reference missing) | fix them, then generar again |
+| generar refuses: «cannot generate yet» | revisar_proyecto errors (invalid length, a cited reference missing) | fix them, then generar again |
 | generar refuses: «about N min of GPU» | a long or heavy job | ask the creative; then generar(confirmado=true) |
 | «you already have N jobs waiting» | the limit of jobs you can have pending | wait for them, or cancel yours |
 | «<Picture N> is not a reference of this project» | tags shifted after adding/removing a reference, or a typo | ver_proyecto; use the current tags |

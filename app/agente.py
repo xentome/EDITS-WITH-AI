@@ -728,9 +728,9 @@ def describir(p: Proyecto, con_prompt: bool = False) -> str:
         lin.append(f"- Song (canción): {a['original']} · segment from {a['inicio_s']} s for {p.duracion} s"
                    f"{' (cut file ' + a['recorte'] + ')' if a['recorte'] else ''}")
     else:
-        lin.append("- Song (canción): NONE — Generate needs one (poner_cancion)")
+        lin.append("- Song (canción): NONE — Generate still works: the video gets the sound H3 makes from «Sound» (poner_cancion to add one)")
     lin.append(f"- Sound (Sonido, under the waveform): {e['sonido'] or '(empty: just the music)'} · video audio: "
-               f"{'the song as is' if e['audio_salida'] == 'cancion' else 'the audio H3 generates'}")
+               f"{'the song as is' if e['audio_salida'] == 'cancion' and a else 'the audio H3 generates'}")
     lin.append("")
     lin.append("## Shot panel (panel de la toma), one per shot")
     for k, t in enumerate(p.plan["tomas"], 1):
@@ -775,7 +775,8 @@ def revisar(p: Proyecto) -> tuple[list[str], list[str]]:
     if (f - 5) % 17:
         errores.append(f"the video length is {f} frames: H3 only makes 17·k+5 frames (use poner_duracion)")
     if not p.audio():
-        errores.append("there is no song: poner_cancion first (Generate needs one)")
+        avisos.append("there is no song: the video gets the sound H3 invents from «Sound» (sonido); write there what it should "
+                      "sound like, or poner_cancion")
     if not (e.get("prompt") or "").strip():
         errores.append("the final prompt is empty")
     etq = p.etiquetas()

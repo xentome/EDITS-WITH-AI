@@ -806,8 +806,9 @@ comprobar("quitar la toma 1: las demás se reparten su tiempo y las marcas se re
           and any(m.get("toma") == 1 and m.get("campo") == "momento" for m in p18.datos["agente"]["marcas"]), p18.plan["cortes"])
 p18.poner_tamano(770, 1340)
 err18, av18 = AG.revisar(p18)
-comprobar("la resolución va a múltiplos de 32 y la revisión pide la canción y avisa del campo principal vacío",
-          p18.tamano() == (768, 1344) and any("song" in x for x in err18) and any("shot 2" in x and "main field" in x for x in av18),
+comprobar("la resolución va a múltiplos de 32; sin canción solo avisa (se genera con el audio de H3) y avisa del campo principal vacío",
+          p18.tamano() == (768, 1344) and not any("song" in x for x in err18) and any("no song" in x for x in av18)
+          and any("shot 2" in x and "main field" in x for x in av18),
           (p18.tamano(), err18, av18))
 
 print("19 · Extender: longitudes, de dónde sale la cola, la canción y la unión (app/extender.py, sin GPU)")
