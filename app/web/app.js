@@ -49,7 +49,7 @@ const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", g
             cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 1, colaVista: {},
             fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas",
             // el agente (MCP, planos/fases/11): rev del proyecto que se cargó, marcas «✎ agente», cambios sin guardar y choque
-            rev: 0, marcas: [], sucio: false, recargando: null };
+            rev: 0, marcas: [], sucio: false, recargando: null, reiniciando: false };
 
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
 const retoque = retocarJS.crear({ el, icono: util.icono, mirarCola: () => mirarCola(), t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
@@ -193,6 +193,7 @@ function pintarCabecera() {
     el("span", { class: "max-aviso " + A.aviso[1], title: A.aviso[0] }, A.aviso[0]),
     el("span", { class: "max-salud max-derecha", title: t("app.salud.tooltip") }, punto("comfyui", "app.salud.comfyui"),
       punto("proxy", "app.salud.proxy"), punto("llm", "app.salud.llm")),
+    ...(s.version_nueva || A.reiniciando ? [botonReiniciar(activos)] : []),
     el("span", { class: "max-sep" }),
     el("label", { class: "max-grupo max-semilla", title: t("app.semilla.tooltip") }, el("span", {}, t("app.semilla")), semilla,
       el("button", { class: "max-boton", disabled: !w, title: t("app.semilla.otra.tooltip"), onclick: () => ponerSemilla(semillaNueva()) },
@@ -391,6 +392,37 @@ function ponerSemilla(x) {
 }
 
 // ---- salud: ComfyUI, el proxy y el LLM
+/* ---- versión nueva (29 oct): si cambió el código que el servidor cargó al arrancar (se actualizó la app), un aviso
+ * discreto junto a los puntos de salud: «Versión nueva · Reiniciar». Reinicia la app y su MCP (servidor.reiniciar) y la
+ * página se recarga sola al volver. Con trabajos en la cola no se puede: se cortarían. */
+function botonReiniciar(activos) {
+  const ocupado = activos > 0 || !!A.reiniciando;
+  return el("button", { class: "max-boton max-reiniciar", disabled: ocupado,
+                        title: t(A.reiniciando ? "app.reiniciar.en_marcha" : activos ? "app.reiniciar.ocupado" : "app.reiniciar.tooltip", { n: activos }),
+                        onclick: reiniciarApp },
+    util.icono("rehacer"), " " + t(A.reiniciando ? "app.reiniciar.en_marcha" : "app.reiniciar"));
+}
+async function reiniciarApp() {
+  const antes = A.salud.arranque;
+  try {
+    if (A.ctx) await A.ctx.guardarYa();                   // lo de aquí, guardado antes de que el servidor se vaya
+    await pedir("/app/reiniciar", {});
+  } catch (e) { return avisar(e.message, "mal"); }
+  A.reiniciando = true;
+  avisar(t("app.reiniciar.en_marcha"), "");
+  pintarCabecera();
+  for (let i = 0; i < 120; i++) {                        // hasta 2 min: el servidor nuevo responde con otra firma
+    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const r = await fetch("/app/salud", { cache: "no-store" }).then((x) => x.json());
+      if (r.arranque && r.arranque !== antes) return location.reload();
+    } catch { /* aún arrancando */ }
+  }
+  A.reiniciando = false;
+  avisar(t("app.reiniciar.no_volvio"), "mal");
+  pintarCabecera();
+}
+
 async function mirarSalud() {
   try { A.salud = await pedir("/app/salud"); } catch { A.salud = { comfyui: false, proxy: false, llm: false }; }
   pintarCabecera();

@@ -152,3 +152,10 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Los «mi ejemplo N»: al arrancar sin proyecto recordado se abría el ejemplo, que crea una copia cada vez (cada navegador nuevo, también los de las pruebas). Ahora se abre el más reciente. Jonathan pidió quitarlos: los 26 (`mi ejemplo*`, `my example`) están en `app/proyectos/_borrados/` (se recuperan moviéndolos fuera); sus videos siguen en la biblioteca.
 - (29 oct) El preview también con Retocar y Extender (Jonathan): sus workflows ya llevaban el Model Preview Override (nodo 104); solo la página lo limitaba a Generar. `CON_PREVIEW` en app.js: generar, retocar, extender. Mejorar no tiene (los nodos RTX no muestrean con H3).
 
+## 16 · «Versión nueva · Reiniciar» ✅ (29 oct)
+
+- Jonathan: un botón para reiniciar, pero no llamativo («el objetivo no es hacer que reinicien su app muy a menudo»). Elegido: un aviso que solo sale cuando hace falta.
+- `servidor.firma_codigo()`: los .py de app/ y del repo, las plantillas y config*.json (tamaño y fecha). `/app/salud` da `arranque` (la firma al arrancar) y `version_nueva`. La web no cuenta: basta con recargar.
+- En la cabecera, junto a los puntos de salud, un botón pequeño de borde punteado amarillo «Versión nueva · Reiniciar». `POST /app/reiniciar` lanza `app/arrancar.sh --reiniciar --sin-navegador` en un proceso aparte (log: `app/salidas/reinicio.log`), así reinicia la app y su MCP con el camino de siempre. Con trabajos en la cola responde 409 y el botón sale apagado. La página guarda antes, espera a otra firma en `/app/salud` y se recarga sola.
+- Probado en una copia en 8310/8311: aviso tras cambiar un .py, reinicio y recarga en 3 s; los pid de 8300/8301 no se tocaron (parar.sh usa un pid por puerto).
+

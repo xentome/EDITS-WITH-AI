@@ -664,4 +664,9 @@ body.tema-casete .max-bib-portada::before,body.tema-casete .max-bib-portada::aft
 body.tema-casete .max-bib-sello{font-family:var(--k-rotulo)}
 body.tema-casete .max-bib-pieza{background:var(--k-tinta2);border-color:var(--k-linea2);font:600 12px var(--k-rotulo);letter-spacing:.04em;text-transform:uppercase;color:var(--k-crema)}
 body.tema-casete .max-bib-carita{border-color:var(--k-tinta);background:var(--k-violeta)}
+/* (29 oct) «Versión nueva · Reiniciar»: discreto, solo sale cuando hace falta */
+body.tema-casete .max-boton.max-reiniciar{background:transparent !important;border:1px dashed var(--k-aviso) !important;color:var(--k-aviso) !important;
+  font:700 12px/1 var(--k-rotulo) !important;letter-spacing:.05em;min-height:30px;padding:0 10px !important;display:inline-flex;align-items:center;gap:6px}
+body.tema-casete .max-boton.max-reiniciar:hover:not(:disabled){background:rgba(247,200,58,.12) !important}
+body.tema-casete .max-boton.max-reiniciar svg{width:14px;height:14px}
 

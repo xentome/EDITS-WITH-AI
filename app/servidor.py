@@ -586,6 +586,43 @@ async def abrir_carpeta(peticion):
     return web.json_response({"carpeta": SALIDAS})
 
 
+# ------------------------------------------------------------------ versión nueva y reiniciar (29 oct)
+def firma_codigo() -> str:
+    """Lo que el servidor cargó al arrancar: los .py de la app y del repo (el trabajador usa rutas/nucleo), las plantillas y
+    la configuración. Si cambia (se actualizó la app), la página ofrece «Reiniciar» (lo demás, la web, basta con recargar)."""
+    import glob
+    import hashlib
+    rutas = sorted(glob.glob(os.path.join(APP, "*.py")) + glob.glob(os.path.join(REPO, "*.py")) +
+                   glob.glob(os.path.join(APP, "plantillas", "*.json")) + glob.glob(os.path.join(APP, "config*.json")))
+    h = hashlib.sha1()
+    for r in rutas:
+        try:
+            st = os.stat(r)
+        except OSError:
+            continue
+        h.update(f"{r}:{st.st_size}:{st.st_mtime_ns};".encode())
+    return h.hexdigest()
+
+
+FIRMA_AL_ARRANCAR = firma_codigo()
+
+
+async def reiniciar(peticion):
+    """POST /app/reiniciar: vuelve a arrancar la app y su MCP con app/arrancar.sh --reiniciar (el mismo camino de siempre),
+    en un proceso aparte que sobrevive al servidor. No se hace con trabajos en la cola: se cortarían."""
+    activos = [x for x in cola.lista()["trabajos"] if x.get("estado") in ("en_cola", "corriendo", "recuperando")]
+    if activos:
+        return error("app.error.reiniciar_ocupado", peticion, 409, n=len(activos))
+    script = os.path.join(APP, "arrancar.sh")
+    if sys.platform == "win32" or not os.path.isfile(script):
+        return error("app.error.reiniciar_no", peticion, 400)
+    os.makedirs(SALIDAS, exist_ok=True)
+    with open(os.path.join(SALIDAS, "reinicio.log"), "ab") as log:
+        subprocess.Popen(["bash", script, "--reiniciar", "--sin-navegador"], stdout=log, stderr=subprocess.STDOUT,
+                         stdin=subprocess.DEVNULL, start_new_session=True, cwd=REPO)
+    return web.json_response({"ok": True})
+
+
 async def salud(peticion):
     async def responde(url):
         try:
@@ -602,6 +639,7 @@ async def salud(peticion):
     except ImportError:
         hay_generar = False
     return web.json_response({"comfyui": comfyui, "proxy": proxy, "llm": llm, "generar": hay_generar,
+                              "arranque": FIRMA_AL_ARRANCAR, "version_nueva": firma_codigo() != FIRMA_AL_ARRANCAR,
                               "comfyui_url": CONFIG["comfyui_url"], "proxy_url": CONFIG["proxy_url"], "llm_url": CONFIG["llm_url"]})
 
 
@@ -656,6 +694,7 @@ def crear_app():
     app.router.add_get("/app/video", ver_video)
     app.router.add_get("/app/foto_referencia", foto_referencia)
     app.router.add_get("/app/salud", salud)
+    app.router.add_post("/app/reiniciar", reiniciar)
     return app
 
 
