@@ -34,6 +34,9 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RUTA = os.environ.get("MAX_EDITOR_COLA") or os.path.join(AQUI, "salidas", "cola.json")   # otra ruta, para probar
 TIPOS = ("generar", "retocar", "extender", "mejorar")
 TERMINADOS = ("hecho", "error", "cancelado", "interrumpido")
+# (29 oct) los valores con que se hizo cada video de Generar, para «Retomar este prompt» en Videos: uno por video, en
+# app/salidas/valores/<video>.json, aparte de la cola (que se puede limpiar)
+VALORES = os.path.join(os.path.dirname(RUTA), "valores")
 
 _cerrojo = threading.RLock()
 _despertar = threading.Event()
@@ -179,6 +182,9 @@ def arrancar(api: dict) -> None:
     global _hilo
     _api.update(api)
     _cargar()
+    with _cerrojo:                       # los videos hechos antes del 29 oct que aún siguen en la cola
+        for t in _estado["trabajos"]:
+            _guardar_valores(t)
     if _hilo is None or not _hilo.is_alive():
         _hilo = threading.Thread(target=_bucle, name="cola", daemon=True)
         _hilo.start()
@@ -246,6 +252,7 @@ def _correr(t: dict) -> None:
             if e["estado"] in ("listo", "error"):
                 if e["estado"] == "listo":
                     t.update(estado="hecho", video=e.get("video"), avance=1.0)
+                    _guardar_valores(t)
                 else:
                     t.update(estado="cancelado" if (e.get("cancelado") or t.get("_cancelar")) else "error")
                 t["terminado"] = _ahora()
@@ -288,6 +295,7 @@ def _recuperar(t: dict) -> None:
         return _marcar(t, "interrumpido", f"terminó en ComfyUI pero no pude recoger el video: {exc}")
     with _cerrojo:
         t.update(estado="hecho", video=video, avance=1.0, terminado=_ahora(), mensaje="recogido de ComfyUI")
+        _guardar_valores(t)
         _guardar()
 
 
@@ -327,6 +335,41 @@ def _recoger(t: dict, h: dict) -> str:
     g._anotar({"id": t["id"], "fecha": _ahora(), "segundos": t.get("segundos") or 0, "archivo": archivo, "job": t.get("job"),
                "recogido": True, **fila})
     return archivo
+
+
+def _ruta_valores(video: str) -> str | None:
+    nombre = os.path.basename(str(video or ""))
+    return os.path.join(VALORES, nombre + ".json") if nombre and nombre == video else None
+
+
+def _guardar_valores(t: dict) -> None:
+    """Los valores de un Generar hecho, junto a su video (si no estaban ya). Nunca rompe la cola."""
+    if t.get("tipo") != "generar" or t.get("estado") != "hecho" or not (t.get("foto") or {}).get("valores"):
+        return
+    ruta = _ruta_valores(t.get("video"))
+    if not ruta or os.path.isfile(ruta):
+        return
+    try:
+        os.makedirs(VALORES, exist_ok=True)
+        f = t["foto"]
+        with open(ruta, "w", encoding="utf-8") as h:
+            json.dump({"valores": f["valores"], "semilla": t.get("semilla"), "proyecto": t.get("proyecto"), "fecha": t.get("terminado")},
+                      h, ensure_ascii=False)
+    except OSError as exc:
+        print(f"[cola] no guardé los valores de {t.get('video')}: {exc}", flush=True)
+
+
+def valores_de(video: str) -> dict | None:
+    """{valores, semilla, proyecto, fecha} con que se hizo un video de Generar, o None si no se guardaron."""
+    ruta = _ruta_valores(video)
+    if not ruta or not os.path.isfile(ruta):
+        return None
+    try:
+        with open(ruta, encoding="utf-8") as h:
+            d = json.load(h)
+        return d if isinstance(d.get("valores"), dict) else None
+    except (OSError, ValueError):
+        return None
 
 
 def semillas_nuevas(n: int) -> list[int]:

@@ -352,9 +352,36 @@ async def videos(peticion):
         filas = generar().historial()
     except (ImportError, AttributeError):
         filas = []
+    todas = {f.get("archivo"): f for f in filas if f.get("archivo")}
     filas = [f for f in filas if (not proyecto or f.get("proyecto") == proyecto) and f.get("archivo") and f.get("tipo") != "mascara"
              and os.path.isfile(os.path.join(SALIDAS, f["archivo"]))]
+    # «Retomar este prompt» (29 oct): de qué Generar salió cada video (un retoque, una extensión o una mejora, del suyo)
+    filas = [{**f, "prompt_de": origen_prompt(f["archivo"], todas)} for f in filas]
     return web.json_response(list(reversed(filas)))
+
+
+def origen_prompt(archivo: str, todas: dict) -> str | None:
+    """El video de Generar del que sale `archivo` y que guardó sus valores (cola.valores_de), siguiendo «de» hacia atrás."""
+    for _ in range(20):
+        if cola.valores_de(archivo):
+            return archivo
+        archivo = (todas.get(archivo) or {}).get("de")
+        if not archivo:
+            return None
+    return None
+
+
+async def valores_video(peticion):
+    """GET /app/valores_video?video= → {valores, semilla, proyecto, fecha, video}: con qué se generó (o su origen)."""
+    try:
+        filas = generar().historial()
+    except (ImportError, AttributeError):
+        filas = []
+    origen = origen_prompt(peticion.query.get("video", ""), {f.get("archivo"): f for f in filas if f.get("archivo")})
+    d = cola.valores_de(origen) if origen else None
+    if not d:
+        return error("app.error.sin_valores_video", peticion, 404)
+    return web.json_response({**d, "video": origen})
 
 
 # ------------------------------------------------------------------ retocar (retocar.py, comparte los trabajos de generar.py)
@@ -547,6 +574,7 @@ def crear_app():
     app.router.add_get("/app/trabajo/{id}", trabajo)
     app.router.add_post("/app/cancelar/{id}", cancelar)
     app.router.add_get("/app/videos", videos)
+    app.router.add_get("/app/valores_video", valores_video)
     app.router.add_get("/app/salidas/{ruta:[^/]+}", servir(SALIDAS))
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)
     app.router.add_post("/app/retocar", lanzar_retoque)
