@@ -399,9 +399,14 @@ async def extender_plan(peticion):
         return web.json_response({"error": str(exc)}, status=400)
 
 
+# ------------------------------------------------------------------ mejorar (mejorar.py: Super Resolution y HDR de NVIDIA RTX)
+def mejorar():
+    return importlib.import_module("mejorar")
+
+
 # ------------------------------------------------------------------ la cola de trabajos (cola.py)
 async def cola_anadir(peticion):
-    """POST /app/cola {tipo: generar | retocar | extender, valores (generar) | datos (retocar, extender), semilla?, proyecto?, n?} → {ids}.
+    """POST /app/cola {tipo: generar | retocar | extender | mejorar, valores (generar) | datos (los demás), semilla?, proyecto?, n?} → {ids}.
     Con n > 1 se encolan n trabajos con semillas aleatorias distintas. Cada uno lleva su foto fija."""
     d = await peticion.json()
     if not isinstance(d, dict) or d.get("tipo") not in cola.TIPOS:
@@ -513,7 +518,7 @@ async def al_empezar(app):
     app["http"] = ClientSession(timeout=ClientTimeout(total=None, sock_connect=5))
     asyncio.create_task(TRABAJADOR.arrancar())               # que librosa esté cargado antes del primer «montar»
     # la cola de trabajos: su hilo procesa lo pendiente aunque nadie tenga la página abierta
-    cola.arrancar({"generar": generar, "retocar": retocar, "extender": extender, "llm_ocupado": lambda: _llm_en_marcha[0] > 0,
+    cola.arrancar({"generar": generar, "retocar": retocar, "extender": extender, "mejorar": mejorar, "llm_ocupado": lambda: _llm_en_marcha[0] > 0,
                    "comfyui_url": CONFIG["comfyui_url"], "comfyui_dir": os.path.expanduser(CONFIG.get("comfyui_dir") or "~/comfy/ComfyUI")})
 
 
