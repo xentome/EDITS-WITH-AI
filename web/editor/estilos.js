@@ -421,6 +421,43 @@ textarea.epl-final{min-height:40vh}
   background:rgba(15,11,19,.92);border:3px dashed #22E4FF;border-radius:inherit;color:#22E4FF;pointer-events:none}
 .epl-g2-soltar .epl-ic{font-size:40px}.epl-g2-soltar b{font-size:28px}.epl-g2-soltar span{font-size:14px;opacity:.85}
 .epl-g2.epl-g2-arrastrando .epl-g2-soltar{display:flex}
+/* (28 oct) la ficha de una referencia, variante P3: cabecera común, foto y navegación a la izquierda, tarjetas a la derecha */
+.epl-modal.epl-f3{width:min(1240px,96%);max-height:92%;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.epl-f3-cab{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid #2e3440}
+.epl-f3-cab-t{flex:1;min-width:0}
+.epl-f3-cab h2{margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:24px;line-height:1.1}
+.epl-f3-cab p{margin:5px 0 0;font-size:13px;color:#8a93a3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.epl-f3-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:999px;background:rgba(255,255,255,.08);font-size:13px;font-family:ui-monospace,monospace}
+.epl-f3-x{width:40px;min-height:40px;padding:0;justify-content:center}
+.epl-f3-cuerpo{flex:1;min-height:0;display:flex}
+.epl-f3-nav{width:280px;flex:none;overflow:auto;padding:14px;border-right:1px solid #2e3440;display:flex;flex-direction:column;gap:12px}
+.epl-f3-foto.epl-ficha{display:block}
+.epl-f3-foto .grande{height:300px !important}
+.epl-f3-foto .epl-clip video,.epl-f3-foto .epl-clip img{max-height:300px;width:100%;object-fit:contain}
+.epl-f3-botones{display:flex;flex-direction:column;gap:4px}
+.epl-f3-ir{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;border-radius:6px;border:1px solid transparent;background:none;color:inherit;text-align:left;cursor:pointer;font-size:15px}
+.epl-f3-ir.si{background:rgba(255,255,255,.08);border-color:#3d4a5c}
+.epl-f3-der{flex:1;min-width:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.epl-f3-tarjeta{border:1px solid #2e3440;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.epl-f3-tarjeta h3{margin:0 0 4px;font-size:17px;text-transform:uppercase;letter-spacing:.07em}
+.epl-f3-tarjeta label{font-size:14px}
+.epl-f3-tarjeta input:not([type=checkbox]):not([type=radio]),.epl-f3-tarjeta select,.epl-f3-tarjeta textarea{min-height:40px;font-size:16px}
+.epl-f3-tarjeta textarea{min-height:84px;field-sizing:content}
+.epl-f3-tarjeta .epl-mini{min-height:40px;padding:0 14px}
+.epl-f3-et{display:flex;align-items:center;gap:8px}
+.epl-f3-pie{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid #2e3440;background:#12151b}
+.epl-f3-esp{flex:1}
+.epl-f3-peligro{min-height:40px;border-color:#7A2B35 !important;color:#FF6B6B !important;background:transparent !important}
+.epl-f3-peligro:hover{background:rgba(255,107,107,.12) !important;border-color:#FF6B6B !important}
+.epl-f3-confirmar{display:inline-flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border-radius:8px;border:1px solid #FF6B6B;background:rgba(255,107,107,.1);color:#FF6B6B;font-size:14px}
+.epl-f3-guardado{display:inline-flex;align-items:center;gap:6px;color:#3FC46E;font-size:14px}
+.epl-f3-listo{min-height:44px;padding:0 24px;font-size:18px}
+/* «ⓘ»: la ayuda larga, al tocarla */
+.epl-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:none;border-radius:50%;padding:0;
+  border:1px solid #54465F;background:transparent;color:#A99DB5;font:700 12px/1 Georgia,serif;font-style:italic;cursor:pointer;text-transform:none}
+.epl-info:hover,.epl-info[aria-expanded=true]{background:#F6EAD2;color:#17121C;border-color:#F6EAD2}
+.epl-info-pop{position:absolute;z-index:40;top:30px;left:-12px;width:min(360px,70vw);padding:10px 12px;border-radius:8px;background:#F6EAD2;color:#2b2320;
+  font:500 13px/1.45 system-ui,sans-serif;font-style:normal;letter-spacing:0;text-align:left;white-space:normal;box-shadow:0 10px 30px rgba(0,0,0,.5);cursor:default}
 .epl-ya-esta{position:absolute;top:10px;left:10px;z-index:1;font-size:11px;padding:2px 6px;background:rgba(0,0,0,.75);color:#F6EAD2;border:1px solid rgba(246,234,210,.5)}
 /* (27 oct) el audio del video, junto al sonido (solo en la app) */
 .epl-sonido{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.epl-sonido .epl-sonido-campo{flex:1 1 600px;margin:0}

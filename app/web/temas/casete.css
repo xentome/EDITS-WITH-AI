@@ -520,3 +520,21 @@ body.tema-casete .epl-g2-anadir:disabled{opacity:.45;box-shadow:none}
 body.tema-casete .epl-g2-soltar{background:rgba(23,18,28,.94);border-color:var(--k-cian)}
 body.tema-casete .epl-g2-soltar b{font:800 28px var(--k-titulo);text-transform:uppercase}
 
+/* (28 oct) la ficha P3 */
+body.tema-casete .epl-f3-cab,body.tema-casete .epl-f3-nav{border-color:var(--k-linea) !important}
+body.tema-casete .epl-f3-cab h2{font:800 24px/1.1 var(--k-titulo);letter-spacing:.03em;color:var(--k-crema)}
+body.tema-casete .epl-f3-cab p{font-family:var(--k-texto-f);color:var(--k-suave)}
+body.tema-casete .epl-f3-tag{background:var(--k-tinta3);color:var(--k-crema);font-family:var(--k-mono)}
+body.tema-casete .epl-f3-nav{background:rgba(0,0,0,.15)}
+body.tema-casete .epl-f3-ir{font:700 15px/1 var(--k-rotulo);letter-spacing:.06em;text-transform:uppercase;color:var(--k-suave)}
+body.tema-casete .epl-f3-ir.si{background:var(--k-tinta3);border-color:var(--k-linea2);color:var(--k-crema)}
+body.tema-casete .epl-f3-tarjeta{border-color:var(--k-linea);background:rgba(255,255,255,.015)}
+body.tema-casete .epl-f3-tarjeta h3{font:800 17px/1 var(--k-titulo);color:var(--k-crema)}
+body.tema-casete .epl-f3-pie{background:var(--k-tinta) !important;border-color:var(--k-linea) !important}
+body.tema-casete .epl-f3-guardado{color:var(--k-ok);font-family:var(--k-texto-f)}
+body.tema-casete .epl-f3-listo{background:var(--k-naranja) !important;border-color:var(--k-naranja) !important;color:var(--k-tinta) !important;
+  font:800 18px/1 var(--k-titulo) !important;box-shadow:3px 3px 0 var(--k-rosa)}
+body.tema-casete .epl-info-pop{font-family:var(--k-texto-f)}
+
+body.tema-casete .epl-f3-tarjeta .epl-mini{min-height:40px !important;padding:0 14px !important;font-size:13px !important}
+body.tema-casete .epl-f3-tarjeta input[type=checkbox]{width:20px;height:20px}

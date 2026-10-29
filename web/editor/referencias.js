@@ -232,6 +232,27 @@ export function instalar(ctx) {
     return [...n].sort((a, b) => (a[0] === "") - (b[0] === "") || a[0].localeCompare(b[0]));
   };
 
+  // el nombre de un archivo, legible: «chica_para_la_demo» → «Chica para la demo»
+  const nombreBonito = (n) => { const x = String(n || "").split("/").pop().replace(/[_-]+/g, " ").trim(); return x.charAt(0).toUpperCase() + x.slice(1); };
+  ctx.nombreBonito = nombreBonito;
+  /* «ⓘ» (28 oct): la ayuda larga se abre al tocarla y se cierra al tocar fuera o con Esc, en vez de un párrafo a la vista */
+  ctx.info = (texto) => {
+    const b = el("button", { class: "epl-info", type: "button", "aria-label": t("comun.mas_info"), "aria-expanded": "false" }, "i");
+    b.addEventListener("click", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const abierta = b.querySelector(".epl-info-pop");
+      document.querySelectorAll(".epl-info-pop").forEach((p) => { p.parentElement.setAttribute("aria-expanded", "false"); p.remove(); });
+      if (!abierta) { b.append(el("span", { class: "epl-info-pop", role: "tooltip" }, texto)); b.setAttribute("aria-expanded", "true"); }
+    });
+    return b;
+  };
+  if (!window.__eplInfo) {
+    window.__eplInfo = true;
+    const cerrarInfo = () => document.querySelectorAll(".epl-info-pop").forEach((p) => { p.parentElement.setAttribute("aria-expanded", "false"); p.remove(); });
+    document.addEventListener("click", (e) => { if (!e.target.closest?.(".epl-info")) cerrarInfo(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarInfo(); });
+  }
+
   ctx.cargarBiblioteca = async function cargarBiblioteca() {
     try {
       const lib = await (await fetch("/minimax_h3/refmods", { cache: "no-store" })).json();
@@ -717,7 +738,7 @@ export function instalar(ctx) {
   // ---- la ficha de una referencia (al tocarla): foto grande y todos sus controles. `extra` (cajitas.js) cambia la
   // parte izquierda (las fotos de la cajita) y añade botones.
   ctx.abrirFicha = function abrirFicha(r0, extra, primera = "ficha") {
-    let r = r0, pestana = primera;
+    let r = r0, pestana = primera, confirmar = false;      // confirmar: «¿Quitar…?» a la vista
     const v = ctx.capa(ctx.ladoDe(r));
     const pintar = () => {
       r = wf.items.find((x) => x.clave === r.clave) || r;
@@ -742,8 +763,13 @@ export function instalar(ctx) {
        * nombre, ficha y visión (y los botones de una cajita y quitar). Tomas: Principal o Secundarias y en qué tomas está.
        * Avanzado: los renglones de arriba del prompt, activa y fuerza, el modo y tapar con SAM. */
       v.modal.className = "epl-modal epl-ficha-modal " + ctx.ladoDe(r);
-      const quitar = r.idx === undefined ? null : el("button", { class: "epl-mini", title: t("referencias.quitar_del_stack"),
-        onclick: () => { v.cerrar(); ctx.quitarDelStack(r); } }, t("referencias.ficha.quitar"));
+      // (28 oct) «Quitar» va abajo a la izquierda, en rojo, y pregunta antes (antes la quitaba al momento)
+      const quitar = r.idx === undefined ? null : confirmar
+        ? el("span", { class: "epl-f3-confirmar" }, t("referencias.ficha.quitar_seguro", { nombre: nombreBonito(r.nombre) }),
+            el("button", { class: "epl-boton epl-f3-peligro", onclick: () => { v.cerrar(); ctx.quitarDelStack(r); } }, u.icono("papelera"), " " + t("referencias.ficha.quitar_si")),
+            el("button", { class: "epl-boton", onclick: () => { confirmar = false; pintar(); } }, t("referencias.ficha.quitar_no")))
+        : el("button", { class: "epl-boton epl-f3-peligro", title: t("referencias.quitar_del_stack"), onclick: () => { confirmar = true; pintar(); } },
+            u.icono("papelera"), " " + t("referencias.ficha.quitar"));
       const pestanaFicha = () => [
             el("label", {}, t("referencias.ficha.papel")),
             el("select", { class: "epl-papel-sel", onchange: (e) => { cambiar("papel", e.target.value); ctx.pintarRefs(); ctx.pintarPlan(); pintar(); } },
@@ -752,7 +778,8 @@ export function instalar(ctx) {
               el("optgroup", { label: t("referencias.mitad.der") }, ...PAPELES_LADO.der.map((p) =>
                 el("option", { value: p, selected: ref.papel === p }, papelLargo(p)))),
               el("option", { value: "no", selected: ref.papel === "no" || !PAPELES[ref.papel] }, papelLargo("no"))),
-            lleva ? el("label", {}, t(ref.papel === "personaje" ? "referencias.ficha.nombre_personaje" : "referencias.ficha.nombre_prompt")) : null,
+            lleva ? el("label", { class: "epl-f3-et" }, t(ref.papel === "personaje" ? "referencias.ficha.nombre_personaje" : "referencias.ficha.nombre_prompt"),
+              ref.papel === "personaje" ? ctx.info(t("referencias.ficha.personaje.ayuda")) : null) : null,
             lleva ? el("input", { class: "epl-nombre", value: ref.nombre || "", placeholder: t(`referencias.nombre.${ref.papel}`),
                                   oninput: (e) => cambiar("nombre", e.target.value) }) : null,
             ref.papel === "personaje" ? el("div", { class: "epl-fila" },
@@ -763,7 +790,6 @@ export function instalar(ctx) {
               el("label", { style: { margin: 0, flex: 1 } }, t("referencias.ficha.atuendo") + " ",
                 el("input", { class: "epl-atuendo", value: ref.atuendo || "", placeholder: t("referencias.ficha.atuendo.placeholder"),
                               oninput: (e) => cambiar("atuendo", e.target.value) }))) : null,
-            ref.papel === "personaje" ? el("p", { class: "epl-ayuda" }, t("referencias.ficha.personaje.ayuda")) : null,
             ref.papel !== "no" ? el("label", {}, t(ref.papel === "efecto" ? "referencias.ficha.ficha_efecto"
               : ref.papel === "personaje" ? "referencias.ficha.ficha_personaje" : "referencias.ficha.ficha")) : null,
             ref.papel !== "no" ? el("textarea", { class: "epl-ficha-txt", rows: 3, oninput: (e) => cambiar("ficha", e.target.value) }, ref.ficha || "") : null,
@@ -781,8 +807,7 @@ export function instalar(ctx) {
                   ctx.pedirMontaje(); refrescar(); pintar(); } }, t("referencias.propuesta.usar")),
                 el("button", { class: "epl-mini", onclick: () => { delete ref.propuesta; pintar(); } }, t("referencias.propuesta.descartar")))) : null,
             ref.riesgos?.length ? el("div", { class: "epl-aviso" }, t("referencias.riesgo", { lista: ref.riesgos.join(" · ") })) : null,
-            extra?.botones?.(r, v) || null,
-            quitar ? el("div", { class: "epl-fila" }, quitar) : null];
+            extra?.botones?.(r, v) || null];
       const principal = ctx.enTodas(r.clave);
       const pestanaTomas = () => [
             el("label", {}, t("referencias.ficha.grupo")),
@@ -801,24 +826,37 @@ export function instalar(ctx) {
                     " " + t("linea.toma", { k }));
                 })),
             el("div", { class: "epl-usada" }, t("referencias.usada_en", { lista: ctx.usadaEn(r.tag) }))];
+      const tarjeta = (clave, cuerpo) => cuerpo ? el("section", { class: "epl-f3-tarjeta" }, el("h3", {}, t(clave)), cuerpo) : null;
       const pestanaAvanzado = () => [
-            ref.papel !== "no" ? renglonesArriba(r, ref, cambiar) : null,
-            stack,
-            ctx.bloqueModo?.(r, v) || null,
-            ctx.bloqueTapar?.(r, v) || null];
+            tarjeta("referencias.ficha.av.fuerza", stack),
+            tarjeta("referencias.ficha.av.memoria", ctx.bloqueModo?.(r, v) || null),
+            tarjeta("referencias.ficha.av.tapar", ctx.bloqueTapar?.(r, v) || null),
+            tarjeta("referencias.ficha.av.prompt", ref.papel !== "no" ? renglonesArriba(r, ref, cambiar) : null)];
+      /* (28 oct, variante P3 elegida por el usuario) arriba el nombre de la referencia, legible, con su etiqueta en una
+       * pastilla y una línea con su papel, dónde se usa y su archivo; a la izquierda la foto y la navegación (Quién es ·
+       * Dónde se usa · Avanzado); a la derecha esa parte en una tarjeta; abajo «Quitar» (rojo, pregunta) y «Listo» */
       const PESTANAS = { ficha: pestanaFicha, tomas: pestanaTomas, avanzado: pestanaAvanzado };
+      const ICONO_PESTANA = { ficha: "persona", tomas: "tomas", avanzado: "ajustes" };
       if (!PESTANAS[pestana]) pestana = "ficha";
+      const contenido = PESTANAS[pestana]().filter(Boolean);
+      const donde = !r.tag ? t("referencias.usada.apagada") : principal ? t("referencias.ficha.en_todas") : t("referencias.ficha.en_algunas");
+      v.modal.className = "epl-modal epl-ficha-modal epl-f3 " + ctx.ladoDe(r);
       v.modal.replaceChildren(
-        el("div", { class: "epl-tit" }, r.tag ? ctx.punto(r.tag, " epl-sello-ficha") : null,
-          el("b", { style: { color: "#cfe0ff" } }, apagada(r)), r.nombre,
-          el("span", { class: "der" }, el("button", { class: "epl-mini epl-cerrar-ficha", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"),
-                                                       onclick: () => v.cerrar() }, u.icono("x")))),
-        el("div", { class: "epl-ficha" }, izquierda,
-          el("div", { class: "epl-ficha-der" },
-            el("div", { class: "epl-pestanas-ficha", role: "tablist" }, ...Object.keys(PESTANAS).map((k) =>
-              el("button", { class: "epl-mini epl-seg" + (pestana === k ? " fijo" : ""), role: "tab", "aria-selected": String(pestana === k), "data-pestana": k,
-                             onclick: () => { pestana = k; pintar(); } }, t(`referencias.ficha.pestana.${k}`)))),
-            el("div", { class: "epl-pestana-ficha", role: "tabpanel" }, ...PESTANAS[pestana]().filter(Boolean)))));
+        el("div", { class: "epl-f3-cab" },
+          el("div", { class: "epl-f3-cab-t" },
+            el("h2", {}, nombreBonito(r.nombre), r.tag ? el("span", { class: "epl-f3-tag" }, ctx.punto(r.tag, " epl-sello-ficha"), apagada(r)) : null),
+            el("p", {}, [papelLargo(ref.papel), donde, r.ref || r.nombre].filter(Boolean).join(" · "))),
+          el("button", { class: "epl-boton epl-f3-x epl-cerrar-ficha", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: () => v.cerrar() }, u.icono("x"))),
+        el("div", { class: "epl-f3-cuerpo" },
+          el("nav", { class: "epl-f3-nav" }, el("div", { class: "epl-f3-foto epl-ficha" }, izquierda),
+            el("div", { class: "epl-f3-botones", role: "tablist" }, ...Object.keys(PESTANAS).map((k) =>
+              el("button", { class: "epl-f3-ir" + (pestana === k ? " si" : ""), role: "tab", "aria-selected": String(pestana === k), "data-pestana": k,
+                             onclick: () => { pestana = k; pintar(); } }, u.icono(ICONO_PESTANA[k]), " " + t(`referencias.ficha.pestana.${k}`))))),
+          el("div", { class: "epl-f3-der epl-ficha-der", role: "tabpanel" },
+            pestana === "avanzado" ? contenido : el("section", { class: "epl-f3-tarjeta epl-pestana-ficha" }, ...contenido))),
+        el("div", { class: "epl-f3-pie" }, quitar, el("span", { class: "epl-f3-esp" }),
+          el("span", { class: "epl-f3-guardado" }, u.icono("check"), " " + t("referencias.ficha.guardado")),
+          el("button", { class: "epl-boton epl-f3-listo", onclick: () => v.cerrar() }, t("referencias.ficha.listo"))));
     };
     v.repintar = pintar;
     pintar();
