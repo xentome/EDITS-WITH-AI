@@ -39,6 +39,9 @@ for k, v in {"PUERTO": c["puerto"], "COMFYUI_DIR": c["comfyui_dir"], "COMFYUI_UR
              "LLM_URL": c["llm_url"], "PY_TRABAJADOR": c["python_trabajador"], "MCP_PUERTO": c.get("mcp_puerto") or 8301}.items():
     print(f"{k}={shlex.quote(str(v))}")' "$CONFIG_JSON")"
 APP_URL="http://127.0.0.1:$PUERTO"
+# comfy-api-proxy guarda su pid en un solo archivo por usuario: con un proxy en otro puerto (otra copia de la app),
+# cada uno lleva el suyo, para que «stop» no pare el de la otra copia
+[ "$PROXY_PUERTO" != 8199 ] && export COMFY_API_PROXY_STATE_DIR="${COMFY_API_PROXY_STATE_DIR:-$APP/.proxy_$PROXY_PUERTO}"
 PID_SERVIDOR="$APP/.servidor_$PUERTO.pid"
 MCP_URL="http://127.0.0.1:$MCP_PUERTO"                    # el servidor MCP (mcp_servidor.py): para que un agente maneje la app
 PID_MCP="$APP/.servidor_mcp_$MCP_PUERTO.pid"
