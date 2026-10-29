@@ -6,6 +6,26 @@
 - You write an idea and pick your references and the part of the song. A **local LLM** writes the story and the shots, and code places the timing on the beats.
 - You press **Generate**: the app sends the workflow to your ComfyUI through the **official Comfy SDK** and shows you the video.
 
+![MAX EDITOR, step 1: references, timeline with text, shots and song, and the panel of the selected shot](docs/capturas/1-shots-and-references.png)
+
+<details><summary>Step 2: Touch up (redo a zone of a video, enhance it or extend it)</summary>
+
+![MAX EDITOR, step 2: Touch up](docs/capturas/2-touch-up.png)
+
+</details>
+
+## What's in this repo
+
+| Folder / file | What it is |
+|---|---|
+| [`app/`](app/) | **MAX EDITOR**, the app: web page, server, Comfy SDK calls, MCP server, installer and the ComfyUI workflows it runs (`app/plantillas/*.api.json`) |
+| [`web/`](web/), `nucleo.py`, `rutas.py`, `frases.json` | the edit editor and the prompt logic, shared by the app and by the ComfyUI node |
+| `__init__.py`, `locales/`, [`workflows/`](workflows/) | the same editor as a ComfyUI custom node, with an example workflow |
+| [`runpod/`](runpod/), [RUNPOD.md](RUNPOD.md) | the RunPod template: the whole app on a rented GPU |
+| [MODELOS.md](MODELOS.md), [CREDITOS.md](CREDITOS.md), [REPRODUCE.md](REPRODUCE.md) | models, credits and licenses, step-by-step install check |
+| `pruebas.py`, `pruebas/` | tests (`python pruebas.py`) |
+| [`planos/`](planos/), [PLANOS.md](PLANOS.md), PRODUCT.md, `.impeccable/` | developer notes and design contract (in Spanish) |
+
 ## Install
 
 > **You need:** Linux, an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
@@ -177,7 +197,8 @@ The same repo is also a ComfyUI custom node, «Prompt del edit (LLM)», with the
 
 - The code in this repository is **Apache-2.0** ([LICENSE](LICENSE)).
 - **MiniMax H3 has its own license: commercial use needs a separate license from MiniMax, and some regions are excluded.**
-- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-VDN-H3 (OpenVDN; VDN-H3-Plus fork by xmarre), ComfyUI-MiniMax-H3-SPEED (StanLukuvka).
+- **ComfyUI-MiniMax-H3-SPEED**, one of the node packs the installer adds, is **PolyForm Noncommercial 1.0.0**: non-commercial use only.
+- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-VDN-H3 (OpenVDN; VDN-H3-Plus fork by xmarre), ComfyUI-MiniMax-H3-SPEED (StanLukuvka); the 7 packs for Touch up and Extend are listed in CREDITOS.md.
 - Tools: ComfyUI, comfy-sdk and comfy-api-proxy (Comfy Org), llama.cpp (ggml-org), librosa.
 - Models: MiniMax H3 (MiniMax), Qwen3-VL and Qwen3.8 (Qwen), VDN for H3 (OpenVDN, int8 by drbaph).
 - Full list with licenses: [CREDITOS.md](CREDITOS.md) and [MODELOS.md](MODELOS.md).
