@@ -1,0 +1,32 @@
+diff --git a/comfy/ldm/lightricks/vae/causal_video_autoencoder.py b/comfy/ldm/lightricks/vae/causal_video_autoencoder.py
+index 5d0eec5b..6be69a76 100644
+--- a/comfy/ldm/lightricks/vae/causal_video_autoencoder.py
++++ b/comfy/ldm/lightricks/vae/causal_video_autoencoder.py
+@@ -1143,10 +1143,10 @@ class processor(nn.Module):
+         self.register_buffer("mean-of-means", torch.empty(128))
+ 
+     def un_normalize(self, x):
+-        return (x * self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(x)) + self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(x)
++        return (x * self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(device=x.device, dtype=x.dtype)) + self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(device=x.device, dtype=x.dtype)
+ 
+     def normalize(self, x):
+-        return (x - self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(x)) / self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(x)
++        return (x - self.get_buffer("mean-of-means").view(1, -1, 1, 1, 1).to(device=x.device, dtype=x.dtype)) / self.get_buffer("std-of-means").view(1, -1, 1, 1, 1).to(device=x.device, dtype=x.dtype)
+ 
+ class VideoVAE(nn.Module):
+     comfy_has_chunked_io = True
+diff --git a/comfy_extras/nodes_audio.py b/comfy_extras/nodes_audio.py
+index d787f048..34c662e4 100644
+--- a/comfy_extras/nodes_audio.py
++++ b/comfy_extras/nodes_audio.py
+@@ -108,8 +108,9 @@ def vae_decode_audio(vae, samples, tile=None, overlap=None):
+     std = torch.std(audio, dim=[1, 2], keepdim=True) * 5.0
+     std[std < 1.0] = 1.0
+     audio /= std
++    audio = torch.nan_to_num(audio, nan=0.0, posinf=1.0, neginf=-1.0)
+     vae_sample_rate = getattr(vae, "audio_sample_rate_output", getattr(vae, "audio_sample_rate", 44100))
+-    return {"waveform": audio, "sample_rate": vae_sample_rate if "sample_rate" not in samples else samples["sample_rate"]}
++    return {"waveform": audio.cpu(), "sample_rate": vae_sample_rate if "sample_rate" not in samples else samples["sample_rate"]}
+ 
+ 
+ class VAEDecodeAudio(IO.ComfyNode):
