@@ -150,4 +150,5 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Una extensión anota la canción aunque se haga con «Audio del modelo», para que otra extensión pueda continuarla.
 - (29 oct) Elegir una tarjeta ya no vuelve a pintar la ventana (la lista se quedaba arriba): solo cambia el marco y el pie; si algo repinta, el centro conserva su scroll mientras no cambie la pestaña o la carpeta. Las referencias se nombran como en su ficha («the girl»). Sin `resumen` (servidor sin reiniciar) no se dice «0 tomas».
 - Los «mi ejemplo N»: al arrancar sin proyecto recordado se abría el ejemplo, que crea una copia cada vez (cada navegador nuevo, también los de las pruebas). Ahora se abre el más reciente. Jonathan pidió quitarlos: los 26 (`mi ejemplo*`, `my example`) están en `app/proyectos/_borrados/` (se recuperan moviéndolos fuera); sus videos siguen en la biblioteca.
+- (29 oct) El preview también con Retocar y Extender (Jonathan): sus workflows ya llevaban el Model Preview Override (nodo 104); solo la página lo limitaba a Generar. `CON_PREVIEW` en app.js: generar, retocar, extender. Mejorar no tiene (los nodos RTX no muestrean con H3).
 

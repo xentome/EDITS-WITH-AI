@@ -462,18 +462,22 @@ async function mirarCola() {
   extension.alCambiarCola?.(A.cola);
 }
 
+const CON_PREVIEW = new Set(["generar", "retocar", "extender"]);   // los trabajos que muestrean con H3
 function pintarAvance() {
   const a = A.cola.trabajos.find((x) => x.estado === "corriendo" || x.estado === "recuperando");
   const quedan = A.cola.trabajos.filter((x) => x.estado === "en_cola").length;
   filaAvance.className = "max-avance" + (a ? " ver" : "");
-  preview.ponerTrabajo(a && a.tipo === "generar" ? a : null);
+  // (29 oct) el preview también en Retocar y Extender: sus workflows llevan el mismo Model Preview Override. Mejorar no
+  // tiene preview (los nodos RTX no muestrean con H3)
+  const conPreview = !!a && CON_PREVIEW.has(a.tipo);
+  preview.ponerTrabajo(conPreview ? a : null);
   if (!a) return filaAvance.replaceChildren();
   const seg = tr.num(a.segundos || 0, 0);
   const texto = t("app.cola.corriendo", { tipo: t(`app.cola.tipo.${a.tipo}`), proyecto: a.proyecto || "—", semilla: a.semilla ?? "?",
                                            p: Math.round((a.avance || 0) * 100), s: seg, quedan });
   const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.avance || 0) * 100) + "%" } }));
   filaAvance.replaceChildren(el("span", { class: "max-texto", title: a.mensaje || "" }, texto), barra,
-    a.tipo === "generar" ? preview.boton : null,
+    conPreview ? preview.boton : null,
     el("button", { class: "max-boton", onclick: () => colaAccion(a.id, "cancelar") }, t("app.avance.cancelar")),
     el("button", { class: "max-boton", onclick: () => { A.verCola = true; pintarCola(); } }, t("app.cola.ver")));
 }
