@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Instalar MAX EDITOR
+Name[en]=Install MAX EDITOR
+Comment=Abre una terminal y ejecuta app/instalar.sh (instala la app y añade «MAX EDITOR» al menú)
+Comment[en]=Opens a terminal and runs app/instalar.sh (installs the app and adds «MAX EDITOR» to the menu)
+Exec=bash -c "exec \\"\\$(dirname \\"\\$1\\")/app/instalacion/doble_clic.sh\\"" _ %k
+Terminal=true
+Icon=system-software-install
+Categories=AudioVideo;Video;

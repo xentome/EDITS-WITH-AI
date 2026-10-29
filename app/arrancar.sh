@@ -7,16 +7,18 @@
 #   5. abre el navegador.
 # Opciones: --reiniciar (vuelve a arrancar el servidor de la app, por ejemplo tras actualizar el código)
 #           --sin-navegador (no abre el navegador)
+#           --comprobar [--retocar] (el doctor: dice qué falta y cómo arreglarlo, sin arrancar nada; es app/instalar.sh --comprobar)
 # Para pararla: app/parar.sh
 set -u
 . "$(dirname "$(readlink -f "$0")")/_comun.sh"
 
 REINICIAR=0; NAVEGADOR=1
+if [ "${1:-}" = "--comprobar" ]; then shift; exec "$APP/instalar.sh" --comprobar "$@"; fi
 for a in "$@"; do
   case "$a" in
     --reiniciar) REINICIAR=1 ;;
     --sin-navegador) NAVEGADOR=0 ;;
-    *) decir "Opción desconocida: $a (usa --reiniciar o --sin-navegador)" "Unknown option: $a (use --reiniciar or --sin-navegador)"; exit 2 ;;
+    *) decir "Opción desconocida: $a (usa --reiniciar, --sin-navegador o --comprobar)" "Unknown option: $a (use --reiniciar, --sin-navegador or --comprobar)"; exit 2 ;;
   esac
 done
 
