@@ -48,7 +48,7 @@ const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", g
             cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 1, colaVista: {},
             fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas",
             // el agente (MCP, planos/fases/11): rev del proyecto que se cargó, marcas «✎ agente», cambios sin guardar y choque
-            rev: 0, marcas: [], sucio: false, conflicto: null };
+            rev: 0, marcas: [], sucio: false, recargando: null };
 
 // ---- «Retocar el video»: la sección de abajo del todo (retocar.js), con el último video generado
 const retoque = retocarJS.crear({ el, icono: util.icono, mirarCola: () => mirarCola(), t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
@@ -288,12 +288,12 @@ async function guardarProyecto(nombre = A.proyecto, nuevo = false, forzar = fals
   const valores = valoresDe(A.graph, A.plantilla), texto = JSON.stringify(valores);
   const propio = !nuevo && nombre === A.proyecto;
   if (propio && texto === A.guardadoJSON && !forzar) { A.sucio = false; return; }   // nada nuevo que escribir
-  if (propio && A.conflicto) return;                     // el agente cambió el proyecto: decide el usuario (avisoAgente)
-  // con base_rev el servidor no pisa lo que el agente escribió después de abrirlo: responde 409 y aquí se pregunta
+  if (propio && A.recargando) return;                    // se está cargando lo del agente: lo de aquí ya no vale
+  // con base_rev el servidor no pisa lo que el agente escribió después de abrirlo: responde 409 y aquí se carga lo suyo
   const r = await fetch(`/app/proyecto/${encodeURIComponent(nombre)}?idioma=${tr.idioma}`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ valores, nuevo, ...(propio ? { base_rev: A.rev, agente: { marcas: A.marcas } } : {}) }) });
   const j = await r.json().catch(() => ({ error: t("errores.respuesta_no_valida", { estado: r.status }) }));
-  if (r.status === 409 && j.clave === "app.error.conflicto") { A.conflicto = { rev: j.rev }; pintarAgente(); return; }
+  if (r.status === 409 && j.clave === "app.error.conflicto") { await recargarProyecto(); return; }
   if (!r.ok || j.error) throw new Error(j.error || r.statusText);
   if (propio || nombre === A.proyecto) { A.guardadoJSON = texto; A.rev = j.rev ?? A.rev; A.sucio = false; }
   // un aviso importante (p. ej. «Prompt retomado») no lo tapa el «guardado» del autoguardado que llega justo después
@@ -309,7 +309,6 @@ async function abrirProyecto(nombre, valores = null, recargar = false) {
     if (valores === null) valores = doc.valores || {};
     A.rev = doc.rev || 0;
     A.marcas = doc.agente?.marcas || [];
-    A.conflicto = null;
     A.sucio = false;
     A.proyecto = nombre;
     ponerLocal(GUARDA_PROYECTO, nombre);
@@ -639,8 +638,9 @@ function pintarVideos() {
 
 /* ---- el agente (MCP, planos/fases/11 MCP.md): un agente cambia el MISMO proyecto por el servidor y aquí se ve.
  *   - Cada 2 s se mira la rev del proyecto. Si subió y aquí no hay nada a medio guardar (ni se está escribiendo en un campo),
- *     se recarga solo, sin perder la toma elegida ni el scroll. Si hay cambios sin guardar, no se pisa nada: un aviso deja
- *     elegir entre «cargar lo del agente» y «quedarme con lo mío» (que guarda lo de aquí encima).
+ *     se recarga solo, sin perder la toma elegida ni el scroll. Lo del agente manda siempre (29 oct, Jonathan: «yo di la
+ *     orden de modificarlo»): aunque aquí haya cambios sin guardar, se carga lo suyo y solo sale el aviso de que lo cambió.
+ *     Si se está escribiendo en un campo, se espera a que lo deje.
  *   - Lo que tocó el agente lleva «✎ agente» (proyecto.agente.marcas) hasta que el usuario lo edita o pulsa «visto». */
 let mirandoRev = false;
 async function mirarRev() {
@@ -651,12 +651,16 @@ async function mirarRev() {
     if (r.rev <= A.rev) return;
     const activo = document.activeElement, escribiendo = activo && activo.closest?.(".epl-fondo") &&
       (activo.matches("input, textarea, select") || activo.isContentEditable);
-    if (A.sucio || A.conflicto) { A.conflicto = { rev: r.rev, autor: r.autor }; return pintarAgente(); }
     if (escribiendo) return;                                 // se recarga cuando deje el campo (en la siguiente vuelta)
     await recargarProyecto(r.autor);
   } catch { /* sin servidor: ya avisa la salud */ } finally { mirandoRev = false; }
 }
-async function recargarProyecto(autor = "agente") {
+// una sola recarga a la vez: dos abrirProyecto juntos montaban dos editores, uno detrás del otro (29 oct)
+function recargarProyecto(autor = "agente") {
+  if (!A.recargando) A.recargando = recargar(autor).finally(() => { A.recargando = null; });
+  return A.recargando;
+}
+async function recargar(autor) {
   const cuerpo = document.querySelector(".epl-fondo .epl-cuerpo");
   const scroll = [window.scrollX, window.scrollY, cuerpo?.scrollTop || 0];
   await abrirProyecto(A.proyecto, null, true);
@@ -671,16 +675,8 @@ const avisoAgente = el("div", { class: "max-ag-aviso" });
 cab.append(avisoAgente);
 function pintarAgente() {
   const n = A.marcas.length;
-  avisoAgente.className = "max-ag-aviso" + (n || A.conflicto ? " ver" : "") + (A.conflicto ? " choque" : "");
-  if (A.conflicto) {
-    avisoAgente.replaceChildren(el("span", { class: "max-ag-sello" }, t("app.agente.marca")), el("span", {}, t("app.agente.conflicto")),
-      el("button", { class: "max-boton", onclick: () => { A.sucio = false; recargarProyecto(); } }, t("app.agente.cargar_agente")),
-      el("button", { class: "max-boton", onclick: async () => {
-        A.rev = A.conflicto.rev; A.conflicto = null;          // lo de aquí se guarda encima (el usuario lo eligió)
-        try { await A.ctx.guardarYa(); await guardarProyecto(A.proyecto, false, true); } catch (e) { avisar(e.message, "mal"); }
-        pintarAgente();
-      } }, t("app.agente.quedarme")));
-  } else if (n) {
+  avisoAgente.className = "max-ag-aviso" + (n ? " ver" : "");
+  if (n) {
     avisoAgente.replaceChildren(el("span", { class: "max-ag-sello" }, t("app.agente.marca")),
       el("span", { title: t("app.agente.cambios.tooltip") }, t("app.agente.cambios", { n })),
       el("button", { class: "max-boton", title: t("app.agente.visto.tooltip"), onclick: () => quitarMarcas(() => true) }, t("app.agente.visto")));

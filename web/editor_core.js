@@ -149,6 +149,7 @@ export async function abrir(node, app) {
   ctx.prepararRefs(guardado);
   migrarSinRecetas();
   migrarP10();
+  document.querySelectorAll(".epl-fondo").forEach((x) => x.remove());   // por si otra ventana se montó mientras esta cargaba
   document.body.append(fondo);
 
   /* Estados guardados antes de quitar las recetas (v < 4): la receta se ignora (se avisa), los efectos G1–G4 / U3–U5 de

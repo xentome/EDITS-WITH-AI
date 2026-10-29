@@ -122,3 +122,9 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Al lado del video: «Preview en vivo», una barra por paso, «Paso k de n», s por paso, faltan ≈ s y «Recoger». Con la cortina cerrada, el botón destella cuando llega un paso nuevo.
 - Se quitó la ventana flotante (y sus textos `app.preview.flotante/acoplar/cerrar/ver_video`).
 
+## 12 · Lo del agente manda siempre ✅ (29 oct)
+
+- Fuera el aviso «¿Qué versión te quedas?» («Cargar lo del agente» / «Quedarme con lo mío»). Jonathan: «siempre preferiré el del agente… yo di la orden de modificarlo».
+- Si el agente cambia el proyecto, la página carga lo suyo aunque haya cambios sin guardar (solo espera si se está escribiendo en un campo) y sale «El agente cambió el proyecto: ya está al día». Un guardado que choca (409) también carga lo del agente.
+- El duplicado de la interfaz al fondo: dos recargas a la vez montaban dos editores. Ahora hay una sola recarga a la vez (`A.recargando`), y `editor_core.abrir` quita cualquier `.epl-fondo` justo antes de montar el suyo.
+

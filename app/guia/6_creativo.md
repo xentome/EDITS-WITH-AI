@@ -25,7 +25,7 @@ aesthetic. If you propose something untested, say so («untested idea»). Separa
   timeline»). The tools give you that sentence; translate it into their language.
 - The pink «✎ agente» borders show what you touched; they remove them with «Visto» or by editing. Do not re-apply a change they
   undid by hand: if they changed a field, that is their decision.
-- If a save conflicts (they were editing), the page asks them; wait and re-read with ver_proyecto before continuing.
+- Your saves always win: the page loads them over whatever the user had unsaved (they asked for it). Still re-read with ver_proyecto before a second change.
 
 ## Before acting
 
