@@ -21,6 +21,8 @@ FALLOS=0; PID_COMFY=""
 paso() { if [ "$1" = 0 ]; then echo "PASS  $2"; else echo "FAIL  $2"; FALLOS=$((FALLOS + 1)); fi; }
 limpiar() {
   [ -n "$PID_COMFY" ] && kill "$PID_COMFY" 2>/dev/null
+  p="$(ss -ltnpH "sport = :$PUERTO_COMFY" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"   # el python de ComfyUI, no la subshell
+  [ -n "$p" ] && [ "$(readlink -f "/proc/$p/cwd")" = "$DIR/ComfyUI" ] && kill "$p" 2>/dev/null   # solo si es el de la prueba
   [ -x "$DIR/repo/app/parar.sh" ] && (cd "$DIR/repo" && env "${ENTORNO[@]}" app/parar.sh >/dev/null 2>&1)
   [ "${CONSERVAR:-0}" = 1 ] || rm -rf "$DIR"
 }
@@ -56,6 +58,10 @@ grep -E "✗|→" "$DIR/comprobar.log" | head -20
 curl -sf "http://127.0.0.1:$PUERTO_APP/app/salud" >/dev/null; paso $? "5a. la app responde en :$PUERTO_APP"
 curl -sf "http://127.0.0.1:$((PUERTO_APP + 1))/salud" >/dev/null; paso $? "5b. el MCP responde en :$((PUERTO_APP + 1))"
 curl -sf "http://127.0.0.1:$((PUERTO_APP + 2))/api/v2/health" >/dev/null; paso $? "5c. el proxy del SDK responde"
+if [ "${GENERAR:-0}" = 1 ]; then     # opcional: un video de 22 f de verdad en el ComfyUI limpio (GPU ~4 min; libera antes tu ComfyUI)
+  (cd "$DIR/repo" && app/.venv/bin/python app/instalacion/generar_prueba.py "http://127.0.0.1:$PUERTO_COMFY") > "$DIR/generar.log" 2>&1
+  paso $? "6. video de prueba en el ComfyUI limpio, con audio sin NaN (log: $DIR/generar.log)"
+fi
 
 echo
 [ "$FALLOS" = 0 ] && echo "PRUEBA EN LIMPIO: TODO PASS" || echo "PRUEBA EN LIMPIO: $FALLOS FAIL (logs en $DIR, usa CONSERVAR=1 para verlos)"

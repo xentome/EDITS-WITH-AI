@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -48,7 +49,9 @@ if estado.get("status_str") != "success":
     sys.exit(1)
 videos = [f for o in h["outputs"].values() for clave in ("images", "videos", "gifs") for f in o.get(clave, [])]
 info = videos[0]
-ruta = os.path.join(generar.config()["comfyui_dir"], "output", info.get("subfolder", ""), info["filename"])
+ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video_prueba.mp4")   # se baja por /view: vale para cualquier ComfyUI
+q = urllib.parse.urlencode({"filename": info["filename"], "subfolder": info.get("subfolder", ""), "type": info.get("type", "output")})
+urllib.request.urlretrieve(f"{URL}/view?{q}", ruta)
 print("video", ruta)
 r = subprocess.run(["ffmpeg", "-hide_banner", "-i", ruta, "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True)
 vol = [ln.split("]")[-1].strip() for ln in r.stderr.splitlines() if "mean_volume" in ln or "max_volume" in ln]

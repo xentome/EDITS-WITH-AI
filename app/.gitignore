@@ -10,3 +10,4 @@ servidor.log
 # prototipos de la interfaz: desechables, solo en este PC (planos/fases/13)
 ui-prototipo/
 web/prototipo_*.html
+app/instalacion/video_prueba.mp4
