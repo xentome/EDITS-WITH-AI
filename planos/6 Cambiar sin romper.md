@@ -21,7 +21,7 @@ Lectura: 2 min
 
 | Cambié… | Qué hacer |
 |---|---|
-| `frases.json` | nada: se relee con `nucleo` en cada llamada. Si cambia el prompt de Teto, `pruebas.py --nueva-referencia` tras mirar la diferencia |
+| `frases.json` | nada: se relee con `nucleo` en cada llamada. Si cambia el prompt de Nora, `pruebas.py --nueva-referencia` tras mirar la diferencia |
 | `nucleo.py` o `rutas.py`, incluida una acción nueva en `rutas.ACCIONES` | nada: el editor los recarga en cada llamada (el nodo, al ejecutarse, usa la versión que cargó el editor la última vez, o la del arranque) |
 | `web/editor_core.js` o `web/editor/*.js` | nada: se recargan al abrir la ventana |
 | un archivo nuevo en `web/editor/` | nada, si lo cargas desde `editor_core.js` (función `pieza`); solo debe exportar funciones |
@@ -43,4 +43,4 @@ La carpeta guarda su historial con git y tiene una copia en GitHub, en el reposi
 - **Guardar un cambio:** `git add -A && git commit -m "qué cambié"`.
 - **Ver el historial:** `git log --oneline`.
 - **Deshacer lo que no guardaste en un archivo:** `git restore <archivo>`. Para volver a una versión anterior entera: `git revert <hash>` (crea un cambio nuevo que la deshace; no borra nada).
-- **Subir a GitHub lo guardado:** `git push`. Lo que no es nuestro o pesa mucho (imágenes de Teto y Vera, RefMods, videos) está en `.gitignore` y no se sube.
+- **Subir a GitHub lo guardado:** `git push`. Lo que no es nuestro o pesa mucho (imágenes de Nora y Vera, RefMods, videos) está en `.gitignore` y no se sube.

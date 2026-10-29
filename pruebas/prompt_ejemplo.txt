@@ -1,5 +1,5 @@
 subject_definitions:
-<Subject 1> is the character in <Picture 1>, <Picture 2>, <Picture 3> and <Picture 4>. Her name is Teto. In each shot she wears the outfit of the reference cited for that shot.
+<Subject 1> is the character in <Picture 1>, <Picture 2>, <Picture 3> and <Picture 4>. Her name is Nora. In each shot she wears the outfit of the reference cited for that shot.
 <Picture 5> is the pose reference: a girl waving with one arm raised high, caught mid-step on a night crosswalk.
 <Picture 6> is the pose reference: a girl standing on a night train platform with her hands in her pockets, blowing a small pink bubble-gum bubble.
 <Picture 7> is the pose reference: a girl in profile, looking down at the phone she holds at chest height.
@@ -11,7 +11,7 @@ summary:
 [reference generation + audio reference] A music edit of <Subject 1> (Flat 2D anime illustration, Japanese city pop, flat painted backgrounds), cut on the beat of <Audio 1>: From playful motion in neon-lit streets to stillness under a starlit sky.
 
 retention_analysis:
-<Subject 1>: fully_preserved - Teto's face, hair and features from <Picture 1>, <Picture 2>, <Picture 3> and <Picture 4> stay the same in every shot.
+<Subject 1>: fully_preserved - Nora's face, hair and features from <Picture 1>, <Picture 2>, <Picture 3> and <Picture 4> stay the same in every shot.
 <Picture 5>: attribute_transfer - only the body pose; that person's face, hair and clothes are not transferred.
 <Picture 6>: attribute_transfer - only the body pose; that person's face, hair and clothes are not transferred.
 <Picture 7>: attribute_transfer - only the body pose; that person's face, hair and clothes are not transferred.

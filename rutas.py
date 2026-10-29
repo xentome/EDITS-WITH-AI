@@ -386,7 +386,7 @@ CONCEPTO_PAPEL = {"personaje": "identity", "ropa": "clothing", "pose": "pose_mot
 
 
 def _libre(raiz, base):
-    """«subidas/teto» si no existe; si no, «subidas/teto_2», «_3»…"""
+    """«subidas/nora» si no existe; si no, «subidas/nora_2», «_3»…"""
     import os
     nombre, k = base, 1
     while os.path.exists(os.path.join(raiz, nombre + ".safetensors")):

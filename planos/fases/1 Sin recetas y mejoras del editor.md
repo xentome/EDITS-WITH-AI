@@ -16,7 +16,7 @@ Actualizado: 25 oct 2026 · Este archivo dice por dónde va el trabajo, para ret
 
 Las 5 fases y el render final están hechos. Render final: «Prueba final» (copia de «Prueba sin recetas»), Blue Fairy desde 1:30.500 con «♫ Cambiar canción», toma 2 alargada a mano (1,21 → 1,60 s, pegada al beat), «Escribir tomas» 21 s, 480p 3,042 s en 390 s (`mejoras_sin_recetas/14_*.mp4`, `15_hoja_fotogramas_final.jpg`).
 
-Pendientes: H3 corta 3–4 fotogramas antes del beat; un objeto de una toma se cuela en la siguiente; efectos con imagen y varios personajes sin render (plano 7). Las pruebas dejaron RefMods en `models/refmods/subidas/` (vera_subida_epl, su tapado y teto_subida_epl) y fotos `*_epl.jpg` en `input/minimax_h3/`; se pueden borrar.
+Pendientes: H3 corta 3–4 fotogramas antes del beat; un objeto de una toma se cuela en la siguiente; efectos con imagen y varios personajes sin render (plano 7). Las pruebas dejaron RefMods en `models/refmods/subidas/` (vera_subida_epl, su tapado y nora_subida_epl) y fotos `*_epl.jpg` en `input/minimax_h3/`; se pueden borrar.
 
 ## Cómo seguir
 

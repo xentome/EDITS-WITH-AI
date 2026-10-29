@@ -35,7 +35,7 @@ For a local defect in an otherwise good video (a logo, a hand, an object), propo
 
 ## How to report
 
-- Facts first, with times: «Shot 2 (0.50–0.92 s): the silhouette effect appears; the word TETO is not visible.»
+- Facts first, with times: «Shot 2 (0.50–0.92 s): the silhouette effect appears; the word NORA is not visible.»
 - Then one proposal and its reason from this guide: «I would try another seed first: the plan follows the recipe and seeds
   weigh a lot.»
 - Never say a result is good or bad for the creative; say what matches the plan and what does not.

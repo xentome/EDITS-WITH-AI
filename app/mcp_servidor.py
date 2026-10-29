@@ -282,7 +282,7 @@ async def poner_referencia(refmod: str, papel: str = "", nombre: str | None = No
     papel (role): personaje (who it is, the character) · objeto (a product that does not change) · lugar (a fixed place) ·
     ropa (only the clothes) · pose · fondo (only the background) · estilo · efecto (an effect or a whole reference clip) ·
     letra (the font of a word in the text track).
-    nombre: short name in English that goes into the prompt («Teto», «red racing jacket»); for personaje, references with the
+    nombre: short name in English that goes into the prompt («Nora», «red racing jacket»); for personaje, references with the
     same name are the same character. ficha: one English sentence of what the image shows (H3 reads it; for an effect clip,
     describe its MOTION step by step). pronombre: they/she/he (personaje). principal: true = goes in every shot (the
     character starts there), false = only in the shots that cite it. atuendo: for a personaje photo that is also an outfit."""

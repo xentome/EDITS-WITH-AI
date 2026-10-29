@@ -23,7 +23,7 @@ Símbolos: ✅ hecha (con su commit) · 🔄 en curso · ⬜ pendiente.
    - se quitan los cambios escondidos (mayúsculas, «A/The» en minúscula, el resumen que decidía «close-ups»);
    - un campo vacío ya no deja «[…]»: no sale, y se avisa;
    - en `pruebas.py`, las tres pruebas nuevas;
-   - la referencia de Teto se regenera tras leer la diferencia.
+   - la referencia de Nora se regenera tras leer la diferencia.
 2. ✅ **La ventana enseña quién escribe cada trozo** (este commit, probado en una pestaña aparte en los dos idiomas). Consiste en:
    - colores en el prompt final, con su leyenda;
    - el panel «Frases del código» para cambiarlas;

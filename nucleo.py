@@ -174,7 +174,7 @@ def con_todas(t, menu):
 
 
 def personajes(menu):
-    """Un sujeto por cada personaje que no cambia: las referencias de papel personaje se juntan por su nombre («Teto»);
+    """Un sujeto por cada personaje que no cambia: las referencias de papel personaje se juntan por su nombre («Nora»);
     las que no tienen nombre van juntas. El primero es <Subject 1>, el protagonista. Cada uno: sujeto, nombre, ficha (la de
     una referencia que no sea un atuendo), pronombre (el primero elegido; «they» si ninguno) y sus etiquetas."""
     grupos = {}
@@ -209,7 +209,7 @@ def perfil_de(menu, entradas=None):
 
 def atuendos(menu):
     """Referencias de personaje con atuendo («school uniform»): cada toma elige uno (OUTFIT). Las que no lo tienen solo dan
-    la identidad (por ejemplo una cajita con las fotos de Teto) y valen para todas las tomas."""
+    la identidad (por ejemplo una cajita con las fotos de Nora) y valen para todas las tomas."""
     return {t: a for t, a in menu["personaje"].items() if a["atuendo"]}
 
 
@@ -497,7 +497,7 @@ def leer_palabras(texto, n):
     return out
 
 
-SITIOS_TEXTO = ("al_lado", "encima")    # dónde va una palabra respecto a la cara: al lado (Teto) o encima (Ren)
+SITIOS_TEXTO = ("al_lado", "encima")    # dónde va una palabra respecto a la cara: al lado (Nora) o encima (Ren)
 
 
 def textos_de(entradas, plan, ini, dur):
@@ -1110,7 +1110,7 @@ def montar(perfil, menu, plan, ini, textos, idioma="es", frases=None):
         if t["personaje"] and menu["personaje"].get(t["personaje"], {}).get("atuendo"):
             citas.append(C.pegar("toma.atuendo", posesivo=perfil["posesivo"], tag=t["personaje"],
                                  atuendo=de_usuario(menu["personaje"][t["personaje"]]["atuendo"])))
-        if t["ropa"] in menu["ropa"]:  # la ropa prestada (probada con la ropa de Vera sobre Teto)
+        if t["ropa"] in menu["ropa"]:  # la ropa prestada (probada con la ropa de Vera sobre Nora)
             citas.append(C.pegar("toma.ropa", nombre=de_usuario(menu["ropa"][t["ropa"]]["nombre"]), tag=t["ropa"]))
         if t["pose"]:
             citas.append(C.pegar("toma.pose", tag=t["pose"]))
@@ -1384,7 +1384,7 @@ def traducir(texto, desde="Spanish", inicio=None, fin=None, semilla=1, campo=Non
 # ------------------------------------------------------------------ tapar: quitar cara, pelo o texto de una referencia
 # Para que una ropa o una pose prestada no traspase la cara de su dueña (plano 5): SAM 3.1 hace la máscara de cada cosa
 # (por ComfyUI, en rutas.py) y aquí, sin IA, se tapa esa zona de la imagen. Probado en prueba_sam3/ (24 oct 2026): la ropa
-# de Vera tapada así salió en Teto igual de bien que la tapada a mano. planos/4 El editor.md, «Tapar».
+# de Vera tapada así salió en Nora igual de bien que la tapada a mano. planos/4 El editor.md, «Tapar».
 COSAS_TAPAR = {"cara": "face", "pelo": "hair", "texto": "text"}     # chip → palabra para SAM
 FORMAS_TAPAR = ("difuminar", "pixelar", "color")
 SAM_MODELO = "sam3.1_multiplex_fp16.safetensors"

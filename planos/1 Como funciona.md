@@ -75,9 +75,9 @@ Cada referencia del workflow (`<Picture N>` o `<Video N>`) tiene un **papel**. L
 
 Además hay **efectos de texto** (`E1`, `E2`…), sin imagen: solo su frase (plano 3).
 
-También tiene un **nombre** corto, que es el que va al prompt (por ejemplo, «Teto», «red racing jacket» o «cargo plane cabin»), y una **ficha**: una frase para que el LLM sepa qué hay en la imagen, porque no la ve. La numeración es la misma que usa el Text Encode: primero los medios del Media Loader y después las tarjetas activas del RefMod Stack, por orden, con un contador para fotos y otro para videos.
+También tiene un **nombre** corto, que es el que va al prompt (por ejemplo, «Nora», «red racing jacket» o «cargo plane cabin»), y una **ficha**: una frase para que el LLM sepa qué hay en la imagen, porque no la ve. La numeración es la misma que usa el Text Encode: primero los medios del Media Loader y después las tarjetas activas del RefMod Stack, por orden, con un contador para fotos y otro para videos.
 
-- ✅ La identidad en `<Video 1>` (cajita de Teto) con la ropa de Vera prestada salió bien en dos renders (la prueba a mano del 24 oct y la prueba de la interfaz nueva, plano 7).
+- ✅ La identidad en `<Video 1>` (cajita de Nora) con la ropa de Vera prestada salió bien en dos renders (la prueba a mano del 24 oct y la prueba de la interfaz nueva, plano 7).
 - 💡 Las frases de **objeto** todavía no se han probado en un render. Las de **lugar** tienen un solo render (plano 7).
 - Una toma lleva atuendo o ropa, nunca las dos cosas. Una toma en un lugar que no cambia no lleva fondo.
 

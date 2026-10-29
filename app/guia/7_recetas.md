@@ -6,25 +6,25 @@
 ## A · Quick end-to-end test (22 frames, ~3 min) — tested 28 Oct ✅
 
 Use it to check the plan cheaply before a long render, or to learn the app. It checks the pipeline, the references and the identity — **not the timing**: in
-under 1 s, cuts and words came out earlier than asked in both test renders 🟢 (TETO asked at 0.50 s, seen at 0.34 s; DULCE at
+under 1 s, cuts and words came out earlier than asked in both test renders 🟢 (NORA asked at 0.50 s, seen at 0.34 s; DULCE at
 0.17 s). Judge timing on a full-length render.
 ```
 estado()                                             # GPU free? queue empty?
 crear_proyecto(nombre="test_x")                      # or abrir_proyecto(<theirs>)
 poner_resolucion(ancho=544, alto=960)                # quick vertical
-poner_referencia(refmod="personajes/teto_primer_plano", papel="personaje", nombre="Teto", pronombre="she")
+poner_referencia(refmod="personajes/nora_primer_plano", papel="personaje", nombre="Nora", pronombre="she")
 poner_referencia(refmod="objeto/piruleta", papel="objeto", nombre="lollipop")
 poner_tomas(n=2, duraciones=[0.5, 0.42])             # total → 22 frames (0.917 s)
-escribir_toma(k=1, momento="Teto turns her head toward the camera and smiles.", gesto="raises the lollipop next to her cheek",
+escribir_toma(k=1, momento="Nora turns her head toward the camera and smiles.", gesto="raises the lollipop next to her cheek",
               encuadre="close-up", camara="slowly pushes in on her face", conectar=["<Picture 2>"])
 escribir_toma(k=2, momento="Her face fills the frame as the title lands.", encuadre="close-up",
               camara="stays locked off on a tripod at the same distance for the whole shot")
-poner_texto(textos=[{"texto": "TETO", "t": 0.5, "sitio": "encima", "frase": "in huge bold white letters"}])
+poner_texto(textos=[{"texto": "NORA", "t": 0.5, "sitio": "encima", "frase": "in huge bold white letters"}])
 poner_cancion(archivo="stay_0_5s.wav", inicio_s=1.0)  # ASK: song and start
 revisar_proyecto()
 generar()                                            # → id
 esperar(id=<id>)                                     # waits until «hecho» (call again if still running)
-ver_video()                                          # frames: Teto with the lollipop, then «TETO» slams in at 0.5 s
+ver_video()                                          # frames: Nora with the lollipop, then «NORA» slams in at 0.5 s
 ```
 
 ## B · Edit with a character (5 s, 1 MP)

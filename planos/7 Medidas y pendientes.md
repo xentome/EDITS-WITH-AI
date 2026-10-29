@@ -8,15 +8,15 @@ Lectura: 2 min
 
 | Qué | Valor |
 |---|---|
-| Plan completo de Teto (6 tomas), núcleo v2 | 104 s, 8 llamadas |
+| Plan completo de Nora (6 tomas), núcleo v2 | 104 s, 8 llamadas |
 | Planes con el núcleo v1 | 121–204 s |
 | Historia (razonamiento low) | 83–129 s; 3.000–4.100 tokens |
 | Cada toma (sin razonamiento) | unos 3 s el primer intento y 1,5 s cada repetición; las 6 suman 21–29 s |
 | Dentro de ComfyUI | 129 s; llama soltó la VRAM 6 s después (11,4 GB libres) |
-| Render de Teto a 480p y 5 s | 514 s |
+| Render de Nora a 480p y 5 s | 514 s |
 | Misma semilla | misma respuesta |
 | Qwen3.8 | escribe a 34 tok/s y lee a ~360 tok/s |
-| Prompt final de Teto | ~700 palabras (v3: 1.524) |
+| Prompt final de Nora | ~700 palabras (v3: 1.524) |
 | Comprobaciones de `pruebas.py` | 63 (25 oct: sin recetas, línea de tiempo, duración, canciones y subir foto), unos 5 s |
 | Editor: historia / tomas / una toma / visión | 113 s / 28,7 s / 7 s / 15 s |
 | Visión: riesgos | acertó (cara difuminada, bandas negras, texto) |
@@ -24,7 +24,7 @@ Lectura: 2 min
 | Interfaz nueva (24 oct): historia / tomas con 3 tomas | 80 s / 13 s |
 | Interfaz nueva: visión del lugar / de la ropa | 21 s / 14 s; la ropa bien, el lugar mal nombrado («spacecraft cabin» en vez de bodega de avión), corregido a mano |
 | Crear una cajita de 2 fotos | 8 s |
-| Render de la interfaz nueva (480p, 5,17 s, 3 tomas) | 522 s; Teto (cajita `<Video 1>`) se mantiene en las 3, la ropa prestada de Vera también (chaqueta, parches, reloj) y en cada toma se ve una pieza de la bodega: la puerta abierta, la ventanilla redonda y la red roja |
+| Render de la interfaz nueva (480p, 5,17 s, 3 tomas) | 522 s; Nora (cajita `<Video 1>`) se mantiene en las 3, la ropa prestada de Vera también (chaqueta, parches, reloj) y en cada toma se ve una pieza de la bodega: la puerta abierta, la ventanilla redonda y la red roja |
 | Render del prompt hecho en el editor (480p, 5 s) | 5 de 6 tomas bien; el lugar fijado a mano aparece tal cual; falla la toma con la pose `<Picture 5>` (plano 5) |
 | Ventana de audio: `audio_info` de Blue Fairy (2:40, mp3) | 0,23 s la primera vez (por HTTP); 0,003 s desde la caché; 3.992 picos |
 | `audio_info` de un mp3 de 1 hora | 2,9 s la primera vez, 0 s desde la caché; 3.914 picos (0,92 s cada uno) |
@@ -38,9 +38,9 @@ Lectura: 2 min
 | Tapar: máscaras de SAM 3.1 (cara + pelo, un solo `/prompt`) | 2,5–3,4 s con el modelo cargado; 7,4 s desde el editor tras vaciar la caché; 0 s desde la caché |
 | Tapar: encender en el editor (`ropa/vera`, foto de 1200×1799) | 15,3 s en total: SAM 7,4 s y RefMod 4 s; cara 4,6 % y pelo 3,8 % de la foto |
 | Tapar: apagar / volver a encender (reutiliza, sin SAM) | 0,8 s / 0,1 s; ningún `/prompt` nuevo en ComfyUI |
-| Render con la ropa tapada desde el interruptor (Teto + `ropa/vera__tapado_6811477a`, 480p, 3,042 s, 3 tomas) | 377 s; Teto en las 3 tomas con la chaqueta roja, los parches y el reloj de Vera; no se cuela la cara ni el pelo negro de Vera. Igual que la tapada a mano y que `vera_ropa_sam` (`interfaz_nueva/tapar_sam/`) |
-| Sin recetas (25 oct): historia / tomas desde la ventana (3 tomas, Teto en cajita con nombre y ficha, ropa de Vera tapada, bodega fija, estilo escrito, efecto de texto E1) | 89 s / 12 s, a la primera |
-| Render sin recetas (480p, 3,042 s, 3 tomas) | 422 s; igual que el de tapar: Teto en las 3 tomas, la chaqueta de Vera sin su cara, la puerta, la ventanilla y los asientos rojos de la bodega. El efecto de texto «golden dust» (toma 1) casi no se ve: unas motas. `interfaz_nueva/mejoras_sin_recetas/` |
+| Render con la ropa tapada desde el interruptor (Nora + `ropa/vera__tapado_6811477a`, 480p, 3,042 s, 3 tomas) | 377 s; Nora en las 3 tomas con la chaqueta roja, los parches y el reloj de Vera; no se cuela la cara ni el pelo negro de Vera. Igual que la tapada a mano y que `vera_ropa_sam` (`interfaz_nueva/tapar_sam/`) |
+| Sin recetas (25 oct): historia / tomas desde la ventana (3 tomas, Nora en cajita con nombre y ficha, ropa de Vera tapada, bodega fija, estilo escrito, efecto de texto E1) | 89 s / 12 s, a la primera |
+| Render sin recetas (480p, 3,042 s, 3 tomas) | 422 s; igual que el de tapar: Nora en las 3 tomas, la chaqueta de Vera sin su cara, la puerta, la ventanilla y los asientos rojos de la bodega. El efecto de texto «golden dust» (toma 1) casi no se ve: unas motas. `interfaz_nueva/mejoras_sin_recetas/` |
 | Duración desde la ventana / desde `duracion_s` del nodo | el Text Encode 73 → 124 y el Prompt Builder → 5,167 s / 124 → 73 y 3,042 s, con aviso de qué cambió |
 | Cambiar canción: lista de input/ / subir un wav soltándolo | 47 audios; elegir Blue Fairy (2:39) y subir, cada uno unos 3 s hasta ver la onda |
 | Subir foto: 1 de ropa con tapar / 2 juntas en una cajita | unos 20 s (RefMod + SAM + tapado) / 4,5 s |
@@ -48,7 +48,7 @@ Lectura: 2 min
 | Tapar: «text» con SAM 3.1 | encuentra letras grandes y logos (SHINE 30 %, BEABADOOBEE 6,5 %, WRAPSTARZ 8 %, el usuario de un post); no las líneas de letra pequeña |
 
 | Carta nueva, Ren («Réplica Ren vertical 480p 5s»: 5 tomas sin entorno, 6 efectos definidos arriba, RISE y FLARE encima con su letra a 0,5, sonido con whooshes; 480×864, 5,167 s) | 680 s. Salen los 5 mundos (el líquido, poco); antes 3 de 5. RISE entra con el corte (1,58 s; plan 2,016) y FLARE a 3,83 s (plan 4,013), como en el original. FLARE sale con la letra de SHINE y en los últimos 0,5 s se copia «WRAPSTARZ». Cortes a 0,79 · 1,50 · 2,42 s (plan 0,832 · 1,621 · 2,829). `carta_nueva/hoja_ren.png` |
-| Carta nueva, Teto (el plan de «Prueba final» + «TO YOU» al lado en 0,104 s; 480×864, 3,042 s) | 450 s; igual de bien que el render final. «TO YOU» debajo de la cara sin taparla (0,1–0,85 s); el chicle ya no pasa a la toma 2; cortes en los fotogramas 21 y 60 (plan 22 y 60). `carta_nueva/hoja_teto.png` |
+| Carta nueva, Nora (el plan de «Prueba final» + «TO YOU» al lado en 0,104 s; 480×864, 3,042 s) | 450 s; igual de bien que el render final. «TO YOU» debajo de la cara sin taparla (0,1–0,85 s); el chicle ya no pasa a la toma 2; cortes en los fotogramas 21 y 60 (plan 22 y 60). `carta_nueva/hoja_nora.png` |
 | `pruebas.py` | 89 comprobaciones (25 oct: carta, entorno, fila de texto, sonido) |
 
 ## Pendientes

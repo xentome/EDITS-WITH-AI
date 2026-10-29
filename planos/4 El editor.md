@@ -31,7 +31,7 @@ Lectura: 4 min
 - **Al elegir una toma** se iluminan en dorado las que usa, en las dos mitades y en los efectos, y las demás se apagan. La identidad (personaje sin nombre) y el estilo cuentan como usados en todas. Tocar un efecto lo pone o lo quita en la toma elegida.
 - **Al tocar una referencia** se abre su **ficha**: la foto grande y sus controles:
   - **papel** (cambia de mitad al cambiarlo);
-  - **nombre**: en un personaje, su nombre («Teto»; las fotos con el mismo nombre son el mismo personaje); en objeto, lugar, ropa y efecto, el nombre en el prompt;
+  - **nombre**: en un personaje, su nombre («Nora»; las fotos con el mismo nombre son el mismo personaje); en objeto, lugar, ropa y efecto, el nombre en el prompt;
   - en un personaje, además, **pronombre** (they por defecto, she, he) y **atuendo** opcional;
   - **ficha** en inglés: lo que el LLM sabe de la imagen; en un personaje, va a su definición; en un efecto, es la frase que va al prompt;
   - **👁 describir con visión** (14–21 s): propone nombre, ficha y riesgos; «usar» o «descartar»;
@@ -51,7 +51,7 @@ Lectura: 4 min
 - **Una cajita es un RefMod con varias fotos.** Fantastic las junta, una por fotograma, y H3 la recibe como `<Video N>`. Ocupa un solo lugar, enseña un mosaico y la insignia «4 fotos».
 - **Al tocarla** se abre con todas sus fotos y los mismos controles que una referencia. «✎ Cambiar fotos» abre el creador con esas fotos; al crearla, la nueva ocupa su sitio en el Stack y las tomas que la citaban la siguen citando.
 - **+ Cajita** (en cada mitad) abre el creador: eliges las fotos de las referencias del editor o del Media Loader (`input/minimax_h3`), el nombre, el papel y, si quieres, el nombre en el prompt y la ficha. Sus fotos para elegir también tienen el control de tamaño, que se recuerda aparte. «Crear cajita» tarda unos 10 s. Puede apagar en el Stack las fotos sueltas que metiste.
-- Las fotos de cada cajita se apuntan en `models/refmods/<nombre>.cajita.json`, porque el RefMod solo guarda la primera como vista previa. Las de `personajes/teto_identidad_4` se apuntaron a mano; una cajita sin ese archivo enseña solo su primera foto.
+- Las fotos de cada cajita se apuntan en `models/refmods/<nombre>.cajita.json`, porque el RefMod solo guarda la primera como vista previa. Las de `personajes/nora_identidad_4` se apuntaron a mano; una cajita sin ese archivo enseña solo su primera foto.
 
 ### Tapar (en la ficha de una referencia)
 - **Para qué:** que una ropa, una pose o un fondo prestados no traspasen la cara de quien sale en la foto (plano 5). Se tapa la cara, el pelo o el texto de la foto y H3 recibe la copia tapada.
@@ -80,7 +80,7 @@ Lectura: 4 min
 - **Para qué:** las palabras en pantalla, cada una en su momento. Sustituye a «Palabras» (`TO YOU @1`) y «Estilo de las palabras»: un estado viejo se convierte solo la primera vez (0,15 s tras el corte, al lado, el estilo viejo como frase).
 - **Rótulo «Texto»** y **+ Texto** al principio de la fila (la palabra va al beat más cercano al inicio de la toma elegida, o al 0); **doble clic** en un hueco la pone en el beat más cercano a ese punto.
 - **Mover:** arrastrar la etiqueta. Al fotograma y, con «pegar a los beats», al beat a ±0,15 s; mientras arrastras se ven los segundos. **Durar:** arrastrar su borde derecho (por defecto dura hasta el fin de su toma).
-- **Tocarla** abre su tarjetita: el texto; **encima / al lado** de la cara (por defecto al lado, como Teto; encima es como Ren: enorme, con la cara visible detrás); la **referencia de la letra** («Elegir de la biblioteca» o «⬆ Subir»; entra con papel «letra» y **fuerza 0,5**, que se cambia ahí); la **frase de la letra** (opcional, en inglés); «↺ hasta el fin de su toma» si le cambiaste el fin; **✕ quitar** con confirmación.
+- **Tocarla** abre su tarjetita: el texto; **encima / al lado** de la cara (por defecto al lado, como Nora; encima es como Ren: enorme, con la cara visible detrás); la **referencia de la letra** («Elegir de la biblioteca» o «⬆ Subir»; entra con papel «letra» y **fuerza 0,5**, que se cambia ahí); la **frase de la letra** (opcional, en inglés); «↺ hasta el fin de su toma» si le cambiaste el fin; **✕ quitar** con confirmación.
 - La letra de las palabras de la toma elegida se ilumina en dorado y se renumera con el Stack, como las demás referencias.
 - En la carta, cada palabra va en su toma y en su momento; arriba no se anuncia ninguna. Al final, «No other text appears on screen.».
 

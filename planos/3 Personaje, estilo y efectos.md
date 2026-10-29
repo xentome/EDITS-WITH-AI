@@ -10,15 +10,15 @@ En la mitad roja, una foto o una cajita con papel **personaje** tiene:
 
 | Campo | Para qué | Ejemplo |
 |---|---|---|
-| Nombre del personaje | las fotos con el **mismo nombre** son el mismo personaje (un sujeto) | `Teto` |
+| Nombre del personaje | las fotos con el **mismo nombre** son el mismo personaje (un sujeto) | `Nora` |
 | Pronombre | `they` (por defecto), `she` o `he`: «her uniform», «they wear»… y la revisión del pronombre | `she` |
 | Ficha | cómo es, en inglés: va a su definición | `anime girl, bright red hair in two big drill-shaped twin tails` |
 | Atuendo (opcional) | si la foto es además un atuendo: cada toma elige uno (OUTFIT) y su ficha describe esa ropa | `school uniform` |
 
 Con eso el código arma (`nucleo.personajes` y `nucleo.definiciones`):
 - **un sujeto por personaje**: el primero es `<Subject 1>`, el protagonista; los demás, `<Subject 2>`…; los objetos van detrás;
-- su definición: `<Subject 1> is the character in <Video 1>: anime girl, bright red hair…. Her name is Teto.` (sin ficha o sin nombre, esa parte no sale);
-- su retención: `<Subject 1>: fully_preserved - Teto's face, hair and features from <Video 1> stay the same in every shot.`;
+- su definición: `<Subject 1> is the character in <Video 1>: anime girl, bright red hair…. Her name is Nora.` (sin ficha o sin nombre, esa parte no sale);
+- su retención: `<Subject 1>: fully_preserved - Nora's face, hair and features from <Video 1> stay the same in every shot.`;
 - sin ningún personaje: `<Subject 1> is the main character.` (pasa en el nodo sin editor).
 
 El pronombre solo se revisa si hay un único personaje con `she` o `he`. 💡 Varios personajes a la vez no tienen render todavía.
@@ -34,7 +34,7 @@ El pronombre solo se revisa si hay un único personaje con `she` o `he`. 💡 Va
 
 Ya no hay lista fija (G1–G4, U3–U5). Un efecto es:
 1. **una referencia con papel «efecto»** en la mitad azul (imagen o clip de ejemplo), con nombre (en inglés: va al prompt) y ficha. Se define arriba (`<Picture 7> is the <nombre> effect reference: <ficha>.`), se retiene aparte (`only its look is transferred`) y en su toma va justo después del encuadre: `Close-up, <ficha>, like the effect in <Picture 7>.` (render de Ren del 25 oct, plano 7);
-2. **un efecto de texto** (`E1`, `E2`…), sin imagen: «+ Efecto» en la mitad azul, o «＋ guardar como efecto» desde la frase del efecto de una toma. Va al prompt justo después del encuadre: `Close-up, <frase>. A neon-lit crosswalk, …` (render de Teto del 25 oct, plano 7).
+2. **un efecto de texto** (`E1`, `E2`…), sin imagen: «+ Efecto» en la mitad azul, o «＋ guardar como efecto» desde la frase del efecto de una toma. Va al prompt justo después del encuadre: `Close-up, <frase>. A neon-lit crosswalk, …` (render de Nora del 25 oct, plano 7).
 
 El LLM elige los efectos como elige las poses (`EFFECT: E1`, `<Picture 7>` o `none`); el código pega la ficha tal cual. Reglas: no el mismo en dos tomas seguidas y, si hay tomas para todos, cada efecto sale al menos una vez. La **frase del efecto** de una toma, si la escribes, manda sobre la ficha.
 

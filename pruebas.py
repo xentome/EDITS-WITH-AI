@@ -31,8 +31,8 @@ def comprobar(nombre, condicion, detalle=""):
         fallos.append(nombre)
 
 
-ref = json.load(open(os.path.join(AQUI, "pruebas", "plan_teto.json")))
-esperado_txt = os.path.join(AQUI, "pruebas", "prompt_teto.txt")
+ref = json.load(open(os.path.join(AQUI, "pruebas", "plan_ejemplo.json")))
+esperado_txt = os.path.join(AQUI, "pruebas", "prompt_ejemplo.txt")
 menu = N.menu_de(ref["entradas"]["refs"])
 perfil = N.perfil_de(menu, ref["entradas"])
 
@@ -71,8 +71,8 @@ p = N.revisar_toma(d, perfil, plan, 1, [], set())
 comprobar("rechaza copiar el menú de encuadres", any(x.startswith("FRAMING tiene que ser") for x in p), p)
 comprobar("rechaza tumbada / mojado / suelo", sum("da problemas" in x for x in p) >= 2, p)
 comprobar("quita el sujeto del inicio del gesto", d["gesto"].startswith("lies"), d["gesto"])
-comprobar("rechaza el pronombre contrario (Teto es she)",
-          any("usa «his»; Teto es she" in x for x in N.problemas_texto("raises his hand", perfil, "ACTION")))
+comprobar("rechaza el pronombre contrario (Nora es she)",
+          any("usa «his»; Nora es she" in x for x in N.problemas_texto("raises his hand", perfil, "ACTION")))
 
 print("4 · Efectos: referencias de papel efecto y efectos de texto")
 comprobar("el LLM elige el efecto por su etiqueta (E2, <Picture N>) y se normaliza",
@@ -145,7 +145,7 @@ comprobar("el nodo sin editor lee la fila de texto del estado",
 
 
 print("7 · Papeles: personaje en <Video N>, ropa, objeto y lugar")
-refs7 = {"<Video 1>": {"papel": "personaje", "nombre": "Teto", "pronombre": "she",
+refs7 = {"<Video 1>": {"papel": "personaje", "nombre": "Nora", "pronombre": "she",
                        "ficha": "anime girl, bright red hair in two big drill-shaped twin tails"},
          "<Picture 1>": {"papel": "ropa", "nombre": "red racing jacket", "ficha": "red racing jacket with patches, black pants"},
          "<Picture 2>": {"papel": "objeto", "nombre": "red soda can", "ficha": "a red soda can with a white logo"},
@@ -162,8 +162,8 @@ plan7["tomas"][1].update(lugar_ref="<Picture 3>")
 p7, av7, _ = N.montar_plan(e7, plan7)
 comprobar("el personaje sale de su referencia: nombre y ficha en la definición, y su retención",
           "<Subject 1> is the character in <Video 1>: anime girl, bright red hair in two big drill-shaped twin tails. "
-          "Her name is Teto. In each shot she wears the outfit of the reference cited for that shot." in p7 and
-          "<Subject 1>: fully_preserved - Teto's face, hair and features from <Video 1> stay the same in every shot." in p7, p7[:500])
+          "Her name is Nora. In each shot she wears the outfit of the reference cited for that shot." in p7 and
+          "<Subject 1>: fully_preserved - Nora's face, hair and features from <Video 1> stay the same in every shot." in p7, p7[:500])
 comprobar("ropa: cita en la toma y retención solo de la ropa",
           "<Subject 1>, wearing the red racing jacket from <Picture 1>," in p7 and
           "<Picture 1>: attribute_transfer - only the clothes are transferred (red racing jacket); "
@@ -208,11 +208,11 @@ comprobar("sin estilo ni referencias: línea neutra, sujeto genérico y they",
           pf10["pronombre"] == "they" and pf10["revisar_pronombre"] == "" and "A music edit of <Subject 1>, cut on the beat of <Audio 1>" in p10,
           p10[:300])
 refs10 = {**refs7, "<Video 2>": {"papel": "personaje", "nombre": "Ren", "pronombre": "he", "ficha": "young man, spiky dark hair"},
-          "<Picture 5>": {"papel": "personaje", "nombre": "teto", "pronombre": "", "ficha": "", "atuendo": "school uniform"}}
+          "<Picture 5>": {"papel": "personaje", "nombre": "nora", "pronombre": "", "ficha": "", "atuendo": "school uniform"}}
 m10 = N.menu_de(refs10)
 ps10 = N.personajes(m10)
 comprobar("un sujeto por personaje, juntando sus referencias por nombre; los objetos van detrás",
-          [(g["sujeto"], g["nombre"], g["tags"]) for g in ps10] == [("<Subject 1>", "Teto", ["<Video 1>", "<Picture 5>"]),
+          [(g["sujeto"], g["nombre"], g["tags"]) for g in ps10] == [("<Subject 1>", "Nora", ["<Video 1>", "<Picture 5>"]),
                                                                      ("<Subject 2>", "Ren", ["<Video 2>"])] and
           N.sujetos_objeto(m10) == {"<Picture 2>": "<Subject 3>"} and N.perfil_de(m10)["revisar_pronombre"] == "", ps10)
 comprobar("el pronombre por defecto es they (they wear)",
@@ -231,12 +231,12 @@ plan11["tomas"][0]["efecto"] = ""
 p11b = N.revisar_historia({"plan": {**plan11, "arco": "a", "look": "b"}, "formato": []}, pf7, N.menu_de(refs11))
 comprobar("cada efecto del usuario sale en alguna toma si caben", "ninguna toma usa EFFECT <Picture 6>; ponlo al menos en una "
           "toma donde encaje" in p11b, p11b)
-estado = {"v": 4, "refs": {"cajitas/teto": {"papel": "personaje", "nombre": "Teto"}, "ropa/vera": {"papel": "ropa"}},
-          "etiquetas": {"<Video 1>": "cajitas/teto", "<Picture 1>": "ropa/vera"}, "efectos": {"E1": {"nombre": "x", "ficha": "y"}},
-          "estilo": "flat anime", "receta": "Teto city pop"}
+estado = {"v": 4, "refs": {"cajitas/nora": {"papel": "personaje", "nombre": "Nora"}, "ropa/vera": {"papel": "ropa"}},
+          "etiquetas": {"<Video 1>": "cajitas/nora", "<Picture 1>": "ropa/vera"}, "efectos": {"E1": {"nombre": "x", "ficha": "y"}},
+          "estilo": "flat anime", "receta": "Nora city pop"}
 ee = N.entradas_de_estado(estado)
 comprobar("el nodo sin editor lee del estado las referencias, los efectos y el estilo (la receta se ignora)",
-          ee["refs"]["<Video 1>"]["nombre"] == "Teto" and ee["refs"]["E1"]["papel"] == "efecto" and ee["estilo"] == "flat anime"
+          ee["refs"]["<Video 1>"]["nombre"] == "Nora" and ee["refs"]["E1"]["papel"] == "efecto" and ee["estilo"] == "flat anime"
           and "receta" not in ee, ee)
 comprobar("no queda ninguna receta en el código", not hasattr(N, "cargar_recetas") and
           not os.path.exists(os.path.join(AQUI, "recetas.json")))
@@ -519,13 +519,13 @@ print("14 · Subir foto: papel → concept_type y nombre libre (rutas.subir_refm
 tmp5 = tempfile.mkdtemp(prefix="epl_refmods_")
 try:
     os.makedirs(os.path.join(tmp5, "subidas"))
-    open(os.path.join(tmp5, "subidas", "teto.safetensors"), "wb").write(b"x")
-    open(os.path.join(tmp5, "subidas", "teto_2.safetensors"), "wb").write(b"x")
+    open(os.path.join(tmp5, "subidas", "nora.safetensors"), "wb").write(b"x")
+    open(os.path.join(tmp5, "subidas", "nora_2.safetensors"), "wb").write(b"x")
     comprobar("el concept_type sale del papel (personaje→identity, ropa→clothing, pose→pose_motion, lugar/fondo→background, "
               "objeto→generic, estilo/efecto→style)",
               R.CONCEPTO_PAPEL == {"personaje": "identity", "ropa": "clothing", "pose": "pose_motion", "lugar": "background", "letra": "style",
                                    "fondo": "background", "objeto": "generic", "estilo": "style", "efecto": "style"})
-    comprobar("un nombre que ya existe recibe _2, _3…", R._libre(tmp5, "subidas/teto") == "subidas/teto_3" and
+    comprobar("un nombre que ya existe recibe _2, _3…", R._libre(tmp5, "subidas/nora") == "subidas/nora_3" and
               R._libre(tmp5, "subidas/vera") == "subidas/vera")
     comprobar("sin nombre o sin fotos no se crea nada", all(_falla(lambda d=d: R.subir_refmods(d)) for d in
               ({"nombre": "", "fotos": ["a.jpg"]}, {"nombre": "x", "fotos": []})))

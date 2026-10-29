@@ -1,34 +1,34 @@
 {
  "entradas": {
-  "idea": "Teto normal y realista, sin dramatismo, en los lugares más bellos de una ciudad city pop, luz cálida y neones",
+  "idea": "Nora normal y realista, sin dramatismo, en los lugares más bellos de una ciudad city pop, luz cálida y neones",
   "tomas": 6,
   "duracion": 5.167,
   "palabras": "TO YOU @1",
   "refs": {
    "<Picture 1>": {
     "papel": "personaje",
-    "nombre": "Teto",
+    "nombre": "Nora",
     "pronombre": "she",
     "atuendo": "school uniform",
     "ficha": "white short-sleeve school shirt, navy plaid skirt, school bag"
    },
    "<Picture 2>": {
     "papel": "personaje",
-    "nombre": "Teto",
+    "nombre": "Nora",
     "pronombre": "she",
     "atuendo": "black leather jacket and round glasses",
     "ficha": "black leather jacket over a dark red ribbed sweater, beige trench coat, round glasses"
    },
    "<Picture 3>": {
     "papel": "personaje",
-    "nombre": "Teto",
+    "nombre": "Nora",
     "pronombre": "she",
     "atuendo": "white open-collar shirt",
     "ficha": "plain white shirt with an open collar"
    },
    "<Picture 4>": {
     "papel": "personaje",
-    "nombre": "Teto",
+    "nombre": "Nora",
     "pronombre": "she",
     "atuendo": "white open-collar shirt",
     "ficha": "plain white shirt with an open collar, sunset light"
