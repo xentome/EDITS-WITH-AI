@@ -60,7 +60,16 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   const transporte = el("div", { class: "max-rt-transporte" });
   const bajo = el("div", { class: "max-rt-bajo max-ex-bajo" });
   const lado = el("div", { class: "max-rt-lado" });
-  sec.append(cabeza, el("div", { class: "max-rt-cuerpo" }, el("div", { class: "max-rt-izq" }, marco, transporte, linea, bajo), lado));
+  const izq = el("div", { class: "max-rt-izq" }, marco, transporte, linea, bajo);
+  sec.append(cabeza, el("div", { class: "max-rt-cuerpo" }, izq, lado));
+  // ⛶ pantalla grande (28 oct): como en Retocar, el mismo visor, transporte y línea a toda la ventana
+  function ponerCine(si) {
+    R.cine = si;
+    izq.classList.toggle("max-rt-cine", si);
+    document.body.classList.toggle("max-rt-con-cine", si);
+    pintarTransporte();
+  }
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && R.cine) { e.stopPropagation(); ponerCine(false); } }, true);
 
   const fps = () => 24;
   const total = () => R.plan?.total || R.info?.fotogramas || 0;
@@ -121,17 +130,29 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   const saltar = (s) => { if (!R.info) return; video.pause(); video.currentTime = Math.max(0, Math.min((video.duration || R.info.duracion) - 0.02, video.currentTime + s)); };
   function pintarTransporte() {
     if (!R.info) return transporte.replaceChildren();
+    // (28 oct) los mismos botones que el reproductor de Retocar: −5 s ‹ ▶ › +5 s · ver el final · bucle · silencio · ½× · ⛶
     const b = (claveT, accion, ...hijos) => el("button", { class: "epl-mini max-rt-paso", title: t(claveT), "aria-label": t(claveT), onclick: accion }, ...hijos);
+    const si = (x, boton) => { if (x) boton.classList.add("fijo"); return boton; };
+    video.loop = !!R.bucle;
     transporte.replaceChildren(
+      b("app.retocar.reproductor.menos5", () => saltar(-5), t("app.retocar.reproductor.menos5_corto")),
       b("app.retocar.reproductor.atras", () => saltar(-1 / fps()), icono("atras")),
       el("button", { class: "max-rt-play", title: t(video.paused ? "app.retocar.reproductor.play" : "app.retocar.reproductor.pausa"),
                      "aria-label": t(video.paused ? "app.retocar.reproductor.play" : "app.retocar.reproductor.pausa"),
                      onclick: () => (video.paused ? video.play().catch(() => {}) : video.pause()) }, icono(video.paused ? "play" : "pausa")),
       b("app.retocar.reproductor.adelante", () => saltar(1 / fps()), icono("adelante")),
-      el("button", { class: "epl-mini", title: t("app.extender.ver_solape.tooltip"),
+      b("app.retocar.reproductor.mas5", () => saltar(5), t("app.retocar.reproductor.mas5_corto")),
+      el("span", { class: "max-rt-sep" }),
+      el("button", { class: "epl-mini max-rt-solo", title: t("app.extender.ver_solape.tooltip"),
                      onclick: () => { video.currentTime = Math.max(0, (video.duration || R.info.duracion) - R.solape / fps()); video.play().catch(() => {}); } },
-        t("app.extender.ver_solape")),
-      el("span", { class: "epl-ayuda" }, t(R.asa ? "app.extender.teclas_asa" : "app.extender.teclas")));
+        icono("play"), " " + t("app.extender.ver_solape")),
+      si(R.bucle, b("app.retocar.reproductor.bucle", () => { R.bucle = !R.bucle; pintarTransporte(); }, icono("bucle"))),
+      si(video.muted, b(video.muted ? "app.retocar.reproductor.sonido" : "app.retocar.reproductor.mudo", () => { video.muted = !video.muted; pintarTransporte(); },
+         icono(video.muted ? "mudo" : "sonido"))),
+      si(video.playbackRate !== 1, b("app.retocar.reproductor.vel", () => { video.playbackRate = video.playbackRate === 1 ? 0.5 : 1; pintarTransporte(); },
+         video.playbackRate === 1 ? "1×" : "½×")),
+      el("span", { class: "max-rt-esp" }),
+      si(R.cine, b(R.cine ? "app.retocar.reproductor.cine_salir" : "app.retocar.reproductor.cine", () => ponerCine(!R.cine), icono("grande"))));
   }
 
   // ---- la línea de tiempo: original · solape resaltado · lo nuevo (otro color) con sus segundos
@@ -418,41 +439,47 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       value: (R.nuevos / fps()).toFixed(2), "aria-label": t("app.extender.alarga"),
       onchange: (e) => cambiar({ nuevos: Math.max(PASO, Math.min(NUEVOS_MAX, PASO * Math.max(1, Math.round((+e.target.value || 0) * fps() / PASO)))) }) });
 
+    /* (28 oct, variante P1 elegida por el usuario) lo principal primero: cuánto se alarga (− / + grande y atajos), qué pasa
+     * después, el audio y las referencias; la calidad y cuánto mira H3, plegadas en «Más opciones». Las ayudas, en «ⓘ» */
+    const info = (clave, datos) => A.ctx?.info ? A.ctx.info(t(clave, datos)) : el("span", { class: "epl-ayuda" }, t(clave, datos));
+    const atajos = [1, 2, 3, 4, 5].map((k) => k * PASO).filter((f) => f <= NUEVOS_MAX);
     lado.replaceChildren(
-      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.calidad")),
-        seg_("calidad", CALIDADES, R.calidad, (c) => t(`app.extender.calidad.${c}`), (c) => cambiar({ calidad: c }),
-             (c) => ({ title: t(`app.extender.calidad.${c}.ayuda`) })),
-        el("span", { class: "epl-ayuda" }, t(`app.extender.calidad.${R.calidad}.ayuda`))),
-      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.solape")),
-        seg_("solape", SOLAPES, R.solape, (s) => t("app.extender.solape.valor", { f: s, s: seg(s) }), (s) => cambiar({ solape: s }),
-             (s) => ({ disabled: R.info ? s > total() : false })),
-        el("span", { class: "epl-ayuda" }, t(R.solape === 39 ? "app.extender.solape.ayuda_39" : "app.extender.solape.ayuda"))),
-      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.alarga")),
-        el("div", { class: "max-rt-fila" },
-          el("button", { class: "epl-mini", "aria-label": t("app.extender.menos"), title: t("app.extender.menos"), onclick: () => moverAsa("nuevos", -1) }, "−"),
-          nuevosInput, el("span", {}, t("app.extender.alarga.unidad", { f: R.nuevos })),
-          el("button", { class: "epl-mini", "aria-label": t("app.extender.mas"), title: t("app.extender.mas"), onclick: () => moverAsa("nuevos", 1) }, "+")),
-        el("span", { class: "epl-ayuda" }, t("app.extender.alarga.ayuda"))),
+      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.alarga"), info("app.extender.alarga.ayuda")),
+        el("div", { class: "max-rt-fila max-ex-largo" },
+          el("span", { class: "max-ex-stepper" },
+            el("button", { "aria-label": t("app.extender.menos"), title: t("app.extender.menos"), onclick: () => moverAsa("nuevos", -1) }, "−"),
+            el("span", { class: "max-ex-valor" }, nuevosInput, el("small", {}, t("app.extender.alarga.unidad", { f: R.nuevos }))),
+            el("button", { "aria-label": t("app.extender.mas"), title: t("app.extender.mas"), onclick: () => moverAsa("nuevos", 1) }, "+")),
+          ...atajos.map((f) => el("button", { class: "epl-mini epl-seg" + (R.nuevos === f ? " fijo" : ""), "data-atajo": f, onclick: () => cambiar({ nuevos: f }) },
+            t("app.extender.atajo", { s: num(f / fps(), 1) }))))),
+      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.prompt"), info("app.extender.prompt.ayuda")),
+        el("span", { class: "max-rt-arrastra" }, t("app.retocar.prompt.arrastra")),
+        el("textarea", { class: "max-rt-prompt", rows: 4, placeholder: t("app.extender.prompt.placeholder"),
+                         oninput: (e) => { R.prompt = e.target.value; R.agente = null; guardar(); },
+                         ondragover: (e) => e.currentTarget.classList.add("soltar"),
+                         ondragleave: (e) => e.currentTarget.classList.remove("soltar"),
+                         ondrop: (e) => e.currentTarget.classList.remove("soltar") }, R.prompt)),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.audio")),
         seg_("audio", ["entrada", "modelo"], R.audio, (a) => t(`app.extender.audio.${a}`), (a) => cambiar({ audio: a })),
         pintarAudio()),
-      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.refs", { n: R.refs.length, max: MAX_REFS })),
+      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.refs", { n: R.refs.length, max: MAX_REFS }), info("app.extender.refs.ayuda")),
         el("div", { class: "max-rt-refs" }, tarjetas),
         el("div", { class: "max-rt-fila" },
           el("button", { class: "epl-mini" + (R.elegir ? " fijo" : ""), disabled: lleno, title: t("app.retocar.refs.proyecto.tooltip"),
                          onclick: () => { R.elegir = !R.elegir; pintar(); } }, t("app.retocar.refs.proyecto")),
           el("button", { class: "epl-mini", disabled: lleno, title: t("app.retocar.refs.subir.tooltip"), onclick: () => archivo.click() },
             t("app.retocar.refs.subir")), archivo),
-        selector,
-        el("span", { class: "epl-ayuda" }, t("app.extender.refs.ayuda"))),
-      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.prompt")),
-        el("span", { class: "max-rt-arrastra" }, t("app.retocar.prompt.arrastra")),
-        el("textarea", { class: "max-rt-prompt", rows: 4, placeholder: t("app.extender.prompt.placeholder"),
-                         oninput: (e) => { R.prompt = e.target.value; R.agente = null; guardar(); },
-                         ondragover: (e) => e.currentTarget.classList.add("soltar"),
-                         ondragleave: (e) => e.currentTarget.classList.remove("soltar"),
-                         ondrop: (e) => e.currentTarget.classList.remove("soltar") }, R.prompt),
-        el("span", { class: "epl-ayuda" }, t("app.extender.prompt.ayuda"))),
+        selector),
+      el("details", { class: "max-ex-mas", open: !!R.masAbierto, ontoggle: (e) => { R.masAbierto = e.target.open; } },
+        el("summary", {}, t("app.extender.mas_opciones"),
+          el("span", { class: "max-ex-mas-resumen" }, t("app.extender.mas_opciones.resumen", { calidad: t(`app.extender.calidad.${R.calidad}`), s: seg(R.solape) }))),
+        el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.calidad"), info(`app.extender.calidad.${R.calidad}.ayuda`)),
+          seg_("calidad", CALIDADES, R.calidad, (c) => t(`app.extender.calidad.${c}`), (c) => cambiar({ calidad: c }),
+               (c) => ({ title: t(`app.extender.calidad.${c}.ayuda`) }))),
+        el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.extender.solape"),
+            info(R.solape === 39 ? "app.extender.solape.ayuda_39" : "app.extender.solape.ayuda")),
+          seg_("solape", SOLAPES, R.solape, (s) => t("app.extender.solape.valor", { f: s, s: seg(s) }), (s) => cambiar({ solape: s }),
+               (s) => ({ disabled: R.info ? s > total() : false })))),
       el("div", { class: "max-rt-fila max-rt-final" },
         el("label", { class: "max-rt-semilla", title: t("app.retocar.semilla.tooltip") }, el("span", {}, t("app.retocar.semilla")),
           el("input", { type: "number", min: 0, step: 1, value: R.semilla, onchange: (e) => { R.semilla = Math.max(0, Math.round(+e.target.value || 0)); guardar(); } }),

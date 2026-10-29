@@ -574,3 +574,16 @@ body.tema-casete .max-rt-izq.max-rt-cine{position:fixed;inset:0;z-index:21474830
 body.tema-casete .max-rt-izq.max-rt-cine .max-rt-marco{width:auto !important;height:calc(100vh - 290px);max-width:100%;align-self:center}
 body.max-rt-con-cine{overflow:hidden}
 
+
+/* (28 oct) Extender P1: cuánto se alarga, grande y en violeta, con atajos; «Más opciones» plegado */
+body.tema-casete .max-ex-largo{gap:8px !important;flex-wrap:wrap}
+body.tema-casete .max-ex-stepper{display:inline-flex;align-items:stretch;border:1px solid var(--k-violeta);border-radius:8px;overflow:hidden;background:rgba(163,91,255,.08)}
+body.tema-casete .max-ex-stepper>button{width:46px;border:0;background:none;font:800 24px var(--k-titulo);color:var(--k-violeta);cursor:pointer}
+body.tema-casete .max-ex-stepper>button:hover{background:rgba(163,91,255,.2)}
+body.tema-casete .max-ex-valor{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 8px;min-width:120px}
+body.tema-casete .max-ex-valor input{width:96px;text-align:center;border:0 !important;background:transparent !important;font:700 22px/1 var(--k-mono) !important;color:#E2CCFF !important}
+body.tema-casete .max-ex-valor small{font:600 12px var(--k-mono);color:var(--k-suave)}
+body.tema-casete .max-ex-mas{border:1px solid var(--k-linea);border-radius:8px;padding:0 12px;margin:4px 0}
+body.tema-casete .max-ex-mas>summary{min-height:44px;display:flex;align-items:center;gap:10px;cursor:pointer;font:700 15px/1 var(--k-rotulo);letter-spacing:.07em;text-transform:uppercase;color:var(--k-suave)}
+body.tema-casete .max-ex-mas[open]{padding-bottom:10px}
+body.tema-casete .max-ex-mas-resumen{font:600 12px var(--k-mono);letter-spacing:0;text-transform:none;color:var(--k-suave);border:1px solid var(--k-linea2);border-radius:999px;padding:3px 9px}
