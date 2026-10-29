@@ -17,14 +17,28 @@ const SUBCARPETA = "max_editor/retocar/refs"; // las imágenes subidas desde aqu
  * upscale_megapixels; 1 MP = 1024 × 1024, en la rejilla de 32). «normal» es la de siempre. El tiempo crece con los píxeles. */
 const RESOLUCIONES = [["rapida", 0.12], ["normal", 0.18], ["alta", 0.35], ["maxima", 0.6]];
 const MP_NORMAL = 0.18;
+/* (29 oct) Inpainting/detalle tiene dos pestañas: «Tapar» (todo lo de arriba) y «Mejorar», que pasa el video ENTERO por los
+ * nodos RTX de NVIDIA (mejorar.py): Super Resolution y HDR. Los límites son los de mejorar.py: el lado más grande del nodo
+ * y lo que cabe en la memoria (fotogramas × píxeles de salida). El tiempo se estima con lo medido en la RTX 3060
+ * (124 fotogramas de 1376 × 800: ×2 en 16 s, HDR en 6 s, los dos en 24 s): unos 30 MP de fotogramas por segundo. */
+const GUARDA_SUB = "max-editor-retocar-sub";
+const ESCALAS = [1.5, 2, 3, 4];
+const CALIDADES_SR = { LOW: "app.retocar.mejorar.sr.calidad.low", MEDIUM: "app.retocar.mejorar.sr.calidad.medium",
+                       HIGH: "app.retocar.mejorar.sr.calidad.high", ULTRA: "app.retocar.mejorar.sr.calidad.ultra" };   // valor del nodo → su texto
+const CLASE_SUB = { true: "max-rt-sub-b activa", false: "max-rt-sub-b" };
+const NITS = [400, 650, 1000];
+const LADO_MAX = 8192, MAX_PIXELES = 1.4e9, MP_POR_S = 30;
+const tamanoSR = (w, h, e) => [Math.max(8, Math.round(w * e / 8) * 8), Math.max(8, Math.round(h * e / 8) * 8)];
 
 export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTerminar }) {
   const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "", mp: MP_NORMAL,
-              semilla: Math.floor(Math.random() * 2 ** 32), trabajo: null, avance: null, error: "", elegir: false };
+              semilla: Math.floor(Math.random() * 2 ** 32), trabajo: null, avance: null, error: "", elegir: false,
+              sub: "tapar", sr: { on: true, escala: 2, calidad: "ULTRA" }, hdr: { on: false, nits: 650 } };
+  try { if (localStorage.getItem(GUARDA_SUB) === "mejorar") R.sub = "mejorar"; } catch { /* sin almacenamiento */ }
   const clave = () => "max-editor-retocar:" + (A.proyecto || "");
   const guardar = () => {
-    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp } = R;
-    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp })); } catch { /* sin almacenamiento */ }
+    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr } = R;
+    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr })); } catch { /* sin almacenamiento */ }
   };
   const leerGuardado = () => { try { return JSON.parse(localStorage.getItem(clave()) || "null"); } catch { return null; } };
 
@@ -52,9 +66,12 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   const regla = el("div", { class: "max-rt-regla" }, minis, marcas, cursorRegla);
   const etCarril = el("div", { class: "max-rt-et-carril" });
   const izq = el("div", { class: "max-rt-izq" }, marco, transporte, verFila, regla, etCarril, linea, bajoVideo);
-  sec.append(cabeza, el("div", { class: "max-rt-cuerpo" }, izq, lado));
+  // las dos pestañas de Inpainting/detalle (29 oct): «Tapar» y «Mejorar» (Super Resolution y HDR)
+  const subBar = el("div", { class: "max-rt-sub", role: "tablist" });
+  sec.append(cabeza, subBar, el("div", { class: "max-rt-cuerpo" }, izq, lado));
 
   const fps = () => R.info?.fps || 24;
+  const mejorando = () => R.sub === "mejorar";
   const total = () => R.info?.fotogramas || 0;
   const ajustar = (f0, n) => {                 // la selección: cualquier largo, de 1 fotograma al clip entero
     R.n = Math.max(1, Math.min(Math.round(n), total() || 1));
@@ -97,7 +114,8 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     Object.assign(R, { video: "", info: null, rect: null, refs: [], prompt: "", trabajo: null, avance: null, error: "", elegir: false,
                        vista: "normal", mascara: null, calculando: null },
                   g ? { f0: g.f0 ?? 0, n: g.n ?? 39, modo: g.modo || "rectangulo", texto: g.texto ?? "face", rect: g.rect || null,
-                        refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla, mp: g.mp || MP_NORMAL } : {});
+                        refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla, mp: g.mp || MP_NORMAL,
+                        sr: { ...R.sr, ...(g.sr || {}) }, hdr: { ...R.hdr, ...(g.hdr || {}) } } : {});
     video.removeAttribute("src");
     video.load();
     if (g?.video) await cargar(g.video, { mantener: true });               // si ya no existe, queda sin info y se sigue
@@ -220,13 +238,13 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       b("max-rt-paso", "app.retocar.reproductor.mas5", () => saltar(5), t("app.retocar.reproductor.mas5_corto")),
       lectura,
       el("span", { class: "max-rt-sep" }),
-      b("max-rt-solo", "app.retocar.reproductor.solo.tooltip", () => (video.paused ? reproducirTramo() : video.pause()), icono("play"), " " + t("app.retocar.reproductor.solo")),
+      mejorando() ? null : b("max-rt-solo", "app.retocar.reproductor.solo.tooltip", () => (video.paused ? reproducirTramo() : video.pause()), icono("play"), " " + t("app.retocar.reproductor.solo")),
       b("max-rt-paso" + si(R.bucle), "app.retocar.reproductor.bucle", () => { R.bucle = !R.bucle; pintarTransporte(); }, icono("bucle")),
       b("max-rt-paso" + si(video.muted), video.muted ? "app.retocar.reproductor.sonido" : "app.retocar.reproductor.mudo",
         () => { video.muted = !video.muted; pintarTransporte(); }, icono(video.muted ? "mudo" : "sonido")),
       b("max-rt-paso max-rt-vel" + si(video.playbackRate !== 1), "app.retocar.reproductor.vel",
         () => { video.playbackRate = video.playbackRate === 1 ? 0.5 : 1; pintarTransporte(); }, video.playbackRate === 1 ? "1×" : "½×"),
-      R.modo === "rectangulo" ? b("max-rt-paso" + si(R.sinRect), R.sinRect ? "app.retocar.reproductor.mascara_ver" : "app.retocar.reproductor.mascara_ocultar",
+      R.modo === "rectangulo" && !mejorando() ? b("max-rt-paso" + si(R.sinRect), R.sinRect ? "app.retocar.reproductor.mascara_ver" : "app.retocar.reproductor.mascara_ocultar",
         () => { R.sinRect = !R.sinRect; marco.classList.toggle("sin-rect", R.sinRect); pintarTransporte(); }, icono(R.sinRect ? "ojono" : "ojo")) : null,
       el("span", { class: "max-rt-esp" }),
       b("max-rt-paso" + si(R.cine), R.cine ? "app.retocar.reproductor.cine_salir" : "app.retocar.reproductor.cine", () => ponerCine(!R.cine), icono("grande"))].filter(Boolean));
@@ -344,14 +362,14 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   };
   function pintarRect() {
     const ver = R.modo === "rectangulo" && R.info && R.rect;
-    capa.classList.toggle("dibujar", R.modo === "rectangulo" && !!R.info && !enMarcha());
+    capa.classList.toggle("dibujar", R.modo === "rectangulo" && !!R.info && !enMarcha() && !mejorando());
     rectEl.style.display = ver ? "" : "none";
     if (!ver) return;
     const { x, y, w, h } = R.rect, W = R.info.ancho, H = R.info.alto;
     Object.assign(rectEl.style, { left: 100 * x / W + "%", top: 100 * y / H + "%", width: 100 * w / W + "%", height: 100 * h / H + "%" });
   }
   capa.addEventListener("pointerdown", (e) => {
-    if (R.modo !== "rectangulo" || !R.info || enMarcha()) return;
+    if (R.modo !== "rectangulo" || !R.info || enMarcha() || mejorando()) return;
     e.preventDefault();
     try { capa.setPointerCapture(e.pointerId); } catch { /* puntero sintético */ }
     video.pause();
@@ -514,25 +532,105 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       const r = await pedir("/app/cola", { tipo: "retocar", datos, n });
       R.mios = [...(R.mios || []), ...r.ids];        // los retoques encolados desde aquí: al terminar, el último se carga
       R.trabajo = r.ids[r.ids.length - 1];
+      R.avanceTipo = "retocar";
       R.avance = { estado: "en_cola", avance: 0, mensaje: "" };
       avisar(t(r.ids.length > 1 ? "app.cola.encolados" : "app.cola.encolado", { n: r.ids.length }), "bien");
       pintar();
       mirarCola?.();
     } catch (e) { R.error = e.message; pintar(); }
   }
+  // ---- mejorar (29 oct): el video entero por Super Resolution y/o HDR, por la cola como todo
+  function cuentaMejora() {
+    if (!R.info) return null;
+    const { ancho: w, alto: h, fotogramas: f } = R.info;
+    const [w2, h2] = R.sr.on ? tamanoSR(w, h, R.sr.escala) : [w, h];
+    const mpf = f * w2 * h2 / 1e6 * (R.sr.on && R.hdr.on ? 1.3 : 1);
+    return { w, h, w2, h2, f, s: Math.round(3 + mpf / MP_POR_S) };
+  }
+  const cabeEscala = (e) => {
+    if (!R.info) return true;
+    const [w2, h2] = tamanoSR(R.info.ancho, R.info.alto, e);
+    return Math.max(w2, h2) <= LADO_MAX && w2 * h2 * Math.max(1, R.info.fotogramas) <= MAX_PIXELES;
+  };
+  async function mejorar() {
+    const falta = !R.info ? "app.retocar.falta.video" : !R.sr.on && !R.hdr.on ? "app.retocar.mejorar.falta" : "";
+    if (falta) { R.error = t(falta); return pintar(); }
+    const datos = { video: R.video, proyecto: A.proyecto, superres: R.sr.on ? { escala: R.sr.escala, calidad: R.sr.calidad } : null,
+                    hdr: R.hdr.on ? { nits: R.hdr.nits } : null };
+    try {
+      R.error = "";
+      const r = await pedir("/app/cola", { tipo: "mejorar", datos, n: 1 });
+      R.mios = [...(R.mios || []), ...r.ids];
+      R.trabajo = r.ids[r.ids.length - 1];
+      R.avanceTipo = "mejorar";
+      R.avance = { estado: "en_cola", avance: 0, mensaje: "" };
+      avisar(t("app.cola.encolado", { n: 1 }), "bien");
+      pintar();
+      mirarCola?.();
+    } catch (e) { R.error = e.message; pintar(); }
+  }
+  function ponerSub(p) {
+    R.sub = p;
+    try { localStorage.setItem(GUARDA_SUB, p); } catch { /* sin almacenamiento */ }
+    if (p === "mejorar") { R.asa = null; if (R.vista === "mascara") verNormal(); }
+    pintar();
+  }
+  function pintarSub() {
+    sec.classList.toggle("max-rt-mejorando", mejorando());
+    const b = (p, ic, claveT, claveA) => el("button", { class: CLASE_SUB[R.sub === p], role: "tab",
+      "aria-selected": String(R.sub === p), "data-sub": p, onclick: () => ponerSub(p) },
+      el("span", { class: "max-rt-sub-nombre" }, icono(ic), " " + t(claveT)), el("small", {}, t(claveA)));
+    subBar.replaceChildren(b("tapar", "retoque", "app.retocar.sub.tapar", "app.retocar.sub.tapar.ayuda"),
+      b("mejorar", "grande", "app.retocar.sub.mejorar", "app.retocar.sub.mejorar.ayuda"));
+  }
+  // el lado derecho de «Mejorar»: un bloque por efecto (con su interruptor), lo que saldrá y el botón
+  function ladoMejorar() {
+    const c = cuentaMejora();
+    const interruptor = (x) => el("button", { class: "epl-mini epl-seg max-rt-interruptor" + (x.on ? " fijo" : ""), "aria-pressed": String(x.on),
+      onclick: () => { x.on = !x.on; guardar(); pintar(); } }, icono(x.on ? "check" : "x"), " " + t(x.on ? "app.retocar.mejorar.activado" : "app.retocar.mejorar.apagado"));
+    const seg = (activo, texto, accion, extra = {}) => el("button", { class: "epl-mini epl-seg" + (activo ? " fijo" : ""), "aria-pressed": String(activo),
+                                                                      onclick: accion, ...extra }, texto);
+    const sr = el("div", { class: "max-rt-bloque max-rt-efecto" + (R.sr.on ? "" : " apagado") },
+      el("div", { class: "max-rt-etiqueta" }, t("app.retocar.mejorar.sr"), info("app.retocar.mejorar.sr.ayuda"), interruptor(R.sr)),
+      el("div", { class: "max-rt-sub-et" }, t("app.retocar.mejorar.sr.escala")),
+      el("div", { class: "max-rt-fila", role: "group" }, ...ESCALAS.map((e) => {
+        const cabe = cabeEscala(e), [w2, h2] = R.info ? tamanoSR(R.info.ancho, R.info.alto, e) : [0, 0];
+        return seg(R.sr.escala === e, "×" + num(e, e % 1 ? 1 : 0), () => { R.sr.escala = e; guardar(); pintar(); },
+                   { disabled: !R.sr.on || !cabe, title: t(cabe ? "app.retocar.mejorar.sr.tamano_corto" : "app.retocar.mejorar.sr.no_cabe", { w: w2, h: h2 }) });
+      })),
+      el("div", { class: "max-rt-sub-et" }, t("app.retocar.mejorar.sr.calidad")),
+      el("div", { class: "max-rt-fila", role: "group" }, ...Object.entries(CALIDADES_SR).map(([q, clave]) =>
+        seg(R.sr.calidad === q, t(clave), () => { R.sr.calidad = q; guardar(); pintar(); }, { disabled: !R.sr.on }))),
+      c && R.sr.on ? el("div", { class: "max-rt-resultado" }, t("app.retocar.mejorar.sr.tamano", { a: c.w, b: c.h, c: c.w2, d: c.h2 })) : null);
+    const hdr = el("div", { class: "max-rt-bloque max-rt-efecto" + (R.hdr.on ? "" : " apagado") },
+      el("div", { class: "max-rt-etiqueta" }, t("app.retocar.mejorar.hdr"), info("app.retocar.mejorar.hdr.ayuda"), interruptor(R.hdr)),
+      el("div", { class: "max-rt-sub-et" }, t("app.retocar.mejorar.hdr.brillo")),
+      el("div", { class: "max-rt-fila", role: "group" }, ...NITS.map((n) =>
+        seg(R.hdr.nits === n, t("app.retocar.mejorar.hdr.nits", { n }), () => { R.hdr.nits = n; guardar(); pintar(); }, { disabled: !R.hdr.on }))),
+      R.hdr.on ? el("div", { class: "epl-ayuda" }, t("app.retocar.mejorar.hdr.aviso")) : null);
+    const nada = !R.sr.on && !R.hdr.on;
+    return [sr, hdr,
+      c ? el("div", { class: "max-rt-tramo-info max-rt-pastilla" }, el("b", {}, t("app.retocar.mejorar.todo", { s: num(R.info.duracion, 1), f: c.f })),
+            el("small", {}, nada ? t("app.retocar.mejorar.falta") : t("app.retocar.mejorar.estimado", { s: c.s }))) : null,
+      el("div", { class: "max-rt-fila max-rt-final" },
+        el("button", { class: "max-generar max-rt-boton", disabled: !R.info || nada, title: t("app.retocar.mejorar.boton.tooltip"), onclick: mejorar },
+          icono("grande"), " " + t("app.retocar.mejorar.boton")))].filter(Boolean);
+  }
+
   /* la cola cambió (app.js la mira cada 2 s): el avance del último retoque encolado desde aquí y, al terminar uno, el video
    * completo nuevo en la línea de tiempo (así los retoques se encadenan) */
   function alCambiarCola(cola) {
     const x = R.trabajo && cola.trabajos.find((y) => y.id === R.trabajo);
     if (!x) return;
     const antes = R.avance?.estado;
+    R.avanceTipo = x.tipo;
     R.avance = { estado: x.estado === "hecho" ? "listo" : ["error", "cancelado", "interrumpido"].includes(x.estado) ? "error"
                  : x.estado === "corriendo" ? "generando" : "en_cola", avance: x.avance || 0, mensaje: x.mensaje || "", segundos: x.segundos,
                  paso: x.paso, pasos: x.pasos, video: x.video };
     if (R.avance.estado === "listo" && antes !== "listo") {
       alTerminar?.();
       cargar(x.video, { mantener: true });
-      avisar(t("app.retocar.listo_aviso", { video: x.video }), "bien");
+      avisar(t(x.tipo === "mejorar" ? "app.retocar.mejorar.listo_aviso" : "app.retocar.listo_aviso", { video: x.video }), "bien");
     }
     pintarAvance();
   }
@@ -545,7 +643,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     if (!a) return avanceEl.replaceChildren();
     const seg = num(a.segundos || 0, 0);
     const texto = a.estado === "error" ? t("app.avance.error", { mensaje: a.mensaje || "" })
-      : a.estado === "listo" ? t("app.retocar.listo", { s: seg })
+      : a.estado === "listo" ? t(R.avanceTipo === "mejorar" ? "app.retocar.mejorar.listo" : "app.retocar.listo", { s: seg })
       : a.paso && a.pasos ? t("app.avance.paso", { paso: a.paso, pasos: a.pasos, s: seg, nodo: a.nodo || "" })
       : t(a.estado === "generando" ? "app.avance.generando" : "app.avance.en_cola", { s: seg });
     const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.estado === "listo" ? 1 : a.avance || 0) * 100) + "%" } }));
@@ -620,6 +718,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     const [w, h] = R.info ? [R.info.ancho, R.info.alto] : [16, 9];
     marco.style.aspectRatio = `${w} / ${h}`;
     marco.style.width = `min(100%, calc(62vh * ${w} / ${h}))`;   // cabe a lo ancho y a lo alto sin deformarse
+    pintarSub();
     pintarVacio();
     pintarTransporte();
     pintarVer();
@@ -629,6 +728,10 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     pintarRect();
     pintarBajo();
     pintarAvance();
+    if (mejorando()) {
+      lado.replaceChildren(...ladoMejorar(), ...(R.error ? [el("div", { class: "max-rt-error" }, R.error)] : []), avanceEl);
+      return;
+    }
     const ocupado = enMarcha();
     const modoBoton = (m, claveT) => el("button", { class: "epl-mini epl-seg" + (R.modo === m ? " fijo" : ""), disabled: ocupado,
       onclick: () => { R.modo = m; guardar(); pintar(); } }, t(claveT));

@@ -411,6 +411,14 @@ body.tema-casete .max-rt-pestana:hover{border-color:var(--k-linea2);color:var(--
 body.tema-casete .max-rt-pestana.activa{background:var(--k-crema);border-color:var(--k-crema);color:var(--k-tinta)}
 body.tema-casete .max-rt-pestana-nombre{font:800 20px/1 var(--k-titulo);letter-spacing:.04em;text-transform:uppercase}
 body.tema-casete .max-rt-pestana small{font:600 13px/1.2 var(--k-rotulo);letter-spacing:.02em}
+body.tema-casete .max-rt-sub{border-bottom-color:var(--k-linea)}
+body.tema-casete .max-rt-sub-b{color:var(--k-suave)}body.tema-casete .max-rt-sub-b:hover{color:var(--k-texto)}
+body.tema-casete .max-rt-sub-b.activa{color:var(--k-crema);border-bottom-color:var(--k-crema)}
+body.tema-casete .max-rt-sub-nombre{font:800 16px/1 var(--k-titulo);letter-spacing:.04em;text-transform:uppercase}
+body.tema-casete .max-rt-sub-b small{font:600 12px/1.2 var(--k-rotulo)}
+body.tema-casete .max-rt-efecto{padding:12px 14px;border:1px solid var(--k-linea);border-radius:8px;background:var(--k-tinta2)}
+body.tema-casete .max-rt-sub-et{font:600 12px var(--k-rotulo);color:var(--k-suave);opacity:1}
+body.tema-casete .max-rt-resultado{font-family:var(--k-mono);color:var(--k-crema)}
 body.tema-casete .max-ex-orig{background:#5A3A22 !important}
 body.tema-casete .max-ex-solape{background:rgba(246,234,210,.35) !important;border:2px solid var(--k-crema) !important;border-radius:4px}
 body.tema-casete .max-ex-nuevo{background:rgba(255,62,138,.28) !important;border:2px dashed var(--k-rosa) !important;border-radius:4px}

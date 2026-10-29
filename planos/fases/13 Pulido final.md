@@ -89,3 +89,12 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - **Extender (P1):** el mismo transporte; primero «Cuánto se alarga» (− / + violeta y atajos), luego qué pasa, audio y referencias; «Más opciones» plegado.
 - Guía del agente (`1_mapa.md`, `3_organizar.md`) al día. Comprobado en el navegador aparte a 1440 y 2548; `pruebas.py` sale TODO BIEN.
 
+## 8 · Mejorar con NVIDIA RTX: Super Resolution y HDR ✅ (29 oct)
+
+- **Los nodos:** `Nvidia_RTX_Nodes_ComfyUI` actualizado de 0.1.3 a 0.2.1 y `nvidia-vfx` de 0.1 a 0.2 (con permiso de Jonathan). Trae Super Resolution, RTX Video HDR (`RTXTrueHDR`) y Frame Generation.
+- **Probados en la 3060** con `chica_pasto_cielo_00008` (124 fotogramas, 1376 × 800): Super Resolution ×2 en 16 s, HDR en 6 s y los dos en 24 s ✅. Frame Generation falla (`NvVFX_Load failed -1999`): solo va en RTX 40 o más nuevas, así que no se ofrece.
+- **Decisión de Jonathan:** van en Retocar › Inpainting/detalle, con dos pestañas: «Tapar» (lo de siempre) y «Mejorar».
+- **Código:** `app/mejorar.py` (mismo contrato que retocar.py; tipo `mejorar` en la cola, fila `tipo: mejora` en el historial). En `retocar.js`, `R.sub`, `ladoMejorar()` y `mejorar()`. Límites: el lado ≤ 8192 y fotogramas × píxeles de salida ≤ 1,4 G (≈ 17 GB de RAM).
+- **Probado de punta a punta** en una app de prueba (:8310, con su propia cola): SR ×2 + HDR desde la interfaz, en 16 s; el resultado sale en 2752 × 1600 HLG de 10 bits y se carga en la línea de tiempo.
+- **Pendiente:** herramienta MCP `mejorar_video`, si Jonathan la quiere.
+

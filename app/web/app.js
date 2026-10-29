@@ -572,6 +572,8 @@ function pintarVideos() {
         el("div", {}, el("div", {}, fecha(x)), el("small", {}, x.tipo === "retoque"
           ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
           : x.tipo === "extension" ? t("app.videos.extension", { s: tr.num((x.extension?.nuevos || 0) / 24, 2), semilla: x.semilla ?? "?" })
+          : x.tipo === "mejora" ? t("app.videos.mejora", { que: [x.superres ? "×" + tr.num(x.superres.escala, x.superres.escala % 1 ? 1 : 0) : "",
+                                                                   x.hdr ? t("app.retocar.mejorar.hdr") : ""].filter(Boolean).join(" · ") })
           : t("app.videos.semilla", { semilla: x.semilla ?? "?" }))),
         el("button", { class: "max-boton max-derecha", title: t("app.videos.retocar.tooltip"), onclick: (e) => {
           e.stopPropagation();
