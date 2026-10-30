@@ -2,8 +2,9 @@
 juntar trozos de los videos de la biblioteca (y audios) en una línea de tiempo con varias pistas, como en DaVinci Resolve, y
 exportarla a un mp4 nuevo con ffmpeg. Sin GPU: corta, escala, pone cada pista de video encima de la de abajo y mezcla.
 
-  audios() -> list                    los audios que se pueden usar: ComfyUI/input y input/max_editor/audios (los subidos)
-  guardar_audio(nombre, datos) -> str  un audio subido desde el PC → «max_editor/audios/x.mp3 [input]»
+  audios() -> list                    los audios que se pueden usar: ComfyUI/input y input/max_editor/audios (subidos, con carpeta)
+  de_fuera() -> list                  los videos traídos de fuera (input/max_editor/de_fuera): solo para Edición
+  destino_subida(nombre, tipo, carpeta) dónde se guarda un audio o un video subido desde la página
   exportar(edicion, proyecto) -> (archivo, fila)   el mp4 en app/salidas (montaje_<sello>.mp4) y su fila del historial
 
 `edicion` = {lienzo: {ancho, alto} | None, pistas: [{id, tipo: video|audio, ver, oir, clips: [{fuente, ini, fin, en}]}]}
@@ -23,43 +24,66 @@ import retocar
 from generar import ErrorGenerar
 
 FPS = 24
-CARPETA_AUDIOS = "max_editor/audios"          # dentro de ComfyUI/input: los audios subidos desde la página
+CARPETA_AUDIOS = "max_editor/audios"          # dentro de ComfyUI/input: los audios subidos desde la página (y sus carpetas)
+CARPETA_FUERA = "max_editor/de_fuera"          # los videos traídos de fuera: se usan en Edición, no son de la biblioteca
 EXT_AUDIO = (".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".opus")
+EXT_VIDEO = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
 MAX_CLIPS = 200
 MAX_DURACION = 15 * 60                         # s: una edición de más de 15 min no es lo que hace esta app
 
 
-def audios() -> list[dict]:
-    """Los audios de ComfyUI/input (arriba del todo y los subidos aquí), lo más nuevo primero."""
+def _limpio(texto: str, largo: int = 80) -> str:
+    return re.sub(r"[^\w.-]+", "_", texto or "").strip("._")[:largo]
+
+
+def _archivos(carpeta: str, extensiones: tuple, hondo: bool) -> list[tuple[str, str]]:
+    """(ruta relativa a ComfyUI/input, subcarpeta) de los archivos con esas extensiones en input/<carpeta> (y sus subcarpetas)."""
     base = os.path.join(retocar.comfyui_dir(), "input")
     out = []
-    for carpeta in ("", CARPETA_AUDIOS):
-        d = os.path.join(base, carpeta)
-        try:
-            nombres = os.listdir(d)
-        except OSError:
-            continue
+    for raiz, dirs, nombres in os.walk(os.path.join(base, carpeta)):
+        sub = os.path.relpath(raiz, os.path.join(base, carpeta))
+        if not hondo:
+            dirs[:] = []
         for n in nombres:
-            ruta = os.path.join(d, n)
-            if n.lower().endswith(EXT_AUDIO) and os.path.isfile(ruta):
-                rel = f"{carpeta}/{n}" if carpeta else n
-                out.append({"fuente": f"{rel} [input]", "nombre": n, "fecha": os.path.getmtime(ruta)})
+            if n.lower().endswith(extensiones):
+                out.append((os.path.relpath(os.path.join(raiz, n), base), "" if sub == "." else sub))
+    return out
+
+
+def audios() -> list[dict]:
+    """Los audios de ComfyUI/input (arriba del todo) y los subidos aquí, con su carpeta («» = sueltos), lo más nuevo primero."""
+    base = os.path.join(retocar.comfyui_dir(), "input")
+    filas = [(r, "") for r, _ in _archivos("", EXT_AUDIO, False)] + _archivos(CARPETA_AUDIOS, EXT_AUDIO, True)
+    out = [{"fuente": f"{r} [input]", "nombre": os.path.basename(r), "carpeta": sub, "fecha": os.path.getmtime(os.path.join(base, r))}
+           for r, sub in filas]
     return sorted(out, key=lambda x: -x["fecha"])
 
 
-def guardar_audio(nombre: str, datos: bytes) -> str:
-    base, ext = os.path.splitext(os.path.basename(nombre or "audio"))
-    if ext.lower() not in EXT_AUDIO:
-        raise ErrorGenerar(f"«{nombre}» no es un audio ({', '.join(EXT_AUDIO)})")
-    limpio = re.sub(r"[^\w.-]+", "_", base)[:80] or "audio"
-    d = os.path.join(retocar.comfyui_dir(), "input", CARPETA_AUDIOS)
+def de_fuera() -> list[dict]:
+    """Los videos traídos de fuera (input/max_editor/de_fuera), lo más nuevo primero."""
+    base = os.path.join(retocar.comfyui_dir(), "input")
+    out = [{"fuente": f"{r} [input]", "nombre": os.path.basename(r), "fecha": os.path.getmtime(os.path.join(base, r))}
+           for r, _ in _archivos(CARPETA_FUERA, EXT_VIDEO, False)]
+    return sorted(out, key=lambda x: -x["fecha"])
+
+
+def destino_subida(nombre: str, tipo: str, carpeta: str = "") -> tuple[str, str]:
+    """Dónde se guarda un archivo subido: (ruta en disco, fuente «… [input]»). Sin pisar otro con el mismo nombre.
+    tipo «audio» va a input/max_editor/audios[/<carpeta>]; «video», a input/max_editor/de_fuera."""
+    base_n, ext = os.path.splitext(os.path.basename(nombre or tipo))
+    exts = EXT_AUDIO if tipo == "audio" else EXT_VIDEO
+    if ext.lower() not in exts:
+        raise ErrorGenerar(f"«{nombre}» no es un {'audio' if tipo == 'audio' else 'video'} ({', '.join(exts)})")
+    rel = CARPETA_AUDIOS if tipo == "audio" else CARPETA_FUERA
+    if tipo == "audio" and _limpio(carpeta, 60):
+        rel += "/" + _limpio(carpeta, 60)
+    d = os.path.join(retocar.comfyui_dir(), "input", rel)
     os.makedirs(d, exist_ok=True)
+    limpio = _limpio(base_n) or tipo
     archivo, n = f"{limpio}{ext.lower()}", 2
     while os.path.exists(os.path.join(d, archivo)):
         archivo, n = f"{limpio}_{n}{ext.lower()}", n + 1
-    with open(os.path.join(d, archivo), "wb") as f:
-        f.write(datos)
-    return f"{CARPETA_AUDIOS}/{archivo} [input]"
+    return os.path.join(d, archivo), f"{rel}/{archivo} [input]"
 
 
 def _tiene_audio(ruta: str) -> bool:

@@ -7,7 +7,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
   /app/cola, /app/cola/<id>/<acción>, /app/cola/limpiar, /app/cola/pausar   la cola de trabajos (cola.py)
   /app/retocar, /app/retocar_mascara, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
-  /app/edicion/<proyecto>, /app/edicion_audios, /app/edicion_audio, /app/edicion_exportar   Edición (edicion.py): juntar clips
+  /app/edicion/<proyecto>, /app/edicion_audios, /app/edicion_de_fuera, /app/edicion_subir, /app/edicion_exportar   Edición (edicion.py): juntar clips
 Arranque: app/arrancar.sh (o app/.venv/bin/python app/servidor.py)  →  http://127.0.0.1:8300
 Configuración: config.json, encima config.local.json (no va a git) y encima las variables MAX_EDITOR_<CLAVE>."""
 import asyncio
@@ -428,6 +428,12 @@ async def miniatura(peticion):
         except Exception:
             raise web.HTTPNotFound()
         nombre, ancho = "ref_" + re.sub(r"[^\w-]+", "_", q["refmod"])[:120], 160
+    elif q.get("fuente"):                                    # un video de ComfyUI/input («… [input]»: traído de fuera)
+        try:
+            origen = retocar().ruta_video(q["fuente"])
+        except Exception:
+            raise web.HTTPNotFound()
+        nombre, ancho = "in_" + re.sub(r"[^\w-]+", "_", q["fuente"])[:120], 480
     else:
         origen = archivo_dentro(SALIDAS, os.path.basename(q.get("video", "")))
         nombre, ancho = os.path.basename(origen or ""), 480
@@ -536,21 +542,33 @@ async def edicion_audios(peticion):
     return web.json_response(await asyncio.get_running_loop().run_in_executor(None, edicion_mod().audios))
 
 
-async def edicion_audio(peticion):
-    """POST /app/edicion_audio (multipart «archivo»): un audio del PC a ComfyUI/input/max_editor/audios."""
+async def edicion_de_fuera(peticion):
+    return web.json_response(await asyncio.get_running_loop().run_in_executor(None, edicion_mod().de_fuera))
+
+
+async def edicion_subir(peticion):
+    """POST /app/edicion_subir (multipart: «tipo» audio|video, «carpeta» opcional y luego «archivo»): un audio (también los
+    de una carpeta elegida, uno por petición con su carpeta) o un video traído de fuera. Se escribe por trozos (un video
+    puede pesar mucho)."""
     m = edicion_mod()
     lector = await peticion.multipart()
-    parte = await lector.next()
-    while parte is not None and parte.name != "archivo":
+    campos = {}
+    while True:
         parte = await lector.next()
-    if parte is None:
-        return error("app.error.sin_valores", peticion)
-    datos = await parte.read(decode=False)
-    try:
-        fuente = m.guardar_audio(parte.filename or "audio", datos)
-    except m.ErrorGenerar as exc:
-        return web.json_response({"error": str(exc)}, status=400)
-    return web.json_response({"fuente": fuente, "nombre": os.path.basename(fuente[:-len(" [input]")])})
+        if parte is None:
+            return error("app.error.sin_valores", peticion)
+        if parte.name != "archivo":
+            campos[parte.name] = (await parte.text())[:200]
+            continue
+        try:
+            ruta, fuente = m.destino_subida(parte.filename or "", campos.get("tipo", "audio"), campos.get("carpeta", ""))
+        except m.ErrorGenerar as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        with open(ruta + ".tmp", "wb") as fh:
+            while trozo := await parte.read_chunk(1 << 20):
+                fh.write(trozo)
+        os.replace(ruta + ".tmp", ruta)
+        return web.json_response({"fuente": fuente, "nombre": os.path.basename(ruta)})
 
 
 async def edicion_exportar(peticion):
@@ -770,7 +788,8 @@ def crear_app():
     app.router.add_get("/app/edicion/{nombre}", leer_edicion)
     app.router.add_post("/app/edicion/{nombre}", guardar_edicion)
     app.router.add_get("/app/edicion_audios", edicion_audios)
-    app.router.add_post("/app/edicion_audio", edicion_audio)
+    app.router.add_get("/app/edicion_de_fuera", edicion_de_fuera)
+    app.router.add_post("/app/edicion_subir", edicion_subir)
     app.router.add_post("/app/edicion_exportar", edicion_exportar)
     return app
 

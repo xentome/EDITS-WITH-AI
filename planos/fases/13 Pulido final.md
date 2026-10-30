@@ -175,4 +175,5 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
   3. Otra pestaña de la app (no el agente): la que se está usando (visible y con el foco) no se recarga; si choca al guardar, gana ella. Lo del agente sigue mandando.
 - `arrancar.sh --reiniciar` ya no abre otra pestaña si la app estaba corriendo (cada reinicio dejaba una más).
 - Comprobado: una pestaña escribiendo 25 s → la misma ventana, sin recargas; dos pestañas quietas 15 s → la versión no se mueve.
+- (29 oct) Edición: «Carpeta de audios» (el selector de carpetas del navegador: igual en el PC que en un pod; sube sus audios a `input/max_editor/audios/<carpeta>/` y salen como «Audios · <carpeta>») y «Subir video» (a `input/max_editor/de_fuera/`, grupo «Traídos de fuera» con sello «de fuera»; solo para Edición, no entra en el historial ni en Videos). Un solo `POST /app/edicion_subir` (multipart, escrito por trozos) y `GET /app/edicion_de_fuera`; `/app/miniatura?fuente=` para los de input. Probado con un video y una carpeta con dos mp3 y un .txt (se ignora).
 

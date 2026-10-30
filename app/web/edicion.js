@@ -17,6 +17,9 @@ const ICONO_VER = { true: "ojo", false: "ojono" }, ICONO_OIR = { true: "sonido",
 const LETRA_PISTA = { video: "V", audio: "A" };
 const TECLA = { mover: "A", cuchilla: "B", iman: "N" };
 const CARPETA_AUDIOS = "\u0000audios";                  // la carpeta «Audios» de la biblioteca (no es un proyecto)
+const CARPETA_FUERA = "\u0000fuera";                    // «Traídos de fuera»: videos subidos solo para Edición
+const TIPO_SUBIDA = { video: "video", audio: "audio", carpeta: "audio" };   // qué guarda el servidor (edicion.destino_subida)
+const EXT_AUDIO = /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i;
 
 export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const E = { zoom: 90, t: 0, tocando: false, herramienta: "mover", iman: true, elegidos: new Set(), imanX: null,
@@ -35,7 +38,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     return `${String(Math.floor(ss / 60)).padStart(2, "0")}:${String(ss % 60).padStart(2, "0")}:${String(f % FPS).padStart(2, "0")}`; };
   const pistaDe = (id) => E.pistas.find((p) => p.id === id);
   const clipDe = (id) => { for (const p of E.pistas) { const c = p.clips.find((x) => x.id === id); if (c) return [p, c]; } return [null, null]; };
-  const srcDe = (f) => f.tipo === "video" ? "/app/salidas/" + encodeURIComponent(f.fuente) : "/app/video?video=" + encodeURIComponent(f.fuente);
+  // un video de la biblioteca vive en app/salidas; un audio o un video traído de fuera, en ComfyUI/input («… [input]»)
+  const srcDe = (f) => /\[(input|output)\]$/.test(f.fuente) ? "/app/video?video=" + encodeURIComponent(f.fuente) : "/app/salidas/" + encodeURIComponent(f.fuente);
 
   // ---------------------------------------------------------------- guardar (solo, por proyecto)
   let temporizador = null;
@@ -62,13 +66,16 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
 
   // ---------------------------------------------------------------- la biblioteca: los videos (con su duración) y los audios
   async function cargarBiblioteca() {
-    let videos = [], audios = [];
-    try { [videos, audios] = await Promise.all([pedir("/app/videos"), pedir("/app/edicion_audios")]); } catch { /* sin servidor */ }
+    let videos = [], audios = [], fuera = [];
+    try { [videos, audios, fuera] = await Promise.all([pedir("/app/videos"), pedir("/app/edicion_audios"), pedir("/app/edicion_de_fuera")]); }
+    catch { /* sin servidor */ }
     const antes = new Map(E.fuentes.map((f) => [f.fuente, f]));
     E.fuentes = [
+      ...fuera.map((v) => antes.get(v.fuente) || { fuente: v.fuente, tipo: "video", fuera: true, nombre: v.nombre.replace(/\.\w+$/, ""),
+                                                   mini: "/app/miniatura?fuente=" + encodeURIComponent(v.fuente), dur: 0 }),
       ...videos.map((v) => antes.get(v.archivo) || { fuente: v.archivo, tipo: "video", nombre: v.archivo.replace(/\.mp4$/, ""), proyecto: v.proyecto || "",
                                                      mini: "/app/miniatura?video=" + encodeURIComponent(v.archivo), dur: 0 }),
-      ...audios.map((a) => antes.get(a.fuente) || { fuente: a.fuente, tipo: "audio", nombre: a.nombre, dur: 0 })];
+      ...audios.map((a) => antes.get(a.fuente) || { fuente: a.fuente, tipo: "audio", nombre: a.nombre, carpeta: a.carpeta || "", dur: 0 })];
     pintarBin();
   }
   // la duración (y el tamaño) de un video, una vez; la de un audio, con su metadato
@@ -185,13 +192,18 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const lt = el("div", { class: "max-ed-lt" });
   const info = el("div", { class: "max-ed-info" });
   const pie = el("div", { class: "max-ed-pie" });
-  const subir = el("input", { type: "file", accept: "audio/*", multiple: true, style: { display: "none" }, onchange: (e) => subirAudios(e) });
+  const subir = el("input", { type: "file", accept: "audio/*", multiple: true, style: { display: "none" }, onchange: (e) => subirDe(e, "audio") });
+  const subirVideo = el("input", { type: "file", accept: "video/*", multiple: true, style: { display: "none" }, onchange: (e) => subirDe(e, "video") });
+  // una carpeta entera (la del navegador: funciona igual en tu PC y en un pod); se suben sus audios con el nombre de la carpeta
+  const subirCarpeta = el("input", { type: "file", webkitdirectory: true, multiple: true, style: { display: "none" }, onchange: (e) => subirDe(e, "carpeta") });
   const boton = (ic, clave, tooltip, accion, extra = {}) => el("button", { class: "max-boton", title: t(tooltip), onclick: accion, ...extra }, icono(ic), clave ? " " + t(clave) : "");
   sec.append(
     el("div", { class: "epl-tit max-ed-tit" }, el("span", {}, t("app.edicion.titulo")), el("span", { class: "epl-ayuda" }, t("app.edicion.ayuda"))),
     el("div", { class: "max-ed-arriba" },
       el("div", { class: "max-ed-panel" }, el("div", { class: "max-ed-cab" }, el("b", {}, t("app.edicion.biblioteca")), el("span", { class: "max-derecha" }),
-        boton("musica", "app.edicion.cargar_audio", "app.edicion.cargar_audio.tooltip", () => subir.click()), subir), bin),
+        boton("video", "app.edicion.subir_video", "app.edicion.subir_video.tooltip", () => subirVideo.click()),
+        boton("carpeta", "app.edicion.carpeta_audios", "app.edicion.carpeta_audios.tooltip", () => subirCarpeta.click()),
+        boton("musica", "app.edicion.cargar_audio", "app.edicion.cargar_audio.tooltip", () => subir.click()), subir, subirVideo, subirCarpeta), bin),
       el("div", { class: "max-ed-panel" }, el("div", { class: "max-ed-cab" }, el("b", {}, t("app.edicion.visor")), el("span", { class: "max-ed-nota" }, t("app.edicion.visor.nota"))),
         el("div", { class: "max-ed-visor" }, lienzo),
         el("div", { class: "max-ed-transporte" },
@@ -203,17 +215,21 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   function pintarBin() {
     const grupos = new Map();
     for (const f of E.fuentes) {
-      const k = f.tipo === "audio" ? CARPETA_AUDIOS : f.proyecto;
+      const k = f.fuera ? CARPETA_FUERA : f.tipo === "audio" ? CARPETA_AUDIOS + (f.carpeta || "") : f.proyecto;
       if (!grupos.has(k)) grupos.set(k, []);
       grupos.get(k).push(f);
     }
-    const nombre = (k) => k === CARPETA_AUDIOS ? t("app.edicion.audios") : k || t("app.biblio.sin_proyecto");
+    const nombre = (k) => k === CARPETA_FUERA ? t("app.edicion.de_fuera")
+      : k === CARPETA_AUDIOS ? t("app.edicion.audios")
+      : k.startsWith(CARPETA_AUDIOS) ? t("app.edicion.audios_de", { carpeta: k.slice(CARPETA_AUDIOS.length) })
+      : k || t("app.biblio.sin_proyecto");
     bin.replaceChildren(...(E.fuentes.length ? [...grupos.entries()].flatMap(([k, fs]) => [
       el("div", { class: "max-ed-carpeta" }, icono("carpeta"), " " + nombre(k)),
       ...fs.map((f) => el("div", { class: "max-ed-fuente " + f.tipo, draggable: "true", title: t("app.edicion.fuente.tooltip"),
                                    ondragstart: (e) => e.dataTransfer.setData("text/max-fuente", f.fuente),
                                    ondblclick: () => anadir(f, null, Math.max(0, ...(E.pistas.find((p) => p.tipo === f.tipo && (f.tipo === "audio" || p.id === "V1"))?.clips || []).map(finDe))) },
         f.tipo === "video" ? el("img", { src: f.mini, alt: "", loading: "lazy", draggable: "false" }) : icono("musica"),
+        f.fuera ? el("em", { class: "max-ed-fuera", title: t("app.edicion.de_fuera.tooltip") }, t("app.edicion.de_fuera.sello")) : null,
         el("span", {}, f.dur ? t("app.edicion.fuente.nombre", { s: num(f.dur, 1), nombre: f.nombre }) : f.nombre)))]) : [el("span", { class: "epl-ayuda" }, t("app.edicion.biblioteca.vacia"))]));
   }
   function pintarHerramientas() {
@@ -390,18 +406,28 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   }, true);
 
   // ---------------------------------------------------------------- subir audios y exportar
-  async function subirAudios(e) {
-    const archivos = [...e.target.files];
+  /* subir desde el PC: audios sueltos, los audios de una carpeta (con su nombre) o videos traídos de fuera. Uno por petición,
+   * así un video grande no bloquea a los demás y se ve el avance */
+  async function subirDe(e, como) {
+    let archivos = [...e.target.files];
     e.target.value = "";
-    for (const f of archivos) {
+    const carpeta = como === "carpeta" ? (archivos[0]?.webkitRelativePath || "").split("/")[0] : "";
+    if (como === "carpeta") archivos = archivos.filter((f) => EXT_AUDIO.test(f.name));
+    if (!archivos.length) return avisar(t(como === "carpeta" ? "app.edicion.carpeta_vacia" : "app.edicion.nada_subido"), "mal");
+    let bien = 0;
+    for (const [i, f] of archivos.entries()) {
+      avisar(t("app.edicion.subiendo", { i: i + 1, n: archivos.length, nombre: f.name }), "");
       const fd = new FormData();
+      fd.append("tipo", TIPO_SUBIDA[como]);
+      fd.append("carpeta", carpeta);
       fd.append("archivo", f, f.name);
       try {
-        const r = await fetch("/app/edicion_audio", { method: "POST", body: fd }).then((x) => x.json());
+        const r = await fetch("/app/edicion_subir", { method: "POST", body: fd }).then((x) => x.json());
         if (r.error) throw new Error(r.error);
-        avisar(t("app.edicion.audio_subido", { nombre: r.nombre }), "bien");
+        bien++;
       } catch (err) { avisar(err.message, "mal"); }
     }
+    if (bien) avisar(t(como === "video" ? "app.edicion.videos_subidos" : "app.edicion.audios_subidos", { n: bien, carpeta }), "bien");
     await cargarBiblioteca();
   }
   async function exportar() {
