@@ -548,7 +548,7 @@ async def guardar_edicion(peticion):
         rev = 0
     autor = "agente" if datos.get("autor") == "agente" else "pagina"
     with open(ruta + ".tmp", "w", encoding="utf-8") as fh:
-        json.dump({"pistas": datos["pistas"], "lienzo": datos.get("lienzo"), "zoom": datos.get("zoom"), "rev": rev + 1, "autor": autor,
+        json.dump({"pistas": datos["pistas"], "lienzo": datos.get("lienzo"), "zoom": datos.get("zoom"), "rango": datos.get("rango"), "rev": rev + 1, "autor": autor,
                    "guardado": time.strftime("%Y-%m-%dT%H:%M:%S")}, fh, ensure_ascii=False)
     os.replace(ruta + ".tmp", ruta)
     return web.json_response({"ok": True, "rev": rev + 1, "autor": autor})

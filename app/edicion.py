@@ -8,7 +8,8 @@ exportarla a un mp4 nuevo con ffmpeg. Sin GPU: corta, escala, pone cada pista de
   proxy(fuente) -> ruta               la copia ligera de un video para el visor (app/salidas/proxies)
   exportar(edicion, proyecto) -> (archivo, fila)   el mp4 en app/salidas (montaje_<sello>.mp4) y su fila del historial
 
-`edicion` = {lienzo: {ancho, alto} | None, pistas: [{id, tipo: video|audio, ver, oir, clips: [{fuente, ini, fin, en}]}]}
+`edicion` = {lienzo: {ancho, alto} | None, rango: {desde, hasta} | None, pistas: [{id, tipo: video|audio, ver, oir, clips: [{fuente, ini, fin, en}]}]}
+  - rango: solo se exporta de «desde» a «hasta» (s de la línea de tiempo; sin él, todo);
   - las pistas van de arriba a abajo (como se ven): la de video de más arriba tapa a las de abajo;
   - fuente: «edit_….mp4» (app/salidas) o «x [input]» (ComfyUI/input), como en retocar.ruta_video;
   - ini/fin: el trozo del original que se usa (s); en: dónde empieza en la línea de tiempo (s). Todo a 24 fps."""
@@ -166,6 +167,23 @@ def plan(edicion: dict) -> dict:
                 lienzo = (f["info"]["ancho"], f["info"]["alto"])
             clips.append({"tipo": tipo, "orden": orden, "ver": p.get("ver", True) is not False, "oir": p.get("oir", True) is not False,
                           "ruta": f["ruta"], "audio": f["audio"], "ini": ini, "fin": fin, "en": en, "fuente": fuente})
+    # (29 oct) inicio y final de lo que se exporta (I y O en la página): cada clip se recorta a [desde, hasta) y todo se corre
+    # para que «desde» sea el segundo 0
+    rango = (edicion or {}).get("rango") or {}
+    if rango.get("desde") is not None or rango.get("hasta") is not None:
+        desde = _num(rango.get("desde") or 0, "desde")
+        hasta = _num(rango["hasta"], "hasta") if rango.get("hasta") is not None else max(c["en"] + c["fin"] - c["ini"] for c in clips)
+        if hasta - desde < 1 / FPS:
+            raise ErrorGenerar("el final tiene que ir después del inicio")
+        recortados = []
+        for c in clips:
+            a, b = max(c["en"], desde), min(c["en"] + c["fin"] - c["ini"], hasta)
+            if b - a < 1 / FPS:
+                continue
+            recortados.append({**c, "ini": c["ini"] + (a - c["en"]), "fin": c["ini"] + (b - c["en"]), "en": a - desde})
+        clips = recortados
+        if not clips:
+            raise ErrorGenerar("entre el inicio y el final no hay ningún clip")
     if not clips:
         raise ErrorGenerar("la línea de tiempo está vacía: arrastra algún video de la biblioteca")
     if len(clips) > MAX_CLIPS:

@@ -15,14 +15,14 @@ const CLASE_HERR = { true: "max-boton max-ed-herr activa", false: "max-boton max
 const CLASE_CUERPO = { true: "max-ed-cuerpo cuchilla", false: "max-ed-cuerpo" };
 const ICONO_VER = { true: "ojo", false: "ojono" }, ICONO_OIR = { true: "sonido", false: "mudo" }, ICONO_TOCAR = { true: "pausa", false: "play" };
 const LETRA_PISTA = { video: "V", audio: "A" };
-const TECLA = { mover: "A", cuchilla: "B", iman: "N" };
+const TECLA = { mover: "A", cuchilla: "B", iman: "N", entrada: "I", salida: "O", quitar: "Alt+X" };
 const CARPETA_AUDIOS = "\u0000audios";                  // la carpeta «Audios» de la biblioteca (no es un proyecto)
 const CARPETA_FUERA = "\u0000fuera";                    // «Traídos de fuera»: videos subidos solo para Edición
 const TIPO_SUBIDA = { video: "video", audio: "audio", carpeta: "audio" };   // qué guarda el servidor (edicion.destino_subida)
 const EXT_AUDIO = /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i;
 
 export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
-  const E = { zoom: 90, t: 0, tocando: false, herramienta: "mover", iman: true, elegidos: new Set(), imanX: null, rev: 0, delAgente: false,
+  const E = { zoom: 90, t: 0, tocando: false, herramienta: "mover", iman: true, elegidos: new Set(), imanX: null, rev: 0, delAgente: false, rango: { desde: null, hasta: null },
               pistas: pistasNuevas(), fuentes: [], cargado: null, exportando: false, aviso: "" };
   let idClip = 1;
   function pistasNuevas() {
@@ -52,7 +52,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
         clips: p.clips.map((c) => ({ fuente: c.fuente, nombre: c.nombre, tipo: c.tipo, dur: c.dur, ini: c.ini, fin: c.fin, en: c.en })) }));
       enCamino++;
       try {
-        const r = await pedir("/app/edicion/" + encodeURIComponent(proyecto), { pistas, zoom: E.zoom, lienzo: E.lienzo || null, autor: "pagina" });
+        const r = await pedir("/app/edicion/" + encodeURIComponent(proyecto), { pistas, zoom: E.zoom, lienzo: E.lienzo || null, rango: E.rango, autor: "pagina" });
         if (proyecto === A.proyecto) E.rev = Math.max(E.rev, r.rev || 0);
       } catch { /* sin servidor: se guarda en el siguiente cambio */ } finally { enCamino--; }
     }, 700);
@@ -72,6 +72,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
       if (d.autor !== "agente" || !Array.isArray(d.pistas)) return;
       E.pistas = d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
       E.lienzo = d.lienzo || E.lienzo;
+      E.rango = { desde: d.rango?.desde ?? null, hasta: d.rango?.hasta ?? null };
       if (+d.zoom) E.zoom = +d.zoom;
       E.elegidos.clear();
       E.delAgente = true;
@@ -86,6 +87,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     E.pistas = Array.isArray(d.pistas) && d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
     E.zoom = +d.zoom || 90;
     E.lienzo = d.lienzo || null;
+    E.rango = { desde: d.rango?.desde ?? null, hasta: d.rango?.hasta ?? null };
     E.rev = +d.rev || 0;
     E.delAgente = d.autor === "agente";
     E.cargado = A.proyecto;
@@ -308,7 +310,29 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
       el("button", { class: "max-boton max-ed-zoom", title: t("app.edicion.alejar.tooltip"), onclick: () => { E.zoom = Math.max(8, E.zoom / 1.4); cambio(); } }, "−"),
       boton("mas", "", "app.edicion.acercar.tooltip", () => { E.zoom = Math.min(400, E.zoom * 1.4); cambio(); }),
       boton("capas", "app.edicion.pista_video", "app.edicion.pista_video.tooltip", () => nuevaPista("video")),
-      boton("capas", "app.edicion.pista_audio", "app.edicion.pista_audio.tooltip", () => nuevaPista("audio")));
+      boton("capas", "app.edicion.pista_audio", "app.edicion.pista_audio.tooltip", () => nuevaPista("audio")), el("span", { class: "max-ed-sep" }),
+      el("button", { class: "max-boton", title: t("app.edicion.entrada.tooltip"), onclick: () => marcar("desde") }, t("app.edicion.entrada"), el("span", { class: "max-ed-tecla" }, TECLA.entrada)),
+      el("button", { class: "max-boton", title: t("app.edicion.salida.tooltip"), onclick: () => marcar("hasta") }, t("app.edicion.salida"), el("span", { class: "max-ed-tecla" }, TECLA.salida)),
+      el("button", { class: "max-boton", title: t("app.edicion.quitar_marcas.tooltip"), disabled: !hayRango(), onclick: () => marcar(null) }, icono("x"), el("span", { class: "max-ed-tecla" }, TECLA.quitar)));
+  }
+  /* inicio y final de lo que se exporta (I y O en el cabezal, Alt+X los quita; como DaVinci). Sin final, hasta el último clip */
+  const hayRango = () => E.rango.desde !== null || E.rango.hasta !== null;
+  const rangoExport = () => ({ desde: E.rango.desde ?? 0, hasta: E.rango.hasta ?? duracion() });
+  function marcar(que) {
+    if (que === null) E.rango = { desde: null, hasta: null };
+    else {
+      E.rango[que] = aFot(E.t);
+      const { desde, hasta } = E.rango;                // si se cruzan, el otro se quita
+      if (desde !== null && hasta !== null && hasta - desde < 1 / FPS) E.rango[que === "desde" ? "hasta" : "desde"] = null;
+    }
+    cambio();
+  }
+  function zonaRango() {
+    if (!hayRango()) return [];
+    const { desde, hasta } = rangoExport(), T = total();
+    return [el("div", { class: "max-ed-fuera-rango", style: { left: 0, width: desde * E.zoom + "px" } }),
+            el("div", { class: "max-ed-rango", style: { left: desde * E.zoom + "px", width: (hasta - desde) * E.zoom + "px" } }),
+            el("div", { class: "max-ed-fuera-rango", style: { left: hasta * E.zoom + "px", width: Math.max(0, T - hasta) * E.zoom + "px" } })];
   }
   function nuevaPista(tipo) {
     const n = E.pistas.filter((p) => p.tipo === tipo).length + 1, letra = LETRA_PISTA[tipo];
@@ -331,7 +355,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     const pistas = el("div", { class: "max-ed-pistas", style: { width: ancho + "px" } },
       el("div", { class: "max-ed-regla", style: { width: ancho + "px" } }, ...marcas),
       ...E.pistas.map((p) => el("div", { class: "max-ed-pista " + p.tipo + (p.ver ? "" : " oculta"), "data-pista": p.id, style: { width: ancho + "px" } }, ...p.clips.map(clipEl))),
-      el("div", { class: "max-ed-cabezal", style: { left: E.t * E.zoom + "px" } }));
+      ...zonaRango(), el("div", { class: "max-ed-cabezal", style: { left: E.t * E.zoom + "px" } }));
     const cuerpo = el("div", { class: CLASE_CUERPO[E.herramienta === "cuchilla"] }, cabezas, pistas);
     lt.replaceChildren(cuerpo);
     cuerpo.scrollLeft = sx; cuerpo.scrollTop = sy;
@@ -354,11 +378,13 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   function pintarTransporte() { botonTocar.replaceChildren(icono(ICONO_TOCAR[E.tocando])); }
   function pintarPie() {
     const n = E.pistas.reduce((x, p) => x + p.clips.length, 0);
-    pie.replaceChildren(el("b", {}, t("app.edicion.resumen", { n, dur: tc(duracion()) })),
+    const r = hayRango() ? rangoExport() : null;
+    pie.replaceChildren(...[el("b", {}, t("app.edicion.resumen", { n, dur: tc(duracion()) })),
+      r ? el("span", { class: "max-ed-rango-txt" }, t("app.edicion.rango", { a: tc(r.desde), b: tc(r.hasta), s: num(r.hasta - r.desde, 2) })) : null,
       E.lienzo ? el("span", { class: "epl-ayuda" }, t("app.edicion.lienzo", { w: E.lienzo.ancho, h: E.lienzo.alto })) : null,
       el("span", { class: "max-derecha" }),
       el("button", { class: "max-generar max-ed-exportar", disabled: !n || E.exportando, title: t("app.edicion.exportar.tooltip"), onclick: () => exportar() },
-        icono("subir"), " " + t(E.exportando ? "app.edicion.exportando" : "app.edicion.exportar")));
+        icono("subir"), " " + t(E.exportando ? "app.edicion.exportando" : r ? "app.edicion.exportar_rango" : "app.edicion.exportar"))].filter(Boolean));   // replaceChildren escribiría «null»
   }
   function pintar() {
     if (!sec.isConnected) return;
@@ -455,9 +481,10 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   });
   // el teclado, solo con el apartado Edición a la vista y fuera de los campos de texto
   document.addEventListener("keydown", (e) => {
-    if (!activo() || e.target.closest?.("input, textarea, select, [contenteditable]") || e.altKey) return;
+    if (!activo() || e.target.closest?.("input, textarea, select, [contenteditable]")) return;
     const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
     const hecho = () => { e.preventDefault(); e.stopPropagation(); };
+    if (e.altKey) { if (e.code === "KeyX") { hecho(); marcar(null); } return; }   // Alt+X: quitar inicio y final (como DaVinci)
     if (k === " ") { hecho(); tocar(); }
     else if (k === "b" && ctrl) { hecho(); cortarCabezal(); }
     else if (ctrl) return;
@@ -468,6 +495,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     else if (k === "arrowleft") { hecho(); irA(E.t - (e.shiftKey ? 1 : 1 / FPS)); }
     else if (k === "arrowright") { hecho(); irA(E.t + (e.shiftKey ? 1 : 1 / FPS)); }
     else if (k === "home") { hecho(); irA(0); }
+    else if (k === "i") { hecho(); marcar("desde"); }
+    else if (k === "o") { hecho(); marcar("hasta"); }
     else if ("+=".includes(k)) { hecho(); E.zoom = Math.min(400, E.zoom * 1.4); cambio(); }
     else if (k === "-") { hecho(); E.zoom = Math.max(8, E.zoom / 1.4); cambio(); }
   }, true);
@@ -502,7 +531,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     try {
       await new Promise((r) => { clearTimeout(temporizador); r(); });
       const pistas = E.pistas.map((p) => ({ id: p.id, tipo: p.tipo, ver: p.ver, oir: p.oir, clips: p.clips.map((c) => ({ fuente: c.fuente, ini: c.ini, fin: c.fin, en: c.en })) }));
-      const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, edicion: { pistas, lienzo: E.lienzo } });
+      const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, edicion: { pistas, lienzo: E.lienzo, rango: hayRango() ? rangoExport() : null } });
       avisar(t("app.edicion.exportado", { archivo: r.archivo }), "bien");
       guardar();
       await alTerminar?.();

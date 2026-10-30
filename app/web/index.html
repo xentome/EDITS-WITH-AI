@@ -336,6 +336,11 @@ body .max-pop{z-index:10006}
 .max-ed-cabezal{position:absolute;top:0;bottom:0;width:2px;background:#FF7A1A;z-index:4;pointer-events:none}
 .max-ed-cabezal::before{content:"";position:absolute;top:0;left:-7px;border:8px solid transparent;border-top:10px solid #FF7A1A}
 .max-ed-iman{position:absolute;top:0;bottom:0;width:1px;background:#22E4FF;z-index:4;pointer-events:none}
+/* inicio y final de lo que se exporta: lo de dentro con un borde y una franja arriba, lo de fuera más apagado */
+.max-ed-rango{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;border-left:2px solid #F7C83A;border-right:2px solid #F7C83A;
+  background:linear-gradient(#F7C83A,#F7C83A) top/100% 6px no-repeat}
+.max-ed-fuera-rango{position:absolute;top:0;bottom:0;z-index:3;pointer-events:none;background:rgba(8,5,10,.55)}
+.max-ed-rango-txt{font:600 13px ui-monospace,monospace;color:#F7C83A}
 .max-ed-cuerpo.cuchilla .max-ed-clip{cursor:crosshair}
 .max-ed-cuerpo.cuchilla .max-ed-clip:hover::after{content:"";position:absolute;top:0;bottom:0;left:var(--corte,50%);border-left:2px solid #FF3E8A}
 .max-ed-info{padding:6px 10px;border-top:1px solid var(--max-borde);font:500 12px ui-monospace,monospace;color:var(--max-suave)}
