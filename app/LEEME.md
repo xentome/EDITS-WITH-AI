@@ -9,7 +9,7 @@
 
 ## Instalar
 
-> **Necesitas:** Linux, una GPU NVIDIA de 12 GB, un [ComfyUI](https://docs.comfy.org/installation) v0.39.0 o más nuevo que ya funcione, unos 70 GB de disco y 64 GB de RAM + swap.
+> **Necesitas:** Linux (o Windows, aún sin probar), una GPU NVIDIA de 12 GB, un [ComfyUI](https://docs.comfy.org/installation) v0.39.0 o más nuevo que ya funcione, unos 70 GB de disco y 64 GB de RAM + swap.
 > **¿No lo tienes, o no conoces ComfyUI?** Usa la **plantilla de RunPod** (abajo): lo deja todo listo y tú solo usas la app.
 
 Los tres caminos usan el mismo instalador, `app/instalar.sh`, que lee una sola lista de piezas ([instalacion/comfy-build.yaml](instalacion/comfy-build.yaml)):
@@ -26,9 +26,11 @@ Luego arranca (o reinicia) ComfyUI y ejecuta `app/arrancar.sh`. Opciones: `--mod
 
 **2. Pocos clics:** baja el repo y haz doble clic en **`Instalar MAX EDITOR.desktop`**. Se abre una terminal, lo instala todo y añade **MAX EDITOR** al menú de aplicaciones.
 
+**En Windows** (hecho sin un Windows para probarlo: si algo falla, avísanos en un issue): baja el repo en ZIP y descomprímelo, y haz doble clic en **`Instalar MAX EDITOR.bat`**. Busca tu ComfyUI (o te pregunta su carpeta), instala los nodos y pregunta antes de bajar los modelos. Luego abre ComfyUI y haz doble clic en **`Abrir MAX EDITOR.bat`**; **`Parar MAX EDITOR.bat`** la para. Hace falta el ComfyUI portable o uno instalado con git (ComfyUI Desktop aún no), Python 3.10+ (`winget install Python.Python.3.12`), Git y FFmpeg (`winget install Git.Git Gyan.FFmpeg`).
+
 **3. Con un agente de IA:** pega en Claude Code, Codex u otro el prompt de la sección «With an AI agent» del [README](../README.md#3-with-an-ai-agent). Instala, comprueba con el doctor y, al final, el agente se conecta al MCP de la app.
 
-**Requisitos y tiempos (probado):** RTX 3060 de 12 GB, 46 GB de RAM + 92 GB de swap zram, ComfyUI v0.39.0. Instalar sin modelos: ~1 min. Bajar los modelos: ~1,5 h a 100 Mb/s. Un video de 22 fotogramas a 544×960: ~3 min; 5 s a 1 MP: ~16 min. Para jueces, paso a paso: [REPRODUCE.md](../REPRODUCE.md). Alternativas más ligeras (sin probar con la app): README › «Not enough RAM, VRAM or disk».
+**Requisitos y tiempos (probado):** RTX 3060 de 12 GB, 46 GB de RAM + 92 GB de swap zram, ComfyUI v0.39.0. Instalar sin modelos: ~1 min. Bajar los modelos: ~1,5 h a 100 Mb/s. Un video de 22 fotogramas a 544×960: ~3 min; 5 s a 1 MP: ~17 min. Para jueces, paso a paso: [REPRODUCE.md](../REPRODUCE.md). Alternativas más ligeras (sin probar con la app): README › «Not enough RAM, VRAM or disk».
 
 **Sin GPU o sin ComfyUI: RunPod.** Una plantilla con ComfyUI, los nodos, los modelos y MAX EDITOR ya instalados (usa este mismo instalador con `--sin-preguntas`). Eliges una GPU de 24 GB o más, esperas unos 11 min y abres la app en el navegador. Pasos, tiempos y coste: **[RUNPOD.md](../RUNPOD.md)** (en inglés).
 

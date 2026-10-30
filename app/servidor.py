@@ -79,6 +79,9 @@ def python_comfyui():
     candidatos = [CONFIG["python_comfyui"]] if CONFIG["python_comfyui"] else []
     d = CONFIG["comfyui_dir"]
     candidatos += [os.path.join(d, x, "bin", "python") for x in (".venv", "venv")]
+    # Windows: un venv (Scripts\python.exe) o el ComfyUI portable (python_embeded junto a la carpeta ComfyUI)
+    candidatos += [os.path.join(d, x, "Scripts", "python.exe") for x in (".venv", "venv")]
+    candidatos += [os.path.join(os.path.dirname(d), "python_embeded", "python.exe")]
     candidatos += [os.path.expanduser("~/ComfyUI-CLI/.venv/bin/python"), os.path.join(os.path.dirname(d), ".venv", "bin", "python")]
     for p in candidatos:
         p = os.path.expanduser(p)

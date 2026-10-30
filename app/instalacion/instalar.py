@@ -1,6 +1,6 @@
 """MAX EDITOR: instala en tu ComfyUI lo que necesita la app, leyendo app/instalacion/comfy-build.yaml.
 
-Lo lanza app/instalar.sh (con el Python de app/.venv, que trae pyyaml). Hace, en este orden:
+Lo lanza app/instalar.sh (o, en Windows, instalar_windows.py), con el Python de app/.venv, que trae pyyaml. Hace, en este orden:
   1. mira el sistema (GPU, VRAM, RAM, disco, driver, ComfyUI y su Python) y dice si llega;
   2. pone los packs de nodos en ComfyUI/custom_nodes en su commit, sin pisar los que ya tienes (--forzar los cambia);
   3. instala las dependencias de esos packs en el Python de ComfyUI con torch, torchvision, torchaudio y numpy congelados;
@@ -30,7 +30,13 @@ BUILD = os.path.join(AQUI, "comfy-build.yaml")
 CONGELADOS = ("torch", "torchvision", "torchaudio", "numpy")      # nunca se cambian en el Python de ComfyUI
 GB = 1024 ** 3
 
+WINDOWS = sys.platform == "win32"
 ES = os.environ.get("LC_ALL", os.environ.get("LC_MESSAGES", os.environ.get("LANG", ""))).startswith("es")
+if WINDOWS and not os.environ.get("LANG"):          # Windows no tiene LANG: el idioma de su configuración regional
+    import locale
+    ES = (locale.getlocale()[0] or "").lower().startswith(("es", "spanish"))
+if hasattr(sys.stdout, "reconfigure"):                # «✓» y «…» en la consola de Windows (cp1252)
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 PROBLEMAS = []        # (texto, arreglo) de lo que falta, para el resumen final
 
 
@@ -63,6 +69,17 @@ def correr(orden, **kw):
 
 # ------------------------------------------------------------------ 1. el sistema
 def leer_meminfo():
+    if WINDOWS:                                       # RAM y archivo de paginación (lo que Windows usa como swap)
+        import ctypes
+
+        class Memoria(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong)] + \
+                       [(n, ctypes.c_ulonglong) for n in ("total", "libre", "pagina", "pagina_libre", "virtual", "virtual_libre", "extendida")]
+        m = Memoria()
+        m.dwLength = ctypes.sizeof(Memoria)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+            return m.total, max(0, m.pagina - m.total)
+        return 0, 0
     datos = {}
     try:
         for linea in open("/proc/meminfo"):
@@ -145,8 +162,10 @@ def sistema(o, build):
     for prog in ("git", "ffmpeg", "ffprobe"):
         if not shutil.which(prog):
             ok = False
-            problema(f"Falta {prog}.", f"{prog} is missing.", f"Instálalo con el gestor de paquetes (por ejemplo: sudo apt install {prog.replace('ffprobe', 'ffmpeg')}).",
-                     f"Install it with your package manager (for example: sudo apt install {prog.replace('ffprobe', 'ffmpeg')}).")
+            paquete = {"git": "Git.Git", "ffmpeg": "Gyan.FFmpeg", "ffprobe": "Gyan.FFmpeg"}[prog] if WINDOWS else prog.replace("ffprobe", "ffmpeg")
+            orden = f"winget install {paquete}  (luego cierra y abre otra vez la ventana)" if WINDOWS else f"sudo apt install {paquete}"
+            problema(f"Falta {prog}.", f"{prog} is missing.", f"Instálalo con el gestor de paquetes (por ejemplo: {orden}).",
+                     f"Install it with your package manager (for example: {orden.replace('luego cierra y abre otra vez la ventana', 'then close and reopen the window')}).")
     return ok
 
 
@@ -421,7 +440,15 @@ def modelos(o, build, grupos):
                 PROBLEMAS.append((f"{m['localPath']} sin enlazar", f"{m['localPath']} not linked", "app/instalar.sh", ""))
             continue
         os.makedirs(os.path.dirname(destino), exist_ok=True)
-        os.symlink(origen, destino)
+        try:
+            os.symlink(origen, destino)
+        except OSError:                               # Windows sin «Modo de desarrollador»: un enlace duro (mismo disco)
+            try:
+                os.link(origen, destino)
+            except OSError as e:
+                problema(f"{m['localPath']}: no pude enlazarlo ({e}).", f"{m['localPath']}: could not link it ({e}).",
+                         f"Cópialo a mano: {origen} → {destino}", f"Copy it by hand: {origen} → {destino}")
+                continue
         decir(f"  ✓ {m['localPath']} → {origen} (enlace)", f"  ✓ {m['localPath']} → {origen} (link)")
     if not faltan:
         return

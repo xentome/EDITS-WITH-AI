@@ -21,6 +21,7 @@
 | [`app/`](app/) | **MAX EDITOR**, the app: web page, server, Comfy SDK calls, MCP server, installer and the ComfyUI workflows it runs (`app/plantillas/*.api.json`) |
 | [`web/`](web/), `nucleo.py`, `rutas.py`, `frases.json` | the edit editor and the prompt logic, shared by the app and by the ComfyUI node |
 | `__init__.py`, `locales/`, [`workflows/`](workflows/) | the same editor as a ComfyUI custom node, with an example workflow |
+| `Instalar MAX EDITOR.desktop`, `Instalar / Abrir / Parar MAX EDITOR.bat` | double-click install and start (Linux / Windows) |
 | [`runpod/`](runpod/), [RUNPOD.md](RUNPOD.md) | the RunPod template: the whole app on a rented GPU |
 | [MODELOS.md](MODELOS.md), [CREDITOS.md](CREDITOS.md), [REPRODUCE.md](REPRODUCE.md) | models, credits and licenses, step-by-step install check |
 | `pruebas.py`, `pruebas/` | tests (`python pruebas.py`) |
@@ -28,7 +29,7 @@
 
 ## Install
 
-> **You need:** Linux, an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
+> **You need:** Linux (or Windows, not tested yet), an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
 > **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](RUNPOD.md)**: it sets up everything and you only use the app.
 
 Pick one of three ways. All three run the same installer, `app/instalar.sh`, which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
@@ -64,6 +65,11 @@ Then start (or restart) ComfyUI and run `app/arrancar.sh`: the app opens at `htt
 1. Download the repo (`git clone` above, or GitHub › Code › Download ZIP and unzip it).
 2. Double-click **`Instalar MAX EDITOR.desktop`** in the repo folder (your file manager may ask you to trust it). A terminal opens, installs everything and adds **MAX EDITOR** to your applications menu.
 3. Start ComfyUI, then open **MAX EDITOR** from the menu.
+
+**On Windows** (written without a Windows PC to test it, so please tell us in an issue if something fails). You need the [portable ComfyUI](https://docs.comfy.org/installation) or one installed with git (ComfyUI Desktop is not supported yet), Python 3.10+ (`winget install Python.Python.3.12`), Git and FFmpeg (`winget install Git.Git Gyan.FFmpeg`).
+1. Download the repo (GitHub › Code › Download ZIP) and unzip it.
+2. Double-click **`Instalar MAX EDITOR.bat`**. It finds your ComfyUI (or asks for its folder), installs the nodes and asks before downloading the models.
+3. Start ComfyUI, then double-click **`Abrir MAX EDITOR.bat`**. **`Parar MAX EDITOR.bat`** stops the app.
 
 ### 3. With an AI agent
 
