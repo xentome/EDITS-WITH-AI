@@ -176,7 +176,7 @@ These exist and are public, but **we have not tested them with MAX EDITOR**; the
 
 ### No GPU, or no ComfyUI: use RunPod
 
-A RunPod template with ComfyUI, the nodes, the models, the local LLM and MAX EDITOR already installed (it runs this same installer with `--sin-preguntas`). You pick a GPU with 24 GB or more, wait about 11 minutes and open the app in your browser. Steps, times and cost: **[RUNPOD.md](RUNPOD.md)**.
+A RunPod template with ComfyUI, the nodes, the models, the local LLM and MAX EDITOR already installed (it runs this same installer with `--sin-preguntas`). You pick a GPU with 24 GB or more, wait about 11 minutes and open the app in your browser. **[Deploy the template](https://console.runpod.io/deploy?template=srac7gh4wi)** · steps, times and cost: **[RUNPOD.md](RUNPOD.md)**.
 
 ### Optional: the local LLM
 
