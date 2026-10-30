@@ -3,7 +3,7 @@
 > 4 min de lectura · actualizado el 28 oct 2026 · English: [README.md](../README.md)
 
 **En resumen**
-- MAX EDITOR hace edits musicales verticales con **MiniMax H3**, en tu PC y sin servicios de pago.
+- MAX EDITOR hace edits musicales con **MiniMax H3** en cualquier proporción (vertical, horizontal o cuadrada), en tu PC y sin servicios de pago.
 - Escribes una idea y eliges tus referencias y el trozo de la canción. Un **LLM local** escribe la historia y las tomas, y el código pone los tiempos en los beats.
 - Pulsas **Generar**: la app manda el workflow a tu ComfyUI con el **SDK oficial de Comfy** y te enseña el video.
 

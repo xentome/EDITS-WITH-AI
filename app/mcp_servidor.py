@@ -446,7 +446,7 @@ async def poner_texto(textos: list[dict], proyecto: str = "") -> str:
 async def poner_resolucion(ancho: int = 0, alto: int = 0, megapixeles: float = 0, orientacion: str = "vertical",
                            proyecto: str = "") -> str:
     """Video size (header › «Resolución»), in multiples of 32. Give ancho+alto, or megapixeles (0.1–2) with orientacion
-    vertical|horizontal. The project format is VERTICAL. Quality vs VRAM: 1 MP (768×1344) keeps identity best; on a 12 GB
+    vertical|horizontal. Any aspect ratio works: keep the one the creative chose. Quality vs VRAM: 1 MP (768×1344) keeps identity best; on a 12 GB
     GPU, 5 s at 1 MP takes ~16 min; quick tests: 960×544 / 544×960 (0.52 MP) at 22 frames take ~2–3 min."""
     def cambio(p: Proyecto):
         if megapixeles:
@@ -494,7 +494,7 @@ async def poner_sonido(descripcion: str | None = None, audio_salida: str | None 
 async def revisar_proyecto(proyecto: str = "") -> str:
     """Check the project before generating: ERRORS block Generate (invalid length, cited references that do not
     exist…) and WARNINGS are lessons from real tests (empty main field, negations in the camera, too-short shots, two
-    identical shots, heavy for 12 GB, not vertical…). Also says if the GPU is busy. Fix errors; tell the creative the
+    identical shots, heavy for 12 GB…). Also says if the GPU is busy. Fix errors; tell the creative the
     warnings that matter."""
     p = await APPC.proyecto(APPC.nombre(proyecto))
     await APPC.montar(p)

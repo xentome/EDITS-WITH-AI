@@ -12,7 +12,7 @@ Vite + React in `app/ui/`, built to static files that the existing Python server
 
 ## Users
 
-- **Primary:** a creator who makes AI music edits (short vertical videos cut to a song) on their own PC with ComfyUI and MiniMax H3. They are the creative: they decide the story, the references and the look; the app gives them tools, not creative plans.
+- **Primary:** a creator who makes AI music edits (short videos cut to a song, in any aspect ratio) on their own PC with ComfyUI and MiniMax H3. They are the creative: they decide the story, the references and the look; the app gives them tools, not creative plans.
 - **Secondary:** the judges of Comfy's «Open Source Higgsfield» contest (deadline: Friday 30 Oct 2026, 10:00 Mexico City time). They install it from the repo or watch a 2-minute video, and want «a standalone app, not a ComfyUI workflow; something someone else can open and use».
 
 ## Product Purpose

@@ -812,8 +812,6 @@ def revisar(p: Proyecto) -> tuple[list[str], list[str]]:
         if carga > 135:
             avisos.append(f"{megapixeles(*tam)} MP × {f} frames is heavy for a 12 GB GPU (tested: 5 s at 1 MP, 8 s at 0.4 MP); "
                           "a pod with 24 GB does 12 s at 1 MP")
-        if tam[0] >= tam[1]:
-            avisos.append("the video is not vertical (the project's format is vertical, e.g. 768×1344)")
     if not any(r["papel"] == "personaje" and r["tag"] for r in p.referencias()):
         avisos.append("no reference has the role «personaje» (character)")
     for r in p.referencias():

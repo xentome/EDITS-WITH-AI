@@ -4,7 +4,7 @@
 
 <p align="center"><img src="docs/capturas/0-edits.gif" width="360" alt="Shots generated with MAX EDITOR and MiniMax H3"></p>
 
-- MAX EDITOR makes vertical music edits with **MiniMax H3**, fully local, with no paid services.
+- MAX EDITOR makes music edits with **MiniMax H3** in any aspect ratio (vertical, horizontal or square), fully local, with no paid services.
 - You write an idea and pick your references and the part of the song. A **local LLM** writes the story and the shots, and code places the timing on the beats.
 - You press **Generate**: the app sends the workflow to your ComfyUI through the **official Comfy SDK** and shows you the video.
 - Every shot lands in one **library**. **Touch up** a zone, **extend** a shot or **enhance** it, then cut your clips together in the multitrack **Editing** tab and export the final edit.
