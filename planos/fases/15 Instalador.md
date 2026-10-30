@@ -36,3 +36,10 @@ Lectura: 2 min · 28 oct 2026 · Sesión «INSTALADOR» (el handoff decía «14�
 - `nkd-preview-tools` 3.12.0 sale como «Flagged» en el Registry de Comfy (el zip se baja igual y su sha256 está fijado). Solo usamos NKDTimeline en Retocar.
 - Decisión de Jonathan (28 oct): el ejemplo nuevo se hará más tarde, con el edit de la demo y sus archivos. El `ejemplo.json` de hoy usa 4 RefMods y un `.wav` que no están en el repo. Lo vio RUNPOD.
 - ✅ RUNPOD probó el instalador en un pod: 54 de 54 nodos y 14 modelos con sha256 OK; un pod nuevo queda listo en 11 min. README y LEEME enlazan a `RUNPOD.md`.
+
+## 29 oct: modelos con permiso, panel «Modelos» y Windows
+
+- 🟢 Jonathan: el instalador nunca baja modelos sin permiso. Pregunta [s/N]; `--bajar-modelos` los baja sin preguntar; `--sin-preguntas` ya no los baja. El pod de RunPod sí los baja solo (los baja `runpod/bajar_modelos.py`).
+- Panel **🧩 Modelos** en la cabecera (app/modelos.py, app/web/modelos.js/.css). Dice qué hay y qué falta (lista de `/object_info`, o la carpeta si ComfyUI está apagado). Se elige un archivo propio para H3, el codificador de texto, los 2 VAE y SAM; VDN y TAE quedan fijos (decisión de Jonathan). «Bajar» baja con un clic, con sha256 y reanudable. Lo elegido va en `app/modelos.local.json` y lo aplica `generar.lanzar()`.
+- El aviso de calidad del panel recoge lo que Jonathan cree («8 GB de VRAM y 32 GB de RAM»), marcado como sin probar.
+- Windows: «Instalar / Abrir / Parar MAX EDITOR.bat», que lanzan `instalacion/instalar_windows.py` y `arrancar_windows.py`. Se probaron solo en Linux (dry-run, doctor, arrancar y parar en 8330–8332). ❓ Falta probarlo en un Windows de verdad. ComfyUI Desktop no se admite.
