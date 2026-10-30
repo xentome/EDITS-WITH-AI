@@ -387,7 +387,13 @@ async def videos(peticion):
              and os.path.isfile(os.path.join(SALIDAS, f["archivo"]))]
     # «Retomar este prompt» (29 oct): de qué Generar salió cada video (un retoque, una extensión o una mejora, del suyo)
     filas = [{**f, "prompt_de": origen_prompt(f["archivo"], todas)} for f in filas]
-    return web.json_response(list(reversed(filas)))
+    # un video, una vez (29 oct: dos servidores con la misma cola anotaron la misma extensión dos veces); se queda la última
+    vistos, unicas = set(), []
+    for f in reversed(filas):
+        if f["archivo"] not in vistos:
+            vistos.add(f["archivo"])
+            unicas.append(f)
+    return web.json_response(unicas)
 
 
 def origen_prompt(archivo: str, todas: dict) -> str | None:

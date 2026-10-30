@@ -525,7 +525,12 @@ async function mirarCola() {
     }
     A.colaVista[x.id] = x.estado;
   }
-  if (algunoHecho) await cargarVideos();
+  /* (29 oct) un trabajo de este proyecto terminado cuyo video aún no está en «Videos»: la página se perdió su final (el
+   * servidor lo recogió al volver de un reinicio, o la lista falló al cargar). Se vuelve a pedir, una vez por video */
+  const falta = A.cola.trabajos.find((x) => x.estado === "hecho" && x.video && x.proyecto === A.proyecto &&
+                                            !A.videos.some((v) => v.archivo === x.video) && !A.videosPedidos?.has(x.video));
+  if (falta) (A.videosPedidos ||= new Set()).add(falta.video);
+  if (algunoHecho || falta) await cargarVideos();
   pintarCabecera();
   pintarCola();
   retoque.alCambiarCola?.(A.cola);

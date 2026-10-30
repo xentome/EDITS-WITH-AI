@@ -184,11 +184,35 @@ def pausar(si: bool) -> dict:
 
 
 # ---------------------------------------------------------------- el hilo
+_candado = None
+
+
+def _es_la_duena() -> bool:
+    """Solo un servidor hace los trabajos de una cola (29 oct): dos servidores con el mismo cola.json (la app y una copia de
+    prueba sin MAX_EDITOR_COLA) recogían el mismo trabajo dos veces y podían lanzar dos veces el mismo. El primero que
+    arranca bloquea cola.json.lock (flock: se suelta solo si el proceso muere); los demás solo miran."""
+    global _candado
+    try:
+        import fcntl
+    except ImportError:                  # Windows: sin flock (la app no se arranca dos veces allí)
+        return True
+    os.makedirs(os.path.dirname(RUTA), exist_ok=True)
+    _candado = open(RUTA + ".lock", "a")
+    try:
+        fcntl.flock(_candado, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
+
+
 def arrancar(api: dict) -> None:
     """api: {generar: () -> módulo, retocar: () -> módulo, extender: () -> módulo, mejorar: () -> módulo, llm_ocupado: () -> bool, comfyui_url, comfyui_dir}."""
     global _hilo
     _api.update(api)
     _cargar()
+    if not _es_la_duena():
+        print(f"[MAX EDITOR] la cola {RUTA} la lleva otro servidor: este no hará trabajos (usa MAX_EDITOR_COLA para una copia de prueba)")
+        return
     with _cerrojo:                       # los videos hechos antes del 29 oct que aún siguen en la cola
         for t in _estado["trabajos"]:
             _guardar_valores(t)
