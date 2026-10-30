@@ -493,6 +493,10 @@ async def lanzar_mascara(peticion):
     return web.json_response({"id": tid})
 
 
+class GpuOcupada(Exception):
+    """ComfyUI está trabajando: el LLM no cabe ahora (la ruta responde app.error.gpu_ocupada)."""
+
+
 async def soltar_gpu(peticion):
     """Antes del LLM (como trabajador._soltar_gpu): con ComfyUI sin trabajo, que suelte sus modelos y esperar a que quede
     sitio. Si no, el LLM (unos 9,6 GB) no cabe, su servicio se cae al cargar y vuelve a empezar sin parar (29 oct)."""
@@ -504,7 +508,7 @@ async def soltar_gpu(peticion):
     except Exception:
         return                                               # sin ComfyUI no hay nada que soltar
     if cola_c.get("queue_running") or cola_c.get("queue_pending"):
-        raise RuntimeError("ComfyUI está trabajando")
+        raise GpuOcupada()
     if not CONFIG.get("liberar_gpu", True):
         return
     try:
@@ -533,7 +537,7 @@ async def retocar_prompt(peticion):
     _llm_en_marcha[0] += 1                                   # mientras escribe, la cola no empieza otro trabajo
     try:
         await soltar_gpu(peticion)
-    except RuntimeError:
+    except GpuOcupada:
         _llm_en_marcha[0] -= 1
         return error("app.error.gpu_ocupada", peticion, 409)
     try:
