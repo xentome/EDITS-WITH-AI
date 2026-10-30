@@ -20,6 +20,7 @@
 9. ✅ Force push hecho por Jonathan (29 oct): GitHub master = 75e1f92. Comando usado:
    `git push --force-with-lease=master:7d93eecc658ea6722baff4f221a1caa5fe92db4d origin master`
    No subir etiquetas (`--tags`): `respaldo-historial-viejo` lleva las fotos.
+10. ✅ Repo **público** (29 oct, lo pidió Jonathan para que el pod lo use). Antes: push normal de 31 commits (master = b32fe09), revisados sin claves, medios, archivos de más de 100 KB ni rutas personales; `pruebas.py` TODO BIEN. Después: la web, README, LICENSE e `instalar.sh` dan 200 sin sesión, y un clon anónimo pasa `instalar.sh --dry-run`. Lo que falta (la Edición y la galería en el README, el kit de ejemplo) se sube poco a poco.
 
 ## No hecho, a propósito
 
