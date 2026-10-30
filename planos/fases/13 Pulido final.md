@@ -167,3 +167,12 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - `app/edicion.py` + `POST /app/edicion_exportar`: fondo negro del tamaño del primer video, cada clip encima a su tiempo (de la pista de abajo a la de arriba) y todos los audios que se oyen mezclados sin bajar volumen → `montaje_<sello>.mp4` en app/salidas con fila `tipo: montaje` (sale en Videos y en la biblioteca). Con ffmpeg 9, `adelay` + `amix` dejaba el audio en 60 ms: cada sonido va con silencio delante (`anullsrc` + concat) y `apad` hasta el final. Probado: 3 clips + canción en 2,5 s; 19,5 s exportados con audio completo.
 - Falta (para después): herramientas en el MCP, transiciones, volumen por clip.
 
+## 18 · La ventana se recargaba sola ✅ (29 oct)
+
+- Jonathan: «la app recarga su ventana cada cierto tiempo sin razón». Tres causas, medidas en una copia con un registro de la red:
+  1. La ventana se guarda sola al montarse y escribe la hora en su estado; la app lo contaba como cambio y guardaba. Con dos pestañas del mismo proyecto, cada una recargaba a la otra y la otra volvía a guardar, sin fin («chica pasto cielo» llegó a 529 versiones). Ahora la hora no cuenta (`huella()` en app.js).
+  2. El autoguardado aún en camino o dos guardados seguidos hacían creer a `mirarRev` (o al 409) que otro había cambiado el proyecto. Ahora los guardados de una pestaña van en fila (`guardarProyecto` → `guardarAhora`) y llevan su firma (`pestana`, guardada en el proyecto y devuelta por `/app/proyecto_rev`): la propia no recarga.
+  3. Otra pestaña de la app (no el agente): la que se está usando (visible y con el foco) no se recarga; si choca al guardar, gana ella. Lo del agente sigue mandando.
+- `arrancar.sh --reiniciar` ya no abre otra pestaña si la app estaba corriendo (cada reinicio dejaba una más).
+- Comprobado: una pestaña escribiendo 25 s → la misma ventana, sin recargas; dos pestañas quietas 15 s → la versión no se mueve.
+

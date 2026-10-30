@@ -290,17 +290,43 @@ async function cargarProyectos() {
   A.proyectos = await pedir("/app/proyectos");
 }
 
-async function guardarProyecto(nombre = A.proyecto, nuevo = false, forzar = false) {
+/* (29 oct) los guardados de esta pestaña van de uno en uno y llevan su firma (PESTANA): antes, el autoguardado aún en
+ * camino o dos guardados seguidos hacían creer a mirarRev (o al 409) que otro había cambiado el proyecto, y la ventana se
+ * recargaba sola mientras se trabajaba */
+const PESTANA = Math.random().toString(36).slice(2, 12);
+/* lo que cuenta como cambio: los valores sin la hora «guardado» del estado de la ventana. La ventana se guarda sola al
+ * montarse y escribe la hora nueva: contada como cambio, cada pestaña que se abría o se recargaba guardaba, y con dos
+ * pestañas abiertas se recargaban una a otra sin fin (29 oct; un proyecto llegó a 529 versiones) */
+function huella(valores) {
+  return JSON.stringify(valores, (k, v) => {
+    if (k !== "estado" || typeof v !== "string") return v;
+    try { const e = JSON.parse(v); delete e.guardado; return JSON.stringify(e); } catch { return v; }
+  });
+}
+let filaGuardar = Promise.resolve();
+function guardarProyecto(...args) {
+  const r = filaGuardar.then(() => guardarAhora(...args));
+  filaGuardar = r.catch(() => {});
+  A.guardando = (A.guardando || 0) + 1;
+  r.finally(() => { A.guardando -= 1; }).catch(() => {});
+  return r;
+}
+async function guardarAhora(nombre = A.proyecto, nuevo = false, forzar = false) {
   if (!A.graph || !nombre) return;
-  const valores = valoresDe(A.graph, A.plantilla), texto = JSON.stringify(valores);
+  const valores = valoresDe(A.graph, A.plantilla), texto = huella(valores);
   const propio = !nuevo && nombre === A.proyecto;
   if (propio && texto === A.guardadoJSON && !forzar) { A.sucio = false; return; }   // nada nuevo que escribir
   if (propio && A.recargando) return;                    // se está cargando lo del agente: lo de aquí ya no vale
   // con base_rev el servidor no pisa lo que el agente escribió después de abrirlo: responde 409 y aquí se carga lo suyo
   const r = await fetch(`/app/proyecto/${encodeURIComponent(nombre)}?idioma=${tr.idioma}`, { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ valores, nuevo, ...(propio ? { base_rev: A.rev, agente: { marcas: A.marcas } } : {}) }) });
+    body: JSON.stringify({ valores, nuevo, pestana: PESTANA, ...(propio ? { base_rev: A.rev, agente: { marcas: A.marcas } } : {}) }) });
   const j = await r.json().catch(() => ({ error: t("errores.respuesta_no_valida", { estado: r.status }) }));
-  if (r.status === 409 && j.clave === "app.error.conflicto") { await recargarProyecto(); return; }
+  if (r.status === 409 && j.clave === "app.error.conflicto") {
+    // lo del agente manda (se carga lo suyo); si fue otra pestaña de la app, gana esta, que es la que se está usando
+    if (j.autor === "agente" || !propio) { await recargarProyecto(); return; }
+    A.rev = j.rev ?? A.rev;
+    return guardarAhora(nombre, nuevo, true);
+  }
   if (!r.ok || j.error) throw new Error(j.error || r.statusText);
   if (propio || nombre === A.proyecto) { A.guardadoJSON = texto; A.rev = j.rev ?? A.rev; A.sucio = false; }
   // un aviso importante (p. ej. «Prompt retomado») no lo tapa el «guardado» del autoguardado que llega justo después
@@ -320,7 +346,7 @@ async function abrirProyecto(nombre, valores = null, recargar = false) {
     A.proyecto = nombre;
     ponerLocal(GUARDA_PROYECTO, nombre);
     A.graph = construir(A.plantilla, valores);
-    A.guardadoJSON = JSON.stringify(valoresDe(A.graph, A.plantilla));
+    A.guardadoJSON = huella(valoresDe(A.graph, A.plantilla));
     A.node = nodoDelEdit(A.graph);
     appFalso.graph = A.graph;
     if (!A.node) throw new Error(t("app.error.sin_nodo"));
@@ -382,7 +408,7 @@ async function guardarComo(nombre) {
   await pedir("/app/proyecto/" + encodeURIComponent(nombre), { valores, nuevo: true });
   await cargarProyectos();
   A.proyecto = nombre;
-  A.guardadoJSON = JSON.stringify(valores);
+  A.guardadoJSON = huella(valores);
   ponerLocal(GUARDA_PROYECTO, nombre);
   avisar(t("app.proyecto.guardado", { nombre, hora: new Date().toLocaleTimeString(tr.locale) }), "bien");
   await cargarVideos();
@@ -712,7 +738,11 @@ async function mirarRev() {
   mirandoRev = true;
   try {
     const r = await pedir("/app/proyecto_rev/" + encodeURIComponent(A.proyecto));
-    if (r.rev <= A.rev) return;
+    if (r.rev <= A.rev || A.guardando) return;           // nada nuevo, o un guardado de aquí todavía en camino
+    if (r.pestana === PESTANA) { A.rev = r.rev; return; }  // lo guardó esta misma pestaña
+    // otra pestaña de la app (no el agente): si esta es la que se está usando, no se recarga (antes dos pestañas abiertas
+    // se recargaban una a otra sin parar); si está detrás, se pone al día
+    if (r.autor !== "agente" && document.visibilityState === "visible" && document.hasFocus()) return;
     const activo = document.activeElement, escribiendo = activo && activo.closest?.(".epl-fondo") &&
       (activo.matches("input, textarea, select") || activo.isContentEditable);
     if (escribiendo) return;                                 // se recarga cuando deje el campo (en la siguiente vuelta)

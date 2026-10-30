@@ -317,6 +317,8 @@ async def guardar_proyecto(peticion):
     autor = "agente" if datos.get("autor") == "agente" else "pagina"
     proyecto = {"nombre": nombre, "guardado": time.strftime("%Y-%m-%dT%H:%M:%S"), "rev": rev + 1, "autor": autor,
                 "valores": datos["valores"]}
+    if datos.get("pestana"):                                  # qué pestaña lo guardó: esa no se recarga a sí misma
+        proyecto["pestana"] = str(datos["pestana"])[:40]
     agente = datos["agente"] if isinstance(datos.get("agente"), dict) else antes.get("agente")
     if agente:
         proyecto["agente"] = agente
@@ -337,6 +339,7 @@ async def rev_proyecto(peticion):
     with open(ruta, encoding="utf-8") as fh:
         p = json.load(fh) or {}
     return web.json_response({"rev": int(p.get("rev") or 0), "autor": p.get("autor") or "", "guardado": p.get("guardado") or "",
+                              "pestana": p.get("pestana") or "",
                               "marcas": len(((p.get("agente") or {}).get("marcas")) or [])})
 
 

@@ -61,6 +61,7 @@ fi
 if [ "$REINICIAR" = 1 ] && responde "$APP_URL/app/salud"; then
   decir "… reiniciando el servidor de la app" "… restarting the app server"
   "$APP/parar.sh" --solo-app >/dev/null
+  NAVEGADOR=0   # ya había una pestaña abierta: otra más del mismo proyecto se recargaría con la primera (29 oct)
 fi
 if responde "$APP_URL/app/salud"; then
   decir "✓ La app ya corre en $APP_URL" "✓ The app is already running at $APP_URL"
