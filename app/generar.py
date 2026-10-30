@@ -386,7 +386,10 @@ def comprobar_servicios(c: dict) -> None:
 
 def lanzar(grafo: dict, opciones: dict, c: dict, despues, extra: dict | None = None) -> str:
     """Lo común de generar y retocar (retocar.py): un trabajo nuevo y un hilo que manda el grafo por el SDK.
-    `despues(tid, grafo, job, opciones) -> (archivo, fila)` baja el video del job a app/salidas y dice qué se anota."""
+    `despues(tid, grafo, job, opciones) -> (archivo, fila)` baja el video del job a app/salidas y dice qué se anota.
+    Antes, los modelos que el usuario eligió en «🧩 Modelos» (modelos.py) sustituyen a los de la plantilla."""
+    import modelos
+    modelos.aplicar(grafo)
     tid = _nuevo()
     _poner(tid, semilla=_semilla_de(grafo), **(extra or {}))
     threading.Thread(target=_correr, args=(tid, grafo, opciones, c, despues), name=f"generar-{tid}", daemon=True).start()

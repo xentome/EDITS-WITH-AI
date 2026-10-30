@@ -1,6 +1,7 @@
 proyectos/*
 salidas/
 config.local.json
+modelos.local.json
 __pycache__/
 servidor.log
 .venv

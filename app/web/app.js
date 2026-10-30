@@ -19,6 +19,7 @@ const retocarJS = await import("./retocar.js" + v);
 const extenderJS = await import("./extender.js" + v);
 const bibliotecaJS = await import("./biblioteca.js" + v);
 const edicionJS = await import("./edicion.js" + v);
+const modelosJS = await import("./modelos.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
@@ -35,6 +36,9 @@ const appFalso = { graph: null, maxEditor: true, extensionManager: { setting: aj
 const textos = await i18n.cargarTextos();
 let tr = i18n.traductor(textos, i18n.idiomaElegido(appFalso));
 const t = (clave, datos) => tr.t(clave, datos);
+// ---- el desplegable «Modelos» (modelos.js): el botón va en la cabecera, junto a los puntos de salud
+const modelos = modelosJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, avisar: (x, tipo) => avisar(x, tipo),
+                                  alCambiar: () => pintarCabecera() });
 
 async function pedir(ruta, cuerpo) {
   const r = await fetch(`${ruta}${ruta.includes("?") ? "&" : "?"}idioma=${tr.idioma}`, cuerpo === undefined ? { cache: "no-store" } :
@@ -194,6 +198,7 @@ function pintarCabecera() {
     el("span", { class: "max-aviso " + A.aviso[1], title: A.aviso[0] }, A.aviso[0]),
     el("span", { class: "max-salud max-derecha", title: t("app.salud.tooltip") }, punto("comfyui", "app.salud.comfyui"),
       punto("proxy", "app.salud.proxy"), punto("llm", "app.salud.llm")),
+    modelos.boton(),                                  // (29 oct) «Modelos»: qué hay, elegir los tuyos y bajar lo que falta (modelos.js)
     ...(s.version_nueva || A.reiniciando ? [botonReiniciar(activos)] : []),
     el("span", { class: "max-sep" }),
     el("label", { class: "max-grupo max-semilla", title: t("app.semilla.tooltip") }, el("span", {}, t("app.semilla")), semilla,
@@ -858,6 +863,7 @@ try {
 }
 mirarSalud();
 setInterval(mirarSalud, 10000);
+modelos.cargar();                                        // el botón «Modelos» dice cuántos faltan
 mirarCola();
 setInterval(mirarCola, 2000);
 setInterval(mirarRev, 2000);

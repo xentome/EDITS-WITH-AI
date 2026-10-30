@@ -750,6 +750,38 @@ async def salud(peticion):
                               "comfyui_url": CONFIG["comfyui_url"], "proxy_url": CONFIG["proxy_url"], "llm_url": CONFIG["llm_url"]})
 
 
+# ------------------------------------------------------------------ los modelos (modelos.py: qué hay, elegir otro y bajar con un clic)
+ERRORES_MODELOS = ("app.modelos.error.pieza", "app.modelos.error.no_esta", "app.modelos.error.disco")   # los ValueError de modelos.py
+
+
+def modelos_mod():
+    return importlib.import_module("modelos")
+
+
+async def modelos_estado(peticion):
+    """GET /app/modelos → cada pieza (H3, texto, VAE, SAM, VDN, vista previa): qué hay, cuál se usa y qué falta."""
+    return web.json_response(await asyncio.get_running_loop().run_in_executor(None, modelos_mod().estado, CONFIG))
+
+
+async def modelos_accion(peticion):
+    """POST /app/modelos/{elegir|bajar|parar} {clave, archivo?}: elegir otro archivo, bajar el que falta o parar la descarga."""
+    datos = await peticion.json()
+    m, accion = modelos_mod(), peticion.match_info["accion"]
+    try:
+        if accion == "elegir":
+            await asyncio.get_running_loop().run_in_executor(None, m.elegir, str(datos.get("clave")), datos.get("archivo"), CONFIG)
+        elif accion == "bajar":
+            await asyncio.get_running_loop().run_in_executor(None, m.bajar, str(datos.get("clave")), CONFIG)
+        elif accion == "parar":
+            m.parar(str(datos.get("clave")))
+        else:
+            return error("app.modelos.error.pieza", peticion, 404)
+    except ValueError as e:
+        clave = str(e) if str(e) in ERRORES_MODELOS else "app.modelos.error.pieza"
+        return error(clave, peticion)
+    return web.json_response({"ok": True})
+
+
 # ------------------------------------------------------------------ la app
 async def al_empezar(app):
     app["http"] = ClientSession(timeout=ClientTimeout(total=None, sock_connect=5))
@@ -801,6 +833,8 @@ def crear_app():
     app.router.add_get("/app/video", ver_video)
     app.router.add_get("/app/foto_referencia", foto_referencia)
     app.router.add_get("/app/salud", salud)
+    app.router.add_get("/app/modelos", modelos_estado)
+    app.router.add_post("/app/modelos/{accion}", modelos_accion)
     app.router.add_post("/app/reiniciar", reiniciar)
     app.router.add_get("/app/edicion/{nombre}", leer_edicion)
     app.router.add_post("/app/edicion/{nombre}", guardar_edicion)
