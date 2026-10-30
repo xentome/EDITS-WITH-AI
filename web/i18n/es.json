@@ -96,6 +96,7 @@
  "app.cola.ver_video.tooltip": "Abrir su video en Videos",
  "app.edicion.acercar.tooltip": "Acercar la línea de tiempo (+)",
  "app.edicion.adelante.tooltip": "Un fotograma adelante (→; con Mayús, un segundo)",
+ "app.edicion.agente.tooltip": "El agente (MCP) cambió esta línea de tiempo; se quita al editarla aquí",
  "app.edicion.alejar.tooltip": "Alejar la línea de tiempo (−)",
  "app.edicion.atras.tooltip": "Un fotograma atrás (←; con Mayús, un segundo)",
  "app.edicion.audios": "Audios",

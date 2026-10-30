@@ -96,6 +96,7 @@
  "app.cola.ver_video.tooltip": "Open its video in Videos",
  "app.edicion.acercar.tooltip": "Zoom the timeline in (+)",
  "app.edicion.adelante.tooltip": "One frame forward (→; with Shift, one second)",
+ "app.edicion.agente.tooltip": "The agent (MCP) changed this timeline; it goes away when you edit it here",
  "app.edicion.alejar.tooltip": "Zoom the timeline out (−)",
  "app.edicion.atras.tooltip": "One frame back (←; with Shift, one second)",
  "app.edicion.audios": "Audio",

@@ -511,7 +511,7 @@ EDICIONES = os.path.join(PROYECTOS, "ediciones")         # la línea de tiempo d
 
 
 async def leer_edicion(peticion):
-    """GET /app/edicion/<proyecto> → la línea de tiempo guardada ({} si aún no hay)."""
+    """GET /app/edicion/<proyecto> → la línea de tiempo guardada, con su rev y su autor ({} si aún no hay)."""
     if not ruta_proyecto(peticion.match_info["nombre"]):
         return error("app.error.nombre", peticion)
     ruta = os.path.join(EDICIONES, peticion.match_info["nombre"].strip() + ".json")
@@ -523,7 +523,8 @@ async def leer_edicion(peticion):
 
 
 async def guardar_edicion(peticion):
-    """POST /app/edicion/<proyecto> {pistas, lienzo}: se guarda tal cual (la comprueba exportar)."""
+    """POST /app/edicion/<proyecto> {pistas, lienzo, zoom, autor?}: se guarda tal cual (la comprueba exportar). `rev` sube en
+    cada guardado y `autor` es «agente» (el MCP) o «pagina»: así la página adopta lo que cambie el agente (edicion.js)."""
     if not ruta_proyecto(peticion.match_info["nombre"]):
         return error("app.error.nombre", peticion)
     datos = await peticion.json()
@@ -531,11 +532,17 @@ async def guardar_edicion(peticion):
         return error("app.error.sin_valores", peticion)
     os.makedirs(EDICIONES, exist_ok=True)
     ruta = os.path.join(EDICIONES, peticion.match_info["nombre"].strip() + ".json")
+    try:
+        with open(ruta, encoding="utf-8") as fh:
+            rev = int((json.load(fh) or {}).get("rev") or 0)
+    except (OSError, ValueError, TypeError):
+        rev = 0
+    autor = "agente" if datos.get("autor") == "agente" else "pagina"
     with open(ruta + ".tmp", "w", encoding="utf-8") as fh:
-        json.dump({"pistas": datos["pistas"], "lienzo": datos.get("lienzo"), "zoom": datos.get("zoom"),
+        json.dump({"pistas": datos["pistas"], "lienzo": datos.get("lienzo"), "zoom": datos.get("zoom"), "rev": rev + 1, "autor": autor,
                    "guardado": time.strftime("%Y-%m-%dT%H:%M:%S")}, fh, ensure_ascii=False)
     os.replace(ruta + ".tmp", ruta)
-    return web.json_response({"ok": True})
+    return web.json_response({"ok": True, "rev": rev + 1, "autor": autor})
 
 
 async def edicion_audios(peticion):

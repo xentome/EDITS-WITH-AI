@@ -22,7 +22,7 @@ const TIPO_SUBIDA = { video: "video", audio: "audio", carpeta: "audio" };   // q
 const EXT_AUDIO = /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i;
 
 export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
-  const E = { zoom: 90, t: 0, tocando: false, herramienta: "mover", iman: true, elegidos: new Set(), imanX: null,
+  const E = { zoom: 90, t: 0, tocando: false, herramienta: "mover", iman: true, elegidos: new Set(), imanX: null, rev: 0, delAgente: false,
               pistas: pistasNuevas(), fuentes: [], cargado: null, exportando: false, aviso: "" };
   let idClip = 1;
   function pistasNuevas() {
@@ -42,16 +42,43 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const srcDe = (f) => /\[(input|output)\]$/.test(f.fuente) ? "/app/video?video=" + encodeURIComponent(f.fuente) : "/app/salidas/" + encodeURIComponent(f.fuente);
 
   // ---------------------------------------------------------------- guardar (solo, por proyecto)
-  let temporizador = null;
+  let temporizador = null, enCamino = 0;
   function guardar() {
     clearTimeout(temporizador);
     const proyecto = A.proyecto;
-    temporizador = setTimeout(() => {
+    temporizador = setTimeout(async () => {
+      temporizador = null;
       const pistas = E.pistas.map((p) => ({ id: p.id, tipo: p.tipo, ver: p.ver, oir: p.oir,
         clips: p.clips.map((c) => ({ fuente: c.fuente, nombre: c.nombre, tipo: c.tipo, dur: c.dur, ini: c.ini, fin: c.fin, en: c.en })) }));
-      pedir("/app/edicion/" + encodeURIComponent(proyecto), { pistas, zoom: E.zoom, lienzo: E.lienzo || null }).catch(() => {});
+      enCamino++;
+      try {
+        const r = await pedir("/app/edicion/" + encodeURIComponent(proyecto), { pistas, zoom: E.zoom, lienzo: E.lienzo || null, autor: "pagina" });
+        if (proyecto === A.proyecto) E.rev = Math.max(E.rev, r.rev || 0);
+      } catch { /* sin servidor: se guarda en el siguiente cambio */ } finally { enCamino--; }
     }, 700);
   }
+  /* (29 oct, para el MCP) lo que cambie el agente en la línea de tiempo (POST /app/edicion/<proyecto> con autor «agente»):
+   * con Edición a la vista, cada 2 s se mira su rev; si subió por el agente y aquí no hay un guardado en marcha ni un
+   * arrastre, se adopta lo suyo y sale «✎ agente» (se quita al editar aquí). Lo de otra pestaña solo pone la rev al día. */
+  let mirando = false;
+  async function mirarAgente() {
+    if (mirando || !activo() || !E.cargado || E.cargado !== A.proyecto) return;
+    mirando = true;
+    try {
+      const d = await pedir("/app/edicion/" + encodeURIComponent(A.proyecto));
+      const rev = +d.rev || 0;
+      if (rev <= E.rev || temporizador || enCamino || gesto || E.exportando) return;
+      E.rev = rev;
+      if (d.autor !== "agente" || !Array.isArray(d.pistas)) return;
+      E.pistas = d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
+      E.lienzo = d.lienzo || E.lienzo;
+      if (+d.zoom) E.zoom = +d.zoom;
+      E.elegidos.clear();
+      E.delAgente = true;
+      pintar();
+    } catch { /* sin servidor */ } finally { mirando = false; }
+  }
+  setInterval(mirarAgente, 2000);
   async function alAbrirProyecto() {
     E.tocando = false; E.t = 0; E.elegidos.clear();
     let d = {};
@@ -59,6 +86,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     E.pistas = Array.isArray(d.pistas) && d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
     E.zoom = +d.zoom || 90;
     E.lienzo = d.lienzo || null;
+    E.rev = +d.rev || 0;
+    E.delAgente = d.autor === "agente";
     E.cargado = A.proyecto;
     if (activo()) await cargarBiblioteca();
     pintar();
@@ -139,7 +168,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     E.elegidos = new Set([c.id]);
     cambio();
   }
-  function cambio() { guardar(); pintar(); }
+  function cambio() { E.delAgente = false; guardar(); pintar(); }
 
   /* ---------------------------------------------------------------- reproducir (29 oct, Jonathan: «los reproduce trabados»)
    * Los videos de H3 traen 2 o 3 fotogramas clave: cada salto obligaba a decodificar hasta 5 s, y el reloj de antes (el de
@@ -225,6 +254,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const herr = el("div", { class: "max-ed-herrs" });
   const lt = el("div", { class: "max-ed-lt" });
   const info = el("div", { class: "max-ed-info" });
+  // «✎ agente»: la línea de tiempo la cambió el agente (MCP); se quita al editarla aquí
+  const selloAgente = el("span", { class: "max-ag-sello", title: t("app.edicion.agente.tooltip"), hidden: true }, t("app.agente.marca"));
   const pie = el("div", { class: "max-ed-pie" });
   const subir = el("input", { type: "file", accept: "audio/*", multiple: true, style: { display: "none" }, onchange: (e) => subirDe(e, "audio") });
   const subirVideo = el("input", { type: "file", accept: "video/*", multiple: true, style: { display: "none" }, onchange: (e) => subirDe(e, "video") });
@@ -243,7 +274,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
         el("div", { class: "max-ed-transporte" },
           boton("atras", "", "app.edicion.inicio.tooltip", () => irA(0)), boton("volver", "", "app.edicion.atras.tooltip", () => irA(E.t - 1 / FPS)),
           botonTocar, boton("adelante", "", "app.edicion.adelante.tooltip", () => irA(E.t + 1 / FPS)), tcEl, durEl))),
-    el("div", { class: "max-ed-panel max-ed-abajo" }, el("div", { class: "max-ed-cab" }, el("b", {}, t("app.edicion.linea")), herr), lt, info),
+    el("div", { class: "max-ed-panel max-ed-abajo" }, el("div", { class: "max-ed-cab" }, el("b", {}, t("app.edicion.linea")), selloAgente, herr), lt, info),
     pie);
 
   function pintarBin() {
@@ -335,6 +366,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     durEl.textContent = "/ " + tc(duracion());
     lienzo.style.aspectRatio = E.lienzo ? `${E.lienzo.ancho} / ${E.lienzo.alto}` : "16 / 9";
     info.textContent = E.aviso || t("app.edicion.info");
+    selloAgente.hidden = !E.delAgente;
     precalentar();
     sincronizar(true);
   }
