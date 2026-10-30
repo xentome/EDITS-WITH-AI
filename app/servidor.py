@@ -20,6 +20,7 @@ import subprocess
 import sys
 import time
 import types
+import urllib.parse
 
 from aiohttp import ClientSession, ClientTimeout, web
 
@@ -674,14 +675,24 @@ async def edicion_proxy(peticion):
     return web.FileResponse(ruta, headers={"Cache-Control": "private, max-age=86400"})
 
 
+async def edicion_descargar(peticion):
+    """GET /app/edicion_descargar/<archivo>: lo exportado, como descarga (para llevarlo a otro sitio; también desde un pod)."""
+    ruta = edicion_mod().ruta_exportado(peticion.match_info["archivo"])
+    if not ruta:
+        raise web.HTTPNotFound()
+    return web.FileResponse(ruta, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{urllib.parse.quote(os.path.basename(ruta))}",
+                                           "Cache-Control": "no-store"})
+
+
 async def edicion_exportar(peticion):
-    """POST /app/edicion_exportar {proyecto, nombre (la edición), edicion} → {archivo}: el mp4 nuevo en app/salidas (y en la
+    """POST /app/edicion_exportar {proyecto, nombre (la edición), edicion, opciones: {formato, calidad, resolucion, audio,
+    biblioteca, archivo}} → {archivo, fila}: el mp4 nuevo en app/salidas (y en la
     biblioteca, en la carpeta del proyecto abierto); la fila anota la edición, que lo usa de portada."""
     m = edicion_mod()
     datos = await peticion.json()
     try:
         archivo, fila = await asyncio.get_running_loop().run_in_executor(None, m.exportar, datos.get("edicion") or {}, datos.get("proyecto"),
-                                                                           datos.get("nombre"))
+                                                                           datos.get("nombre"), datos.get("opciones"))
     except m.ErrorGenerar as exc:
         return web.json_response({"error": str(exc)}, status=400)
     return web.json_response({"archivo": archivo, "fila": fila})
@@ -933,6 +944,7 @@ def crear_app():
     app.router.add_get("/app/edicion_proxy", edicion_proxy)
     app.router.add_post("/app/edicion_subir", edicion_subir)
     app.router.add_post("/app/edicion_exportar", edicion_exportar)
+    app.router.add_get("/app/edicion_descargar/{archivo}", edicion_descargar)
     return app
 
 

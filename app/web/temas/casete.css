@@ -690,4 +690,11 @@ body.tema-casete .max-ed-exportar{background:var(--k-ok) !important;box-shadow:3
 body.tema-casete .max-bib-proy.max-bib-ed{border-top-color:var(--k-cian)}
 body.tema-casete .max-bib-proy.max-bib-ed .max-bib-proy-cab .ic,body.tema-casete .max-bib-proy.max-bib-ed .max-bib-proy-cab svg{color:var(--k-cian)}
 body.tema-casete .max-boton.max-ed-nombre{border-color:var(--k-cian) !important;color:var(--k-cian) !important;font:800 15px/1 var(--k-rotulo) !important;letter-spacing:.04em;min-height:36px}
+body.tema-casete .max-exp{background:rgba(10,7,13,.78)}
+body.tema-casete .max-exp-caja{background:var(--k-tinta2);border-color:var(--k-linea2);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+body.tema-casete .max-exp-titulo{font:900 32px/1 var(--k-titulo);letter-spacing:.03em}
+body.tema-casete .max-exp-grupo>b{font:700 13px var(--k-rotulo);letter-spacing:.08em;color:var(--k-crema)}
+body.tema-casete .max-exp-marca{font-family:var(--k-texto-f);color:var(--k-texto)}
+body.tema-casete .max-exp-nombre{background:var(--k-tinta) !important;color:var(--k-texto) !important;border:1px solid var(--k-linea2) !important;border-radius:6px}
+body.tema-casete .max-exp-pie{border-color:var(--k-linea)}
 

@@ -16,6 +16,10 @@ const CLASE_CUERPO = { true: "max-ed-cuerpo cuchilla", false: "max-ed-cuerpo" };
 const ICONO_VER = { true: "ojo", false: "ojono" }, ICONO_OIR = { true: "sonido", false: "mudo" }, ICONO_TOCAR = { true: "pausa", false: "play" };
 const LETRA_PISTA = { video: "V", audio: "A" };
 const GUARDA_EDICION = "max-editor-edicion";            // la última edición abierta (en este navegador)
+const GUARDA_EXPORTAR = "max-editor-exportar";          // las últimas opciones de exportar (en este navegador)
+const EXT_FORMATO = { mp4_h264: ".mp4", mp4_h265: ".mp4", webm: ".webm", mov_prores: ".mov" };   // como edicion.FORMATOS
+const RES_CORTO = { original: 0, 1080: 1080, 720: 720 };                                          // el lado corto
+const CLASE_SEG = { true: "max-boton max-exp-op activa", false: "max-boton max-exp-op" };
 const TECLA = { mover: "A", cuchilla: "B", iman: "N", entrada: "I", salida: "O", quitar: "Alt+X" };
 const CARPETA_AUDIOS = "\u0000audios";                  // la carpeta «Audios» de la biblioteca (no es un proyecto)
 const CARPETA_FUERA = "\u0000fuera";                    // «Traídos de fuera»: videos subidos solo para Edición
@@ -406,7 +410,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
       r ? el("span", { class: "max-ed-rango-txt" }, t("app.edicion.rango", { a: tc(r.desde), b: tc(r.hasta), s: num(r.hasta - r.desde, 2) })) : null,
       E.lienzo ? el("span", { class: "epl-ayuda" }, t("app.edicion.lienzo", { w: E.lienzo.ancho, h: E.lienzo.alto })) : null,
       el("span", { class: "max-derecha" }),
-      el("button", { class: "max-generar max-ed-exportar", disabled: !n || E.exportando, title: t("app.edicion.exportar.tooltip"), onclick: () => exportar() },
+      el("button", { class: "max-generar max-ed-exportar", disabled: !n || E.exportando, title: t("app.edicion.exportar.tooltip"), onclick: () => abrirExportar() },
         icono("subir"), " " + t(E.exportando ? "app.edicion.exportando" : r ? "app.edicion.exportar_rango" : "app.edicion.exportar"))].filter(Boolean));   // replaceChildren escribiría «null»
   }
   function pintar() {
@@ -505,6 +509,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
   });
   // el teclado, solo con el apartado Edición a la vista y fuera de los campos de texto
   document.addEventListener("keydown", (e) => {
+    if (capaExp.isConnected) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cerrarExportar(); } return; }   // la ventana de exportar
     if (!activo() || e.target.closest?.("input, textarea, select, [contenteditable]")) return;
     const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
     const hecho = () => { e.preventDefault(); e.stopPropagation(); };
@@ -550,16 +555,92 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
     if (bien) avisar(t(como === "video" ? "app.edicion.videos_subidos" : "app.edicion.audios_subidos", { n: bien, carpeta }), "bien");
     await cargarBiblioteca();
   }
-  async function exportar() {
+  /* ---- exportar (29 oct, Jonathan: «como en DaVinci pero con menos opciones»): una ventana con dónde va (la biblioteca y/o
+   * tu PC: el navegador deja elegir carpeta y nombre; desde un pod, el video baja a tu ordenador), el nombre, el formato, la
+   * resolución, la calidad y el audio. Se recuerdan las últimas opciones (en este navegador). */
+  const OPC_DEFECTO = { biblioteca: true, pc: true, formato: "mp4_h264", resolucion: "original", calidad: "alta", audio: "aac192" };
+  let opc = { ...OPC_DEFECTO };
+  try { opc = { ...OPC_DEFECTO, ...JSON.parse(localStorage.getItem(GUARDA_EXPORTAR) || "{}") }; } catch { /* sin guardar */ }
+  const capaExp = el("div", { class: "max-exp", onclick: (e) => { if (e.target === capaExp) cerrarExportar(); } });
+  function cerrarExportar() { capaExp.remove(); }
+  const extDe = (f) => EXT_FORMATO[f];
+  function tamanoSalida(res) {
+    const w = E.lienzo?.ancho || 1080, h = E.lienzo?.alto || 1920, corto = RES_CORTO[res];
+    if (!corto) return [w, h];
+    const f = corto / Math.min(w, h);
+    return [Math.round(w * f / 2) * 2, Math.round(h * f / 2) * 2];
+  }
+  function abrirExportar() {
+    const sello = new Date().toISOString().slice(0, 16).replace(/\D/g, "");
+    const nombre = el("input", { class: "max-exp-nombre", value: `${E.nombre || t("app.edicion.titulo")}_${sello}`.replace(/[^\w.-]+/g, "_") });
+    const caja = el("div", { class: "max-exp-caja", role: "dialog", "aria-modal": "true" });
+    const grupo = (clave, k, valores) => el("div", { class: "max-exp-grupo" }, el("b", {}, t(clave)),
+      el("div", { class: "max-exp-seg", role: "group" }, ...valores.map(([v, texto, ayuda]) => el("button", {
+        class: CLASE_SEG[opc[k] === v], "aria-pressed": String(opc[k] === v), title: ayuda || "", onclick: () => { opc[k] = v; pintarCaja(); } }, texto))));
+    const marca = (k, clave, ayuda) => el("label", { class: "max-exp-marca", title: t(ayuda) },
+      el("input", { type: "checkbox", checked: opc[k], onchange: (e) => { opc[k] = e.target.checked; pintarCaja(); } }), " " + t(clave));
+    function pintarCaja() {
+      const r = hayRango() ? rangoExport() : { desde: 0, hasta: duracion() }, [w, h] = tamanoSalida(opc.resolucion);
+      const ninguno = !opc.biblioteca && !opc.pc;
+      caja.replaceChildren(...[
+        el("div", { class: "max-exp-cab" }, el("b", { class: "max-exp-titulo" }, t("app.edicion.exp.titulo")), el("span", { class: "max-derecha" }),
+          el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrarExportar }, icono("x"))),
+        el("div", { class: "max-exp-grupo" }, el("b", {}, t("app.edicion.exp.donde")),
+          marca("pc", "app.edicion.exp.pc", "app.edicion.exp.pc.tooltip"), marca("biblioteca", "app.edicion.exp.biblioteca", "app.edicion.exp.biblioteca.tooltip"),
+          ninguno ? el("span", { class: "max-aviso mal" }, t("app.edicion.exp.ninguno")) : null),
+        el("div", { class: "max-exp-grupo" }, el("b", {}, t("app.edicion.exp.nombre")), el("span", { class: "max-exp-fila" }, nombre, el("span", {}, extDe(opc.formato)))),
+        grupo("app.edicion.exp.formato", "formato", [["mp4_h264", t("app.edicion.exp.mp4_h264"), t("app.edicion.exp.mp4_h264.ayuda")],
+          ["mp4_h265", t("app.edicion.exp.mp4_h265"), t("app.edicion.exp.mp4_h265.ayuda")], ["webm", t("app.edicion.exp.webm"), t("app.edicion.exp.webm.ayuda")],
+          ["mov_prores", t("app.edicion.exp.mov_prores"), t("app.edicion.exp.mov_prores.ayuda")]]),
+        grupo("app.edicion.exp.resolucion", "resolucion", [["original", t("app.edicion.exp.original", { w: tamanoSalida("original")[0], h: tamanoSalida("original")[1] })],
+          ["1080", t("app.edicion.exp.res", { p: 1080, w: tamanoSalida("1080")[0], h: tamanoSalida("1080")[1] })],
+          ["720", t("app.edicion.exp.res", { p: 720, w: tamanoSalida("720")[0], h: tamanoSalida("720")[1] })]]),
+        opc.formato === "mov_prores" ? null : grupo("app.edicion.exp.calidad", "calidad", [["alta", t("app.edicion.exp.alta")], ["media", t("app.edicion.exp.media")], ["ligera", t("app.edicion.exp.ligera")]]),
+        grupo("app.edicion.exp.audio", "audio", opc.formato === "mov_prores" ? [["aac192", t("app.edicion.exp.pcm")], ["sin", t("app.edicion.exp.sin_audio")]]
+          : [["aac192", t(opc.formato === "webm" ? "app.edicion.exp.opus128" : "app.edicion.exp.aac192")],
+             ["aac320", t(opc.formato === "webm" ? "app.edicion.exp.opus256" : "app.edicion.exp.aac320")], ["sin", t("app.edicion.exp.sin_audio")]]),
+        el("div", { class: "max-exp-pie" },
+          el("span", { class: "max-exp-resumen" }, t("app.edicion.exp.resumen", { w, h, s: num(r.hasta - r.desde, 2), a: tc(r.desde), b: tc(r.hasta) })),
+          el("span", { class: "max-derecha" }),
+          el("button", { class: "max-boton max-vid-accion", onclick: cerrarExportar }, t("app.proyecto.cancelar")),
+          el("button", { class: "max-generar max-ed-exportar", disabled: ninguno, onclick: () => exportar(nombre.value) }, icono("subir"), " " + t("app.edicion.exportar")))].filter(Boolean));
+    }
+    pintarCaja();
+    capaExp.replaceChildren(caja);
+    document.body.append(capaExp);
+    nombre.focus();
+  }
+  async function exportar(nombreArchivo) {
+    try { localStorage.setItem(GUARDA_EXPORTAR, JSON.stringify(opc)); } catch { /* sin almacenamiento */ }
+    const ext = extDe(opc.formato), sugerido = (nombreArchivo || "").replace(/[^\w.-]+/g, "_") + ext;
+    // «A mi PC»: dónde guardarlo se pregunta YA (el navegador solo lo deja justo al hacer clic); si no sabe, se descarga al final
+    let destino = null;
+    if (opc.pc && window.showSaveFilePicker) {
+      try { destino = await window.showSaveFilePicker({ suggestedName: sugerido }); }
+      catch (err) { if (err.name === "AbortError") return; destino = null; }
+    }
+    cerrarExportar();
     E.exportando = true; pintarPie();
     try {
-      await new Promise((r) => { clearTimeout(temporizador); r(); });
+      clearTimeout(temporizador);
       const pistas = E.pistas.map((p) => ({ id: p.id, tipo: p.tipo, ver: p.ver, oir: p.oir, clips: p.clips.map((c) => ({ fuente: c.fuente, ini: c.ini, fin: c.fin, en: c.en })) }));
-      const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, nombre: E.nombre, edicion: { pistas, lienzo: E.lienzo, rango: hayRango() ? rangoExport() : null } });
-      avisar(t("app.edicion.exportado", { archivo: r.archivo }), "bien");
+      const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, nombre: E.nombre,
+        edicion: { pistas, lienzo: E.lienzo, rango: hayRango() ? rangoExport() : null },
+        opciones: { formato: opc.formato, resolucion: opc.resolucion, calidad: opc.calidad, audio: opc.audio, biblioteca: opc.biblioteca, archivo: nombreArchivo } });
+      if (opc.pc) {
+        const url = "/app/edicion_descargar/" + encodeURIComponent(r.archivo);
+        if (destino) {
+          const datos = await fetch(url);
+          await datos.body.pipeTo(await destino.createWritable());
+        } else {
+          const a = el("a", { href: url, download: r.archivo });
+          document.body.append(a); a.click(); a.remove();
+        }
+      }
+      avisar(t(opc.pc ? (opc.biblioteca ? "app.edicion.exp.hecho_ambos" : "app.edicion.exp.hecho_pc") : "app.edicion.exportado",
+               { archivo: destino?.name || r.archivo }), "bien");
       guardar();
-      await alTerminar?.();
-      await cargarBiblioteca();
+      if (opc.biblioteca) { await alTerminar?.(); await cargarBiblioteca(); }
     } catch (err) { avisar(t("app.edicion.error_exportar", { error: err.message }), "mal"); }
     E.exportando = false; pintarPie();
   }

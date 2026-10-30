@@ -346,6 +346,18 @@ body .max-pop{z-index:10006}
 .max-ed-info{padding:6px 10px;border-top:1px solid var(--max-borde);font:500 12px ui-monospace,monospace;color:var(--max-suave)}
 .max-ed-pie{display:flex;align-items:center;gap:12px;padding:6px 2px}
 .max-ed-cab .max-ag-sello[hidden]{display:none}
+/* (29 oct) la ventana de exportar */
+.max-exp{position:fixed;inset:0;z-index:10006;background:rgba(8,6,12,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+.max-exp-caja{width:min(760px,96vw);max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:16px;padding:18px 22px;background:#13161c;border:1px solid var(--max-borde);border-radius:10px}
+.max-exp-cab{display:flex;align-items:center;gap:10px}.max-exp-titulo{font-size:28px;font-weight:900;text-transform:uppercase}
+.max-exp-cab .max-cerrar{width:44px;height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.max-exp-grupo{display:flex;flex-direction:column;gap:8px}.max-exp-grupo>b{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--max-suave)}
+.max-exp-seg{display:flex;flex-wrap:wrap;gap:6px}.max-exp-op{min-height:42px;padding:0 14px}
+.max-exp-op.activa{border-color:#FF7A1A !important;color:#FFB27A !important;background:rgba(255,122,26,.14) !important}
+.max-exp-marca{display:flex;align-items:center;gap:8px;font-size:16px;cursor:pointer}.max-exp-marca input{width:20px;height:20px}
+.max-exp-fila{display:flex;align-items:center;gap:6px}.max-exp-nombre{flex:1;height:42px;padding:0 10px;font-size:16px}
+.max-exp-pie{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--max-borde);padding-top:14px}
+.max-exp-resumen{font:600 13px ui-monospace,monospace;color:var(--max-suave)}
 .max-ed-nombre{display:inline-flex;align-items:center;gap:6px;max-width:360px;margin:0 8px}.max-ed-nombre span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .max-bib-proy.max-bib-ed{border-top-color:#22E4FF}
 @media (max-width:900px){.max-ed-arriba{grid-template-columns:1fr;height:auto}.max-ed-visor{height:40vh}}

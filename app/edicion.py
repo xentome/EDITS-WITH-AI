@@ -199,7 +199,53 @@ def plan(edicion: dict) -> dict:
     return {"clips": clips, "ancho": w, "alto": h, "duracion": round(duracion, 3)}
 
 
-def comando(p: dict, destino: str) -> list[str]:
+# ---------------------------------------------------------------- opciones de exportar (29 oct: una ventana como la de DaVinci, con menos)
+# formato → (extensión, códec de video, audio que le va, crf por calidad alta/media/ligera o None si no usa crf)
+FORMATOS = {
+    "mp4_h264": (".mp4", ["-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p"], "aac", (16, 21, 27)),
+    "mp4_h265": (".mp4", ["-c:v", "libx265", "-preset", "medium", "-pix_fmt", "yuv420p", "-tag:v", "hvc1"], "aac", (20, 25, 30)),
+    "webm": (".webm", ["-c:v", "libvpx-vp9", "-b:v", "0", "-row-mt", "1", "-deadline", "good", "-cpu-used", "4", "-pix_fmt", "yuv420p"],
+             "opus", (24, 31, 38)),
+    "mov_prores": (".mov", ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"], "pcm", None),   # ProRes 422: para seguir editando
+}
+CALIDADES = ("alta", "media", "ligera")
+RESOLUCIONES = {"original": None, "1080": 1080, "720": 720}        # el lado corto (vale igual para vertical y horizontal)
+AUDIOS = {"aac192": 192, "aac320": 320, "sin": 0}
+
+
+def opciones_export(o: dict | None) -> dict:
+    o = o or {}
+    r = {"formato": o.get("formato") or "mp4_h264", "calidad": o.get("calidad") or "alta",
+         "resolucion": str(o.get("resolucion") or "original"), "audio": o.get("audio") or "aac192"}
+    if r["formato"] not in FORMATOS or r["calidad"] not in CALIDADES or r["resolucion"] not in RESOLUCIONES or r["audio"] not in AUDIOS:
+        raise ErrorGenerar("alguna opción de exportar no es válida")
+    return r
+
+
+def _tamano_salida(w: int, h: int, resolucion: str) -> tuple[int, int]:
+    corto = RESOLUCIONES[resolucion]
+    if not corto:
+        return w, h
+    f = corto / min(w, h)
+    return max(16, int(round(w * f / 2)) * 2), max(16, int(round(h * f / 2)) * 2)
+
+
+def _codificar(o: dict) -> list[str]:
+    """Los argumentos de salida de ffmpeg para esas opciones (video y audio)."""
+    ext, video, audio, crfs = FORMATOS[o["formato"]]
+    args = list(video)
+    if crfs:
+        args += ["-crf", str(crfs[CALIDADES.index(o["calidad"])])]
+    kbps = AUDIOS[o["audio"]]
+    if kbps:
+        args += {"aac": ["-c:a", "aac", "-b:a", f"{kbps}k"], "opus": ["-c:a", "libopus", "-b:a", f"{min(kbps, 256)}k"],
+                 "pcm": ["-c:a", "pcm_s16le"]}[audio]
+    if ext == ".mp4":
+        args += ["-movflags", "+faststart"]
+    return args
+
+
+def comando(p: dict, destino: str, opciones: dict | None = None) -> list[str]:
     """La orden de ffmpeg: un fondo negro del tamaño del lienzo, cada clip de video encima (de la pista de abajo a la de arriba,
     a su tiempo) y todos los audios que se oyen mezclados sin bajar el volumen."""
     W, H, D = p["ancho"], p["alto"], p["duracion"]
@@ -233,29 +279,69 @@ def comando(p: dict, destino: str) -> list[str]:
         filtros.append(f"{sonidos[0]}atrim=duration={D:.3f}[aout]")
     else:
         filtros.append(f"anullsrc=r=48000:cl=stereo,atrim=duration={D:.3f}[aout]")
-    filtros.append(f"[base{k}]format=yuv420p[vout]")
-    return [*entradas, "-filter_complex", ";".join(filtros), "-map", "[vout]", "-map", "[aout]", "-r", str(FPS), "-t", f"{D:.3f}",
-            "-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
-            "-movflags", "+faststart", destino]
+    o = opciones_export(opciones)
+    sw, sh = _tamano_salida(W, H, o["resolucion"])
+    filtros.append(f"[base{k}]{f'scale={sw}:{sh}:flags=lanczos,' if (sw, sh) != (W, H) else ''}setsar=1[vout]")
+    audio = ["-map", "[aout]"] if AUDIOS[o["audio"]] else []
+    if not audio:
+        filtros.append("[aout]anullsink")                 # sin audio: la mezcla se descarta (una salida suelta no vale)
+    return [*entradas, "-filter_complex", ";".join(filtros), "-map", "[vout]", *audio, "-r", str(FPS), "-t", f"{D:.3f}",
+            *_codificar(o), destino]
 
 
-def exportar(edicion: dict, proyecto: str | None, nombre: str | None = None) -> tuple[str, dict]:
+EXPORTADOS = os.path.join(generar.SALIDAS, "exportados")   # lo exportado que no va a la biblioteca (solo para descargarlo)
+
+
+def exportar(edicion: dict, proyecto: str | None, nombre: str | None = None, opciones: dict | None = None) -> tuple[str, dict | None]:
+    """El video de la edición con esas opciones. opciones.biblioteca (sí por defecto): a app/salidas con su fila del
+    historial (sale en Videos y en la biblioteca); si no, a app/salidas/exportados, solo para descargarlo. opciones.archivo:
+    el nombre que quiere el usuario (sin extensión; se limpia y no pisa otro)."""
     t0 = time.time()
+    o = {**opciones_export(opciones), "biblioteca": (opciones or {}).get("biblioteca", True) is not False}
     p = plan(edicion)
-    os.makedirs(generar.SALIDAS, exist_ok=True)
     sello = f"{datetime.now():%Y%m%d_%H%M%S}"
-    archivo = f"montaje_{sello}.mp4"
-    destino = os.path.join(generar.SALIDAS, archivo)
-    temporal = destino + ".tmp.mp4"
+    ext = FORMATOS[o["formato"]][0]
+    carpeta = generar.SALIDAS if o["biblioteca"] else EXPORTADOS
+    os.makedirs(carpeta, exist_ok=True)
+    _limpiar_exportados()
+    base = _limpio((opciones or {}).get("archivo") or "", 100) or f"montaje_{sello}"
+    archivo, n = base + ext, 2
+    while os.path.exists(os.path.join(carpeta, archivo)):
+        archivo, n = f"{base}_{n}{ext}", n + 1
+    destino = os.path.join(carpeta, archivo)
+    temporal = f"{destino}.tmp{ext}"
     try:
-        retocar._ffmpeg(*comando(p, temporal))
+        retocar._ffmpeg(*comando(p, temporal, o))
         os.replace(temporal, destino)
     finally:
         if os.path.exists(temporal):
             os.remove(temporal)
-    fila = {"id": f"montaje_{sello}", "fecha": datetime.now().isoformat(timespec="seconds"), "segundos": round(time.time() - t0, 1),
-            "archivo": archivo, "tipo": "montaje", "semilla": None, "proyecto": proyecto, "edicion": nombre, "sin_cancion": True,
-            "montaje": {"clips": len(p["clips"]), "duracion": p["duracion"], "ancho": p["ancho"], "alto": p["alto"],
-                        "fuentes": sorted({c["fuente"] for c in p["clips"]})}}
-    generar._anotar(fila)
+    sw, sh = _tamano_salida(p["ancho"], p["alto"], o["resolucion"])
+    fila = None
+    if o["biblioteca"]:
+        fila = {"id": f"montaje_{sello}", "fecha": datetime.now().isoformat(timespec="seconds"), "segundos": round(time.time() - t0, 1),
+                "archivo": archivo, "tipo": "montaje", "semilla": None, "proyecto": proyecto, "edicion": nombre, "sin_cancion": True,
+                "montaje": {"clips": len(p["clips"]), "duracion": p["duracion"], "ancho": sw, "alto": sh, "formato": o["formato"],
+                            "fuentes": sorted({c["fuente"] for c in p["clips"]})}}
+        generar._anotar(fila)
     return archivo, fila
+
+
+def _limpiar_exportados(horas: float = 24) -> None:
+    """Lo exportado solo para el PC (no va a la biblioteca) se queda un día por si hay que bajarlo otra vez; luego se borra."""
+    try:
+        for n in os.listdir(EXPORTADOS):
+            ruta = os.path.join(EXPORTADOS, n)
+            if os.path.isfile(ruta) and time.time() - os.path.getmtime(ruta) > horas * 3600:
+                os.remove(ruta)
+    except OSError:
+        pass
+
+
+def ruta_exportado(archivo: str) -> str | None:
+    """Un archivo exportado (de app/salidas o de app/salidas/exportados), para descargarlo."""
+    for carpeta in (EXPORTADOS, generar.SALIDAS):
+        ruta = os.path.join(carpeta, os.path.basename(archivo or ""))
+        if os.path.basename(archivo or "") and os.path.isfile(ruta):
+            return ruta
+    return None

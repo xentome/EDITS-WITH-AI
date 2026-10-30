@@ -193,3 +193,11 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Ventana «Proyectos» › 3.ª pestaña «Ediciones»: tarjetas con franja cian, «Nueva edición», «Abrir edición» (doble clic), «Duplicar», «Borrar» (pregunta con el nombre). En Edición, el nombre de la abierta (botón cian) abre esa pestaña. Se recuerda la última abierta (`max-editor-edicion`); sin ninguna se crea «mi edición».
 - Al probar, «Duplicar»/«Borrar» actuaron sobre la edición de Jonathan (la ventana se quedaba con la elegida de la vez anterior); se restauró al instante desde `_borradas` (idéntica) y se arregló: al abrir, la elegida es siempre la abierta.
 
+## 21 · Ventana de exportar ✅ (29 oct)
+
+- Jonathan: «al darle exportar esperaba un menú… como en DaVinci pero con menos opciones… lo que sí veo necesario al 100 es elegir dónde irá a parar el video».
+- «Exportar» abre una ventana: **dónde va** («A mi PC (eliges carpeta y nombre)» y/o «Guardar también en la biblioteca»), nombre del archivo, formato (MP4 H.264 · MP4 H.265 · WebM VP9 · MOV ProRes 422), resolución (original · 1080p · 720p, por el lado corto), calidad (alta · media · ligera; no en ProRes) y audio (AAC 192/320, Opus en WebM, PCM en ProRes, sin audio). Resumen con tamaño y duración. Se recuerdan las últimas opciones (`max-editor-exportar`).
+- «A mi PC»: `showSaveFilePicker` se pide al hacer clic (luego ya no se puede) y se escribe ahí al terminar; si el navegador no lo tiene (Brave puede tenerlo apagado), descarga normal. Funciona igual desde un pod: el video baja al ordenador.
+- Servidor: `edicion.exportar(..., opciones)` + `edicion.FORMATOS`; sin biblioteca va a `app/salidas/exportados/` (sin fila; se borra al día), con biblioteca a `app/salidas` con su fila. `GET /app/edicion_descargar/<archivo>` (attachment). Probados los 4 formatos a 720p, sin audio, «solo PC» (descarga) y «solo biblioteca».
+- Al probar: alguien quitó a la vez mis archivos «zz» de prueba y la página de prueba abrió la edición más reciente, «GANCHO» (de Jonathan), y al exportar la volvió a guardar igual (solo subió la rev). Las pruebas bloquean ahora todo guardado que no sea de algo «zz».
+
