@@ -39,3 +39,10 @@ Todos son open source menos uno: ComfyUI_Comfyroll_CustomNodes no publica licenc
 | Qwen3-VL (codificador de texto de H3) | Qwen | va con la licencia de H3 (ver MODELOS.md) |
 | Qwen3.8 27B (LLM local, opcional) | Qwen | ❓ |
 | SAM 3.1 (Retocar) | Meta | SAM License |
+
+## Material del proyecto de ejemplo (`app/ejemplo/`)
+
+| Qué | Autor | Licencia |
+|---|---|---|
+| Jane (RefMod y foto) | el autor de MAX EDITOR (xentome) | CC BY 4.0 |
+| `velvet_rush.mp3` (la canción) | web de música libre de derechos | la suya (no CC BY): solo para probar la app; ver [app/ejemplo/README.md](app/ejemplo/README.md) |

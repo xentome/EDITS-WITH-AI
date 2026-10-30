@@ -37,6 +37,7 @@
 |---|---|
 | [`app/`](app/) | **MAX EDITOR**, the app: web page, server, Comfy SDK calls, MCP server, installer and the ComfyUI workflows it runs (`app/plantillas/*.api.json`) |
 | [`web/`](web/), `nucleo.py`, `rutas.py`, `frases.json` | the edit editor and the prompt logic, shared by the app and by the ComfyUI node |
+| [`app/ejemplo/`](app/ejemplo/) | the example project's material (Jane's reference and the song) and its guide: challenges and a prompt for your agent |
 | `__init__.py`, `locales/`, [`workflows/`](workflows/) | the same editor as a ComfyUI custom node, with an example workflow |
 | `Instalar MAX EDITOR.desktop`, `Instalar / Abrir / Parar MAX EDITOR.bat` | double-click install and start (Linux / Windows) |
 | [`runpod/`](runpod/), [RUNPOD.md](RUNPOD.md) | the RunPod template: the whole app on a rented GPU |
@@ -194,7 +195,7 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 ## How to use it
 
-1. **Your first project.** The first time, the app opens the example if there is one and, if not, creates an empty project. The example never changes: choosing it makes your own copy («my example») and opens that.
+1. **Your first project: the example.** The app ships with **Jane**, a ready 8 s edit (reference, song, shots and text included): pick it in **Projects › Open the example** and press **Generate** (~10 min on a 12 GB GPU). The example never changes: choosing it makes your own copy («my example»). Then try its **6 challenges** and the **prompt for your AI agent** in **[app/ejemplo/README.md](app/ejemplo/README.md)**.
    - Add your references with **+ Add** or **⬆ Upload photo or video**.
 2. **The story:** write the idea and the style, then press **Write story**, then **Write shots**.
 3. **The shots:** click a shot on the timeline to see and change its prompt. Drag the border between shots to move the cut. The lock keeps your text: the LLM won't change it.
