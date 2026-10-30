@@ -46,16 +46,22 @@
 
 ## Install
 
-> **You need:** Linux (or Windows, not tested yet), an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
+**Jump to:** [🐧 Linux](#linux) · [🪟 Windows](#windows) · [☁️ RunPod (no GPU)](#no-gpu-or-no-comfyui-use-runpod)
+
+> **You need:** Linux or Windows (Windows not tested yet), an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
 > **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](RUNPOD.md)**: it sets up everything and you only use the app.
 
-Pick one of three ways. All three run the same installer, `app/instalar.sh`, which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
+Every way runs the same installer (`app/instalar.sh` on Linux, `Instalar MAX EDITOR.bat` on Windows), which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
 - it puts **10 node packs** in `ComfyUI/custom_nodes/`, each at the exact commit we tested, and never overwrites a pack you already have;
 - it installs their Python dependencies into ComfyUI's Python with **torch, torchvision, torchaudio and numpy frozen**;
 - it downloads the **models from HuggingFace** (resumable, each **sha256** checked) **only if you say yes**. You can also pick models you already have, or download them later with one click, in the app › **🧩 Models**;
 - it never patches ComfyUI itself, and it can be run again: what is already there is skipped.
 
-### 1. One command (Linux)
+### Linux
+
+Pick one of three ways.
+
+#### 1. One command
 
 ```
 git clone https://github.com/xentome/EDITS-WITH-AI.git && cd EDITS-WITH-AI && app/instalar.sh --comfyui ~/ComfyUI --retocar
@@ -77,18 +83,13 @@ Then start (or restart) ComfyUI and run `app/arrancar.sh`: the app opens at `htt
 | `--sin-preguntas` | answers yes to everything except downloading models (pods, scripts) |
 | `--escritorio` | adds «MAX EDITOR» to your applications menu |
 
-### 2. A few clicks
+#### 2. A few clicks
 
 1. Download the repo (`git clone` above, or GitHub › Code › Download ZIP and unzip it).
 2. Double-click **`Instalar MAX EDITOR.desktop`** in the repo folder (your file manager may ask you to trust it). A terminal opens, installs everything and adds **MAX EDITOR** to your applications menu.
 3. Start ComfyUI, then open **MAX EDITOR** from the menu.
 
-**On Windows** (written without a Windows PC to test it, so please tell us in an issue if something fails). You need the [portable ComfyUI](https://docs.comfy.org/installation) or one installed with git (ComfyUI Desktop is not supported yet), Python 3.10+ (`winget install Python.Python.3.12`), Git and FFmpeg (`winget install Git.Git Gyan.FFmpeg`).
-1. Download the repo (GitHub › Code › Download ZIP) and unzip it.
-2. Double-click **`Instalar MAX EDITOR.bat`**. It finds your ComfyUI (or asks for its folder), installs the nodes and asks before downloading the models.
-3. Start ComfyUI, then double-click **`Abrir MAX EDITOR.bat`**. **`Parar MAX EDITOR.bat`** stops the app.
-
-### 3. With an AI agent
+#### 3. With an AI agent
 
 Paste this into Claude Code, Codex or any coding agent with a terminal:
 
@@ -108,11 +109,50 @@ Install MAX EDITOR (https://github.com/xentome/EDITS-WITH-AI) on this Linux PC a
    Then call estado and leer_guia("mapa") and tell me in 3 lines what you can do in the app.
 ```
 
+### Windows
+
+> ⚠️ **Not tested on a Windows PC yet.** The Windows scripts were written and checked on Linux (they run there with `--dry-run`). If something fails, please [open an issue](https://github.com/xentome/EDITS-WITH-AI/issues) with what the window says. Want a sure thing? Use [RunPod](#no-gpu-or-no-comfyui-use-runpod).
+
+**Before you start, you need:**
+
+| What | How to get it |
+|---|---|
+| **ComfyUI portable** (or one installed with git) | [docs.comfy.org/installation](https://docs.comfy.org/installation). **ComfyUI Desktop** (the desktop app) is **not supported yet**: its code and folders live apart. |
+| **Python 3.10 or newer** | `winget install Python.Python.3.12` |
+| **Git** and **FFmpeg** | `winget install Git.Git Gyan.FFmpeg` |
+| An **NVIDIA GPU with 12 GB** | same as Linux |
+
+Run the `winget` lines in **PowerShell** or **Terminal**, then close the window and open it again so Windows finds the new programs.
+
+**Install and open, in four steps:**
+
+1. **Download** the repo: on GitHub › green **Code** button › **Download ZIP**, and unzip it (for example in `C:\MAX EDITOR`). With Git: `git clone https://github.com/xentome/EDITS-WITH-AI.git`.
+2. **Install:** double-click **`Instalar MAX EDITOR.bat`**. A black window opens and:
+   - finds your ComfyUI (it looks for a `ComfyUI…` folder next to this one, in your user folder, Desktop, Downloads, Documents and at the root of C: to G:) or **asks you for its folder** (the one with `main.py`);
+   - asks if you also want **Retouch and Extend video** (say yes: 7 more packs + SAM 3.1, 1.7 GB);
+   - installs the app in `app\.venv` and the node packs in ComfyUI;
+   - **asks before downloading the models** (about 68 GB). You can say no and download them later in the app › **🧩 Models**.
+3. **Start ComfyUI** as you always do (for the portable one: `run_nvidia_gpu.bat`), and wait until it says it is ready.
+4. **Open the app:** double-click **`Abrir MAX EDITOR.bat`**. Your browser opens at `http://127.0.0.1:8300`.
+
+**To stop it:** double-click **`Parar MAX EDITOR.bat`** (ComfyUI keeps running). **After updating** the repo, run `Instalar MAX EDITOR.bat` again; it skips what is already there.
+
+<details><summary>Windows: command line, options and the local LLM</summary>
+
+- The `.bat` files take the same options as on Linux, from PowerShell in the repo folder:
+  `.\"Instalar MAX EDITOR.bat" --comfyui "C:\ComfyUI_windows_portable\ComfyUI" --retocar` · checking only: `.\"Abrir MAX EDITOR.bat" --comprobar`
+- If Windows SmartScreen warns about the `.bat`, choose **More info › Run anyway** (they are plain text: open them with Notepad to read them).
+- Linking models you already have (`--modelos`) uses links; without Windows **Developer Mode**, it makes hard links (same disk only).
+- The **local LLM** is optional, same as on Linux: run [llama.cpp for Windows](https://github.com/ggml-org/llama.cpp/releases) `llama-server.exe` with the command in [Optional: the local LLM](#optional-the-local-llm).
+- **With an AI agent:** paste the prompt from [With an AI agent](#3-with-an-ai-agent) and change «this Linux PC» to «this Windows PC» and `app/instalar.sh` to `"Instalar MAX EDITOR.bat"`.
+
+</details>
+
 ### Requirements and times
 
 | | Tested | Notes |
 |---|---|---|
-| OS | Linux (CachyOS) | Windows/macOS not tested |
+| OS | Linux (CachyOS) | Windows: scripts ready, not tested on a Windows PC · macOS: not supported |
 | GPU | NVIDIA RTX 3060 **12 GB**, driver 615 | with less VRAM we don't know if it fits: use RunPod |
 | RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; plan for **64 GB RAM + swap** or more |
 | Disk | **68 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
