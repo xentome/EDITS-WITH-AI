@@ -493,6 +493,59 @@ async def lanzar_mascara(peticion):
     return web.json_response({"id": tid})
 
 
+async def soltar_gpu(peticion):
+    """Antes del LLM (como trabajador._soltar_gpu): con ComfyUI sin trabajo, que suelte sus modelos y esperar a que quede
+    sitio. Si no, el LLM (unos 9,6 GB) no cabe, su servicio se cae al cargar y vuelve a empezar sin parar (29 oct)."""
+    base = CONFIG["comfyui_url"].rstrip("/")
+    http = peticion.app["http"]
+    try:
+        async with http.get(base + "/queue", timeout=ClientTimeout(total=5)) as q:
+            cola_c = await q.json()
+    except Exception:
+        return                                               # sin ComfyUI no hay nada que soltar
+    if cola_c.get("queue_running") or cola_c.get("queue_pending"):
+        raise RuntimeError("ComfyUI está trabajando")
+    if not CONFIG.get("liberar_gpu", True):
+        return
+    try:
+        async with http.post(base + "/free", json={"unload_models": True, "free_memory": True}, timeout=ClientTimeout(total=10)):
+            pass
+        for _ in range(30):                                  # hasta ~15 s: que haya unos 9 GB libres
+            async with http.get(base + "/system_stats", timeout=ClientTimeout(total=5)) as st:
+                d = await st.json()
+            libre = min((x.get("vram_free") or 0) for x in d.get("devices") or [{}]) / 2 ** 30
+            if libre >= 9:
+                return
+            await asyncio.sleep(0.5)
+    except Exception:
+        return
+
+
+async def retocar_prompt(peticion):
+    """POST /app/retocar_prompt {video, segundo, zona, con_referencia} → {prompt}: la frase del retoque escrita por el LLM
+    mirando ese fotograma (retocar.prompt_llm). No con un trabajo corriendo: H3 y el LLM no caben juntos en la GPU."""
+    datos = await peticion.json()
+    if not isinstance(datos, dict) or not datos.get("video"):
+        return error("app.error.sin_valores", peticion)
+    if any(x.get("estado") in ("corriendo", "recuperando") for x in cola.lista()["trabajos"]):
+        return error("app.error.gpu_ocupada", peticion, 409)
+    r = retocar()
+    _llm_en_marcha[0] += 1                                   # mientras escribe, la cola no empieza otro trabajo
+    try:
+        await soltar_gpu(peticion)
+    except RuntimeError:
+        _llm_en_marcha[0] -= 1
+        return error("app.error.gpu_ocupada", peticion, 409)
+    try:
+        texto = await asyncio.get_running_loop().run_in_executor(None, lambda: r.prompt_llm(
+            datos["video"], float(datos.get("segundo") or 0), str(datos.get("zona") or ""), bool(datos.get("con_referencia", True)), CONFIG["llm_url"]))
+    except r.ErrorGenerar as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    finally:
+        _llm_en_marcha[0] -= 1
+    return web.json_response({"prompt": texto})
+
+
 # ------------------------------------------------------------------ extender (extender.py, planos/fases/12)
 def extender():
     return importlib.import_module("extender")
@@ -921,6 +974,7 @@ def crear_app():
     app.router.add_post("/app/abrir_carpeta", abrir_carpeta)
     app.router.add_post("/app/retocar", lanzar_retoque)
     app.router.add_post("/app/retocar_mascara", lanzar_mascara)
+    app.router.add_post("/app/retocar_prompt", retocar_prompt)
     app.router.add_post("/app/extender_plan", extender_plan)
     app.router.add_get("/app/cola", cola_lista)
     app.router.add_post("/app/cola", cola_anadir)

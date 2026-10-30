@@ -533,6 +533,21 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
         el("button", { class: "max-generar", title: t("app.retocar.guia.aplicar.tooltip"), onclick: aplicarGuia }, t("app.retocar.guia.aplicar")))));
     document.body.append(capaGuia);
   }
+  // el fotograma que mira el LLM: el del cabezal (en la vista de la máscara, el visor es solo el tramo)
+  const segundoCabezal = () => (enMascara() ? segundos(R.mascara.f0) : 0) + (video.currentTime || 0);
+  async function escribirConLLM() {
+    const s = segundoCabezal(), f = Math.round(s * fps());
+    R.escribiendo = true; R.error = ""; pintar();
+    try {
+      const r = await pedir("/app/retocar_prompt", { video: R.video, segundo: s, zona: R.modo === "texto" ? R.texto.trim() : "",
+                                                     con_referencia: R.refs.length > 0 });
+      R.prompt = r.prompt;
+      guardar();
+      avisar(t("app.retocar.llm.hecho", { f, s: num(s, 2) }), "bien");
+    } catch (e) { R.error = e.message; }
+    R.escribiendo = false;
+    pintar();
+  }
   function delProyecto() {
     const items = A.ctx?.wf?.items || [];
     return items.filter((r) => (r.ref && (r.kind || "image") === "image") || (r.medio && r.kind === "image"))
@@ -833,6 +848,10 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
           onclick: () => { R.mp = mp; guardar(); pintar(); } }, t(`app.retocar.resolucion.${k}`, { mp: num(mp * 1.048576, 2) }))))),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.prompt"), info("app.retocar.prompt.ayuda")),
         el("span", { class: "max-rt-arrastra" }, t("app.retocar.prompt.arrastra")),
+        // (29 oct, Jonathan: «poder elegir el fotograma que el LLM verá») lo escribe el LLM mirando el fotograma del cabezal
+        el("div", { class: "max-rt-fila" }, el("button", { class: "max-boton max-rt-llm", disabled: ocupado || !R.info || R.escribiendo,
+          title: t("app.retocar.llm.tooltip"), onclick: () => escribirConLLM() }, icono("chispa"),
+          " " + t(R.escribiendo ? "app.retocar.llm.escribiendo" : "app.retocar.llm"))),
         el("textarea", { class: "max-rt-prompt", rows: 5, placeholder: t("app.retocar.prompt.placeholder"), disabled: ocupado,
                          oninput: (e) => { R.prompt = e.target.value; guardar(); },
                          ondragover: (e) => e.currentTarget.classList.add("soltar"),

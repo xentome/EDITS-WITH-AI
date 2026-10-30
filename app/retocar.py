@@ -239,6 +239,54 @@ def ruta_foto_referencia(ref: dict) -> str:
     return ruta
 
 
+# ---------------------------------------------------------------- el prompt escrito por el LLM (29 oct)
+SISTEMA_PROMPT = (
+    "You write prompts for a video inpainting model (MiniMax H3). Only one area is regenerated: {zona}. The motion comes from "
+    "the video. Write ONE short English sentence (max 30 words) describing how that area should look when finished: more "
+    "detailed and sharp, the same person or thing. {inicio}Describe what IS there in this frame (for a face: skin, eyes, "
+    "eyelashes, eyebrows, lips, expression) and the actual light of THIS frame (direction, color). Never use negations (no, "
+    "not, without). Never mention camera, framing, pose or movement. Output only the sentence.")
+
+
+def prompt_llm(video: str, segundo: float, zona: str, con_referencia: bool, llm_url: str) -> str:
+    """La frase del retoque escrita por el LLM local (Qwen con visión) mirando el fotograma que eligió el usuario (el del
+    cabezal), con las reglas de app/guia/4_prompts.md: lo que SÍ hay, la luz de ese fotograma, sin cámara ni pose."""
+    import base64
+    import tempfile
+    import urllib.request
+    ruta = ruta_video(video)
+    with tempfile.TemporaryDirectory() as d:
+        foto = os.path.join(d, "fotograma.jpg")
+        _ffmpeg("-ss", f"{max(0.0, float(segundo)):.3f}", "-i", ruta, "-frames:v", "1", "-vf", "scale='min(768,iw)':-2", foto)
+        with open(foto, "rb") as f:
+            imagen = base64.b64encode(f.read()).decode()
+    escrita = (zona or "").strip()
+    zona = escrita or "the area inside the rectangle"
+    inicio = ((f"Start with 'the detailed {escrita} of <Picture 1>,'. " if escrita else "Cite <Picture 1> for the person or object. ")
+              if con_referencia else "")
+    cuerpo = {"model": "local", "temperature": 0.3, "max_tokens": 1500, "messages": [
+        {"role": "system", "content": SISTEMA_PROMPT.format(zona=zona, inicio=inicio)},
+        {"role": "user", "content": [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + imagen}},
+                                     {"type": "text", "text": "Write the sentence for this frame."}]}]}
+    pedido = urllib.request.Request(llm_url.rstrip("/") + "/v1/chat/completions", json.dumps(cuerpo).encode(), {"Content-Type": "application/json"})
+    import time
+    hasta, ultimo = time.time() + 90, None
+    while True:                       # el servicio se duerme sin uso: al despertar dice «Loading model» (503) unos segundos
+        try:
+            with urllib.request.urlopen(pedido, timeout=600) as r:
+                texto = (json.load(r)["choices"][0]["message"]["content"] or "").strip()
+            break
+        except Exception as exc:
+            ultimo = exc
+            if time.time() > hasta:
+                raise ErrorGenerar(f"el LLM local no respondió ({ultimo})")
+            time.sleep(3)
+    texto = texto.split("</think>")[-1].strip().strip('"').strip()
+    if not texto:
+        raise ErrorGenerar("el LLM no escribió nada: prueba otra vez")
+    return texto
+
+
 # ---------------------------------------------------------------- el grafo
 
 def megapixeles(datos: dict) -> float:
