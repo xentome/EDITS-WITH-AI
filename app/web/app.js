@@ -18,6 +18,7 @@ const [core, i18n, util] = await Promise.all(["editor_core.js", "editor/i18n.js"
 const retocarJS = await import("./retocar.js" + v);
 const extenderJS = await import("./extender.js" + v);
 const bibliotecaJS = await import("./biblioteca.js" + v);
+const edicionJS = await import("./edicion.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
@@ -47,7 +48,7 @@ async function pedir(ruta, cuerpo) {
 const A = { plantilla: null, graph: null, node: null, ctx: null, proyecto: "", guardadoJSON: "", proyectos: [], salud: {},
             trabajo: null, avance: null, videos: [], videoActual: "", verVideos: false, aviso: ["", ""], pop: null,
             cola: { pausada: false, trabajos: [] }, verCola: false, colaN: 1, colaVista: {},
-            fase: leerLocal(GUARDA_FASE) === "retocar" ? "retocar" : "tomas",
+            fase: ["retocar", "edicion"].includes(leerLocal(GUARDA_FASE)) ? leerLocal(GUARDA_FASE) : "tomas",
             // el agente (MCP, planos/fases/11): rev del proyecto que se cargó, marcas «✎ agente», cambios sin guardar y choque
             rev: 0, marcas: [], sucio: false, recargando: null, reiniciando: false };
 
@@ -219,6 +220,7 @@ function ponerFase(f) {
   ponerLocal(GUARDA_FASE, f);
   pintarFases();
   if (f === "retocar") { retoque.pintar(); extension.pintar(); }
+  if (f === "edicion") edicion.mostrar(); else edicion.ocultar();
 }
 function pintarFases() {
   const ctx = A.ctx, cuerpo = document.querySelector(".epl-fondo .epl-cuerpo");
@@ -227,6 +229,7 @@ function pintarFases() {
   if (barraFases.parentNode !== cuerpo || cuerpo.firstChild !== barraFases) cuerpo.prepend(barraFases);
   cuerpo.classList.toggle("fase-tomas", A.fase === "tomas");
   cuerpo.classList.toggle("fase-retocar", A.fase === "retocar");
+  cuerpo.classList.toggle("fase-edicion", A.fase === "edicion");
   const S = ctx.S, lista = ctx.wf.lista, n = S.plan.tomas.length;
   const conexiones = S.plan.tomas.reduce((x, _, i) => x + (ctx.refsDeToma?.(i + 1) || []).length, 0);
   const sinToma = lista.filter((r) => !ctx.enTodas?.(r.clave) && !S.plan.tomas.some((_, i) => (ctx.refsDeToma?.(i + 1) || []).includes(r.tag))).length;
@@ -242,7 +245,9 @@ function pintarFases() {
       el("span", { class: "max-fase-puntos" }, ...lista.map((r) => ctx.punto ? ctx.punto(r.tag) : null)),
       sinToma ? el("span", { class: "max-fase-aviso" }, t("app.fases.sin_toma", { n: sinToma })) : null]),
     bloque("retocar", "2", [el("span", {}, t("app.fases.retoques", { n: retoques })),
-      extensiones ? el("span", {}, t("app.fases.extensiones", { n: extensiones })) : null]));
+      extensiones ? el("span", {}, t("app.fases.extensiones", { n: extensiones })) : null]),
+    // (29 oct) el apartado 3: juntar clips de la biblioteca (edicion.js)
+    bloque("edicion", "3", [el("span", {}, t("app.fases.montajes", { n: A.videos.filter((x) => x.tipo === "montaje").length }))]));
 }
 
 async function cambiarIdioma(i) {
@@ -335,9 +340,11 @@ async function abrirProyecto(nombre, valores = null, recargar = false) {
     await cargarVideos();
     retoque.colocar();                                    // debajo de «Prompt final», en la ventana nueva
     extension.colocar();                                  // sus pestañas (antes) y «Extender video» (después)
+    edicion.colocar();                                    // el apartado 3 «Edición», al final
     pintarFases();                                        // la barra de fases, arriba del todo de la ventana
     await retoque.alAbrirProyecto();
     await extension.alAbrirProyecto();
+    await edicion.alAbrirProyecto();
   } catch (e) {
     avisar(t("app.proyecto.error_abrir", { nombre, error: e.message }), "mal");
   }
@@ -600,12 +607,13 @@ function ponerVideo(archivo) {
  * sus acciones en botones grandes (Retomar prompt · Retocar · Extender); a la derecha la lista. «Retomar prompt» carga los
  * valores con que se generó ese video (o, en un retoque, extensión o mejora, los de su Generar de origen: prompt_de) en este
  * proyecto (reemplaza lo de ahora, tras confirmarlo) o en una copia nueva, y pone su semilla */
-const ICONO_VIDEO = { retoque: "retoque", extension: "tomas", mejora: "grande", retomar: "texto" };   // tipo o acción → util.icono
+const ICONO_VIDEO = { retoque: "retoque", extension: "tomas", mejora: "grande", montaje: "capas", retomar: "texto" };   // tipo o acción → util.icono
 function describirVideo(x) {
   return x.tipo === "retoque" ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
     : x.tipo === "extension" ? t("app.videos.extension", { s: tr.num((x.extension?.nuevos || 0) / 24, 2), semilla: x.semilla ?? "?" })
     : x.tipo === "mejora" ? t("app.videos.mejora", { que: [x.superres ? "×" + tr.num(x.superres.escala, x.superres.escala % 1 ? 1 : 0) : "",
                                                            x.hdr ? t("app.retocar.mejorar.hdr") : ""].filter(Boolean).join(" · ") })
+    : x.tipo === "montaje" ? t("app.videos.montaje", { n: x.montaje?.clips ?? "?", s: tr.num(x.montaje?.duracion || 0, 1) })
     : t("app.videos.semilla", { semilla: x.semilla ?? "?" });
 }
 async function retomarPrompt(x, donde) {
@@ -641,6 +649,9 @@ function usarVideo(x, accion, donde = "aqui") {
   if (accion === "retocar") { extension.verInpaint(); retoque.cargar(x.archivo).then(retoque.ver); }
   else extension.cargar(x.archivo).then(extension.ver);
 }
+// ---- el apartado 3 «Edición» (edicion.js): juntar clips de la biblioteca en varias pistas y exportarlo con ffmpeg
+const edicion = edicionJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
+                                  alTerminar: () => cargarVideos() });
 // ---- la ventana «Proyectos» (biblioteca.js): sale al abrir la app y con el botón del proyecto de la cabecera
 const biblioteca = bibliotecaJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, EJEMPLO,
   abrirProyecto: (n) => abrirProyecto(n), abrirEjemplo: () => abrirEjemplo(), cargarProyectos: () => cargarProyectos(),

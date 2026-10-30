@@ -7,6 +7,7 @@ el lienzo de ComfyUI, y genera el video con el SDK de Comfy (generar.py). Plano:
   /app/*                     plantilla, proyectos, generar, trabajo, salidas, videos, salud
   /app/cola, /app/cola/<id>/<acción>, /app/cola/limpiar, /app/cola/pausar   la cola de trabajos (cola.py)
   /app/retocar, /app/retocar_mascara, /app/video_info, /app/video   Retocar (retocar.py): un tramo con la zona tapada, rehecha por H3
+  /app/edicion/<proyecto>, /app/edicion_audios, /app/edicion_audio, /app/edicion_exportar   Edición (edicion.py): juntar clips
 Arranque: app/arrancar.sh (o app/.venv/bin/python app/servidor.py)  →  http://127.0.0.1:8300
 Configuración: config.json, encima config.local.json (no va a git) y encima las variables MAX_EDITOR_<CLAVE>."""
 import asyncio
@@ -492,6 +493,74 @@ async def extender_plan(peticion):
 
 
 # ------------------------------------------------------------------ mejorar (mejorar.py: Super Resolution y HDR de NVIDIA RTX)
+# ------------------------------------------------------------------ edición (edicion.py, el apartado 3: juntar clips con ffmpeg)
+def edicion_mod():
+    return importlib.import_module("edicion")
+
+
+EDICIONES = os.path.join(PROYECTOS, "ediciones")         # la línea de tiempo de cada proyecto (no es un proyecto: subcarpeta)
+
+
+async def leer_edicion(peticion):
+    """GET /app/edicion/<proyecto> → la línea de tiempo guardada ({} si aún no hay)."""
+    if not ruta_proyecto(peticion.match_info["nombre"]):
+        return error("app.error.nombre", peticion)
+    ruta = os.path.join(EDICIONES, peticion.match_info["nombre"].strip() + ".json")
+    try:
+        with open(ruta, encoding="utf-8") as fh:
+            return web.json_response(json.load(fh))
+    except (OSError, ValueError):
+        return web.json_response({})
+
+
+async def guardar_edicion(peticion):
+    """POST /app/edicion/<proyecto> {pistas, lienzo}: se guarda tal cual (la comprueba exportar)."""
+    if not ruta_proyecto(peticion.match_info["nombre"]):
+        return error("app.error.nombre", peticion)
+    datos = await peticion.json()
+    if not isinstance(datos, dict) or not isinstance(datos.get("pistas"), list):
+        return error("app.error.sin_valores", peticion)
+    os.makedirs(EDICIONES, exist_ok=True)
+    ruta = os.path.join(EDICIONES, peticion.match_info["nombre"].strip() + ".json")
+    with open(ruta + ".tmp", "w", encoding="utf-8") as fh:
+        json.dump({"pistas": datos["pistas"], "lienzo": datos.get("lienzo"), "zoom": datos.get("zoom"),
+                   "guardado": time.strftime("%Y-%m-%dT%H:%M:%S")}, fh, ensure_ascii=False)
+    os.replace(ruta + ".tmp", ruta)
+    return web.json_response({"ok": True})
+
+
+async def edicion_audios(peticion):
+    return web.json_response(await asyncio.get_running_loop().run_in_executor(None, edicion_mod().audios))
+
+
+async def edicion_audio(peticion):
+    """POST /app/edicion_audio (multipart «archivo»): un audio del PC a ComfyUI/input/max_editor/audios."""
+    m = edicion_mod()
+    lector = await peticion.multipart()
+    parte = await lector.next()
+    while parte is not None and parte.name != "archivo":
+        parte = await lector.next()
+    if parte is None:
+        return error("app.error.sin_valores", peticion)
+    datos = await parte.read(decode=False)
+    try:
+        fuente = m.guardar_audio(parte.filename or "audio", datos)
+    except m.ErrorGenerar as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response({"fuente": fuente, "nombre": os.path.basename(fuente[:-len(" [input]")])})
+
+
+async def edicion_exportar(peticion):
+    """POST /app/edicion_exportar {proyecto, edicion} → {archivo}: el mp4 nuevo en app/salidas (y en la biblioteca)."""
+    m = edicion_mod()
+    datos = await peticion.json()
+    try:
+        archivo, fila = await asyncio.get_running_loop().run_in_executor(None, m.exportar, datos.get("edicion") or {}, datos.get("proyecto"))
+    except m.ErrorGenerar as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response({"archivo": archivo, "fila": fila})
+
+
 def mejorar():
     return importlib.import_module("mejorar")
 
@@ -695,6 +764,11 @@ def crear_app():
     app.router.add_get("/app/foto_referencia", foto_referencia)
     app.router.add_get("/app/salud", salud)
     app.router.add_post("/app/reiniciar", reiniciar)
+    app.router.add_get("/app/edicion/{nombre}", leer_edicion)
+    app.router.add_post("/app/edicion/{nombre}", guardar_edicion)
+    app.router.add_get("/app/edicion_audios", edicion_audios)
+    app.router.add_post("/app/edicion_audio", edicion_audio)
+    app.router.add_post("/app/edicion_exportar", edicion_exportar)
     return app
 
 

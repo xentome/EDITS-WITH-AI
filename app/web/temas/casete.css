@@ -669,4 +669,21 @@ body.tema-casete .max-boton.max-reiniciar{background:transparent !important;bord
   font:700 12px/1 var(--k-rotulo) !important;letter-spacing:.05em;min-height:30px;padding:0 10px !important;display:inline-flex;align-items:center;gap:6px}
 body.tema-casete .max-boton.max-reiniciar:hover:not(:disabled){background:rgba(247,200,58,.12) !important}
 body.tema-casete .max-boton.max-reiniciar svg{width:14px;height:14px}
+/* (29 oct) el apartado 3 «Edición» */
+body.tema-casete .max-ed-panel{background:var(--k-tinta2);border-color:var(--k-linea)}
+body.tema-casete .max-ed-cab,body.tema-casete .max-ed-transporte,body.tema-casete .max-ed-info{border-color:var(--k-linea)}
+body.tema-casete .max-ed-cab>b{font:900 22px/1 var(--k-titulo);letter-spacing:.04em}
+body.tema-casete .max-ed-carpeta{font-family:var(--k-rotulo);color:var(--k-cian)}
+body.tema-casete .max-ed-tc{color:var(--k-crema);font-family:var(--k-mono)}
+body.tema-casete .max-ed-cabezas{background:var(--k-tinta2)}
+body.tema-casete .max-ed-cabeza{border-color:var(--k-linea)}
+body.tema-casete .max-ed-cabeza b{font:800 16px var(--k-titulo);letter-spacing:.05em}
+body.tema-casete .max-ed-cabeza button{background:var(--k-tinta3);border-color:var(--k-linea2)}
+body.tema-casete .max-ed-regla{background:var(--k-tinta);border-color:var(--k-linea2)}
+body.tema-casete .max-ed-pista{border-color:var(--k-linea)}
+body.tema-casete .max-ed-cabezal{background:var(--k-naranja)}body.tema-casete .max-ed-cabezal::before{border-top-color:var(--k-naranja)}
+body.tema-casete .max-ed-iman{background:var(--k-cian)}
+body.tema-casete .max-ed-play{background:var(--k-crema);color:var(--k-tinta)}
+body.tema-casete .max-ed-herrs .max-boton,body.tema-casete .max-ed-transporte .max-boton{min-height:40px !important;padding:0 12px !important;font-size:13px !important}
+body.tema-casete .max-ed-exportar{background:var(--k-ok) !important;box-shadow:3px 3px 0 #1E6B3C !important}
 
