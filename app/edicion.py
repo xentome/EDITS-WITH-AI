@@ -5,6 +5,7 @@ exportarla a un mp4 nuevo con ffmpeg. Sin GPU: corta, escala, pone cada pista de
   audios() -> list                    los audios que se pueden usar: ComfyUI/input y input/max_editor/audios (subidos, con carpeta)
   de_fuera() -> list                  los videos traídos de fuera (input/max_editor/de_fuera): solo para Edición
   destino_subida(nombre, tipo, carpeta) dónde se guarda un audio o un video subido desde la página
+  proxy(fuente) -> ruta               la copia ligera de un video para el visor (app/salidas/proxies)
   exportar(edicion, proyecto) -> (archivo, fila)   el mp4 en app/salidas (montaje_<sello>.mp4) y su fila del historial
 
 `edicion` = {lienzo: {ancho, alto} | None, pistas: [{id, tipo: video|audio, ver, oir, clips: [{fuente, ini, fin, en}]}]}
@@ -84,6 +85,35 @@ def destino_subida(nombre: str, tipo: str, carpeta: str = "") -> tuple[str, str]
     while os.path.exists(os.path.join(d, archivo)):
         archivo, n = f"{limpio}_{n}{ext.lower()}", n + 1
     return os.path.join(d, archivo), f"{rel}/{archivo} [input]"
+
+
+# ---------------------------------------------------------------- proxies para el visor (como el «optimized media» de DaVinci)
+PROXIES = os.path.join(generar.SALIDAS, "proxies")
+ALTO_PROXY = 540
+_cerrojos: dict = {}
+
+
+def proxy(fuente: str) -> str:
+    """La copia ligera de un video para reproducirlo en el visor: 540 p, un fotograma clave cada 12 (medio segundo) y el
+    índice al principio. Los de H3 traen 2 o 3 en todo el video: saltar a un punto obligaba al navegador a decodificar hasta
+    5 s, y el visor se trababa. Se hace una vez (se rehace si el original cambia). Exportar sigue usando el original."""
+    import threading
+    ruta = retocar.ruta_video(fuente)
+    destino = os.path.join(PROXIES, re.sub(r"[^\w-]+", "_", fuente)[:150] + ".mp4")
+    if os.path.isfile(destino) and os.path.getmtime(destino) >= os.path.getmtime(ruta):
+        return destino
+    cerrojo = _cerrojos.setdefault(destino, threading.Lock())
+    with cerrojo:                                        # dos peticiones del mismo video: lo hace una, la otra espera
+        if os.path.isfile(destino) and os.path.getmtime(destino) >= os.path.getmtime(ruta):
+            return destino
+        os.makedirs(PROXIES, exist_ok=True)
+        temporal = destino + ".tmp.mp4"
+        audio = ["-c:a", "aac", "-b:a", "128k", "-ac", "2"] if _tiene_audio(ruta) else ["-an"]
+        retocar._ffmpeg("-i", ruta, "-vf", f"scale=-2:'min({ALTO_PROXY},ih)':flags=bilinear", "-c:v", "libx264", "-preset", "veryfast",
+                        "-crf", "24", "-g", "12", "-keyint_min", "12", "-sc_threshold", "0", "-pix_fmt", "yuv420p", *audio,
+                        "-movflags", "+faststart", temporal)
+        os.replace(temporal, destino)
+    return destino
 
 
 def _tiene_audio(ruta: str) -> bool:

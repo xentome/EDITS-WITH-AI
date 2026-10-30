@@ -571,6 +571,16 @@ async def edicion_subir(peticion):
         return web.json_response({"fuente": fuente, "nombre": os.path.basename(ruta)})
 
 
+async def edicion_proxy(peticion):
+    """GET /app/edicion_proxy?fuente= → el video ligero para el visor de Edición (edicion.proxy), con caché del navegador."""
+    m = edicion_mod()
+    try:
+        ruta = await asyncio.get_running_loop().run_in_executor(None, m.proxy, peticion.query.get("fuente", ""))
+    except Exception:
+        raise web.HTTPNotFound()
+    return web.FileResponse(ruta, headers={"Cache-Control": "private, max-age=86400"})
+
+
 async def edicion_exportar(peticion):
     """POST /app/edicion_exportar {proyecto, edicion} → {archivo}: el mp4 nuevo en app/salidas (y en la biblioteca)."""
     m = edicion_mod()
@@ -789,6 +799,7 @@ def crear_app():
     app.router.add_post("/app/edicion/{nombre}", guardar_edicion)
     app.router.add_get("/app/edicion_audios", edicion_audios)
     app.router.add_get("/app/edicion_de_fuera", edicion_de_fuera)
+    app.router.add_get("/app/edicion_proxy", edicion_proxy)
     app.router.add_post("/app/edicion_subir", edicion_subir)
     app.router.add_post("/app/edicion_exportar", edicion_exportar)
     return app

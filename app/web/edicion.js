@@ -141,37 +141,71 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   }
   function cambio() { guardar(); pintar(); }
 
-  // ---------------------------------------------------------------- reproducir: un <video>/<audio> por pista
+  /* ---------------------------------------------------------------- reproducir (29 oct, Jonathan: «los reproduce trabados»)
+   * Los videos de H3 traen 2 o 3 fotogramas clave: cada salto obligaba a decodificar hasta 5 s, y el reloj de antes (el de
+   * la pantalla) corregía el video a saltos en cuanto se retrasaba un poco. Ahora:
+   *   - el visor usa la copia ligera de cada video (GET /app/edicion_proxy: 540 p, un fotograma clave cada medio segundo);
+   *   - el reloj es el propio video de más arriba que suena: el tiempo no se adelanta a la imagen, y si carga, se espera;
+   *   - cada pista tiene dos elementos: el que suena y el siguiente clip, preparado 1,5 s antes del corte. */
   const medios = {};
   const lienzo = el("div", { class: "max-ed-lienzo" }, el("div", { class: "max-ed-negro" }, t("app.edicion.sin_clip")));
-  function medioDe(p) {
-    if (!medios[p.id]) medios[p.id] = Object.assign(document.createElement(p.tipo), { preload: "auto", playsInline: true });
+  const urlMedio = (c) => c.tipo === "video" ? "/app/edicion_proxy?fuente=" + encodeURIComponent(c.fuente) : srcDe(c);
+  const calientes = new Set();
+  // pedir la copia ligera en cuanto un video está en la línea de tiempo (la primera vez el servidor la hace: 1–2 s)
+  function precalentar() {
+    for (const p of E.pistas) for (const c of p.clips) {
+      const u = urlMedio(c);
+      if (c.tipo === "video" && !calientes.has(u)) { calientes.add(u); fetch(u).catch(() => calientes.delete(u)); }
+    }
+  }
+  function parDe(p) {
+    if (!medios[p.id]) medios[p.id] = [0, 1].map(() => Object.assign(document.createElement(p.tipo), { preload: "auto", playsInline: true }));
     return medios[p.id];
   }
+  function cargarEn(m, c, t0) {
+    const src = urlMedio(c);
+    if (m.dataset.src !== src) { m.dataset.src = src; m.src = src; }
+    m.dataset.clip = String(c.id);
+    if (Math.abs(m.currentTime - t0) > 0.03) { try { m.currentTime = t0; } catch { /* aún sin datos: lo hará al cargar */ } }
+  }
+  let reloj = null;                                    // {m, c}: lo que marca el tiempo mientras se reproduce
   function sincronizar(forzar = false) {
     let alguno = false;
+    reloj = null;
     E.pistas.forEach((p, i) => {
-      const m = medioDe(p);
-      if (p.tipo === "video" && m.parentNode !== lienzo) lienzo.append(m);
-      if (p.tipo === "video") m.style.zIndex = String(50 - i);
-      const c = p.clips.find((x) => x.en <= E.t && finDe(x) > E.t);
-      if (!c || !p.ver) { m.style.display = "none"; if (!m.paused) m.pause(); return; }
+      const par = parDe(p), id = (c) => String(c.id);
+      if (p.tipo === "video") par.forEach((m) => { if (m.parentNode !== lienzo) lienzo.append(m); m.style.zIndex = String(50 - i); });
+      const c = p.ver || p.tipo === "audio" ? p.clips.find((x) => x.en <= E.t && finDe(x) > E.t) : null;
+      const sig = E.tocando ? p.clips.filter((x) => x.en > E.t + 1e-3 && x.en - E.t < 1.5).sort((a, b) => a.en - b.en)[0] : null;
+      let m = c && par.find((x) => x.dataset.clip === id(c));
+      if (c && !m) m = par.find((x) => !sig || x.dataset.clip !== id(sig)) || par[0];
+      for (const x of par) if (x !== m) { x.style.display = "none"; if (!x.paused) x.pause(); }
+      const libre = par.find((x) => x !== m);
+      if (sig && libre && libre.dataset.clip !== id(sig)) { libre.muted = true; cargarEn(libre, sig, sig.ini); }
+      if (!c) return;
       if (p.tipo === "video") { m.style.display = "block"; alguno = true; }
-      const src = srcDe(c);
-      if (m.dataset.src !== src) { m.dataset.src = src; m.src = src; }
       m.muted = !p.oir;
       const debe = c.ini + (E.t - c.en);
-      if (forzar || Math.abs(m.currentTime - debe) > (E.tocando ? 0.2 : 0.02)) { try { m.currentTime = debe; } catch { /* aún sin datos */ } }
-      if (E.tocando && m.paused) m.play().catch(() => {});
+      if (m.dataset.clip !== id(c)) cargarEn(m, c, debe);
+      else if (!E.tocando && forzar) { if (Math.abs(m.currentTime - debe) > 0.02) { try { m.currentTime = debe; } catch { /* sin datos */ } } }
+      else if (E.tocando && !m.seeking && Math.abs(m.currentTime - debe) > 0.35) { try { m.currentTime = debe; } catch { /* sin datos */ } }
+      if (E.tocando && m.paused && !m.ended) m.play().catch(() => {});
       if (!E.tocando && !m.paused) m.pause();
+      if (!reloj && (p.tipo === "video" || !E.pistas.some((x) => x.tipo === "video" && x.ver && x.clips.some((y) => y.en <= E.t && finDe(y) > E.t)))) reloj = { m, c };
     });
-    for (const [id, m] of Object.entries(medios)) if (!pistaDe(id)) { m.pause(); m.style.display = "none"; }
+    for (const [pid, par] of Object.entries(medios)) if (!pistaDe(pid)) par.forEach((m) => { m.pause(); m.style.display = "none"; });
     lienzo.firstChild.hidden = alguno;
   }
   let ultimo = 0;
   function bucle(ahora) {
     if (E.tocando) {
-      E.t += (ahora - ultimo) / 1000;
+      const dt = Math.min(0.1, (ahora - ultimo) / 1000);
+      const m = reloj?.m;
+      if (m && !m.ended && m.readyState >= 3 && !m.seeking && !m.paused) {
+        const tt = reloj.c.en + (m.currentTime - reloj.c.ini);
+        E.t = Math.abs(tt - E.t) < 0.5 ? Math.max(E.t, tt) : E.t + dt;   // el video manda (sin ir hacia atrás)
+      } else if (!m || m.ended || m.paused) E.t += dt;                    // hueco negro o el original se acabó: el reloj de pantalla
+      // (si el video está cargando, el tiempo espera: así no se adelanta y no hay que corregirlo a saltos)
       if (E.t >= duracion()) { E.t = duracion(); E.tocando = false; pintarTransporte(); }
       pintarCabezal(); sincronizar();
     }
@@ -301,6 +335,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     durEl.textContent = "/ " + tc(duracion());
     lienzo.style.aspectRatio = E.lienzo ? `${E.lienzo.ancho} / ${E.lienzo.alto}` : "16 / 9";
     info.textContent = E.aviso || t("app.edicion.info");
+    precalentar();
     sincronizar(true);
   }
 
