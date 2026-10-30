@@ -368,6 +368,7 @@ def preparar(datos: dict, sello: str | None = None) -> tuple[dict, dict]:
                                                          "format": "auto", "codec": "auto", "format.codec": "auto"}}
     semilla = datos.get("semilla")
     g[N_RUIDO]["inputs"]["noise_seed"] = int(semilla) if semilla not in (None, "") else random.randrange(2 ** 32)
+    generar.poner_loras(g, datos.get("loras"))      # los LoRAs del proyecto (30 oct), detrás del UNETLoader de H3
     meta = {"plan": p, "sello": sello, "latente": latente, "referencias": refs[:-1], "prompt": (datos.get("prompt") or "").strip(),
             "proyecto": datos.get("proyecto"), "video": datos.get("video")}
     return g, meta

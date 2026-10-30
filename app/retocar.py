@@ -381,6 +381,7 @@ def preparar(datos: dict) -> tuple[dict, dict]:
     s0, sn = b["s0"], b["sn"]
     # tramo: lo elegido (lo que se sustituye; inicio y fin, para la lista de Videos) y lo generado (g0, gn)
     vi_tramo = {"f0": s0, "n": sn, "g0": f0, "gn": n, "inicio": round(s0 / fps, 3), "fin": round((s0 + sn) / fps, 3)}
+    generar.poner_loras(g, datos.get("loras"))      # los LoRAs del proyecto (30 oct), detrás del UNETLoader de H3
     return g, {"video": datos["video"], "info": vi, "tramo": vi_tramo, "tramo_archivo": tramo, "mascara": mascara,
                "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
 

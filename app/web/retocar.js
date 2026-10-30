@@ -584,7 +584,8 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     const datos = { video: R.video, f0: R.f0, n: R.n, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001,
                     mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
                     referencias: R.refs.map(({ refmod, imagen }) => (refmod ? { refmod } : { imagen })),
-                    prompt: R.prompt.trim(), semilla: R.semilla, proyecto: A.proyecto, megapixeles: R.mp };
+                    prompt: R.prompt.trim(), semilla: R.semilla, proyecto: A.proyecto, megapixeles: R.mp,
+                    loras: A.ctx?.S?.loras || [] };          // los LoRAs del proyecto (30 oct; Generar › LoRAs)
     R.ultimoPedido = datos;                         // para probar desde la consola
     try {
       R.error = "";

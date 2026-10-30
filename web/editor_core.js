@@ -20,9 +20,9 @@
 export async function abrir(node, app) {
   const v = new URL(import.meta.url).search;
   const pieza = (nombre) => import(new URL(`./editor/${nombre}.js${v}`, import.meta.url).href);
-  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n, filaTexto, subir, resolucion, traducir] = await Promise.all(
+  const [util, estilos, referencias, cajitas, plan, linea, final, audio, tapar, duracion, i18n, filaTexto, subir, resolucion, traducir, loras] = await Promise.all(
     ["util", "estilos", "referencias", "cajitas", "plan", "linea", "final", "audio", "tapar", "duracion", "i18n", "textos", "subir",
-     "resolucion", "traducir"].map(pieza));
+     "resolucion", "traducir", "loras"].map(pieza));
   // el idioma: los textos de los dos idiomas y el traductor del elegido; las piezas usan u.t, u.num, u.lista y u.api
   const textos = await i18n.cargarTextos();
   let tr = i18n.traductor(textos, i18n.idiomaElegido(app));
@@ -46,6 +46,7 @@ export async function abrir(node, app) {
     sonido: guardado.sonido || "",            // renglón «Sonido»: vacío = la frase «sonido» de frases.json
     // el audio del video generado (27 oct, solo en la app): «cancion» (por defecto) o «modelo» (el de H3); app/generar.py
     audio_salida: guardado.audio_salida === "modelo" ? "modelo" : "cancion",
+    loras: Array.isArray(guardado.loras) ? guardado.loras : [],   // los LoRAs del proyecto (30 oct, solo en la app; editor/loras.js)
     // las frases de unión que cambió el usuario (panel «Frases del código»); las demás, las de frases.json (frasesBase).
     // trozos: el prompt por trozos con su origen; lineasRef: los dos renglones de arriba de cada referencia (su ficha)
     frases: guardado.frases || {}, frasesBase: {}, trozos: [], lineasRef: {},
@@ -60,7 +61,7 @@ export async function abrir(node, app) {
   const estado = el("span", { class: "epl-estado" });
   const sec = (clase) => el("section", { class: "epl-sec " + clase });
   const secToma = sec("epl-s-toma"), secRefs = sec("epl-refs"),
-        secTiempo = sec("epl-s-linea"), secFinal = sec("epl-s-final");
+        secTiempo = sec("epl-s-linea"), secFinal = sec("epl-s-final"), secLoras = sec("epl-s-loras");   // LoRAs: solo en la app (30 oct)
   // la parte 4 tiene cuatro filas: la fila de texto (textos.js), las tomas (linea.js), la ventana de audio (audio.js) y el
   // sonido de todo el edit (plan.js), abajo del todo (27 oct)
   const secLinea = el("div", { class: "epl-zona-tomas" }), secTexto = el("div", { class: "epl-texto" }),
@@ -68,7 +69,7 @@ export async function abrir(node, app) {
   secTiempo.append(secTexto, secLinea, secAudio, secSonido);   // la fila de texto, encima de las tomas (26 oct)
 
   const ctx = { u, node, app, graph, S, wf, guardado, enApp: !!app?.maxEditor, biblioteca: {}, cajitas: {}, caja,
-                secToma, secRefs, secLinea, secTexto, secAudio, secSonido, secFinal, ajustarPlan: plan.ajustarPlan, duracion };
+                secToma, secRefs, secLinea, secTexto, secAudio, secSonido, secFinal, secLoras, ajustarPlan: plan.ajustarPlan, duracion };
   // la píldora de estado (una línea, con «…»); el texto entero, o su detalle, en el tooltip
   ctx.avisar = (texto, tipo = "", detalle = "") => { estado.textContent = texto; estado.title = detalle || texto; estado.className = "epl-estado " + tipo; };
   // lo que se manda al servidor: solo las referencias con papel (fotos y videos; una cajita es un <Video N>)
@@ -144,6 +145,7 @@ export async function abrir(node, app) {
   filaTexto.instalar(ctx);
   audio.instalar(ctx);
   final.instalar(ctx);
+  loras.instalar(ctx);
 
   await ctx.cargarBiblioteca();
   ctx.prepararRefs(guardado);
@@ -196,7 +198,7 @@ export async function abrir(node, app) {
     W(node, "palabras").value = S.palabras;
     W(node, "semilla_llm").value = S.semilla;
     W(node, "estado").value = JSON.stringify({ v: 4, refs: S.refs, etiquetas: ctx.mapaEtiquetas(), efectos: S.efectos,
-                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, sonido: S.sonido, audio_salida: S.audio_salida, frases: S.frases, plan: S.plan, prompt: S.prompt,
+                                               estilo: S.estilo, estilo_palabras: S.estilo_palabras, sonido: S.sonido, audio_salida: S.audio_salida, loras: S.loras, frases: S.frases, plan: S.plan, prompt: S.prompt,
                                                a_mano: S.a_mano, audio: S.audio, pegar_beats: S.pegarBeats, idioma: tr.idioma, toma_elegida: S.elegida,
                                                guardado: new Date().toISOString() });
     node.setDirtyCanvas?.(true, true);
@@ -254,7 +256,7 @@ export async function abrir(node, app) {
   pintarCabecera();
   // el orden (27 oct, lo pidió el usuario): arriba las referencias, después la línea de tiempo entera (texto, tomas, audio y
   // sonido) y abajo del todo el prompt de la toma elegida y el prompt final
-  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secRefs, secTiempo, secToma, secFinal));
+  caja.append(cabecera, el("div", { class: "epl-cuerpo" }, secRefs, secTiempo, secToma, ...(ctx.enApp ? [secLoras] : []), secFinal));
   ctx.pintarPlan();
   ctx.pintarRefs();
   ctx.pintarFinal();

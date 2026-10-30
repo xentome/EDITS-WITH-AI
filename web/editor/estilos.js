@@ -471,6 +471,16 @@ textarea.epl-final{min-height:40vh}
 .epl-sonido-cab h3{margin:0;flex:none;white-space:nowrap;display:flex;align-items:center;gap:8px;font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:#22E4FF}
 .epl-sonido-cab .epl-trad-boton{flex:none}
 .epl-sonido-panel textarea{flex:1;min-width:0;box-sizing:border-box;font-size:15px;line-height:1.3;field-sizing:content;min-height:calc(1.3em + 10px);padding:4px 10px;resize:none}
+/* (30 oct, solo en la app) los LoRAs del proyecto: un panel encima del prompt final, en ámbar */
+.epl-loras-panel{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:6px;border:1px solid rgba(247,200,58,.45);background:rgba(247,200,58,.035)}
+.epl-loras-cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.epl-loras-cab h3{margin:0;display:flex;align-items:center;gap:8px;font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:#F7C83A}
+.epl-loras-cab .epl-ayuda{margin:0}
+.epl-loras-lista{display:flex;flex-direction:column;gap:4px}.epl-loras-lista.vacia{display:none}
+.epl-loras-fila{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,200px) 3.5em auto;align-items:center;gap:10px}
+.epl-loras-fila select{min-width:0;width:100%}.epl-loras-fila input[type=range]{width:100%;accent-color:#F7C83A}
+.epl-loras-valor{font-variant-numeric:tabular-nums;text-align:right}
+.epl-loras-botones{margin:0;gap:8px;align-items:center;flex-wrap:wrap}
 .epl-sin-cancion{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:6px 0}
 .epl-sin-cancion.soltar .epl-anadir-cancion{outline:3px dashed #22E4FF;outline-offset:4px}
 .epl-anadir-cancion{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:6px 18px 6px 12px;border-radius:8px;cursor:pointer;

@@ -228,12 +228,47 @@ def _reponer_tramo(grafo: dict) -> None:
         os.replace(destino + ".tmp", destino)
 
 
+MAX_LORAS = 8
+
+
+def poner_loras(grafo: dict, loras) -> list:
+    """(30 oct) Los LoRAs del proyecto [{nombre, fuerza}] sobre el modelo de H3, como en los workflows del usuario: una
+    cadena de LoraLoaderModelOnly justo detrás del UNETLoader, y todo lo que leía el modelo pasa a leer el último LoRA.
+    Sirve para Generar, Retocar y Extender (los tres llevan el UNETLoader de H3). Devuelve los que se pusieron."""
+    puestos = []
+    for x in (loras or [])[:MAX_LORAS]:
+        nombre = str((x or {}).get("nombre") or "").strip()
+        try:
+            fuerza = max(-2.0, min(2.0, float((x or {}).get("fuerza", 1))))
+        except (TypeError, ValueError):
+            fuerza = 1.0
+        if nombre and fuerza:
+            puestos.append({"nombre": nombre, "fuerza": round(fuerza, 3)})
+    if not puestos:
+        return []
+    for unet in _por_tipo(grafo, "UNETLoader"):
+        ultimo = [unet, 0]
+        for i, x in enumerate(puestos):
+            nid = f"{unet}_lora{i + 1}"
+            grafo[nid] = {"class_type": "LoraLoaderModelOnly", "_meta": {"title": f"LoRA {i + 1}"},
+                          "inputs": {"model": ultimo, "lora_name": x["nombre"], "strength_model": x["fuerza"]}}
+            ultimo = [nid, 0]
+        for nid, nodo in grafo.items():
+            if nid.startswith(f"{unet}_lora"):
+                continue
+            for k, v in (nodo.get("inputs") or {}).items():
+                if es_enlace(v) and v[0] == unet and v[1] == 0:
+                    nodo["inputs"][k] = list(ultimo)
+    return puestos
+
+
 def preparar(valores: dict, opciones: dict | None = None) -> dict:
     """El grafo que se manda a ComfyUI. Lanza ErrorGenerar con un texto claro si falta algo."""
     opciones = opciones or {}
     grafo = plantilla()
     _copiar_valores(grafo, valores)
     _reponer_tramo(grafo)
+    opciones["_loras"] = poner_loras(grafo, _estado(grafo).get("loras"))
     prompt = _leer_prompt(grafo)
     sin_cancion = _sin_cancion(grafo)
     opciones["_audio"] = None if sin_cancion else cancion_de(_estado(grafo))  # lo anota _despues_edit (la fila del historial)
@@ -442,6 +477,8 @@ def _despues_edit(tid: str, grafo: dict, job, opciones: dict):
     fila = {"semilla": semilla, "proyecto": opciones.get("proyecto"), "audio": opciones.get("_audio")}
     if not opciones.get("_audio"):
         fila["sin_cancion"] = True             # de verdad sin canción (Extender no busca la del proyecto)
+    if opciones.get("_loras"):
+        fila["loras"] = opciones["_loras"]
     latente = latente_de(grafo)
     if latente:
         try:

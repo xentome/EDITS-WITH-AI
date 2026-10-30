@@ -318,7 +318,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   async function extender(n = 1) {
     if (!R.info) { R.error = t("app.retocar.falta.video"); return pintar(); }
     const datos = { ...datosPlan(), prompt: R.prompt.trim(), referencias: R.refs.map(({ refmod, imagen }) => (refmod ? { refmod } : { imagen })),
-                    semilla: R.semilla, proyecto: A.proyecto };
+                    semilla: R.semilla, proyecto: A.proyecto, loras: A.ctx?.S?.loras || [] };   // los LoRAs del proyecto (30 oct)
     try {
       R.error = "";
       const r = await pedir("/app/cola", { tipo: "extender", datos, n });

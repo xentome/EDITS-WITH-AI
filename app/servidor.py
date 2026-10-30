@@ -722,6 +722,66 @@ async def edicion_subir(peticion):
         return web.json_response({"fuente": fuente, "nombre": os.path.basename(ruta)})
 
 
+# ------------------------------------------------------------------ LoRAs (30 oct): los del proyecto, para Generar, Retocar y Extender
+def _carpeta_loras() -> str:
+    return os.path.join(retocar().comfyui_dir(), "models", "loras")
+
+
+def _es_h3(nombre: str) -> bool:
+    return bool(re.search(r"h3|minimax", nombre, re.I))
+
+
+async def loras(peticion):
+    """GET /app/loras → {loras: [{nombre, h3}], carpeta}: la lista de ComfyUI (/models/loras, la que acepta el
+    LoraLoaderModelOnly); sin ComfyUI, lo que hay en su carpeta. Primero los de H3 (los otros son de otros modelos)."""
+    nombres = None
+    try:
+        async with peticion.app["http"].get(CONFIG["comfyui_url"].rstrip("/") + "/models/loras", timeout=ClientTimeout(total=5)) as r:
+            if r.status == 200:
+                nombres = [str(x) for x in await r.json()]
+    except Exception:
+        pass
+    if nombres is None:
+        base, nombres = _carpeta_loras(), []
+        for raiz, _, archivos in os.walk(base):
+            nombres += [os.path.relpath(os.path.join(raiz, a), base).replace(os.sep, "/") for a in archivos
+                        if a.lower().endswith((".safetensors", ".ckpt", ".pt"))]
+    nombres = sorted(set(nombres), key=lambda n: (not _es_h3(n), n.lower()))
+    return web.json_response({"loras": [{"nombre": n, "h3": _es_h3(n)} for n in nombres], "carpeta": "models/loras"})
+
+
+async def loras_subir(peticion):
+    """POST /app/loras_subir (multipart «archivo», un .safetensors) → {nombre}: se copia a ComfyUI/models/loras por trozos
+    (pesan cientos de MB). No pisa uno que ya exista."""
+    lector = await peticion.multipart()
+    while True:
+        parte = await lector.next()
+        if parte is None:
+            return error("app.error.sin_valores", peticion)
+        if parte.name == "archivo":
+            break
+    nombre = os.path.basename((parte.filename or "").replace("\\", "/")).strip()
+    if not nombre.lower().endswith(".safetensors") or nombre.startswith("."):
+        return error("app.loras.error.tipo", peticion)
+    base = _carpeta_loras()
+    os.makedirs(base, exist_ok=True)
+    ruta = os.path.join(base, nombre)
+    if os.path.exists(ruta):
+        return error("app.loras.error.existe", peticion, 409, nombre=nombre)
+    try:
+        with open(ruta + ".tmp", "wb") as fh:
+            while trozo := await parte.read_chunk(1 << 20):
+                fh.write(trozo)
+        os.replace(ruta + ".tmp", ruta)
+    except Exception:
+        try:
+            os.remove(ruta + ".tmp")
+        except OSError:
+            pass
+        raise
+    return web.json_response({"nombre": nombre})
+
+
 async def edicion_proxy(peticion):
     """GET /app/edicion_proxy?fuente= → el video ligero para el visor de Edición (edicion.proxy), con caché del navegador."""
     m = edicion_mod()
@@ -1001,6 +1061,8 @@ def crear_app():
     app.router.add_get("/app/edicion_de_fuera", edicion_de_fuera)
     app.router.add_get("/app/edicion_proxy", edicion_proxy)
     app.router.add_post("/app/edicion_subir", edicion_subir)
+    app.router.add_get("/app/loras", loras)
+    app.router.add_post("/app/loras_subir", loras_subir)
     app.router.add_post("/app/edicion_exportar", edicion_exportar)
     app.router.add_get("/app/edicion_descargar/{archivo}", edicion_descargar)
     return app

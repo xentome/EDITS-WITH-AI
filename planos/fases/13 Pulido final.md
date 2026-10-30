@@ -209,3 +209,12 @@ Lectura: 2 min · 28 oct 2026 · Sesión «PULIDO FINAL APP». Respaldo: etiquet
 - Jonathan: «hay que poder elegir el fotograma que el LLM verá». Botón violeta «Que lo escriba el LLM» junto al prompt: `POST /app/retocar_prompt {video, segundo (el del cabezal), zona (el texto de la máscara), con_referencia}` → `retocar.prompt_llm` (ffmpeg saca ese fotograma, Qwen con visión escribe UNA frase con las reglas). Antes, como el trabajador, `soltar_gpu`: con ComfyUI sin trabajo, `/free` y esperar ~9 GB; con un trabajo corriendo, 409 «GPU ocupada». Reintenta 90 s si el servicio está despertando.
 - Lección: el servicio `llama-qwen38` (9,6 GB) se cae al cargar si no cabe (DaVinci Resolve abierto, o ComfyUI con 3 GB de modelos) y systemd lo relanza sin fin (248 veces) hasta rendirse.
 
+## 23 · LoRAs del proyecto ✅ (30 oct)
+
+- Jonathan: «falta la forma de agregar LoRAs». Eligió: bloque en Generar, que valga para Generar, Extender y Retocar, y botón «Subir LoRA».
+- Ventana (`web/editor/loras.js`, solo con `ctx.enApp`): panel ámbar «LoRAs (n)» encima del prompt final. Una fila por LoRA (desplegable con los de H3 primero y «Otros (pueden no servir con H3)»; fuerza −1…2), «Añadir LoRA» y «Subir LoRA». Se guardan en `estado.loras = [{nombre, fuerza}]`.
+- Servidor: `GET /app/loras` (lista de ComfyUI `/models/loras`; sin ComfyUI, la carpeta) y `POST /app/loras_subir` (multipart «archivo», solo .safetensors, por trozos, no pisa uno que exista).
+- Grafo: `generar.poner_loras(grafo, loras)`, cadena de `LoraLoaderModelOnly` justo detrás del `UNETLoader` (como en los workflows de Jonathan) y todo lo que leía el modelo lee el último LoRA; máx. 8, fuerza 0 = no se pone. Generar lo lee del estado; Retocar y Extender lo reciben en `datos.loras` (la página manda los del proyecto). El historial anota `loras`.
+- Probado: grafo de los tres, subir (idéntico, 409 si existe, 400 si no es .safetensors), la ventana a 1440 y 2548 y que se guarda en el proyecto. Falta un video real con un LoRA.
+- También (30 oct): si falta el tramo `edit_tramo_….wav` (otro PC o pod), Generar lo vuelve a cortar de la canción original con el mismo inicio y nombre (`generar._reponer_tramo`, commit 026f1ec).
+
