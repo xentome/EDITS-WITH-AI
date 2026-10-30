@@ -516,14 +516,90 @@ def edicion_mod():
     return importlib.import_module("edicion")
 
 
-EDICIONES = os.path.join(PROYECTOS, "ediciones")         # la línea de tiempo de cada proyecto (no es un proyecto: subcarpeta)
+# (29 oct, Jonathan: «ediciones propias») cada edición es algo aparte, con nombre, no atada a un proyecto: mezcla videos de
+# todos. Antes había una por proyecto, guardada con el nombre del proyecto: esas siguen igual, ahora como ediciones con ese nombre.
+EDICIONES = os.path.join(PROYECTOS, "ediciones")         # subcarpeta: no salen como proyectos
+
+
+def ruta_edicion(nombre):
+    nombre = (nombre or "").strip()
+    if not NOMBRE.match(nombre) or nombre.endswith("."):
+        return None
+    return os.path.join(EDICIONES, nombre + ".json")
+
+
+def _leer_json(ruta):
+    try:
+        with open(ruta, encoding="utf-8") as fh:
+            return json.load(fh) or {}
+    except (OSError, ValueError):
+        return None
+
+
+async def lista_ediciones(peticion):
+    """GET /app/ediciones → [{nombre, guardado, clips, duracion, portada}] lo más nuevo primero. portada: su último montaje."""
+    try:
+        filas = generar().historial()
+    except (ImportError, AttributeError):
+        filas = []
+    portadas = {}
+    for f in filas:                                       # el historial va de lo viejo a lo nuevo: se queda el último
+        if f.get("tipo") == "montaje" and f.get("edicion") and os.path.isfile(os.path.join(SALIDAS, f.get("archivo") or "")):
+            portadas[f["edicion"]] = f["archivo"]
+    out = []
+    os.makedirs(EDICIONES, exist_ok=True)
+    for a in os.listdir(EDICIONES):
+        d = _leer_json(os.path.join(EDICIONES, a)) if a.endswith(".json") else None
+        if d is None:
+            continue
+        clips = [c for p in d.get("pistas") or [] for c in p.get("clips") or []]
+        fin = max([float(c.get("en") or 0) + float(c.get("fin") or 0) - float(c.get("ini") or 0) for c in clips] or [0])
+        nombre = a[:-5]
+        out.append({"nombre": nombre, "guardado": d.get("guardado") or "", "clips": len(clips), "duracion": round(fin, 2),
+                    "portada": portadas.get(nombre), "primer_video": next((c.get("fuente") for c in clips if c.get("tipo") == "video"), None)})
+    return web.json_response(sorted(out, key=lambda x: x["guardado"], reverse=True))
+
+
+async def accion_edicion(peticion):
+    """POST /app/ediciones/<nombre>/{nueva|duplicar|borrar} {a?}: crear una vacía, copiarla a «a» o quitarla (a ediciones/_borradas)."""
+    nombre, accion = peticion.match_info["nombre"], peticion.match_info["accion"]
+    ruta = ruta_edicion(nombre)
+    if not ruta:
+        return error("app.error.nombre", peticion)
+    datos = await peticion.json() if peticion.can_read_body else {}
+    os.makedirs(EDICIONES, exist_ok=True)
+    if accion == "nueva":
+        if os.path.exists(ruta):
+            return error("app.error.edicion_ya_existe", peticion, 409, nombre=nombre)
+        with open(ruta, "w", encoding="utf-8") as fh:
+            json.dump({"pistas": [], "rev": 1, "autor": "pagina", "guardado": time.strftime("%Y-%m-%dT%H:%M:%S")}, fh, ensure_ascii=False)
+        return web.json_response({"nombre": nombre})
+    if not os.path.isfile(ruta):
+        return error("app.error.edicion_no_existe", peticion, 404, nombre=nombre)
+    if accion == "duplicar":
+        destino = ruta_edicion(datos.get("a"))
+        if not destino:
+            return error("app.error.nombre", peticion)
+        if os.path.exists(destino):
+            return error("app.error.edicion_ya_existe", peticion, 409, nombre=datos.get("a"))
+        d = _leer_json(ruta) or {}
+        d.update(rev=1, autor="pagina", guardado=time.strftime("%Y-%m-%dT%H:%M:%S"))
+        with open(destino, "w", encoding="utf-8") as fh:
+            json.dump(d, fh, ensure_ascii=False)
+        return web.json_response({"nombre": datos.get("a").strip()})
+    if accion == "borrar":                                # no se pierde: va a ediciones/_borradas (se recupera moviéndola)
+        papelera = os.path.join(EDICIONES, "_borradas")
+        os.makedirs(papelera, exist_ok=True)
+        os.replace(ruta, os.path.join(papelera, f"{nombre.strip()}_{time.strftime('%Y%m%d_%H%M%S')}.json"))
+        return web.json_response({"ok": True})
+    return error("app.error.sin_valores", peticion)
 
 
 async def leer_edicion(peticion):
-    """GET /app/edicion/<proyecto> → la línea de tiempo guardada, con su rev y su autor ({} si aún no hay)."""
-    if not ruta_proyecto(peticion.match_info["nombre"]):
+    """GET /app/edicion/<edición> → la línea de tiempo guardada, con su rev y su autor ({} si aún no hay)."""
+    ruta = ruta_edicion(peticion.match_info["nombre"])
+    if not ruta:
         return error("app.error.nombre", peticion)
-    ruta = os.path.join(EDICIONES, peticion.match_info["nombre"].strip() + ".json")
     try:
         with open(ruta, encoding="utf-8") as fh:
             return web.json_response(json.load(fh))
@@ -532,15 +608,16 @@ async def leer_edicion(peticion):
 
 
 async def guardar_edicion(peticion):
-    """POST /app/edicion/<proyecto> {pistas, lienzo, zoom, autor?}: se guarda tal cual (la comprueba exportar). `rev` sube en
-    cada guardado y `autor` es «agente» (el MCP) o «pagina»: así la página adopta lo que cambie el agente (edicion.js)."""
-    if not ruta_proyecto(peticion.match_info["nombre"]):
+    """POST /app/edicion/<edición> {pistas, lienzo, zoom, rango, autor?}: se guarda tal cual (la comprueba exportar). `rev` sube
+    en cada guardado y `autor` es «agente» (el MCP) o «pagina»: así la página adopta lo que cambie el agente (edicion.js).
+    Si no existe, se crea (como antes)."""
+    if not ruta_edicion(peticion.match_info["nombre"]):
         return error("app.error.nombre", peticion)
     datos = await peticion.json()
     if not isinstance(datos, dict) or not isinstance(datos.get("pistas"), list):
         return error("app.error.sin_valores", peticion)
     os.makedirs(EDICIONES, exist_ok=True)
-    ruta = os.path.join(EDICIONES, peticion.match_info["nombre"].strip() + ".json")
+    ruta = ruta_edicion(peticion.match_info["nombre"])
     try:
         with open(ruta, encoding="utf-8") as fh:
             rev = int((json.load(fh) or {}).get("rev") or 0)
@@ -598,11 +675,13 @@ async def edicion_proxy(peticion):
 
 
 async def edicion_exportar(peticion):
-    """POST /app/edicion_exportar {proyecto, edicion} → {archivo}: el mp4 nuevo en app/salidas (y en la biblioteca)."""
+    """POST /app/edicion_exportar {proyecto, nombre (la edición), edicion} → {archivo}: el mp4 nuevo en app/salidas (y en la
+    biblioteca, en la carpeta del proyecto abierto); la fila anota la edición, que lo usa de portada."""
     m = edicion_mod()
     datos = await peticion.json()
     try:
-        archivo, fila = await asyncio.get_running_loop().run_in_executor(None, m.exportar, datos.get("edicion") or {}, datos.get("proyecto"))
+        archivo, fila = await asyncio.get_running_loop().run_in_executor(None, m.exportar, datos.get("edicion") or {}, datos.get("proyecto"),
+                                                                           datos.get("nombre"))
     except m.ErrorGenerar as exc:
         return web.json_response({"error": str(exc)}, status=400)
     return web.json_response({"archivo": archivo, "fila": fila})
@@ -845,6 +924,8 @@ def crear_app():
     app.router.add_get("/app/modelos", modelos_estado)
     app.router.add_post("/app/modelos/{accion}", modelos_accion)
     app.router.add_post("/app/reiniciar", reiniciar)
+    app.router.add_get("/app/ediciones", lista_ediciones)
+    app.router.add_post("/app/ediciones/{nombre}/{accion}", accion_edicion)
     app.router.add_get("/app/edicion/{nombre}", leer_edicion)
     app.router.add_post("/app/edicion/{nombre}", guardar_edicion)
     app.router.add_get("/app/edicion_audios", edicion_audios)

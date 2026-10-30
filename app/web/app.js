@@ -687,11 +687,14 @@ function usarVideo(x, accion, donde = "aqui") {
 }
 // ---- el apartado 3 «Edición» (edicion.js): juntar clips de la biblioteca en varias pistas y exportarlo con ffmpeg
 const edicion = edicionJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
-                                  alTerminar: () => cargarVideos() });
+                                  alTerminar: () => cargarVideos(), verEdiciones: () => biblioteca.abrir("ediciones") });
 // ---- la ventana «Proyectos» (biblioteca.js): sale al abrir la app y con el botón del proyecto de la cabecera
 const biblioteca = bibliotecaJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, EJEMPLO,
   abrirProyecto: (n) => abrirProyecto(n), abrirEjemplo: () => abrirEjemplo(), cargarProyectos: () => cargarProyectos(),
-  pedirNombre: (b, m, f) => pedirNombre(b, m, f), describir: (x) => describirVideo(x), usarVideo });
+  pedirNombre: (b, m, f) => pedirNombre(b, m, f), describir: (x) => describirVideo(x), usarVideo,
+  // (29 oct) la pestaña «Ediciones»: abrir una lleva al apartado 3; al borrar la abierta, se abre otra sin cambiar de fase
+  abrirEdicion: async (nombre, { quedarse = false } = {}) => { await edicion.abrirEdicion(nombre); if (!quedarse) ponerFase("edicion"); },
+  edicionActual: () => edicion.nombre() });
 
 function pintarVideos() {
   panelVideos.className = "max-videos" + (A.verVideos ? " ver" : "");

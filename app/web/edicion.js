@@ -15,13 +15,14 @@ const CLASE_HERR = { true: "max-boton max-ed-herr activa", false: "max-boton max
 const CLASE_CUERPO = { true: "max-ed-cuerpo cuchilla", false: "max-ed-cuerpo" };
 const ICONO_VER = { true: "ojo", false: "ojono" }, ICONO_OIR = { true: "sonido", false: "mudo" }, ICONO_TOCAR = { true: "pausa", false: "play" };
 const LETRA_PISTA = { video: "V", audio: "A" };
+const GUARDA_EDICION = "max-editor-edicion";            // la última edición abierta (en este navegador)
 const TECLA = { mover: "A", cuchilla: "B", iman: "N", entrada: "I", salida: "O", quitar: "Alt+X" };
 const CARPETA_AUDIOS = "\u0000audios";                  // la carpeta «Audios» de la biblioteca (no es un proyecto)
 const CARPETA_FUERA = "\u0000fuera";                    // «Traídos de fuera»: videos subidos solo para Edición
 const TIPO_SUBIDA = { video: "video", audio: "audio", carpeta: "audio" };   // qué guarda el servidor (edicion.destino_subida)
 const EXT_AUDIO = /\.(wav|mp3|flac|ogg|m4a|aac|opus)$/i;
 
-export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
+export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdiciones }) {
   const E = { zoom: 90, t: 0, tocando: false, herramienta: "mover", iman: true, elegidos: new Set(), imanX: null, rev: 0, delAgente: false, rango: { desde: null, hasta: null },
               pistas: pistasNuevas(), fuentes: [], cargado: null, exportando: false, aviso: "" };
   let idClip = 1;
@@ -45,15 +46,16 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   let temporizador = null, enCamino = 0;
   function guardar() {
     clearTimeout(temporizador);
-    const proyecto = A.proyecto;
+    const nombre = E.nombre;
+    if (!nombre) return;
     temporizador = setTimeout(async () => {
       temporizador = null;
       const pistas = E.pistas.map((p) => ({ id: p.id, tipo: p.tipo, ver: p.ver, oir: p.oir,
         clips: p.clips.map((c) => ({ fuente: c.fuente, nombre: c.nombre, tipo: c.tipo, dur: c.dur, ini: c.ini, fin: c.fin, en: c.en })) }));
       enCamino++;
       try {
-        const r = await pedir("/app/edicion/" + encodeURIComponent(proyecto), { pistas, zoom: E.zoom, lienzo: E.lienzo || null, rango: E.rango, autor: "pagina" });
-        if (proyecto === A.proyecto) E.rev = Math.max(E.rev, r.rev || 0);
+        const r = await pedir("/app/edicion/" + encodeURIComponent(nombre), { pistas, zoom: E.zoom, lienzo: E.lienzo || null, rango: E.rango, autor: "pagina" });
+        if (nombre === E.nombre) E.rev = Math.max(E.rev, r.rev || 0);
       } catch { /* sin servidor: se guarda en el siguiente cambio */ } finally { enCamino--; }
     }, 700);
   }
@@ -62,10 +64,10 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
    * arrastre, se adopta lo suyo y sale «✎ agente» (se quita al editar aquí). Lo de otra pestaña solo pone la rev al día. */
   let mirando = false;
   async function mirarAgente() {
-    if (mirando || !activo() || !E.cargado || E.cargado !== A.proyecto) return;
+    if (mirando || !activo() || !E.nombre || E.cargado !== E.nombre) return;
     mirando = true;
     try {
-      const d = await pedir("/app/edicion/" + encodeURIComponent(A.proyecto));
+      const d = await pedir("/app/edicion/" + encodeURIComponent(E.nombre));
       const rev = +d.rev || 0;
       if (rev <= E.rev || temporizador || enCamino || gesto || E.exportando) return;
       E.rev = rev;
@@ -80,20 +82,39 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     } catch { /* sin servidor */ } finally { mirando = false; }
   }
   setInterval(mirarAgente, 2000);
-  async function alAbrirProyecto() {
+  /* (29 oct, Jonathan: «ediciones propias») cada edición tiene nombre y no depende del proyecto abierto: se elige en la
+   * ventana «Proyectos» › «Ediciones» (o con el botón del nombre, arriba). Se recuerda la última abierta. */
+  async function abrirEdicion(nombre) {
+    if (!nombre) nombre = await edicionDeInicio();         // (se borró la abierta) otra, o una nueva
+    clearTimeout(temporizador); temporizador = null;
     E.tocando = false; E.t = 0; E.elegidos.clear();
     let d = {};
-    try { d = await pedir("/app/edicion/" + encodeURIComponent(A.proyecto)); } catch { /* sin guardar: vacía */ }
+    try { d = await pedir("/app/edicion/" + encodeURIComponent(nombre)); } catch { /* sin guardar: vacía */ }
     E.pistas = Array.isArray(d.pistas) && d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
     E.zoom = +d.zoom || 90;
     E.lienzo = d.lienzo || null;
     E.rango = { desde: d.rango?.desde ?? null, hasta: d.rango?.hasta ?? null };
     E.rev = +d.rev || 0;
     E.delAgente = d.autor === "agente";
-    E.cargado = A.proyecto;
+    E.nombre = E.cargado = nombre;
+    try { localStorage.setItem(GUARDA_EDICION, nombre); } catch { /* sin almacenamiento */ }
     if (activo()) await cargarBiblioteca();
     pintar();
   }
+  // la que toca al entrar: la última abierta, si no la más reciente, y si no hay ninguna, una nueva
+  async function edicionDeInicio() {
+    let ultima = null;
+    try { ultima = localStorage.getItem(GUARDA_EDICION); } catch { /* sin almacenamiento */ }
+    let lista = [];
+    try { lista = await pedir("/app/ediciones"); } catch { /* sin servidor */ }
+    if (ultima && lista.some((x) => x.nombre === ultima)) return ultima;
+    if (lista.length) return lista[0].nombre;
+    const nombre = t("app.edicion.primera");
+    try { await pedir("/app/ediciones/" + encodeURIComponent(nombre) + "/nueva", {}); } catch { /* ya existía */ }
+    return nombre;
+  }
+  // el proyecto abierto no cambia la edición (la edición junta videos de todos); solo se vuelve a pintar en la ventana nueva
+  async function alAbrirProyecto() { if (activo()) await mostrar(); }   // (al arrancar ya en Edición: carga la edición)
 
   // ---------------------------------------------------------------- la biblioteca: los videos (con su duración) y los audios
   async function cargarBiblioteca() {
@@ -256,6 +277,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const herr = el("div", { class: "max-ed-herrs" });
   const lt = el("div", { class: "max-ed-lt" });
   const info = el("div", { class: "max-ed-info" });
+  // el nombre de la edición abierta: abre la ventana «Proyectos» en la pestaña «Ediciones» (cambiar, nueva, duplicar…)
+  const botonNombre = el("button", { class: "max-boton max-ed-nombre", title: t("app.edicion.cambiar.tooltip"), onclick: () => verEdiciones?.() });
   // «✎ agente»: la línea de tiempo la cambió el agente (MCP); se quita al editarla aquí
   const selloAgente = el("span", { class: "max-ag-sello", title: t("app.edicion.agente.tooltip"), hidden: true }, t("app.agente.marca"));
   const pie = el("div", { class: "max-ed-pie" });
@@ -265,7 +288,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   const subirCarpeta = el("input", { type: "file", webkitdirectory: true, multiple: true, style: { display: "none" }, onchange: (e) => subirDe(e, "carpeta") });
   const boton = (ic, clave, tooltip, accion, extra = {}) => el("button", { class: "max-boton", title: t(tooltip), onclick: accion, ...extra }, icono(ic), clave ? " " + t(clave) : "");
   sec.append(
-    el("div", { class: "epl-tit max-ed-tit" }, el("span", {}, t("app.edicion.titulo")), el("span", { class: "epl-ayuda" }, t("app.edicion.ayuda"))),
+    el("div", { class: "epl-tit max-ed-tit" }, el("span", {}, t("app.edicion.titulo")), botonNombre, el("span", { class: "epl-ayuda" }, t("app.edicion.ayuda"))),
     el("div", { class: "max-ed-arriba" },
       el("div", { class: "max-ed-panel" }, el("div", { class: "max-ed-cab" }, el("b", {}, t("app.edicion.biblioteca")), el("span", { class: "max-derecha" }),
         boton("video", "app.edicion.subir_video", "app.edicion.subir_video.tooltip", () => subirVideo.click()),
@@ -388,6 +411,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   }
   function pintar() {
     if (!sec.isConnected) return;
+    botonNombre.replaceChildren(icono("tijeras"), el("span", {}, E.nombre || "…"), icono("abajo"));
     pintarHerramientas(); pintarLT(); pintarCabezal(); pintarTransporte(); pintarPie();
     durEl.textContent = "/ " + tc(duracion());
     lienzo.style.aspectRatio = E.lienzo ? `${E.lienzo.ancho} / ${E.lienzo.alto}` : "16 / 9";
@@ -531,7 +555,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
     try {
       await new Promise((r) => { clearTimeout(temporizador); r(); });
       const pistas = E.pistas.map((p) => ({ id: p.id, tipo: p.tipo, ver: p.ver, oir: p.oir, clips: p.clips.map((c) => ({ fuente: c.fuente, ini: c.ini, fin: c.fin, en: c.en })) }));
-      const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, edicion: { pistas, lienzo: E.lienzo, rango: hayRango() ? rangoExport() : null } });
+      const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, nombre: E.nombre, edicion: { pistas, lienzo: E.lienzo, rango: hayRango() ? rangoExport() : null } });
       avisar(t("app.edicion.exportado", { archivo: r.archivo }), "bien");
       guardar();
       await alTerminar?.();
@@ -548,9 +572,9 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar }) {
   // al entrar en el apartado: la biblioteca al día y la línea de tiempo pintada
   async function mostrar() {
     colocar();
-    if (E.cargado !== A.proyecto) await alAbrirProyecto();
+    if (!E.nombre) await abrirEdicion(await edicionDeInicio());
     else { await cargarBiblioteca(); pintar(); }
   }
   function ocultar() { if (E.tocando) { E.tocando = false; sincronizar(); } }
-  return { sec, colocar, pintar, mostrar, ocultar, alAbrirProyecto, activo };
+  return { sec, colocar, pintar, mostrar, ocultar, alAbrirProyecto, activo, abrirEdicion, nombre: () => E.nombre };
 }

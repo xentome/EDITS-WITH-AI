@@ -6,7 +6,7 @@ exportarla a un mp4 nuevo con ffmpeg. Sin GPU: corta, escala, pone cada pista de
   de_fuera() -> list                  los videos traídos de fuera (input/max_editor/de_fuera): solo para Edición
   destino_subida(nombre, tipo, carpeta) dónde se guarda un audio o un video subido desde la página
   proxy(fuente) -> ruta               la copia ligera de un video para el visor (app/salidas/proxies)
-  exportar(edicion, proyecto) -> (archivo, fila)   el mp4 en app/salidas (montaje_<sello>.mp4) y su fila del historial
+  exportar(edicion, proyecto, nombre) -> (archivo, fila)   el mp4 en app/salidas (montaje_<sello>.mp4) y su fila (con la edición)
 
 `edicion` = {lienzo: {ancho, alto} | None, rango: {desde, hasta} | None, pistas: [{id, tipo: video|audio, ver, oir, clips: [{fuente, ini, fin, en}]}]}
   - rango: solo se exporta de «desde» a «hasta» (s de la línea de tiempo; sin él, todo);
@@ -239,7 +239,7 @@ def comando(p: dict, destino: str) -> list[str]:
             "-movflags", "+faststart", destino]
 
 
-def exportar(edicion: dict, proyecto: str | None) -> tuple[str, dict]:
+def exportar(edicion: dict, proyecto: str | None, nombre: str | None = None) -> tuple[str, dict]:
     t0 = time.time()
     p = plan(edicion)
     os.makedirs(generar.SALIDAS, exist_ok=True)
@@ -254,7 +254,7 @@ def exportar(edicion: dict, proyecto: str | None) -> tuple[str, dict]:
         if os.path.exists(temporal):
             os.remove(temporal)
     fila = {"id": f"montaje_{sello}", "fecha": datetime.now().isoformat(timespec="seconds"), "segundos": round(time.time() - t0, 1),
-            "archivo": archivo, "tipo": "montaje", "semilla": None, "proyecto": proyecto, "sin_cancion": True,
+            "archivo": archivo, "tipo": "montaje", "semilla": None, "proyecto": proyecto, "edicion": nombre, "sin_cancion": True,
             "montaje": {"clips": len(p["clips"]), "duracion": p["duracion"], "ancho": p["ancho"], "alto": p["alto"],
                         "fuentes": sorted({c["fuente"] for c in p["clips"]})}}
     generar._anotar(fila)

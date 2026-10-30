@@ -686,4 +686,8 @@ body.tema-casete .max-ed-iman{background:var(--k-cian)}
 body.tema-casete .max-ed-play{background:var(--k-crema);color:var(--k-tinta)}
 body.tema-casete .max-ed-herrs .max-boton,body.tema-casete .max-ed-transporte .max-boton{min-height:40px !important;padding:0 12px !important;font-size:13px !important}
 body.tema-casete .max-ed-exportar{background:var(--k-ok) !important;box-shadow:3px 3px 0 #1E6B3C !important}
+/* (29 oct) ediciones propias: su tarjeta con franja cian y el nombre de la edición abierta en Edición */
+body.tema-casete .max-bib-proy.max-bib-ed{border-top-color:var(--k-cian)}
+body.tema-casete .max-bib-proy.max-bib-ed .max-bib-proy-cab .ic,body.tema-casete .max-bib-proy.max-bib-ed .max-bib-proy-cab svg{color:var(--k-cian)}
+body.tema-casete .max-boton.max-ed-nombre{border-color:var(--k-cian) !important;color:var(--k-cian) !important;font:800 15px/1 var(--k-rotulo) !important;letter-spacing:.04em;min-height:36px}
 

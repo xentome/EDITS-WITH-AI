@@ -6,11 +6,12 @@
  *     archivos siguen en app/salidas/ (decisión de Jonathan). Un video de cualquier carpeta se trae al proyecto abierto sin
  *     copiarlo: «Poner en Retocar», «Extender» o «Retomar su prompt» (aquí o en una copia).
  * Lo que abre, crea o trae lo hace app.js (los mismos caminos que el desplegable de antes y la ventana «Videos»). */
-export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abrirEjemplo, cargarProyectos, pedirNombre, describir, usarVideo }) {
+export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abrirEjemplo, cargarProyectos, pedirNombre, describir, usarVideo,
+                        abrirEdicion, edicionActual }) {
   const SIN = "";                                  // la carpeta de los videos sin proyecto
   const CLASE = { capa: { true: "max-bib ver", false: "max-bib" }, tab: { true: "max-bib-tab activa", false: "max-bib-tab" },
                   carpeta: { true: "max-bib-carpeta activa", false: "max-bib-carpeta" } };
-  const B = { abierta: false, tab: "proyectos", elegido: null, carpeta: null, video: null, buscar: "", videos: [], retomar: false };
+  const B = { ediciones: [], edElegida: null, form: null, abierta: false, tab: "proyectos", elegido: null, carpeta: null, video: null, buscar: "", videos: [], retomar: false };
   const capa = el("div", { class: "max-bib", onclick: (e) => { if (e.target === capa) cerrar(); } });
   const caja = el("div", { class: "max-bib-caja", role: "dialog", "aria-modal": "true" });
   capa.append(caja);
@@ -130,10 +131,11 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     if (!B.abierta) { soltar(); return caja.replaceChildren(); }
     const proyectos = B.tab === "proyectos";
     const tab = (k, ic, clave) => el("button", { class: CLASE.tab[B.tab === k], role: "tab", "aria-selected": String(B.tab === k),
-                                                 onclick: () => { B.tab = k; B.video = null; B.retomar = false; pintar(); } }, icono(ic), " " + t(clave));
+                                                 onclick: () => { B.tab = k; B.video = null; B.retomar = false; B.form = null; pintar(); } }, icono(ic), " " + t(clave));
+    if (B.tab === "ediciones") return pintarEdiciones(tab, lado0(tab));
     const carpeta = (k, nombre, n) => el("button", { class: CLASE.carpeta[B.carpeta === k], onclick: () => { B.carpeta = k; pintar(); } },
       icono("carpeta"), el("span", {}, nombre), el("small", {}, String(n)));
-    const lado = el("div", { class: "max-bib-lado", role: "tablist" }, tab("proyectos", "capas", "app.biblio.proyectos"), tab("biblioteca", "video", "app.biblio.biblioteca"),
+    const lado = el("div", { class: "max-bib-lado", role: "tablist" }, ...lado0(tab).children,
       ...(proyectos ? [] : [carpeta(null, t("app.biblio.todos"), B.videos.length), ...carpetas().map(([k, vs]) => carpeta(k, nombreCarpeta(k), vs.length))]));
     const buscar = el("input", { class: "max-bib-buscar", type: "search", placeholder: t("app.biblio.buscar"), value: B.buscar,
                                  oninput: (e) => { B.buscar = e.target.value; pintarCentro(); } });
@@ -169,6 +171,71 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     if (mismaTab) centro.scrollTop = antes;
   }
 
+  /* ---- (29 oct, Jonathan: «ediciones propias») la pestaña «Ediciones»: cada edición del apartado 3 es algo aparte, con nombre
+   * (mezcla videos de todos los proyectos). Tarjeta con su último montaje de portada; nueva, abrir, duplicar y borrar. */
+  function lado0(tab) {
+    return el("div", {}, tab("proyectos", "capas", "app.biblio.proyectos"), tab("biblioteca", "video", "app.biblio.biblioteca"),
+      tab("ediciones", "tijeras", "app.biblio.ediciones"));
+  }
+  function tarjetaEdicion(e) {
+    const portada = e.portada ? { archivo: e.portada } : e.primer_video && !/\]$/.test(e.primer_video) ? { archivo: e.primer_video } : null;
+    const actual = edicionActual?.() === e.nombre;
+    return el("button", { class: "max-bib-proy max-bib-ed" + (B.edElegida === e.nombre ? " elegido" : "") + (actual ? " actual" : ""),
+                          title: t("app.biblio.ed.abrir.tooltip"), "aria-pressed": String(B.edElegida === e.nombre),
+                          onclick: () => { B.edElegida = e.nombre; B.form = null; pintar(); }, ondblclick: () => abrirEd(e.nombre) },
+      el("span", { class: "max-bib-proy-cab" }, icono("tijeras"), el("b", {}, e.nombre), actual ? el("span", { class: "max-bib-abierto" }, t("app.biblio.abierto")) : null),
+      el("span", { class: "max-bib-portada" }, mini(portada, "app.biblio.ed.sin_export"), e.portada ? el("span", { class: "max-bib-sello" }, t("app.biblio.ed.ultimo")) : null),
+      el("span", { class: "max-bib-piezas" }, el("span", { class: "max-bib-pieza" }, icono("capas"), t("app.biblio.ed.clips", { n: e.clips })),
+        el("span", { class: "max-bib-pieza" }, icono("video"), t("app.biblio.ed.dura", { s: num(e.duracion, 1) }))),
+      el("small", {}, t("app.biblio.editado", { fecha: fecha(e.guardado) })));
+  }
+  function abrirEd(nombre) { cerrar(); abrirEdicion?.(nombre); }
+  async function hacerEd(accion, nombre, cuerpo = {}) {
+    try {
+      const r = await pedir(`/app/ediciones/${encodeURIComponent(nombre)}/${accion}`, cuerpo);
+      B.form = null;
+      if (accion === "borrar") {
+        B.ediciones = await pedir("/app/ediciones");
+        if (edicionActual?.() === nombre) abrirEdicion?.(B.ediciones[0]?.nombre || null, { quedarse: true });
+        B.edElegida = B.ediciones[0]?.nombre || null;
+        return pintar();
+      }
+      abrirEd(r.nombre);
+    } catch (e) { B.form = { ...B.form, error: e.message }; pintar(); }
+  }
+  function pintarEdiciones(tab, lado) {
+    const lista = B.ediciones.filter((e) => coincide(e.nombre));
+    const centro = el("div", { class: "max-bib-centro" },
+      lista.length ? el("div", { class: "max-bib-rejilla" }, lista.map(tarjetaEdicion)) : el("div", { class: "max-vacio" }, t("app.biblio.ed.vacio")));
+    const buscar = el("input", { class: "max-bib-buscar", type: "search", placeholder: t("app.biblio.buscar"), value: B.buscar,
+                                 oninput: (e) => { B.buscar = e.target.value; pintar(); } });
+    const f = B.form;
+    const nombre = el("input", { class: "max-bib-buscar", placeholder: t("app.proyecto.nombre.placeholder"), value: f?.nombre || "",
+      onkeydown: (e) => { if (e.key === "Enter") aceptar(); if (e.key === "Escape") { e.stopPropagation(); B.form = null; pintar(); } } });
+    const aceptar = () => f?.modo === "nueva" ? hacerEd("nueva", nombre.value.trim())
+      : f?.modo === "duplicar" ? hacerEd("duplicar", B.edElegida, { a: nombre.value.trim() }) : hacerEd("borrar", B.edElegida);
+    const pie = f ? el("div", { class: "max-bib-pie" }, ...[
+        el("b", {}, f.modo === "borrar" ? t("app.biblio.ed.borrar_pregunta", { nombre: B.edElegida }) : t(f.modo === "nueva" ? "app.biblio.ed.nueva_nombre" : "app.biblio.ed.duplicar_nombre")),
+        f.modo === "borrar" ? null : nombre,
+        f.error ? el("span", { class: "max-aviso mal" }, f.error) : null, el("span", { class: "max-derecha" }),
+        el("button", { class: "max-boton max-vid-accion", onclick: () => { B.form = null; pintar(); } }, t("app.proyecto.cancelar")),
+        el("button", { class: "max-generar max-bib-abrir", onclick: aceptar }, t(f.modo === "borrar" ? "app.biblio.ed.borrar" : "app.proyecto.crear"))].filter(Boolean))
+      : el("div", { class: "max-bib-pie" },
+          el("span", { class: "max-bib-elegido" }, B.edElegida ? t("app.biblio.elegido", { nombre: B.edElegida }) : t("app.biblio.ed.elige")),
+          el("span", { class: "max-derecha" }),
+          el("button", { class: "max-boton max-vid-accion", disabled: !B.edElegida, onclick: () => { B.form = { modo: "borrar" }; pintar(); } }, icono("papelera"), " " + t("app.biblio.ed.borrar")),
+          el("button", { class: "max-boton max-vid-accion", disabled: !B.edElegida, onclick: () => { B.form = { modo: "duplicar", nombre: t("app.biblio.ed.copia", { nombre: B.edElegida }) }; pintar(); } },
+            icono("capas"), " " + t("app.biblio.ed.duplicar")),
+          el("button", { class: "max-generar max-bib-abrir", disabled: !B.edElegida, onclick: () => abrirEd(B.edElegida) }, icono("adelante"), " " + t("app.biblio.ed.abrir")));
+    caja.replaceChildren(
+      el("div", { class: "max-bib-cab" }, el("b", { class: "max-bib-titulo" }, t("app.biblio.ediciones")), buscar, el("span", { class: "max-derecha" }),
+        el("button", { class: "max-boton max-vid-accion", title: t("app.biblio.ed.nueva.tooltip"), onclick: () => { B.form = { modo: "nueva", nombre: "" }; pintar(); } },
+          icono("mas"), " " + t("app.biblio.ed.nueva")),
+        el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrar }, icono("x"))),
+      el("div", { class: "max-bib-cuerpo" }, el("div", { class: "max-bib-lado", role: "tablist" }, ...lado.children), centro), pie);
+    if (f && f.modo !== "borrar") { nombre.focus(); nombre.select(); }
+  }
+
   async function abrir(tab = "proyectos") {
     B.abierta = true;
     B.tab = tab;
@@ -178,7 +245,11 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     B.carpeta = tab === "biblioteca" ? null : B.carpeta;
     pintar();
     try {
-      [B.videos] = await Promise.all([pedir("/app/videos"), cargarProyectos()]);
+      [B.videos, , B.ediciones] = await Promise.all([pedir("/app/videos"), cargarProyectos(), pedir("/app/ediciones")]);
+      // cada vez que se abre, la elegida es la que está abierta (antes se quedaba la de la vez anterior y «Duplicar» o
+      // «Borrar» actuaban sobre otra)
+      B.edElegida = B.ediciones.some((e) => e.nombre === edicionActual?.()) ? edicionActual() : B.ediciones[0]?.nombre || null;
+      B.form = null;
     } catch { B.videos = []; }
     if (B.abierta) pintar();
   }
@@ -186,7 +257,7 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
   document.addEventListener("keydown", (e) => {
     if (!B.abierta || e.key !== "Escape" || A.pop) return;
     e.stopPropagation();
-    if (B.retomar) { B.retomar = false; return pintar(); }
+    if (B.retomar || B.form) { B.retomar = false; B.form = null; return pintar(); }
     cerrar();
   }, true);
   document.body.append(capa);
