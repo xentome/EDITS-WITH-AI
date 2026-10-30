@@ -5,6 +5,7 @@
 - MAX EDITOR makes vertical music edits with **MiniMax H3**, fully local, with no paid services.
 - You write an idea and pick your references and the part of the song. A **local LLM** writes the story and the shots, and code places the timing on the beats.
 - You press **Generate**: the app sends the workflow to your ComfyUI through the **official Comfy SDK** and shows you the video.
+- Every shot lands in one **library**. **Touch up** a zone, **extend** a shot or **enhance** it, then cut your clips together in the multitrack **Editing** tab and export the final edit.
 
 ![MAX EDITOR, step 1: references, timeline with text, shots and song, and the panel of the selected shot](docs/capturas/1-shots-and-references.png)
 
@@ -13,6 +14,14 @@
 ![MAX EDITOR, step 2: Touch up](docs/capturas/2-touch-up.png)
 
 </details>
+
+## The three steps
+
+| Step | What you do |
+|---|---|
+| **1 · Shots and references** | references, song segment, shots on a timeline timed for H3, text track → **Generate** with live preview |
+| **2 · Touch up** | **Cover** a zone (SAM 3.1 or a rectangle) and H3 redoes it · **Extend video** (same shot, no cut, the song keeps going) · **Enhance** (optional) |
+| **3 · Editing** | multitrack timeline like a video editor: clips from any project, your own audio, in/out range → **Export video** (MP4 H.264/H.265, WebM or ProRes) back into the library |
 
 ## What's in this repo
 
@@ -144,6 +153,7 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 4. **The song:** in the audio window, **Change song** and drag the waveform to the part you want. You choose the part; the app does not.
 5. **Generate:** press **▶ Generate**. You see live progress and, at the end, the video under **🎬 Videos**.
 6. **Another seed:** press **🎲 another seed** and **Generate** again for another take of the same edit.
+7. **Cut it together:** open **Editing** (step 3), drag clips from the **Library** (any project) and audio onto the tracks, trim them, mark in/out with I/O and press **Export video**. The montage goes back into the library.
 
 Everything is saved automatically in `app/proyectos/<name>.json`. Videos go to `app/salidas/`.
 
@@ -157,6 +167,12 @@ At the very bottom of the window, after «Final prompt», **«Retouch the video�
 - «Retouch» saves the retouched segment and the full video with that segment replaced (original audio untouched) in `app/salidas/`; the full one stays on the timeline so retouches can be chained.
 
 Code: `app/retocar.py`, `app/plantillas/retocar.api.json`, `app/web/retocar.js`; routes `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`.
+
+In the same step, **«Extend video»** continues a shot with no cut (the song continues from where the video ends; `app/extender.py`, guide in `app/guia/9_extender.md`). **«Enhance»** makes a video sharper (Super Resolution ×1.5–×4) or HDR with NVIDIA's RTX nodes; it is **optional**: the installer does not add it, and those nodes need NVIDIA's own (not open-source) `nvidia-vfx` library.
+
+## Editing
+
+Step 3 joins pieces of your videos, from any project, and audio files on several video and audio tracks; the top video track covers the ones below. Edits have their own name and live in the «Edits» tab of the Projects window. **Export video** renders with ffmpeg (no GPU) to `app/salidas/montaje_<date>.mp4` and/or your PC. Videos brought from outside stay in Editing only. An agent can build the same timeline over MCP (`ver_edicion`, `poner_clip`, `exportar_edicion`). Code: `app/edicion.py`, `app/web/edicion.js`.
 
 ## Use it with an agent (MCP)
 
@@ -193,6 +209,7 @@ On connecting, the agent gets the essentials and reads the full guide (`app/guia
 - **Why the SDK:** it is Comfy's official way to run a workflow from an app. The same code can target your own ComfyUI, Comfy Cloud or the Comfy API. Locally it needs `comfy-api-proxy`, which maps the SDK's API onto your ComfyUI.
 - **ComfyUI parts used:** the **Comfy SDK** (`comfy-sdk` + `comfy-api-proxy`) to generate, and the local ComfyUI API to view and upload files (`/view`, `/upload/image`) and to build RefMods and SAM masks.
 - **The editor window** is the same one as the «Prompt del edit» node (`web/`). The app gives it a graph built from the template, so it looks and works exactly as inside ComfyUI.
+- **Jobs live in ComfyUI, not in the app:** the queue is saved in `app/salidas/cola.json`, so you can restart or update the app mid-render and it picks the job up again from ComfyUI's history.
 - Editor actions (audio, images, LLM) run in `app/trabajador.py` with ComfyUI's Python, because they need numpy, Pillow and librosa.
 
 Settings: `app/config.json` (defaults), overridden by `app/config.local.json` and by `MAX_EDITOR_<KEY>` environment variables (for example `MAX_EDITOR_PUERTO=8310`). Details in [app/LEEME.md](app/LEEME.md#configuración).
