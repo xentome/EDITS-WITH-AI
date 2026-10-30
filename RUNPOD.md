@@ -10,7 +10,7 @@
 | 1 | Open the template: **[MAX EDITOR on RunPod](https://console.runpod.io/deploy?template=srac7gh4wi)** → **Deploy** | 1 min | RunPod shows the GPU list |
 | 2 | **Recommended: RTX A5000 on Secure Cloud** (~$0.27/h; fast hosts with good internet, so the install stays near 11 min). Any GPU with **≥ 24 GB VRAM** works (RTX A6000, A40, RTX 4090, RTX 3090), but Community Cloud hosts vary and some download slowly. In the filters, set **CUDA Versions = 13.0** | 1 min | the price shows ~$0.25–0.50/h |
 | 3 | **Deploy On-Demand**. Keep the template's 100 GB container disk | — | the pod appears in *Pods* |
-| 4 | Wait while it installs. Click the pod → **Logs**: every line starts with `[h3]` | **~11 min** (tested 29 Oct on an RTX 4090; up to ~25 min on a slow Community host) | the last line is `[h3] [...s] LISTO` |
+| 4 | Wait while it installs. Click the pod → **Logs**: every line starts with `[h3]` | **3–11 min** (30 Oct: 3 min on an RTX A5000 Secure; 11 min on an RTX 4090; up to ~25 min on a slow Community host) | the last line is `[h3] [...s] LISTO` |
 | 5 | **Connect → HTTP Service 8300 (MAX EDITOR)** | — | the MAX EDITOR page opens |
 | 6 | **Generate** a short video (5 s at 960×544) | **~3.5 min** on an RTX 4090 | a short video appears under **Mis videos** |
 | 7 | Retocar: pick that video → **Inpainting** (mask by text with SAM 3.1) or **Extender** (continues the video) | **~1.5 min** each | a new video appears |
