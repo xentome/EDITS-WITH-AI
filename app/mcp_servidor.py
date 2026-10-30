@@ -174,6 +174,9 @@ async def estado() -> str:
     if activos:
         ocupado.append("the app queue is working")
     lin.append("GPU free now: " + ("NO — " + "; ".join(ocupado) + ". New jobs wait their turn." if ocupado else "yes"))
+    if s.get("version_nueva"):
+        lin.append("The app's code changed since it started: the header shows «Versión nueva · Reiniciar». Restarting is the "
+                   "creative's call (it also restarts this MCP: you will have to reconnect), and only with the queue empty.")
     if APPC.actual:
         lin.append(f"Open project in this session: «{APPC.actual}»")
     return "\n".join(lin)
@@ -210,8 +213,16 @@ for _tema, _archivo in TEMAS.items():
 async def listar_proyectos() -> str:
     """The projects in the app (header › «Proyecto» list), newest first. «ejemplo», if there is one, is read-only: copy it with crear_proyecto."""
     ps = await APPC.pedir("GET", "/app/proyectos")
+
+    def resumen(r: dict) -> str:
+        if not r:
+            return ""
+        refs = ", ".join(x.get("nombre") or x.get("refmod") or "?" for x in r.get("refs") or [])
+        return (f" · {r.get('tomas') or 0} shots · {r.get('n_refs') or 0} refs{' (' + refs + ')' if refs else ''}"
+                f" · {'song' if r.get('cancion') else 'no song'}" + (f" · idea: {r['idea']}" if r.get("idea") else ""))
     return "\n".join(f"- {p['nombre']} · saved {p.get('guardado') or '?'} · rev {p.get('rev', 0)}"
-                     f"{' · last change by the agent' if p.get('autor') == 'agente' else ''}" for p in ps) or "(no projects)"
+                     f"{' · last change by the agent' if p.get('autor') == 'agente' else ''}{resumen(p.get('resumen') or {})}"
+                     for p in ps) or "(no projects)"
 
 
 @herramienta
@@ -593,15 +604,30 @@ async def reintentar(id: str) -> str:
 
 # ------------------------------------------------------------------ resultados
 @herramienta
-async def listar_videos(proyecto: str = "") -> str:
-    """The videos of a project, newest first (header › «Mis videos»): generated edits and retouches, with seed and date."""
-    nombre = APPC.nombre(proyecto)
-    vs = await APPC.pedir("GET", "/app/videos?proyecto=" + urllib.parse.quote(nombre))
-    return "\n".join(f"- {v['archivo']} · {v.get('tipo') or 'edit'} · {v.get('fecha', '').replace('T', ' ')} · seed {v.get('semilla')}"
-                     + (f" · retouch {v['tramo'].get('inicio')}–{v['tramo'].get('fin')} s" if v.get("tipo") == "retoque" and v.get("tramo") else "")
-                     + (f" · extension of {v.get('de')} (+{v['extension'].get('nuevos')} f from frame {v['extension'].get('desde')})"
-                        if v.get("tipo") == "extension" and v.get("extension") else "")
-                     for v in vs) or f"(no videos yet in «{nombre}»)"
+async def listar_videos(proyecto: str = "", todos: bool = False) -> str:
+    """The videos of a project, newest first (header › «Videos»): generated edits, retouches, extensions, enhancements
+    (mejora) and Editing exports (montaje), with seed and date. «prompt ✓» = retomar_prompt can load its values. todos=true:
+    the whole library (every project, like the «Proyectos» window › «Biblioteca»); any of them can be retouched, extended,
+    enhanced or put in Editing from the open project."""
+    nombre = "" if todos else APPC.nombre(proyecto)
+    vs = await APPC.pedir("GET", "/app/videos" + ("?proyecto=" + urllib.parse.quote(nombre) if nombre else ""))
+
+    def extra(v: dict) -> str:
+        t = v.get("tipo")
+        if t == "retoque" and v.get("tramo"):
+            return f" · retouch {v['tramo'].get('inicio')}–{v['tramo'].get('fin')} s"
+        if t == "extension" and v.get("extension"):
+            return f" · extension of {v.get('de')} (+{v['extension'].get('nuevos')} f from frame {v['extension'].get('desde')})"
+        if t == "mejora":
+            return (f" · enhancement of {v.get('de')}" + (f" · SR ×{v['superres'].get('escala')}" if v.get("superres") else "")
+                    + (f" · HDR {v['hdr'].get('nits')} nits" if v.get("hdr") else ""))
+        if t == "montaje" and v.get("montaje"):
+            return f" · Editing export: {v['montaje'].get('clips')} clips, {v['montaje'].get('duracion')} s"
+        return ""
+    return "\n".join(f"- {v['archivo']} · {v.get('tipo') or 'edit'}" + (f" · «{v.get('proyecto') or '—'}»" if todos else "")
+                     + f" · {v.get('fecha', '').replace('T', ' ')}" + (f" · seed {v['semilla']}" if v.get("semilla") is not None else "")
+                     + extra(v) + (" · prompt ✓" if v.get("prompt_de") else "")
+                     for v in vs) or (f"(no videos yet in «{nombre}»)" if nombre else "(the library is empty)")
 
 
 async def _fotogramas(video: str, n: int, alto: int, desde: float = 0.0, hasta: float | None = None) -> tuple[list[bytes], list[float], dict]:
@@ -800,6 +826,335 @@ async def extender(video: str, nuevos: int = 68, solape: int = 39, calidad: str 
     return (f"Extension queued: {', '.join(r['ids'])} (seed {d['semilla'] if int(n) == 1 else 'random'}). {_texto_plan(p)}\n"
             f"Wait with esperar(id), then look at the JOIN with ver_video(video=<new file>, desde={max(0, p['total'] / 24 - 1):.2f}, "
             f"hasta={min(p['duracion_final'], p['total'] / 24 + 1.5):.2f}) and at the end (identity, colour, frozen?).")
+
+
+# ------------------------------------------------------------------ mejorar (mejorar.py: Super Resolution y HDR de NVIDIA RTX)
+@herramienta
+async def mejorar(video: str, escala: float = 0, calidad: str = "ULTRA", hdr_nits: int = 0, proyecto: str = "") -> str:
+    """Enhance a WHOLE video (step «Retocar» › «Inpainting / detalle» › sub-tab «Mejorar»): NVIDIA RTX nodes, no H3, seconds
+    not minutes. escala: Super Resolution ×1.5 · ×2 · ×3 · ×4 (0 = off); calidad: LOW · MEDIUM · HIGH · ULTRA. hdr_nits: HDR
+    (SDR → HLG 10-bit) with a peak of 400–2000 nits, 650 is the page's default (0 = off). At least one of the two. A size that
+    does not fit (side over 8192 px, or too many pixels for the whole video in memory) ends in error with the reason. The
+    result mejorado_….mp4 is a new video in «Videos»; the original stays. Do it LAST, on the approved video."""
+    nombre = APPC.nombre(proyecto)
+    if not escala and not hdr_nits:
+        raise ErrorAgente("choose at least one: escala (Super Resolution ×1.5/×2/×3/×4) or hdr_nits (400–2000)")
+    if escala and float(escala) not in (1.5, 2.0, 3.0, 4.0):
+        raise ErrorAgente("escala must be 1.5, 2, 3 or 4")
+    d = {"video": video, "proyecto": nombre,
+         "superres": {"escala": float(escala), "calidad": str(calidad).upper()} if escala else None,
+         "hdr": {"nits": int(hdr_nits)} if hdr_nits else None}
+    r = await APPC.pedir("POST", "/app/cola", {"tipo": "mejorar", "datos": d, "origen": "agente"})
+    que = " + ".join(x for x in (f"Super Resolution ×{float(escala):g} ({str(calidad).upper()})" if escala else "",
+                                  f"HDR {int(hdr_nits)} nits" if hdr_nits else "") if x)
+    return (f"Enhancement queued: {', '.join(r['ids'])} ({que} on «{video}»). Usually under a minute once it runs. Visible in "
+            "«Cola» (✎ agente); wait with esperar(id), then ver_video(video=<new file>).")
+
+
+# ------------------------------------------------------------------ retomar el prompt de un video (29 oct)
+@herramienta
+async def retomar_prompt(video: str, donde: str = "copia", nombre_copia: str = "", confirmado: bool = False) -> str:
+    """Load the values a video was generated with (prompt, shots, references, song, seed) back into a project, like «Videos» ›
+    «Retomar prompt». For a retouch, extension or enhancement it uses the Generar video it came from. donde: «copia»
+    (default: a NEW project «<project> retomado», or nombre_copia) or «aqui» (REPLACES the current project: needs the
+    creative's OK, then confirmado=true). Videos made before Oct 29 that are no longer in the queue cannot be resumed
+    (listar_videos marks the ones that can with «prompt ✓»)."""
+    d = await APPC.pedir("GET", "/app/valores_video?video=" + urllib.parse.quote(video), ok=(200, 404))
+    if "error" in d:
+        raise ErrorAgente(f"«{video}» has no saved values (made before Oct 29, or not from Generar): it cannot be resumed")
+    semilla = d.get("semilla")
+
+    def cambio(p: Proyecto):
+        p.datos["valores"] = json.loads(json.dumps(d["valores"]))
+        p._estado = None
+        if semilla not in (None, ""):
+            p.poner_semilla(int(semilla))
+    origen = f"from «{d['video']}» ({(d.get('fecha') or '').replace('T', ' ')[:16]}, seed {semilla})"
+    if donde == "aqui":
+        nombre = APPC.nombre("")
+        if not confirmado:
+            raise ErrorAgente(f"this REPLACES everything in «{nombre}» with the values {origen}. Ask the creative, then call "
+                              "again with confirmado=true — or use donde='copia'")
+        p, _ = await APPC.cambiar(nombre, cambio)
+        return f"Resumed {origen} into «{nombre}» (replaced).\n" + visto(p)
+    if donde != "copia":
+        raise ErrorAgente("donde must be «copia» (new project) or «aqui» (replace the current one)")
+    base = (nombre_copia or f"{d.get('proyecto') or APPC.actual or 'edit'} retomado").strip()
+    usados = {x["nombre"] for x in await APPC.pedir("GET", "/app/proyectos")}
+    nombre, i = base, 2
+    while nombre in usados and not nombre_copia:
+        nombre, i = f"{base} {i}", i + 1
+    r = await APPC.pedir("POST", "/app/proyecto/" + urllib.parse.quote(nombre),
+                         {"valores": d["valores"], "nuevo": True, "autor": "agente", "agente": {"marcas": []}}, ok=(200, 400, 409))
+    if "error" in r:
+        raise ErrorAgente(f"could not create «{nombre}»: {r['error']} (it is never overwritten: choose another nombre_copia)")
+    APPC.actual = nombre
+    p, _ = await APPC.cambiar(nombre, cambio)
+    return (f"Resumed {origen} into the NEW project «{nombre}» (now the current one of this session). Ask the creative to "
+            "open it in the page (header › project button).\n\n" + agente.describir(p))
+
+
+# ------------------------------------------------------------------ edición (edicion.py, el apartado 3 «Cara C»)
+FPS = 24
+EXT_AUDIO = (".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".opus")
+
+
+def _fot(s: float) -> float:
+    return round(round(float(s) * FPS) / FPS, 4)
+
+
+def _fin(c: dict) -> float:
+    return c["en"] + c["fin"] - c["ini"]
+
+
+async def _leer_edicion(nombre: str) -> dict:
+    d = await APPC.pedir("GET", "/app/edicion/" + urllib.parse.quote(nombre), ok=(200, 400))
+    if "error" in d:
+        raise ErrorAgente(f"cannot read the Editing timeline of «{nombre}»: {d['error']}")
+    return d
+
+
+async def _guardar_edicion(nombre: str, d: dict) -> None:
+    r = await APPC.pedir("POST", "/app/edicion/" + urllib.parse.quote(nombre),
+                         {"pistas": d["pistas"], "lienzo": d.get("lienzo"), "zoom": d.get("zoom"), "autor": "agente"}, ok=(200, 400))
+    if "error" in r:
+        raise ErrorAgente(f"the app did not save the timeline: {r['error']}")
+
+
+def _tipo_fuente(fuente: str) -> str:
+    return "audio" if fuente.removesuffix(" [input]").lower().endswith(EXT_AUDIO) else "video"
+
+
+async def _medir(fuente: str, tipo: str) -> dict:
+    """{dur, ancho?, alto?} de un video de la biblioteca o traído de fuera, o de un audio («… [input]»)."""
+    if tipo == "video":
+        i = await APPC.pedir("GET", "/app/video_info?video=" + urllib.parse.quote(fuente), ok=(200, 404))
+        if "error" in i:
+            raise ErrorAgente(f"there is no video «{fuente}» (see listar_medios): {i['error']}")
+        return {"dur": float(i.get("duracion") or 0), "ancho": i.get("ancho"), "alto": i.get("alto")}
+    url = URL_APP + "/app/video?video=" + urllib.parse.quote(fuente)
+    r = await asyncio.to_thread(subprocess.run, ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", url],
+                                capture_output=True, text=True, timeout=60)
+    try:
+        return {"dur": float(r.stdout.strip())}
+    except ValueError:
+        raise ErrorAgente(f"cannot read the audio «{fuente}» (see listar_medios: audio sources end in « [input]»)")
+
+
+async def _clip(c: dict, tipo_pista: str, medidas: dict) -> dict:
+    """Un clip comprobado, como lo guarda la página: {fuente, nombre, tipo, dur, ini, fin, en}, a fotograma."""
+    fuente = str(c.get("fuente") or "").strip()
+    if not fuente:
+        raise ErrorAgente("each clip needs its «fuente» (from listar_medios)")
+    tipo = _tipo_fuente(fuente)
+    if tipo != tipo_pista:
+        raise ErrorAgente(f"«{fuente}» is {tipo}: it goes in an {tipo} track (V… for video, A… for audio)")
+    if fuente not in medidas:
+        medidas[fuente] = await _medir(fuente, tipo)
+    dur = medidas[fuente]["dur"]
+    ini, en = _fot(c.get("ini") or 0), _fot(c.get("en") or 0)
+    fin = _fot(dur if c.get("fin") in (None, "") else min(float(c["fin"]), dur))
+    if ini < 0 or en < 0 or fin - ini < 1 / FPS:
+        raise ErrorAgente(f"clip «{fuente}»: ini {ini} – fin {fin} is empty or outside its {dur:.3f} s (seconds, ≥ 0)")
+    base = os.path.basename(fuente.removesuffix(" [input]"))
+    return {"fuente": fuente, "nombre": base if tipo == "audio" else base.removesuffix(".mp4"), "tipo": tipo, "dur": dur,
+            "ini": ini, "fin": fin, "en": en}
+
+
+def _sobrescribir(clips: list, s: float, e: float) -> list:
+    """Como la página al soltar un clip: lo que hay debajo de [s, e) en la pista se recorta o se parte."""
+    out = []
+    for c in clips:
+        if _fin(c) <= s or c["en"] >= e:
+            out.append(c)
+            continue
+        if c["en"] < s:
+            out.append({**c, "fin": _fot(c["ini"] + (s - c["en"]))})
+        if _fin(c) > e:
+            out.append({**c, "ini": _fot(c["ini"] + (e - c["en"])), "en": e})
+    return out
+
+
+def _poner_lienzo(d: dict, medidas: dict) -> None:
+    """Sin lienzo, manda el primer video (como en la página)."""
+    if d.get("lienzo"):
+        return
+    for p in d["pistas"]:
+        for c in p["clips"]:
+            m = medidas.get(c["fuente"]) or {}
+            if c["tipo"] == "video" and m.get("ancho"):
+                d["lienzo"] = {"ancho": m["ancho"], "alto": m["alto"]}
+                return
+
+
+def _texto_edicion(nombre: str, d: dict) -> str:
+    pistas = d.get("pistas") or []
+    if not any(p.get("clips") for p in pistas):
+        return (f"Editing timeline of «{nombre}» (step «Edición»): EMPTY. Fill it with poner_clip or editar_edicion "
+                "(sources from listar_medios).")
+    lz = d.get("lienzo") or {}
+    lin = [f"Editing timeline of «{nombre}» (step «Edición»): "
+           f"{max(_fin(c) for p in pistas for c in p.get('clips') or []):.3f} s · canvas "
+           + (f"{lz.get('ancho')}×{lz.get('alto')}" if lz else "from the first video")
+           + f" · saved {d.get('guardado') or 'now'}{' by the agent' if d.get('autor') == 'agente' else ''}. "
+           "Tracks top to bottom (the higher video track covers the lower):"]
+    for p in pistas:
+        flags = ("" if p.get("ver", True) is not False else " · hidden") + ("" if p.get("oir", True) is not False else " · muted")
+        lin.append(f"{p['id']} ({p['tipo']}{flags}):" + ("" if p.get("clips") else " (empty)"))
+        for i, c in enumerate(sorted(p.get("clips") or [], key=lambda c: c["en"]), 1):
+            lin.append(f"  {p['id']}#{i} {c['en']:.3f}–{_fin(c):.3f} s · «{c['fuente']}» uses {c['ini']:.3f}–{c['fin']:.3f} s of it")
+    return "\n".join(lin)
+
+
+def _pistas_vacias() -> list:
+    return [{"id": i, "tipo": t, "ver": True, "oir": True, "clips": []}
+            for i, t in (("V2", "video"), ("V1", "video"), ("A1", "audio"), ("A2", "audio"))]
+
+
+@herramienta
+async def listar_medios(buscar: str = "") -> str:
+    """What can go into the Editing timeline (step «Edición», its library): every video of the library (ALL projects), the
+    videos brought from outside («Traídos de fuera»: only for Editing) and the audio files (ComfyUI/input and the uploaded
+    audio folders). buscar filters by name, project or folder. The first column is the «fuente» that poner_clip and
+    editar_edicion take."""
+    vs, fuera, auds = await asyncio.gather(APPC.pedir("GET", "/app/videos"), APPC.pedir("GET", "/app/edicion_de_fuera"),
+                                           APPC.pedir("GET", "/app/edicion_audios"))
+    b = buscar.lower().strip()
+    vs = list({v["archivo"]: v for v in reversed(vs)}.values())[::-1]          # un archivo, una vez (el historial puede repetirlo)
+    lin = ["VIDEOS (library, newest first · project · kind · date):"]
+    lin += [f"- {v['archivo']} · «{v.get('proyecto') or '—'}» · {v.get('tipo') or 'edit'} · {(v.get('fecha') or '').replace('T', ' ')[:16]}"
+            for v in vs if not b or b in v["archivo"].lower() or b in (v.get("proyecto") or "").lower()][:60] or ["(none)"]
+    lin.append("VIDEOS FROM OUTSIDE (only usable in Editing):")
+    lin += [f"- {v['fuente']}" for v in fuera if not b or b in v["fuente"].lower()][:30] or ["(none)"]
+    lin.append("AUDIO (· folder):")
+    lin += [f"- {a['fuente']}{' · ' + a['carpeta'] if a.get('carpeta') else ''}" for a in auds
+            if not b or b in a["fuente"].lower() or b in (a.get("carpeta") or "").lower()][:60] or ["(none)"]
+    return "\n".join(lin)
+
+
+@herramienta
+async def ver_edicion(proyecto: str = "") -> str:
+    """The Editing timeline of a project (step «Cara C · 3 · Edición»), as the page shows it: tracks top to bottom (V2 over
+    V1, then A1, A2…), each clip labelled like «V1#2» with where it sits and which part of its original it uses. Read it
+    before changing it: the creative may have edited it by hand."""
+    nombre = APPC.nombre(proyecto)
+    return _texto_edicion(nombre, await _leer_edicion(nombre))
+
+
+@herramienta
+async def editar_edicion(pistas: list[dict], lienzo: dict | None = None, proyecto: str = "") -> str:
+    """REPLACE the whole Editing timeline (step «Edición») of a project. pistas, top to bottom: [{id: "V2"|"V1"|"A1"…, tipo:
+    video|audio, ver?: true, oir?: true, clips: [{fuente, en, ini?: 0, fin?: end of the original}]}]. en = second of the
+    timeline where the clip starts; ini/fin = the part of the original used (seconds). Times snap to frames (24 fps). The
+    higher video track covers the lower; video tracks ALSO sound unless oir=false. Clips of one track must not overlap.
+    lienzo {ancho, alto} = output size (default: the first video's). This overwrites what the creative built by hand: read
+    it with ver_edicion and ask before replacing a timeline that is not empty."""
+    nombre = APPC.nombre(proyecto)
+    if not isinstance(pistas, list) or not pistas:
+        raise ErrorAgente("pistas must be a list of tracks (see the tool description)")
+    medidas, nuevas, ids = {}, [], set()
+    for p in pistas:
+        tipo, pid = p.get("tipo"), str(p.get("id") or "").strip()
+        if tipo not in ("video", "audio"):
+            raise ErrorAgente("each track has tipo «video» or «audio»")
+        if not pid or pid in ids:
+            raise ErrorAgente("each track needs a unique id (V2, V1, A1, A2…)")
+        ids.add(pid)
+        clips = sorted([await _clip(c, tipo, medidas) for c in p.get("clips") or []], key=lambda c: c["en"])
+        for a, b in zip(clips, clips[1:]):
+            if _fin(a) > b["en"] + 1e-3:
+                raise ErrorAgente(f"track {pid}: «{a['fuente']}» ends at {_fin(a):.3f} s, after «{b['fuente']}» starts "
+                                  f"({b['en']:.3f} s): clips of one track must not overlap")
+        nuevas.append({"id": pid, "tipo": tipo, "ver": p.get("ver", True) is not False, "oir": p.get("oir", True) is not False,
+                       "clips": clips})
+    viejo = await _leer_edicion(nombre)
+    d = {"pistas": nuevas, "lienzo": lienzo if lienzo and lienzo.get("ancho") and lienzo.get("alto") else None,
+         "zoom": viejo.get("zoom")}
+    _poner_lienzo(d, medidas)
+    await _guardar_edicion(nombre, d)
+    return "Saved: the page (step «Edición») shows it marked «✎ agente».\n" + _texto_edicion(nombre, {**d, "autor": "agente"})
+
+
+@herramienta
+async def poner_clip(fuente: str, en: float, pista: str = "", ini: float = 0, fin: float | None = None, proyecto: str = "") -> str:
+    """Put ONE clip on the Editing timeline, like dropping it from the library: at second `en` of track `pista` (default V1
+    for a video, A1 for an audio), using ini–fin seconds of its original (default: all of it). What was under it in that
+    track is trimmed or split (overwrite, as in the page). Sources: listar_medios."""
+    nombre = APPC.nombre(proyecto)
+    d = await _leer_edicion(nombre)
+    d["pistas"] = d.get("pistas") or _pistas_vacias()
+    pid = pista or ("V1" if _tipo_fuente(fuente) == "video" else "A1")
+    p = next((x for x in d["pistas"] if x["id"] == pid), None)
+    if not p:
+        raise ErrorAgente(f"there is no track {pid}: the tracks are {', '.join(x['id'] for x in d['pistas'])} (editar_edicion can add more)")
+    medidas = {}
+    c = await _clip({"fuente": fuente, "en": en, "ini": ini, "fin": fin}, p["tipo"], medidas)
+    p["clips"] = sorted(_sobrescribir(p.get("clips") or [], c["en"], _fin(c)) + [c], key=lambda x: x["en"])
+    _poner_lienzo(d, medidas)
+    await _guardar_edicion(nombre, d)
+    return (f"Clip «{fuente}» on {pid} at {c['en']:.3f}–{_fin(c):.3f} s (marked «✎ agente» in «Edición»).\n"
+            + _texto_edicion(nombre, {**d, "autor": "agente", "guardado": ""}))
+
+
+@herramienta
+async def quitar_clip(clip: str, cerrar_hueco: bool = False, proyecto: str = "") -> str:
+    """Remove one clip from the Editing timeline by its label in ver_edicion (e.g. «V1#2»). cerrar_hueco=true moves the later
+    clips of that track left to close the gap (Shift+Supr in the page)."""
+    nombre = APPC.nombre(proyecto)
+    d = await _leer_edicion(nombre)
+    pid, _, num = clip.partition("#")
+    p = next((x for x in d.get("pistas") or [] if x["id"] == pid.strip()), None)
+    clips = sorted((p or {}).get("clips") or [], key=lambda c: c["en"])
+    if not p or not num.strip().isdigit() or not 1 <= int(num) <= len(clips):
+        raise ErrorAgente(f"there is no clip {clip}: see the labels in ver_edicion (like «V1#2»)")
+    c = clips.pop(int(num) - 1)
+    if cerrar_hueco:
+        largo = c["fin"] - c["ini"]
+        clips = [{**o, "en": _fot(o["en"] - largo)} if o["en"] >= _fin(c) - 1e-3 else o for o in clips]
+    p["clips"] = clips
+    await _guardar_edicion(nombre, d)
+    return f"Removed {clip} («{c['fuente']}»).\n" + _texto_edicion(nombre, {**d, "autor": "agente", "guardado": ""})
+
+
+@herramienta
+async def subir_medio(ruta: str, tipo: str = "audio", carpeta: str = "") -> str:
+    """Bring a file from the computer where the app runs into Editing's library, like «Cargar audio» / «Carpeta de audios» /
+    «Subir video»: tipo «audio» (optional carpeta = a folder name to group it) or «video» («Traídos de fuera»: usable only
+    in Editing, not in Videos). It never overwrites (a repeated name gets _2). Only files the creative pointed you to."""
+    ruta = os.path.expanduser(ruta)
+    if tipo not in ("audio", "video"):
+        raise ErrorAgente("tipo must be «audio» or «video»")
+    if not os.path.isfile(ruta):
+        raise ErrorAgente(f"there is no file {ruta} on this computer")
+    with open(ruta, "rb") as fh:
+        contenido = fh.read()
+    try:
+        async with httpx.AsyncClient(timeout=600) as c:       # los campos antes que el archivo: el servidor los lee en orden
+            r = await c.post(URL_APP + "/app/edicion_subir", data={"tipo": tipo, "carpeta": carpeta},
+                             files={"archivo": (os.path.basename(ruta), contenido)})
+        d = r.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise ErrorAgente(f"the upload failed ({exc.__class__.__name__})") from exc
+    if r.status_code != 200 or "error" in d:
+        raise ErrorAgente(f"the app refused the file: {d.get('error')}")
+    return f"Uploaded as «{d['fuente']}» (Editing's library shows it the next time it reads it). Use it with poner_clip."
+
+
+@herramienta
+async def exportar_edicion(proyecto: str = "") -> str:
+    """Join the saved Editing timeline into a new mp4 with ffmpeg («Exportar video»): no GPU, seconds to a minute, not through
+    the queue. The result montaje_….mp4 appears in «Videos» and the library; look at it with ver_video."""
+    nombre = APPC.nombre(proyecto)
+    d = await _leer_edicion(nombre)
+    r = await APPC.pedir("POST", "/app/edicion_exportar",
+                         {"proyecto": nombre, "edicion": {"pistas": d.get("pistas") or [], "lienzo": d.get("lienzo")}},
+                         espera=900, ok=(200, 400))
+    if "error" in r:
+        raise ErrorAgente(f"cannot export: {r['error']}")
+    fila = r.get("fila") or {}
+    m = fila.get("montaje") or {}
+    return (f"Exported «{r['archivo']}»: {m.get('clips')} clips, {m.get('duracion')} s, {m.get('ancho')}×{m.get('alto')}, in "
+            f"{fila.get('segundos')} s. It is in «Videos». Next: ver_video(video='{r['archivo']}').")
 
 
 # ------------------------------------------------------------------ prompts de flujo

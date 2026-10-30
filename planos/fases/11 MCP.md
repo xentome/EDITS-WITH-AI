@@ -44,3 +44,18 @@ Lectura: 3 min · Empezada el 28 oct 2026 · Para los ayudantes y para retomar s
   - Ajuste de la guía tras la prueba: en 22 f los tiempos no son fiables (cortes y palabras salieron antes en los dos renders); el test sirve para referencias e identidad.
 - 28 oct (fase 9): «Con un agente (MCP)» en `app/LEEME.md` y «Use it with an agent» en `README.md` (Claude Code, Cursor, Claude Desktop por stdio).
 - Pendiente: «Continuar» (alargar) cuando exista: añadir la herramienta y quitar el «coming soon» de `0_instrucciones.md`; `audio_salida` del retoque si llega a `retocar.py`; las marcas no se ven en el panel de Retocar (el retoque del agente se ve en la cola y en «Mis videos»).
+- 29 oct (funciones nuevas de la sesión «pulido»): 9 herramientas más.
+  - `mejorar`: Super Resolution y HDR, por la cola tipo «mejorar».
+  - `retomar_prompt`: lo guarda en una copia, o en el mismo proyecto con `confirmado`.
+  - Edición: `listar_medios`, `ver_edicion`, `poner_clip` (sobrescribe como la página), `quitar_clip`, `editar_edicion` (lo reemplaza todo; los clips de una pista no se solapan), `subir_medio` y `exportar_edicion`.
+  - `listar_videos(todos)` enseña toda la biblioteca, los tipos mejora y montaje, y «prompt ✓».
+  - `listar_proyectos` trae el resumen de cada proyecto.
+  - `estado` avisa de «Versión nueva · Reiniciar».
+  - La línea de tiempo de Edición lleva `rev` y `autor` (commit ee3a491 de «pulido»): la página adopta lo que guarda el agente.
+  - Guía: el mapa ya no dice «not in MCP yet», 0_instrucciones nombra el paso 3 y la receta G «Join pieces».
+  - Probado con un MCP aparte en :8311 sobre `prueba mcp edicion`:
+    - 4 clips con sobrescritura, A1 con canción y el error de solape;
+    - exportar `montaje_20261029_191750.mp4` (4,5 s, 2,3 s de ffmpeg);
+    - HDR 650 en 10 s;
+    - retomar en la copia `prueba mcp retomado`.
+  - El :8301 de verdad carga las herramientas al reiniciar la app.

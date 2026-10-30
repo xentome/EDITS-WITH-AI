@@ -92,3 +92,18 @@ esperar(id=<id>) → ver_video(video=<the new retouch file>)
 ```
 To put something specific in the zone, pass `referencias=["<RefMod name>"]` and cite it: «the red bottle from <Picture 1>».
 If the pink covers too much or too little, change the text («the blue logo») or use `rectangulo={x, y, w, h}`.
+
+## G · Join pieces of several videos (step «Edición») — tested 29 Oct ✅
+
+No GPU: the cuts, the layers and the audio mix are done by ffmpeg. The creative chooses the pieces and the order.
+
+1. `listar_medios` (or `listar_videos(todos=true)`): the videos of every project, the ones brought from outside and the audio.
+   A new file from the computer: `subir_medio(ruta, tipo)`, only if the creative points to it.
+2. `ver_edicion`: what is already there (the creative may have built part of it by hand). Each clip has a label like «V1#2».
+3. One clip at a time: `poner_clip(fuente, en, ini, fin)` — `en` = where it starts in the timeline, `ini`–`fin` = the part of
+   the original. Over another clip it overwrites (trims or splits what is under). A song: `poner_clip("x.wav [input]", 0)`
+   on A1. A whole plan at once: `editar_edicion(pistas)` (replaces everything: ask first if it was not empty).
+4. Video tracks sound too: with a song on A1, mute the video track (`editar_edicion` with `oir: false`) if the creative
+   wants only the song. V2 covers V1.
+5. `exportar_edicion` → `montaje_….mp4` in «Videos» → `ver_video` (look at each join). To enhance it: `mejorar`.
+
