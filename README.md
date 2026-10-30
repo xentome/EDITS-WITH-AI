@@ -1,24 +1,39 @@
 # MAX EDITOR
 
-**AI music edits with MiniMax H3, on your own PC.** · Versión en español: [app/LEEME.md](app/LEEME.md)
+**Make AI edits with MiniMax H3, shot by shot, with full control. 100% local and open source.** · Versión en español: [app/LEEME.md](app/LEEME.md)
 
-<p align="center"><img src="docs/capturas/0-edits.gif" width="360" alt="Shots generated with MAX EDITOR and MiniMax H3"></p>
+<p align="center"><a href="https://youtu.be/1qPUrorfY74"><img src="https://img.youtube.com/vi/1qPUrorfY74/maxresdefault.jpg" width="720" alt="Watch the MAX EDITOR demo on YouTube"></a><br><b>▶ <a href="https://youtu.be/1qPUrorfY74">Watch the demo (2 min)</a></b></p>
 
-- MAX EDITOR makes music edits with **MiniMax H3** in any aspect ratio (vertical, horizontal or square), fully local, with no paid services.
-- You write an idea and pick your references and the part of the song. A **local LLM** writes the story and the shots, and code places the timing on the beats.
-- You press **Generate**: the app sends the workflow to your ComfyUI through the **official Comfy SDK** and shows you the video.
-- Every shot lands in one **library**. **Touch up** a zone, **extend** a shot or **enhance** it, then cut your clips together in the multitrack **Editing** tab and export the final edit.
+**In short**
+- **Every image and effect comes from MiniMax H3** (text effects too; the song is yours). The app does not paint or fake anything: it tells H3 exactly what to make.
+- **The goal is control:** all of H3's power (character and product references, shot-by-shot timing on the song, text, retouching, extending) on **your own PC**. That is hard on a normal graphics card; MAX EDITOR does it on a **12 GB RTX 3060** (tested).
+- **Your AI agent helps, you stay in charge.** Through MCP, Claude, Codex or Cursor work *inside* the app; every change they make is marked **«✎ agent»** in the page, and you keep or change it.
+- **Open:** open-weights models, running on your ComfyUI through the official **Comfy SDK**. An optional local LLM can draft or translate prompts.
+
+## Install in one minute
+
+| How | What to do |
+|---|---|
+| 🐧 **Linux, one command** | `git clone https://github.com/xentome/EDITS-WITH-AI.git && cd EDITS-WITH-AI && app/instalar.sh --comfyui ~/ComfyUI --retocar` then `app/arrancar.sh` · [details](#linux) |
+| 🖱️ **Double click** | Linux: **`Instalar MAX EDITOR.desktop`** · Windows: **`Instalar MAX EDITOR.bat`**, then **`Abrir MAX EDITOR.bat`** · [Windows guide](#windows) |
+| 🤖 **With your AI agent** | paste [this prompt](#3-with-an-ai-agent) into Claude Code, Codex or any agent with a terminal |
+| ☁️ **No GPU: RunPod** | **[Deploy the template](https://console.runpod.io/deploy?template=srac7gh4wi)**: everything installed, open the app in your browser · [RUNPOD.md](RUNPOD.md) |
+
+You need an NVIDIA GPU with 12 GB, [ComfyUI](https://docs.comfy.org/installation), ~70 GB of disk and 64 GB of RAM + swap. All details: [Install](#install).
+
+## See it
+
+| | |
+|---|---|
+| <img src="docs/gifs/galeria.gif" width="400" alt="Edits made with MAX EDITOR"><br>**Made with H3:** every frame of these edits | <img src="docs/gifs/control.gif" width="400" alt="Shot-by-shot control"><br>**Shot by shot:** action, framing, camera and references per shot |
+| <img src="docs/gifs/preview.gif" width="400" alt="Live preview while generating"><br>**Live preview** while H3 generates | <img src="docs/gifs/retocar.gif" width="400" alt="Touch up before and after"><br>**Touch up:** cover a zone and H3 redraws only that part |
+| <img src="docs/gifs/extender_app.gif" width="400" alt="Extend video in the app"><br>**Extend video:** the same shot goes on, no cut | <img src="docs/gifs/extender.gif" width="400" alt="An extended shot"><br>…and the result |
+| <img src="docs/gifs/edicion.gif" width="400" alt="Multitrack Editing"><br>**Editing:** cut your clips together on several tracks and export | <img src="docs/gifs/agente.gif" width="400" alt="An AI agent working inside the app"><br>**Your agent** works in the app; you see every change |
+
+<details><summary>Screenshots of the three steps</summary>
 
 ![MAX EDITOR, step 1: references, timeline with text, shots and song, and the panel of the selected shot](docs/capturas/1-shots-and-references.png)
-
-<details><summary>Step 2: Touch up (redo a zone of a video, enhance it or extend it)</summary>
-
 ![MAX EDITOR, step 2: Touch up](docs/capturas/2-touch-up.png)
-
-</details>
-
-<details><summary>Step 3: Editing (cut clips from the library together on several tracks and export)</summary>
-
 ![MAX EDITOR, step 3: Editing, with the library, the viewer and a timeline with two video tracks and one audio track](docs/capturas/3-editing.png)
 
 </details>
@@ -197,8 +212,8 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 1. **Your first project: the example.** The app ships with **Jane**, a ready 8 s edit (reference, song, shots and text included): pick it in **Projects › Open the example** and press **Generate** (~10 min on a 12 GB GPU). The example never changes: choosing it makes your own copy («my example»). Then try its **6 challenges** and the **prompt for your AI agent** in **[app/ejemplo/README.md](app/ejemplo/README.md)**.
    - Add your references with **+ Add** or **⬆ Upload photo or video**.
-2. **The story:** write the idea and the style, then press **Write story**, then **Write shots**.
-3. **The shots:** click a shot on the timeline to see and change its prompt. Drag the border between shots to move the cut. The lock keeps your text: the LLM won't change it.
+2. **The shots:** add shots on the timeline and fill each one (action, framing, camera, place, references). Optional: with the local LLM, **Write story** / **Write shots** draft them for you to change.
+3. **Fine-tune:** click a shot to see its final H3 prompt. Drag the border between shots to move the cut. The lock keeps your text: the optional LLM won't change it.
 4. **The song:** in the audio window, **Change song** and drag the waveform to the part you want. You choose the part; the app does not.
 5. **Generate:** press **▶ Generate**. You see live progress and, at the end, the video under **🎬 Videos**.
 6. **Another seed:** press **🎲 another seed** and **Generate** again for another take of the same edit.
@@ -263,7 +278,7 @@ On connecting, the agent gets the essentials and reads the full guide (`app/guia
                                   your ComfyUI (:8188) ── MiniMax H3 ──► mp4 video
 ```
 
-- **The prompt:** the local LLM writes the story and the shots. The code only glues: the H3 template, the beat timing and the phrases in `frases.json`. It never makes up text.
+- **The prompt:** you decide each shot; the code assembles the H3 prompt (the H3 template, the timing on the beats and the phrases in `frases.json`) and never makes up text. The local LLM is optional: it only drafts or translates what you then edit.
 - **The video:** `generar.py` takes the saved workflow, sets the prompt, references, song, length and seed, and runs it with **comfy-sdk**. It gets live progress events and downloads the mp4.
 - **Why the SDK:** it is Comfy's official way to run a workflow from an app. The same code can target your own ComfyUI, Comfy Cloud or the Comfy API. Locally it needs `comfy-api-proxy`, which maps the SDK's API onto your ComfyUI.
 - **ComfyUI parts used:** the **Comfy SDK** (`comfy-sdk` + `comfy-api-proxy`) to generate, and the local ComfyUI API to view and upload files (`/view`, `/upload/image`) and to build RefMods and SAM masks.

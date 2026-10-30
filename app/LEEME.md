@@ -2,9 +2,14 @@
 
 > 4 min de lectura · actualizado el 28 oct 2026 · English: [README.md](../README.md)
 
+**Haz edits con IA con MiniMax H3, toma a toma y con control total. 100 % local y open source.** · [Video demo (2 min)](https://youtu.be/1qPUrorfY74)
+
 **En resumen**
-- MAX EDITOR hace edits musicales con **MiniMax H3** en cualquier proporción (vertical, horizontal o cuadrada), en tu PC y sin servicios de pago.
-- Escribes una idea y eliges tus referencias y el trozo de la canción. Un **LLM local** escribe la historia y las tomas, y el código pone los tiempos en los beats.
+- **Todas las imágenes y efectos los hace MiniMax H3** (también los de texto; la canción es tuya). La app no pinta nada: le dice a H3 qué hacer.
+- **El objetivo es el control:** toda la potencia de H3 (referencias, tiempos de cada toma sobre la canción, texto, retocar, extender) en **tu PC**, probado en una **RTX 3060 de 12 GB**. Cualquier proporción: vertical, horizontal o cuadrada.
+- **Tu agente de IA ayuda y tú mandas:** por MCP, Claude, Codex o Cursor trabajan dentro de la app y cada cambio sale marcado con **«✎ agente»**.
+- Eliges tus referencias y el trozo de la canción y escribes las tomas; el código pone los tiempos en los beats. Un **LLM local** opcional puede proponer o traducir los textos.
+- Sin GPU: **[plantilla de RunPod](https://console.runpod.io/deploy?template=srac7gh4wi)** con todo instalado.
 - Pulsas **Generar**: la app manda el workflow a tu ComfyUI con el **SDK oficial de Comfy** y te enseña el video.
 
 ## Instalar
