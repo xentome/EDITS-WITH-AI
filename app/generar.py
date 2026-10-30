@@ -201,11 +201,39 @@ def _quitar_nodos(grafo: dict) -> None:
             del entradas[nombre]
 
 
+def _reponer_tramo(grafo: dict) -> None:
+    """(30 oct) El LoadAudio apunta al tramo cortado (edit_tramo_<hash>.wav), que vive en ComfyUI/input del PC donde se hizo.
+    En otro PC o en un pod no está y ComfyUI dice «Invalid audio file»: se vuelve a cortar de la canción original
+    (estado.audio.original) desde el mismo inicio y con la duración del edit, con el mismo nombre."""
+    import retocar
+    base = os.path.join(retocar.comfyui_dir(), "input")
+    a = _estado(grafo).get("audio") or {}
+    for nid in _por_tipo(grafo, NODO_AUDIO):
+        nombre = str(grafo[nid]["inputs"].get("audio") or "").strip()
+        destino = retocar._dentro(base, nombre)
+        if not nombre.startswith("edit_tramo_") or not destino or os.path.isfile(destino):
+            continue
+        original = retocar._dentro(base, str(a.get("original") or ""))
+        if not original or not os.path.isfile(original):
+            raise ErrorGenerar(f"falta el tramo de audio {nombre} y su canción original ({a.get('original') or '?'}) "
+                               "no está en ComfyUI/input: súbela o elige otra canción")
+        dur = next((float(grafo[p]["inputs"].get("duracion_s") or 0) for p in _por_tipo(grafo, NODO_PROMPT_DEL_EDIT)), 0.0)
+        if dur <= 0:
+            raise ErrorGenerar(f"falta el tramo de audio {nombre} y no sé cuánto dura el edit para volver a cortarlo")
+        try:
+            retocar._ffmpeg("-ss", f"{float(a.get('inicio_s') or 0):.4f}", "-t", f"{dur:.4f}", "-i", original, "-vn",
+                            "-c:a", "pcm_s16le", "-ac", "2", "-f", "wav", destino + ".tmp")
+        except retocar.ErrorGenerar as exc:
+            raise ErrorGenerar(f"no pude volver a cortar el tramo de audio {nombre}: {exc}")
+        os.replace(destino + ".tmp", destino)
+
+
 def preparar(valores: dict, opciones: dict | None = None) -> dict:
     """El grafo que se manda a ComfyUI. Lanza ErrorGenerar con un texto claro si falta algo."""
     opciones = opciones or {}
     grafo = plantilla()
     _copiar_valores(grafo, valores)
+    _reponer_tramo(grafo)
     prompt = _leer_prompt(grafo)
     sin_cancion = _sin_cancion(grafo)
     opciones["_audio"] = None if sin_cancion else cancion_de(_estado(grafo))  # lo anota _despues_edit (la fila del historial)
