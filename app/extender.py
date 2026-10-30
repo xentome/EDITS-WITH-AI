@@ -279,9 +279,16 @@ def unir(original: str, ventana: str, p: dict, destino: str) -> None:
     # las dos partes con el mismo formato (una canción mono o a 44,1 kHz no se puede pegar tal cual a la de H3)
     fmt = "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo"
     filtros += [orig.replace("[oa]", f",{fmt}[oa]"), nuevo.replace("[na]", f",{fmt}[na]"), "[oa][na]concat=n=2:v=0:a=1[au]"]
-    retocar._ffmpeg(*entradas, "-filter_complex", ";".join(filtros), "-map", "[v]", "-map", "[au]", "-r", f"{FPS:g}",
-                    "-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
-                    "-movflags", "+faststart", destino)
+    # a un archivo aparte y luego de golpe (29 oct): dos procesos escribiendo el mismo mp4 lo dejaron roto (se veía negro)
+    temporal = f"{destino}.{os.getpid()}.tmp.mp4"
+    try:
+        retocar._ffmpeg(*entradas, "-filter_complex", ";".join(filtros), "-map", "[v]", "-map", "[au]", "-r", f"{FPS:g}",
+                        "-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+                        "-movflags", "+faststart", temporal)
+        os.replace(temporal, destino)
+    finally:
+        if os.path.exists(temporal):
+            os.remove(temporal)
 
 
 # ---------------------------------------------------------------- el grafo
