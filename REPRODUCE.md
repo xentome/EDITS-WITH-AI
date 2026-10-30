@@ -9,7 +9,7 @@
 | 1 | `git clone https://github.com/xentome/EDITS-WITH-AI.git && cd EDITS-WITH-AI` | 10 s | the folder has `app/instalar.sh` |
 | 2 | `app/instalar.sh --comfyui /path/to/ComfyUI --retocar --dry-run` | 30 s | it lists what it would install, and changes nothing |
 | 3 | `app/instalar.sh --comfyui /path/to/ComfyUI --retocar` | ~1 min + models | it ends with `✓ All good.` |
-| 3b | the models (70 GB from HuggingFace, resumable, sha256-checked) | 20 min – 1.5 h | each line says `(sha256 ✓)`; if it stops, run step 3 again and it resumes |
+| 3b | the models (70 GB from HuggingFace, resumable, sha256-checked): answer yes when it asks, or add `--bajar-modelos`, or later use the app › 🧩 Models | 20 min – 1.5 h | each line says `(sha256 ✓)`; if it stops, run step 3 again and it resumes |
 | 4 | Restart ComfyUI (new node packs load at start) | 1 min | no `IMPORT FAILED` in its log |
 | 5 | `app/arrancar.sh --comprobar --retocar` | 20 s | `✓ ComfyUI loads all the nodes` and `✓ All good.` |
 | 6 | `app/arrancar.sh` | 10 s | the browser opens `http://127.0.0.1:8300` with a project (a new empty one on a fresh install) |

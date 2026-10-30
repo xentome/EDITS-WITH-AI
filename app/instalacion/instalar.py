@@ -45,12 +45,12 @@ def problema(es, en, arreglo_es="", arreglo_en=""):
     PROBLEMAS.append((es, en, arreglo_es, arreglo_en))
 
 
-def preguntar(es, en, opciones):
-    """Sí/no. Con --sin-preguntas (o sin terminal) contesta sí."""
+def preguntar(es, en, opciones, si_por_defecto=True):
+    """Sí/no. Con --sin-preguntas (o sin terminal) contesta lo de por defecto."""
     if opciones.sin_preguntas or not sys.stdin.isatty():
-        return True
-    r = input(("  ? " + es if ES else "  ? " + en) + " [S/n] ").strip().lower()
-    return r in ("", "s", "si", "sí", "y", "yes")
+        return si_por_defecto
+    r = input(("  ? " + es if ES else "  ? " + en) + (" [S/n] " if si_por_defecto else " [s/N] ")).strip().lower()
+    return r in ("s", "si", "sí", "y", "yes") or (si_por_defecto and r == "")
 
 
 def gb(n):
@@ -329,14 +329,17 @@ def dependencias(o, carpetas):
 
 
 # ------------------------------------------------------------------ 4. los modelos
-def bajar(url, destino, tam):
-    """Descarga reanudable a destino.part (Range); devuelve True si terminó con el tamaño justo."""
+def bajar(url, destino, tam, avance=None, seguir=lambda: True):
+    """Descarga reanudable a destino.part (Range); devuelve True si terminó con el tamaño justo.
+    avance(hecho, tam, bytes_por_s) sustituye a la línea de avance (la app, modelos.py); si seguir() da False, para."""
     parte = destino + ".part"
     os.makedirs(os.path.dirname(destino), exist_ok=True)
     cabeceras = {"User-Agent": "max-editor-instalador"}
     if os.environ.get("HF_TOKEN"):
         cabeceras["Authorization"] = "Bearer " + os.environ["HF_TOKEN"]
     for intento in range(8):
+        if not seguir():
+            break
         hecho = os.path.getsize(parte) if os.path.exists(parte) else 0
         if hecho >= tam:
             break
@@ -348,15 +351,20 @@ def bajar(url, destino, tam):
                 t0, desde = time.time(), hecho
                 while True:
                     trozo = r.read(8 * 2 ** 20)
-                    if not trozo:
+                    if not trozo or not seguir():
                         break
                     f.write(trozo)
                     hecho += len(trozo)
                     vel = (hecho - desde) / max(time.time() - t0, 0.1)
-                    print(f"\r    {hecho * 100 // tam:3d} %  {gb(hecho)} / {gb(tam)}  {vel / 2 ** 20:.0f} MB/s  ", end="", flush=True)
-            print()
+                    if avance:
+                        avance(hecho, tam, vel)
+                    else:
+                        print(f"\r    {hecho * 100 // tam:3d} %  {gb(hecho)} / {gb(tam)}  {vel / 2 ** 20:.0f} MB/s  ", end="", flush=True)
+            if not avance:
+                print()
         except (urllib.error.URLError, OSError, TimeoutError) as e:
-            print()
+            if not avance:
+                print()
             decir(f"    ! cortado ({e}); reintento en 5 s", f"    ! interrupted ({e}); retrying in 5 s")
             time.sleep(5)
     if os.path.exists(parte) and os.path.getsize(parte) == tam:
@@ -435,8 +443,11 @@ def modelos(o, build, grupos):
         return
     if o.dry_run or o.sin_modelos:
         return
-    if not preguntar(f"¿Bajo {gb(total)} de HuggingFace?", f"Download {gb(total)} from HuggingFace?", o):
-        decir("  · saltado: la app no generará hasta que estén.", "  · skipped: the app won't generate until they are there.")
+    if not (o.bajar_modelos or preguntar(f"¿Bajo ahora {gb(total)} de HuggingFace?", f"Download {gb(total)} from HuggingFace now?", o, False)):
+        decir("  · no bajo nada. Bájalos cuando quieras en la app › 🧩 Modelos (ahí también puedes elegir los tuyos),\n"
+              "    con app/instalar.sh --bajar-modelos, o enlaza los que ya tengas con --modelos DIR.",
+              "  · nothing downloaded. Get them whenever you want in the app › 🧩 Models (you can also pick your own there),\n"
+              "    with app/instalar.sh --bajar-modelos, or link the ones you have with --modelos DIR.")
         return
     for m, destino in faltan:
         decir(f"  … {m['localPath']}", f"  … {m['localPath']}")
@@ -502,7 +513,8 @@ def main():
     p.add_argument("--modelos", action="append", default=[], metavar="DIR", help="carpeta models/ donde ya tienes modelos (se enlazan)")
     p.add_argument("--forzar", action="store_true", help="cambia al commit probado los packs que estén en otro")
     p.add_argument("--verificar", action="store_true", help="comprueba el sha256 completo de los modelos que ya están")
-    p.add_argument("--sin-preguntas", action="store_true", help="contesta sí a todo (para un pod o un script)")
+    p.add_argument("--bajar-modelos", action="store_true", help="baja los modelos que falten sin preguntar")
+    p.add_argument("--sin-preguntas", action="store_true", help="contesta sí a todo menos a bajar modelos (para un pod o un script)")
     p.add_argument("--pip", action="store_true", help="usar pip aunque haya uv")
     o = p.parse_args()
     o.comfyui_dir = os.path.realpath(os.path.expanduser(o.comfyui_dir))

@@ -12,7 +12,8 @@
 #           --solo-modelos / --sin-modelos   solo los modelos / todo menos bajar modelos
 #           --forzar          cambia al commit probado los packs que estén en otro
 #           --verificar       comprueba el sha256 completo de los modelos que ya tienes
-#           --sin-preguntas   contesta sí a todo (para un pod o un script)
+#           --bajar-modelos   baja los modelos que falten sin preguntar (sin esto, pregunta; también se bajan en la app › 🧩 Modelos)
+#           --sin-preguntas   contesta sí a todo menos a bajar modelos (para un pod o un script)
 #           --escritorio      crea un acceso directo «MAX EDITOR» en el menú de aplicaciones (Linux)
 set -euo pipefail
 APP="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -30,7 +31,7 @@ while [ $# -gt 0 ]; do
     --retocar) RETOCAR=1; shift ;;
     --sin-preguntas|-y) SIN_PREGUNTAS=1; PASAR+=("--sin-preguntas"); shift ;;
     --dry-run|--comprobar) SOLO_MIRAR=1; PASAR+=("$1"); shift ;;
-    --solo-modelos|--sin-modelos|--forzar|--verificar|--pip) PASAR+=("$1"); shift ;;
+    --solo-modelos|--sin-modelos|--bajar-modelos|--forzar|--verificar|--pip) PASAR+=("$1"); shift ;;
     -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) decir "Opción desconocida: $1 (mira app/instalar.sh --help)" "Unknown option: $1 (see app/instalar.sh --help)"; exit 2 ;;
   esac

@@ -15,14 +15,14 @@
 Los tres caminos usan el mismo instalador, `app/instalar.sh`, que lee una sola lista de piezas ([instalacion/comfy-build.yaml](instalacion/comfy-build.yaml)):
 - pone **10 packs de nodos** en `ComfyUI/custom_nodes/`, cada uno en el commit probado, sin pisar los que ya tienes;
 - instala sus dependencias en el Python de ComfyUI con **torch, torchvision, torchaudio y numpy congelados**;
-- baja los **modelos de HuggingFace** (se reanuda si se corta) y comprueba su **sha256**;
+- baja los **modelos de HuggingFace** (se reanuda si se corta y comprueba su **sha256**) **solo si dices que sí**. También puedes elegir los que ya tienes, o bajarlos luego con un clic, en la app › **🧩 Modelos**;
 - nunca parchea ComfyUI y se puede repetir: lo que ya está se salta.
 
 **1. Una orden (Linux)**
 ```
 git clone https://github.com/xentome/EDITS-WITH-AI.git && cd EDITS-WITH-AI && app/instalar.sh --comfyui ~/ComfyUI --retocar
 ```
-Luego arranca (o reinicia) ComfyUI y ejecuta `app/arrancar.sh`. Opciones: `--modelos DIR` (enlaza modelos que ya tienes), `--dry-run` (enseña lo que haría), `--comprobar` (el doctor), `--sin-preguntas` (para un pod), `--forzar`, `--verificar`, `--escritorio`. La tabla completa está en el [README](../README.md#install).
+Luego arranca (o reinicia) ComfyUI y ejecuta `app/arrancar.sh`. Opciones: `--modelos DIR` (enlaza modelos que ya tienes), `--dry-run` (enseña lo que haría), `--comprobar` (el doctor), `--bajar-modelos` (los baja sin preguntar), `--sin-preguntas` (para un pod: sí a todo menos a bajar modelos), `--forzar`, `--verificar`, `--escritorio`. La tabla completa está en el [README](../README.md#install).
 
 **2. Pocos clics:** baja el repo y haz doble clic en **`Instalar MAX EDITOR.desktop`**. Se abre una terminal, lo instala todo y añade **MAX EDITOR** al menú de aplicaciones.
 

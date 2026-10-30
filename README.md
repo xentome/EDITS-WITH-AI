@@ -34,7 +34,7 @@
 Pick one of three ways. All three run the same installer, `app/instalar.sh`, which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
 - it puts **10 node packs** in `ComfyUI/custom_nodes/`, each at the exact commit we tested, and never overwrites a pack you already have;
 - it installs their Python dependencies into ComfyUI's Python with **torch, torchvision, torchaudio and numpy frozen**;
-- it downloads the **models from HuggingFace** (resumable) and checks each **sha256**;
+- it downloads the **models from HuggingFace** (resumable, each **sha256** checked) **only if you say yes**. You can also pick models you already have, or download them later with one click, in the app › **🧩 Models**;
 - it never patches ComfyUI itself, and it can be run again: what is already there is skipped.
 
 ### 1. One command (Linux)
@@ -52,10 +52,11 @@ Then start (or restart) ComfyUI and run `app/arrancar.sh`: the app opens at `htt
 | `--modelos DIR` | a `models/` folder where you already have the models: they are linked, not downloaded (repeatable) |
 | `--dry-run` | shows what it would do, changes nothing |
 | `--comprobar` | the doctor: says what is missing and how to fix it (same as `app/arrancar.sh --comprobar`) |
+| `--bajar-modelos` | downloads the missing models without asking (by default it asks first) |
 | `--sin-modelos` / `--solo-modelos` | everything but the model downloads / only the models |
 | `--forzar` | moves packs you already have to the tested commit (only if they have no local changes) |
 | `--verificar` | full sha256 check of the models you already have |
-| `--sin-preguntas` | answers yes to everything (pods, scripts) |
+| `--sin-preguntas` | answers yes to everything except downloading models (pods, scripts) |
 | `--escritorio` | adds «MAX EDITOR» to your applications menu |
 
 ### 2. A few clicks
@@ -75,7 +76,8 @@ Install MAX EDITOR (https://github.com/xentome/EDITS-WITH-AI) on this Linux PC a
 2. Clone the repo and run: app/instalar.sh --comfyui <my ComfyUI> --retocar --dry-run
    Show me what it would change (packs, pip packages, GB to download) and ask before continuing.
 3. If I already have H3 models in another ComfyUI, add --modelos <that ComfyUI>/models so they are linked.
-4. Run the same command without --dry-run. Do not patch ComfyUI, do not change torch or numpy, do not delete files.
+4. Run the same command without --dry-run. It does not download the models unless I say yes: ask me, and only then add
+   --bajar-modelos. Do not patch ComfyUI, do not change torch or numpy, do not delete files.
 5. Ask me to restart ComfyUI (or do it if it is yours to restart), then run app/arrancar.sh --comprobar --retocar
    and fix what it reports until it says "All good".
 6. Start the app with app/arrancar.sh and connect yourself to its MCP:
