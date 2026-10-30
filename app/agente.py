@@ -697,6 +697,9 @@ def describir(p: Proyecto, con_prompt: bool = False) -> str:
         lin.append(f"- Resolution (Resolución): {tam[0]}×{tam[1]} = {megapixeles(*tam)} MP · "
                    f"{'vertical' if tam[1] > tam[0] else 'horizontal' if tam[0] > tam[1] else 'square'}")
     lin.append(f"- Video seed (Semilla, next to «Generar»): {p.semilla()}")
+    loras = [x for x in e.get("loras") or [] if x.get("nombre")]
+    lin.append("- LoRAs (amber panel above «Prompt final»; the creative picks them, used by Generar, Retocar and Extender): "
+               + (", ".join(f"{x['nombre']} × {x.get('fuerza', 1)}" for x in loras) or "none"))
     lin.append("")
     lin.append("## Step 1 · References (Referencias) — Principal = every shot · Secundarias = only the shots that cite them")
     refs = p.referencias()

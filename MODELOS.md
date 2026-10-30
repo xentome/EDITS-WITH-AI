@@ -16,4 +16,6 @@
 
 Total: **68 GB para el edit**, +1,7 GB para Retocar y +10,7 GB si usas el LLM local.
 
+**LoRAs:** la app no baja ninguno. Los tuyos van en `ComfyUI/models/loras/` (o se suben con «Subir LoRA» en la app) y cada uno tiene su propia licencia: léela en su ficha.
+
 **MiniMax H3:** el uso comercial necesita una licencia aparte de MiniMax y hay regiones excluidas. Lee su licencia antes de usarlo.

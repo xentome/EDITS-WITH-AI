@@ -54,6 +54,15 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 Todo se guarda solo en `app/proyectos/<nombre>.json`. Los videos quedan en `app/salidas/`.
 
+## LoRAs
+
+El panel amarillo **«LoRAs»**, justo encima de «Prompt final», pone LoRAs al proyecto:
+- **«Añadir LoRA»** pone una fila: eliges el LoRA (de `ComfyUI/models/loras`, primero los de H3; los demás van aparte porque pueden no servir con H3) y su **fuerza** con la barra (−1 a 2; 1 = normal, 0 = apagado). ✕ lo quita. Hasta 8.
+- **«Subir LoRA»** copia un `.safetensors` de tu PC a `ComfyUI/models/loras` (en RunPod, al pod) y lo añade. Nunca pisa un archivo con el mismo nombre.
+- Se guardan con el proyecto y los usan **Generar, Retocar y Extender**: la app pone un `LoraLoaderModelOnly` por LoRA justo después del cargador del modelo H3 (`UNETLoader`), el mismo sitio que en un workflow de H3 hecho a mano.
+- La app no instala ningún LoRA: funciona sin ellos. Un agente los ve en `ver_proyecto`; solo tú los eliges.
+- Por dentro: `web/editor/loras.js` y `poner_loras` en `app/generar.py`; rutas `GET /app/loras` y `POST /app/loras_subir`.
+
 ## Retocar (Retouch)
 
 Abajo del todo de la ventana, después de «Prompt final», está **«Retocar el video»**: una segunda línea de tiempo solo para retocar un tramo con H3 (inpainting).
