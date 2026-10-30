@@ -2,6 +2,8 @@
 
 **AI music edits with MiniMax H3, on your own PC.** · Versión en español: [app/LEEME.md](app/LEEME.md)
 
+<p align="center"><img src="docs/capturas/0-edits.gif" width="360" alt="Shots generated with MAX EDITOR and MiniMax H3"></p>
+
 - MAX EDITOR makes vertical music edits with **MiniMax H3**, fully local, with no paid services.
 - You write an idea and pick your references and the part of the song. A **local LLM** writes the story and the shots, and code places the timing on the beats.
 - You press **Generate**: the app sends the workflow to your ComfyUI through the **official Comfy SDK** and shows you the video.
@@ -12,6 +14,12 @@
 <details><summary>Step 2: Touch up (redo a zone of a video, enhance it or extend it)</summary>
 
 ![MAX EDITOR, step 2: Touch up](docs/capturas/2-touch-up.png)
+
+</details>
+
+<details><summary>Step 3: Editing (cut clips from the library together on several tracks and export)</summary>
+
+![MAX EDITOR, step 3: Editing, with the library, the viewer and a timeline with two video tracks and one audio track](docs/capturas/3-editing.png)
 
 </details>
 
