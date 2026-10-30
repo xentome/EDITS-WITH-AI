@@ -346,6 +346,21 @@ body .max-pop{z-index:10006}
 .max-ed-info{padding:6px 10px;border-top:1px solid var(--max-borde);font:500 12px ui-monospace,monospace;color:var(--max-suave)}
 .max-ed-pie{display:flex;align-items:center;gap:12px;padding:6px 2px}
 .max-ed-cab .max-ag-sello[hidden]{display:none}
+/* (29 oct) Retocar › Tapar: la guía «¿Cómo detallar la cara?» */
+.max-rt-guia-fila{justify-content:flex-end}
+.max-rt-guia-boton{display:inline-flex;align-items:center;gap:6px;border-color:#22E4FF !important;color:#22E4FF !important;background:rgba(34,228,255,.08) !important}
+.max-rt-guia{position:fixed;inset:0;z-index:10006;background:rgba(8,6,12,.7);display:flex;align-items:center;justify-content:center;padding:16px}
+.max-rt-guia-caja{width:min(720px,96vw);max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:20px 22px;background:#13161c;border:1px solid #22E4FF;border-radius:10px}
+.max-rt-guia-caja .max-cerrar{width:44px;height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.max-rt-guia-titulo{font-size:26px;font-weight:900;text-transform:uppercase}
+.max-rt-guia-paso{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start}
+.max-rt-guia-n{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#22E4FF;color:#17121C;font-weight:900;font-size:17px}
+.max-rt-guia-paso b{display:block;font-size:17px;text-transform:uppercase;letter-spacing:.03em}
+.max-rt-guia-ejemplo{margin-top:6px;padding:8px 10px;border-radius:6px;border:1px solid var(--max-borde);background:#0f1216;font:500 13px ui-monospace,monospace}
+.max-rt-guia-sino{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.max-rt-guia-sino div{padding:7px 9px;border-radius:6px;font:500 13px ui-monospace,monospace}
+.max-rt-guia-sino .si{border:1px solid #3FC46E;background:rgba(63,196,110,.08)}.max-rt-guia-sino .no{border:1px solid #FF6B6B;background:rgba(255,107,107,.08)}
+.max-rt-guia-pie{gap:10px;padding-top:4px}
 /* (29 oct) la ventana de exportar */
 .max-exp{position:fixed;inset:0;z-index:10006;background:rgba(8,6,12,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .max-exp-caja{width:min(760px,96vw);max-height:92vh;overflow:auto;display:flex;flex-direction:column;gap:16px;padding:18px 22px;background:#13161c;border:1px solid var(--max-borde);border-radius:10px}

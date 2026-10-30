@@ -490,6 +490,49 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   }
 
   // ---- referencias: del Stack del proyecto (su foto original) o subidas
+  /* ---- la guía «¿Cómo detallar la cara?» (29 oct, Jonathan eligió la variante P1): los pasos verificados (app/guia/4_prompts.md)
+   * y «Aplicar»: «face», calidad Alta, el personaje como <Picture N> y la plantilla. Los textos salen en el idioma de la app;
+   * la plantilla siempre en inglés (es lo que lee H3). */
+  const PASOS_GUIA = [["app.retocar.guia.p1", "app.retocar.guia.p1.texto"], ["app.retocar.guia.p2", "app.retocar.guia.p2.texto"],
+    ["app.retocar.guia.p3", "app.retocar.guia.p3.texto"], ["app.retocar.guia.p4", "app.retocar.guia.p4.texto"],
+    ["app.retocar.guia.p5", "app.retocar.guia.p5.texto"], ["app.retocar.guia.p6", "app.retocar.guia.p6.texto"],
+    ["app.retocar.guia.p7", "app.retocar.guia.p7.texto"], ["app.retocar.guia.p8", "app.retocar.guia.p8.texto"]];
+  const SI_NO_GUIA = [["si", "app.retocar.guia.si1"], ["no", "app.retocar.guia.no1"], ["si", "app.retocar.guia.si2"], ["no", "app.retocar.guia.no2"]];
+  const capaGuia = el("div", { class: "max-rt-guia", onclick: (e) => { if (e.target === capaGuia) cerrarGuia(); } });
+  const cerrarGuia = () => capaGuia.remove();
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && capaGuia.isConnected) { e.stopPropagation(); cerrarGuia(); } }, true);
+  function personajeDelProyecto() {
+    const refs = A.ctx?.S?.refs || {}, todas = delProyecto();
+    const items = A.ctx?.wf?.items || [];
+    const clave = items.find((r) => refs[r.clave]?.papel === "personaje" && (r.ref || r.file));
+    return (clave && todas.find((x) => x.refmod === clave.ref || x.imagen === clave.file)) || todas[0] || null;
+  }
+  function aplicarGuia() {
+    R.modo = "texto";
+    R.texto = "face";
+    R.mp = RESOLUCIONES.find(([k]) => k === "alta")[1];
+    const p = personajeDelProyecto();
+    if (p && !R.refs.some((r) => (r.refmod && r.refmod === p.refmod) || (r.imagen && r.imagen === p.imagen)) && R.refs.length < MAX_REFS) R.refs.unshift(p);
+    const n = p ? R.refs.findIndex((r) => (r.refmod && r.refmod === p.refmod) || (r.imagen && r.imagen === p.imagen)) + 1 : 1;
+    R.prompt = t("app.retocar.guia.plantilla", { n });
+    guardar();
+    cerrarGuia();
+    pintar();
+  }
+  function abrirGuia() {
+    const paso = ([titulo, texto], j) => el("div", { class: "max-rt-guia-paso" }, el("span", { class: "max-rt-guia-n" }, String(j + 1)),
+      el("div", {}, el("b", {}, t(titulo)), el("div", { class: "epl-ayuda" }, t(texto)),
+        j === 5 ? el("div", { class: "max-rt-guia-ejemplo" }, t("app.retocar.guia.plantilla", { n: 1 })) : null,
+        j === 6 ? el("div", { class: "max-rt-guia-sino" }, ...SI_NO_GUIA.map(([clase, k]) => el("div", { class: clase }, t(k)))) : null));
+    capaGuia.replaceChildren(el("div", { class: "max-rt-guia-caja", role: "dialog", "aria-modal": "true" },
+      el("div", { class: "max-rt-fila" }, el("b", { class: "max-rt-guia-titulo" }, t("app.retocar.guia.titulo")), el("span", { class: "max-derecha" }),
+        el("button", { class: "max-boton max-cerrar", title: t("comun.cerrar"), "aria-label": t("comun.cerrar"), onclick: cerrarGuia }, icono("x"))),
+      ...PASOS_GUIA.map(paso),
+      el("div", { class: "max-rt-fila max-rt-guia-pie" }, el("span", { class: "max-derecha" }),
+        el("button", { class: "max-boton", onclick: cerrarGuia }, t("app.retocar.guia.entendido")),
+        el("button", { class: "max-generar", title: t("app.retocar.guia.aplicar.tooltip"), onclick: aplicarGuia }, t("app.retocar.guia.aplicar")))));
+    document.body.append(capaGuia);
+  }
   function delProyecto() {
     const items = A.ctx?.wf?.items || [];
     return items.filter((r) => (r.ref && (r.kind || "image") === "image") || (r.medio && r.kind === "image"))
@@ -765,6 +808,9 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       } }, el("img", { src: r.vista || "", alt: r.nombre || "" }), el("small", {}, r.nombre || "")))
         : el("span", { class: "epl-ayuda" }, t("app.retocar.refs.sin_stack"))) : null;
     lado.replaceChildren(subBar,
+      // (29 oct, variante P1 de prototipo_ayuda_retoque.html) la guía de cómo detallar la cara, en el idioma de la app
+      el("div", { class: "max-rt-fila max-rt-guia-fila" }, el("button", { class: "max-boton max-rt-guia-boton", title: t("app.retocar.guia.boton.tooltip"),
+        onclick: () => abrirGuia() }, icono("chispa"), " " + t("app.retocar.guia.boton"))),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.mascara"),
           info(R.modo === "texto" ? "app.retocar.mascara.texto.ayuda" : R.rect ? "app.retocar.mascara.rect.ayuda_hecho" : "app.retocar.mascara.rect.ayuda")),
         el("div", { class: "max-rt-fila" }, modoBoton("texto", "app.retocar.mascara.texto"), modoBoton("rectangulo", "app.retocar.mascara.rect")),

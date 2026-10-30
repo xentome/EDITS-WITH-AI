@@ -697,4 +697,9 @@ body.tema-casete .max-exp-grupo>b{font:700 13px var(--k-rotulo);letter-spacing:.
 body.tema-casete .max-exp-marca{font-family:var(--k-texto-f);color:var(--k-texto)}
 body.tema-casete .max-exp-nombre{background:var(--k-tinta) !important;color:var(--k-texto) !important;border:1px solid var(--k-linea2) !important;border-radius:6px}
 body.tema-casete .max-exp-pie{border-color:var(--k-linea)}
+body.tema-casete .max-rt-guia-caja{background:var(--k-tinta2);border-color:var(--k-cian);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+body.tema-casete .max-rt-guia-titulo{font:900 28px/1 var(--k-titulo);letter-spacing:.04em}
+body.tema-casete .max-rt-guia-paso b{font:800 18px/1.2 var(--k-titulo);letter-spacing:.04em}
+body.tema-casete .max-rt-guia-n{font-family:var(--k-titulo)}
+body.tema-casete .max-rt-guia-ejemplo,body.tema-casete .max-rt-guia-sino div{font-family:var(--k-mono)}
 
