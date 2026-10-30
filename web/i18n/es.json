@@ -186,7 +186,7 @@
  "app.edicion.iman.tooltip": "Pegar a los bordes de otros clips y al cabezal (N)",
  "app.edicion.info": "Arrastra un video de la biblioteca a una pista · tira de la orilla de un clip para acortarlo o devolverlo a su largo · espacio: reproducir",
  "app.edicion.inicio.tooltip": "Al principio (Inicio)",
- "app.edicion.lienzo": "{w} × {h} (el tamaño del primer video)",
+ "app.edicion.lienzo": "{w} × {h} (el tamaño del video más grande)",
  "app.edicion.linea": "Línea de tiempo",
  "app.edicion.mover": "Mover y recortar",
  "app.edicion.mover.tooltip": "Arrastra un clip para moverlo (también a otra pista); tira de una orilla para acortarlo o devolverlo hasta su largo original (A)",

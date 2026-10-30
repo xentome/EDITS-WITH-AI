@@ -163,8 +163,8 @@ def plan(edicion: dict) -> dict:
             fin = min(fin, f["dur"] or fin)
             if fin - ini < 1 / FPS:
                 continue                              # un clip de menos de un fotograma no se ve
-            if tipo == "video" and not lienzo:
-                lienzo = (f["info"]["ancho"], f["info"]["alto"])
+            if tipo == "video" and (not lienzo or f["info"]["ancho"] * f["info"]["alto"] > lienzo[0] * lienzo[1]):
+                lienzo = (f["info"]["ancho"], f["info"]["alto"])        # el del video más grande (como la página)
             clips.append({"tipo": tipo, "orden": orden, "ver": p.get("ver", True) is not False, "oir": p.get("oir", True) is not False,
                           "ruta": f["ruta"], "audio": f["audio"], "ini": ini, "fin": fin, "en": en, "fuente": fuente})
     # (29 oct) inicio y final de lo que se exporta (I y O en la página): cada clip se recorta a [desde, hasta) y todo se corre

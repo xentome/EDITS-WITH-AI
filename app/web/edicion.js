@@ -58,7 +58,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
         clips: p.clips.map((c) => ({ fuente: c.fuente, nombre: c.nombre, tipo: c.tipo, dur: c.dur, ini: c.ini, fin: c.fin, en: c.en })) }));
       enCamino++;
       try {
-        const r = await pedir("/app/edicion/" + encodeURIComponent(nombre), { pistas, zoom: E.zoom, lienzo: E.lienzo || null, rango: E.rango, autor: "pagina" });
+        const r = await pedir("/app/edicion/" + encodeURIComponent(nombre), { pistas, zoom: E.zoom, lienzo: lienzoActual(), rango: E.rango, autor: "pagina" });
         if (nombre === E.nombre) E.rev = Math.max(E.rev, r.rev || 0);
       } catch { /* sin servidor: se guarda en el siguiente cambio */ } finally { enCamino--; }
     }, 700);
@@ -77,7 +77,6 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
       E.rev = rev;
       if (d.autor !== "agente" || !Array.isArray(d.pistas)) return;
       E.pistas = d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
-      E.lienzo = d.lienzo || E.lienzo;
       E.rango = { desde: d.rango?.desde ?? null, hasta: d.rango?.hasta ?? null };
       if (+d.zoom) E.zoom = +d.zoom;
       E.elegidos.clear();
@@ -96,7 +95,6 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
     try { d = await pedir("/app/edicion/" + encodeURIComponent(nombre)); } catch { /* sin guardar: vacía */ }
     E.pistas = Array.isArray(d.pistas) && d.pistas.length ? d.pistas.map((p) => ({ ...p, clips: (p.clips || []).map((c) => ({ ...c, id: idClip++ })) })) : pistasNuevas();
     E.zoom = +d.zoom || 90;
-    E.lienzo = d.lienzo || null;
     E.rango = { desde: d.rango?.desde ?? null, hasta: d.rango?.hasta ?? null };
     E.rev = +d.rev || 0;
     E.delAgente = d.autor === "agente";
@@ -188,12 +186,33 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
     await medir(f);
     const p = pista && pista.tipo === f.tipo ? pista : E.pistas.find((x) => x.tipo === f.tipo && (f.tipo === "audio" || x.id === "V1")) || E.pistas.find((x) => x.tipo === f.tipo);
     if (!p) return;
-    if (f.tipo === "video" && !E.lienzo && f.ancho) E.lienzo = { ancho: f.ancho, alto: f.alto };   // el primer video manda el tamaño
     const c = { id: idClip++, fuente: f.fuente, nombre: f.nombre, tipo: f.tipo, dur: f.dur, ini: 0, fin: f.dur, en: aFot(Math.max(0, en)) };
     sobrescribir(p, c.en, finDe(c), null);
     p.clips.push(c);
     E.elegidos = new Set([c.id]);
     cambio();
+  }
+  /* el lienzo (tamaño del video exportado): el del video MÁS GRANDE que hay ahora en la línea de tiempo (29 oct). Antes lo
+   * fijaba el primer clip que se puso y no cambiaba nunca: una edición se quedaba en 960×544 aunque sus clips fueran de
+   * 1376×800. Los tamaños se miden una vez por video (/app/video_info) y se vuelve a pintar. */
+  const midiendo = new Set();
+  function lienzoActual() {
+    let mejor = null;
+    for (const p of E.pistas) for (const c of p.clips) {
+      if (c.tipo !== "video") continue;
+      const f = E.fuentes.find((x) => x.fuente === c.fuente) || c;
+      if (!f.ancho) {
+        if (!midiendo.has(c.fuente)) {
+          midiendo.add(c.fuente);
+          const tam = f === c ? pedir("/app/video_info?video=" + encodeURIComponent(c.fuente)).then((i) => Object.assign(c, { ancho: i.ancho, alto: i.alto }))
+                              : medir(f);
+          tam.then(() => pintar()).catch(() => {});
+        }
+        continue;
+      }
+      if (!mejor || f.ancho * f.alto > mejor.ancho * mejor.alto) mejor = { ancho: f.ancho, alto: f.alto };
+    }
+    return mejor;
   }
   function cambio() { E.delAgente = false; guardar(); pintar(); }
 
@@ -408,7 +427,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
     const r = hayRango() ? rangoExport() : null;
     pie.replaceChildren(...[el("b", {}, t("app.edicion.resumen", { n, dur: tc(duracion()) })),
       r ? el("span", { class: "max-ed-rango-txt" }, t("app.edicion.rango", { a: tc(r.desde), b: tc(r.hasta), s: num(r.hasta - r.desde, 2) })) : null,
-      E.lienzo ? el("span", { class: "epl-ayuda" }, t("app.edicion.lienzo", { w: E.lienzo.ancho, h: E.lienzo.alto })) : null,
+      lienzoActual() ? el("span", { class: "epl-ayuda" }, t("app.edicion.lienzo", { w: lienzoActual().ancho, h: lienzoActual().alto })) : null,
       el("span", { class: "max-derecha" }),
       el("button", { class: "max-generar max-ed-exportar", disabled: !n || E.exportando, title: t("app.edicion.exportar.tooltip"), onclick: () => abrirExportar() },
         icono("subir"), " " + t(E.exportando ? "app.edicion.exportando" : r ? "app.edicion.exportar_rango" : "app.edicion.exportar"))].filter(Boolean));   // replaceChildren escribiría «null»
@@ -418,7 +437,8 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
     botonNombre.replaceChildren(icono("tijeras"), el("span", {}, E.nombre || "…"), icono("abajo"));
     pintarHerramientas(); pintarLT(); pintarCabezal(); pintarTransporte(); pintarPie();
     durEl.textContent = "/ " + tc(duracion());
-    lienzo.style.aspectRatio = E.lienzo ? `${E.lienzo.ancho} / ${E.lienzo.alto}` : "16 / 9";
+    const lz = lienzoActual();
+    lienzo.style.aspectRatio = lz ? `${lz.ancho} / ${lz.alto}` : "16 / 9";
     info.textContent = E.aviso || t("app.edicion.info");
     selloAgente.hidden = !E.delAgente;
     precalentar();
@@ -565,7 +585,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
   function cerrarExportar() { capaExp.remove(); }
   const extDe = (f) => EXT_FORMATO[f];
   function tamanoSalida(res) {
-    const w = E.lienzo?.ancho || 1080, h = E.lienzo?.alto || 1920, corto = RES_CORTO[res];
+    const lz = lienzoActual(), w = lz?.ancho || 1080, h = lz?.alto || 1920, corto = RES_CORTO[res];
     if (!corto) return [w, h];
     const f = corto / Math.min(w, h);
     return [Math.round(w * f / 2) * 2, Math.round(h * f / 2) * 2];
@@ -625,7 +645,7 @@ export function crear({ el, icono, t, num, pedir, A, avisar, alTerminar, verEdic
       clearTimeout(temporizador);
       const pistas = E.pistas.map((p) => ({ id: p.id, tipo: p.tipo, ver: p.ver, oir: p.oir, clips: p.clips.map((c) => ({ fuente: c.fuente, ini: c.ini, fin: c.fin, en: c.en })) }));
       const r = await pedir("/app/edicion_exportar", { proyecto: A.proyecto, nombre: E.nombre,
-        edicion: { pistas, lienzo: E.lienzo, rango: hayRango() ? rangoExport() : null },
+        edicion: { pistas, lienzo: lienzoActual(), rango: hayRango() ? rangoExport() : null },
         opciones: { formato: opc.formato, resolucion: opc.resolucion, calidad: opc.calidad, audio: opc.audio, biblioteca: opc.biblioteca, archivo: nombreArchivo } });
       if (opc.pc) {
         const url = "/app/edicion_descargar/" + encodeURIComponent(r.archivo);

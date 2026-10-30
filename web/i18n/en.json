@@ -186,7 +186,7 @@
  "app.edicion.iman.tooltip": "Snap to other clips' edges and the playhead (N)",
  "app.edicion.info": "Drag a video from the library to a track · pull a clip's edge to shorten it or bring it back to full length · space: play",
  "app.edicion.inicio.tooltip": "To the start (Home)",
- "app.edicion.lienzo": "{w} × {h} (the size of the first video)",
+ "app.edicion.lienzo": "{w} × {h} (the size of the largest video)",
  "app.edicion.linea": "Timeline",
  "app.edicion.mover": "Move and trim",
  "app.edicion.mover.tooltip": "Drag a clip to move it (also to another track); pull an edge to shorten it or stretch it back to its original length (A)",
