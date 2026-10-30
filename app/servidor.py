@@ -16,6 +16,7 @@ import itertools
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -999,7 +1000,28 @@ async def modelos_accion(peticion):
 
 
 # ------------------------------------------------------------------ la app
+def poner_ejemplo():
+    """(30 oct) El kit del ejemplo (app/ejemplo/, en git) a su sitio en ComfyUI, para que ejemplo.json funcione en cualquier
+    PC o pod: refmods/* → models/refmods/ejemplo/ e input/* → input/ (LoadAudio no lee subcarpetas). Solo copia lo que falta
+    o tiene otro tamaño; nunca borra nada."""
+    origen, comfy = os.path.join(APP, "ejemplo"), CONFIG["comfyui_dir"]
+    for sub, destino in (("refmods", os.path.join(comfy, "models", "refmods", "ejemplo")), ("input", os.path.join(comfy, "input"))):
+        carpeta = os.path.join(origen, sub)
+        if not os.path.isdir(carpeta) or not os.path.isdir(comfy):
+            continue
+        for nombre in os.listdir(carpeta):
+            src, dst = os.path.join(carpeta, nombre), os.path.join(destino, nombre)
+            try:
+                if os.path.isfile(src) and (not os.path.isfile(dst) or os.path.getsize(dst) != os.path.getsize(src)):
+                    os.makedirs(destino, exist_ok=True)
+                    shutil.copyfile(src, dst + ".part")
+                    os.replace(dst + ".part", dst)
+            except OSError as e:
+                print(f"[MAX EDITOR] no se pudo copiar el ejemplo {nombre}: {e}", file=sys.stderr)
+
+
 async def al_empezar(app):
+    poner_ejemplo()
     app["http"] = ClientSession(timeout=ClientTimeout(total=None, sock_connect=5))
     asyncio.create_task(TRABAJADOR.arrancar())               # que librosa esté cargado antes del primer «montar»
     # la cola de trabajos: su hilo procesa lo pendiente aunque nadie tenga la página abierta

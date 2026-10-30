@@ -1,4 +1,5 @@
 proyectos/*
+!proyectos/ejemplo.json
 salidas/
 config.local.json
 modelos.local.json
