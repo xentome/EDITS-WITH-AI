@@ -382,8 +382,45 @@ def preparar(datos: dict) -> tuple[dict, dict]:
     # tramo: lo elegido (lo que se sustituye; inicio y fin, para la lista de Videos) y lo generado (g0, gn)
     vi_tramo = {"f0": s0, "n": sn, "g0": f0, "gn": n, "inicio": round(s0 / fps, 3), "fin": round((s0 + sn) / fps, 3)}
     generar.poner_loras(g, datos.get("loras"))      # los LoRAs del proyecto (30 oct), detrás del UNETLoader de H3
+    modo = "cara" if datos.get("modo") == "cara" else "zona"
+    extra = _modo_cara(g, datos) if modo == "cara" else {}
     return g, {"video": datos["video"], "info": vi, "tramo": vi_tramo, "tramo_archivo": tramo, "mascara": mascara,
-               "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
+               "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "modo": modo, **extra,
+               "megapixeles": CARA_MEGAPIXELES if modo == "cara" else megapixeles(datos)}
+
+
+# ---------------------------------------------------------------- modo «Detallar cara» (31 oct)
+# El método de ComfyUI-H3-FaceRefine (Carasibana, MIT) con los nodos de la plantilla: la cara (máscara) se recorta con un
+# margen ×2,5, cuadrada, a un lienzo de 768 × 768; H3 la rehace VIDEO A VIDEO (los fotogramas reales codificados en el
+# latente, sin máscara de latente) con denoise parcial, así la expresión y la mirada vienen del video; el color del
+# resultado se iguala al del recorte original (ColorMatch) y se pega de vuelta solo la cara con borde suave.
+CARA_ESCALA, CARA_MEGAPIXELES, CARA_DENOISE, CARA_FEATHER = 2.5, 0.5625, 0.30, 24     # 0,5625 MP = 768 × 768; denoise 0,30 elegido por Jonathan (31 oct, con VDN 8 pasos)
+DENOISE_MIN, DENOISE_MAX = 0.10, 0.80
+N_SCHEDULER, N_LATENTE, N_DECODE, N_PEGADO, N_COLOR = "31", "26", "34", "35", "36"
+
+
+def denoise_cara(datos: dict) -> float:
+    v = datos.get("denoise")
+    try:
+        d = float(v) if v not in (None, "") else CARA_DENOISE
+    except (TypeError, ValueError):
+        raise ErrorGenerar("el denoise no es válido")
+    return round(min(DENOISE_MAX, max(DENOISE_MIN, d)), 3)
+
+
+def _modo_cara(g: dict, datos: dict) -> dict:
+    """Cambia el grafo del retoque al modo «Detallar cara». Devuelve lo que se guarda en el historial."""
+    d = denoise_cara(datos)
+    g[N_RECORTE]["inputs"].update({"mode.crop_scale": CARA_ESCALA, "mode.aspect_ratio": 1.0,
+                                   "upscale_megapixels": -CARA_MEGAPIXELES})
+    g[N_LATENTE]["inputs"].pop("latent_mask", None)          # video a video: se rehace todo el recorte, desde el video
+    g[N_SCHEDULER]["inputs"]["denoise"] = d
+    g[N_COLOR] = {"class_type": "ColorMatch", "_meta": {"title": "color igualado al recorte original"},
+                  "inputs": {"image_ref": [N_RECORTE, 0], "image_target": [N_DECODE, 0], "method": "mkl", "strength": 1.0,
+                             "multithread": True}}
+    g[N_PEGADO]["inputs"].update(cropped_images=[N_COLOR, 0], feather=CARA_FEATHER)
+    g[N_OPS_FINAL]["inputs"].update(expand=8, feather=CARA_FEATHER)      # solo la cara, con borde suave
+    return {"denoise": d}
 
 
 def recuperar(datos: dict, rutas: list[str], sello: str) -> tuple[str, dict]:
@@ -540,7 +577,8 @@ def _despues(tid: str, grafo: dict, job, opciones: dict):
     generar._poner(tid, tramo_video=archivo_tramo)
     return archivo, {"tipo": "retoque", "semilla": semilla, "proyecto": meta.get("proyecto"), "de": meta["video"],
                      "tramo": tr, "tramo_video": archivo_tramo, "mascara": meta["mascara"],
-                     "referencias": meta["referencias"], "prompt": grafo[N_PROMPT]["inputs"]["prompt"]}
+                     "referencias": meta["referencias"], "prompt": grafo[N_PROMPT]["inputs"]["prompt"],
+                     "modo": meta.get("modo", "zona"), **({"denoise": meta["denoise"]} if meta.get("denoise") is not None else {})}
 
 
 if __name__ == "__main__":
