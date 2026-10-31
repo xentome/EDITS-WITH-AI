@@ -31,14 +31,14 @@ const LADO_MAX = 8192, MAX_PIXELES = 1.4e9, MP_POR_S = 30;
 const tamanoSR = (w, h, e) => [Math.max(8, Math.round(w * e / 8) * 8), Math.max(8, Math.round(h * e / 8) * 8)];
 
 export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTerminar }) {
-  const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "", mp: MP_NORMAL,
+  const R = { video: "", info: null, f0: 0, n: 39, modo: "rectangulo", texto: "face", rect: null, refs: [], prompt: "", mp: MP_NORMAL, cara: false,
               semilla: Math.floor(Math.random() * 2 ** 32), trabajo: null, avance: null, error: "", elegir: false,
               sub: "tapar", sr: { on: true, escala: 2, calidad: "ULTRA" }, hdr: { on: false, nits: 650 } };
   try { if (localStorage.getItem(GUARDA_SUB) === "mejorar") R.sub = "mejorar"; } catch { /* sin almacenamiento */ }
   const clave = () => "max-editor-retocar:" + (A.proyecto || "");
   const guardar = () => {
-    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr } = R;
-    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr })); } catch { /* sin almacenamiento */ }
+    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr, cara } = R;
+    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr, cara })); } catch { /* sin almacenamiento */ }
   };
   const leerGuardado = () => { try { return JSON.parse(localStorage.getItem(clave()) || "null"); } catch { return null; } };
 
@@ -115,7 +115,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     Object.assign(R, { video: "", info: null, rect: null, refs: [], prompt: "", trabajo: null, avance: null, error: "", elegir: false,
                        vista: "normal", mascara: null, calculando: null },
                   g ? { f0: g.f0 ?? 0, n: g.n ?? 39, modo: g.modo || "rectangulo", texto: g.texto ?? "face", rect: g.rect || null,
-                        refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla, mp: g.mp || MP_NORMAL,
+                        refs: g.refs || [], prompt: g.prompt || "", semilla: g.semilla ?? R.semilla, mp: g.mp || MP_NORMAL, cara: !!g.cara,
                         sr: { ...R.sr, ...(g.sr || {}) }, hdr: { ...R.hdr, ...(g.hdr || {}) } } : {});
     video.removeAttribute("src");
     video.load();
@@ -519,6 +519,23 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     cerrarGuia();
     pintar();
   }
+  /* ---- modo «Detallar cara» (31 oct, método H3-FaceRefine elegido por Jonathan): video a video con denoise 0,30, recorte ×2,5
+   * a un lienzo de 768, color igualado y borde suave (retocar.py). Conserva la expresión y la mirada del video. Al activarlo:
+   * máscara «face» si no hay otra por texto, el personaje del proyecto como <Picture N> y la plantilla corta, si el prompt está
+   * vacío o es una de las plantillas. */
+  function ponerCara(si) {
+    R.cara = si;
+    if (si) {
+      if (R.modo !== "texto" || !R.texto.trim()) { R.modo = "texto"; R.texto = "face"; }
+      const p = personajeDelProyecto();
+      if (p && !R.refs.some((r) => (r.refmod && r.refmod === p.refmod) || (r.imagen && r.imagen === p.imagen)) && R.refs.length < MAX_REFS) R.refs.unshift(p);
+      const n = p ? R.refs.findIndex((r) => (r.refmod && r.refmod === p.refmod) || (r.imagen && r.imagen === p.imagen)) + 1 : 1;
+      const plantillas = [1, 2, 3, 4].flatMap((k) => [t("app.retocar.cara.plantilla", { n: k }), t("app.retocar.guia.plantilla", { n: k })]);
+      if (!R.prompt.trim() || plantillas.includes(R.prompt.trim())) R.prompt = t("app.retocar.cara.plantilla", { n });
+    }
+    guardar();
+    pintar();
+  }
   function abrirGuia() {
     const paso = ([titulo, texto], j) => el("div", { class: "max-rt-guia-paso" }, el("span", { class: "max-rt-guia-n" }, String(j + 1)),
       el("div", {}, el("b", {}, t(titulo)), el("div", { class: "epl-ayuda" }, t(texto)),
@@ -585,6 +602,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
                     mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
                     referencias: R.refs.map(({ refmod, imagen }) => (refmod ? { refmod } : { imagen })),
                     prompt: R.prompt.trim(), semilla: R.semilla, proyecto: A.proyecto, megapixeles: R.mp,
+                    ...(R.cara ? { modo: "cara" } : {}),   // «Detallar cara»: video a video (denoise y lienzo, los de retocar.py)
                     loras: A.ctx?.S?.loras || [] };          // los LoRAs del proyecto (30 oct; Generar › LoRAs)
     R.ultimoPedido = datos;                         // para probar desde la consola
     try {
@@ -827,6 +845,13 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       // (29 oct, variante P1 de prototipo_ayuda_retoque.html) la guía de cómo detallar la cara, en el idioma de la app
       el("div", { class: "max-rt-fila max-rt-guia-fila" }, el("button", { class: "max-boton max-rt-guia-boton", title: t("app.retocar.guia.boton.tooltip"),
         onclick: () => abrirGuia() }, icono("chispa"), " " + t("app.retocar.guia.boton"))),
+      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.forma"), info("app.retocar.forma.ayuda")),
+        el("div", { class: "max-rt-fila", role: "group" },
+          el("button", { class: "epl-mini epl-seg" + (R.cara ? "" : " fijo"), disabled: ocupado, title: t("app.retocar.forma.zona.tooltip"),
+                         onclick: () => ponerCara(false) }, t("app.retocar.forma.zona")),
+          el("button", { class: "epl-mini epl-seg" + (R.cara ? " fijo" : ""), disabled: ocupado, title: t("app.retocar.forma.cara.tooltip"),
+                         onclick: () => ponerCara(true) }, t("app.retocar.forma.cara"))),
+        R.cara ? el("span", { class: "epl-ayuda" }, t("app.retocar.forma.cara.info")) : null),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.mascara"),
           info(R.modo === "texto" ? "app.retocar.mascara.texto.ayuda" : R.rect ? "app.retocar.mascara.rect.ayuda_hecho" : "app.retocar.mascara.rect.ayuda")),
         el("div", { class: "max-rt-fila" }, modoBoton("texto", "app.retocar.mascara.texto"), modoBoton("rectangulo", "app.retocar.mascara.rect")),
@@ -842,7 +867,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
           el("button", { class: "epl-mini", disabled: lleno || ocupado, title: t("app.retocar.refs.subir.tooltip"), onclick: () => archivo.click() },
             t("app.retocar.refs.subir")), archivo),
         selector),
-      el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta", title: t("app.retocar.resolucion.tooltip") }, t("app.retocar.resolucion"), info("app.retocar.resolucion.ayuda")),
+      R.cara ? null : el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta", title: t("app.retocar.resolucion.tooltip") }, t("app.retocar.resolucion"), info("app.retocar.resolucion.ayuda")),
         el("div", { class: "max-rt-fila", role: "group" }, ...RESOLUCIONES.map(([k, mp]) => el("button", {
           class: "epl-mini epl-seg" + (Math.abs(R.mp - mp) < 1e-6 ? " fijo" : ""), disabled: ocupado, "data-mp": mp,
           title: t("app.retocar.resolucion.mp", { mp: num(mp * 1.048576, 2) }),
