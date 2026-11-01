@@ -94,7 +94,7 @@ En el paso Retocar hay dos pestañas: **«Inpainting / detalle»** (lo de arriba
 - **Cursor** (`~/.cursor/mcp.json`): `{"mcpServers": {"max-editor": {"url": "http://127.0.0.1:8301/mcp"}}}`
 - **Claude Desktop** (solo stdio, en `claude_desktop_config.json`): `{"mcpServers": {"max-editor": {"command": "/ruta/a/app/.venv/bin/python", "args": ["/ruta/a/app/mcp_servidor.py", "--stdio"]}}}` (la app tiene que estar abierta).
 
-El agente recibe al conectarse lo esencial y lee la guía completa (`app/guia/`, recursos `guia://…`): cómo es la app, qué hace H3, cómo organizar las tomas y escribir para H3, cómo revisar un video y cómo trabajar contigo (tú decides lo creativo). Pide permiso antes de renders largos, nunca borra ni sobrescribe y encola como mucho 4 trabajos de una vez. Si cambias algo mientras el agente escribe, la página te deja elegir qué versión quedarte. Por dentro: `app/mcp_servidor.py` y `app/agente.py` (plano: `planos/fases/11 MCP.md`).
+El agente recibe al conectarse lo esencial y lee la guía completa (`app/guia/`, recursos `guia://…`): lo medido de H3, cómo los campos se vuelven el prompt, las trampas conocidas y cómo retocar, alargar y unir videos (tú decides lo creativo). Pide permiso antes de renders largos, nunca borra ni sobrescribe y encola como mucho 4 trabajos de una vez. Si cambias algo mientras el agente escribe, la página te deja elegir qué versión quedarte. Por dentro: `app/mcp_servidor.py` y `app/agente.py` (plano: `planos/fases/11 MCP.md`).
 
 ## Cómo funciona por dentro
 

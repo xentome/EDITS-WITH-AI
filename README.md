@@ -122,7 +122,7 @@ Install MAX EDITOR (https://github.com/xentome/EDITS-WITH-AI) on this Linux PC a
    and fix what it reports until it says "All good".
 6. Start the app with app/arrancar.sh and connect yourself to its MCP:
    claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp
-   Then call estado and leer_guia("mapa") and tell me in 3 lines what you can do in the app.
+   Then call status and read_guide("proyecto") and tell me in 3 lines what you can do in the app.
 ```
 
 ### Windows
@@ -242,7 +242,7 @@ At the very bottom of the window, after «Final prompt», **«Retouch the video�
 
 Code: `app/retocar.py`, `app/plantillas/retocar.api.json`, `app/web/retocar.js`; routes `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`.
 
-In the same step, **«Extend video»** continues a shot with no cut (the song continues from where the video ends; `app/extender.py`, guide in `app/guia/9_extender.md`). **«Enhance»** makes a video sharper (Super Resolution ×1.5–×4) or HDR with NVIDIA's RTX nodes; it is **optional**: the installer does not add it, and those nodes need NVIDIA's own (not open-source) `nvidia-vfx` library.
+In the same step, **«Extend video»** continues a shot with no cut (the song continues from where the video ends; `app/extender.py`, guide in `app/guia/4_retocar.md`). **«Enhance»** makes a video sharper (Super Resolution ×1.5–×4) or HDR with NVIDIA's RTX nodes; it is **optional**: the installer does not add it, and those nodes need NVIDIA's own (not open-source) `nvidia-vfx` library.
 
 ## Editing
 
@@ -255,7 +255,7 @@ Step 3 joins pieces of your videos, from any project, and audio files on several
 - **Cursor** (`~/.cursor/mcp.json`): `{"mcpServers": {"max-editor": {"url": "http://127.0.0.1:8301/mcp"}}}`
 - **Claude Desktop** (stdio only, in `claude_desktop_config.json`): `{"mcpServers": {"max-editor": {"command": "/path/to/app/.venv/bin/python", "args": ["/path/to/app/mcp_servidor.py", "--stdio"]}}}` (the app must be running).
 
-On connecting, the agent gets the essentials and reads the full guide (`app/guia/`, `guia://…` resources): the app's map, what H3 does, how to organise shots and write for H3, how to review a video and how to work with you (you make the creative calls). It asks before long renders, never deletes or overwrites, and queues at most 4 jobs at once. If you edit while the agent writes, the page lets you choose which version to keep. Code: `app/mcp_servidor.py`, `app/agente.py`.
+On connecting, the agent gets the essentials and reads the full guide (`app/guia/`, `guia://…` resources): what we measured about H3, how the fields become the prompt, the known traps, and how to retouch, extend and join videos (you make the creative calls). It asks before long renders, never deletes or overwrites, and queues at most 4 jobs at once. If you edit while the agent writes, the page lets you choose which version to keep. Code: `app/mcp_servidor.py`, `app/agente.py`.
 
 ## How it works
 
