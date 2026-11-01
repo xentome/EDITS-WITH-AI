@@ -1342,5 +1342,7 @@
  "traducir.sin_resultados": "None in the list: type it below.",
  "traducir.traduciendo": "Translating from {idioma} into English… {s} s",
  "traducir.vacio": "There is no text to translate.",
- "traducir.ya": "Another field is already being translated: wait for it to finish."
+ "traducir.ya": "Another field is already being translated: wait for it to finish.",
+ "app.retocar.ajuste.fijo": "Fixed crop (beta)",
+ "app.retocar.ajuste.fijo.ayuda": "One still crop for the whole segment: H3 sees the same motion as the original, so the head keeps the body's rhythm. Only the marked area is pasted back."
 }

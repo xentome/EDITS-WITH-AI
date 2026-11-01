@@ -18,7 +18,7 @@ const SUBCARPETA = "max_editor/retocar/refs"; // las imágenes subidas desde aqu
 const RESOLUCIONES = [["rapida", 0.12], ["normal", 0.18], ["alta", 0.35], ["maxima", 0.6]];
 const MP_NORMAL = 0.18;
 // los ajustes de los tres modos (31 oct): los valores que funcionaron en las pruebas (retocar.py)
-const AJUSTES_INICIO = { forma: "cambiar", fuerza: 1, denoise: 0.3, lienzo: 768, vueltas: 2 };
+const AJUSTES_INICIO = { forma: "cambiar", fuerza: 1, denoise: 0.3, lienzo: 768, vueltas: 2, fijo: false };
 /* (29 oct) Inpainting/detalle tiene dos pestañas: «Tapar» (todo lo de arriba) y «Mejorar», que pasa el video ENTERO por los
  * nodos RTX de NVIDIA (mejorar.py): Super Resolution y HDR. Los límites son los de mejorar.py: el lado más grande del nodo
  * y lo que cabe en la memoria (fotogramas × píxeles de salida). El tiempo se estima con lo medido en la RTX 3060
@@ -39,8 +39,8 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   try { if (localStorage.getItem(GUARDA_SUB) === "mejorar") R.sub = "mejorar"; } catch { /* sin almacenamiento */ }
   const clave = () => "max-editor-retocar:" + (A.proyecto || "");
   const guardar = () => {
-    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr, forma, fuerza, denoise, lienzo, vueltas } = R;
-    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr, forma, fuerza, denoise, lienzo, vueltas })); } catch { /* sin almacenamiento */ }
+    const { video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr, forma, fuerza, denoise, lienzo, vueltas, fijo } = R;
+    try { localStorage.setItem(clave(), JSON.stringify({ video, f0, n, modo, texto, rect, refs, prompt, semilla, mp, sr, hdr, forma, fuerza, denoise, lienzo, vueltas, fijo })); } catch { /* sin almacenamiento */ }
   };
   const leerGuardado = () => { try { return JSON.parse(localStorage.getItem(clave()) || "null"); } catch { return null; } };
 
@@ -545,7 +545,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     guardar();
     pintar();
   }
-  const datosForma = () => R.forma === "detallar" ? { modo: "detallar", denoise: R.denoise, lienzo: R.lienzo }
+  const datosForma = () => R.forma === "detallar" ? { modo: "detallar", denoise: R.denoise, lienzo: R.lienzo, recorte_fijo: !!R.fijo }
     : R.forma === "quitar" ? { modo: "quitar", vueltas: R.vueltas } : { modo: "cambiar", fuerza: R.fuerza };
   // un ajuste con deslizador: su valor a la vista y una línea de qué cambia
   const ajuste = (k, min, max, paso, claveT, claveAyuda, ver, ocupado) => el("div", { class: "max-rt-ajuste" },
@@ -864,7 +864,12 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
         : R.forma === "quitar" ? ajuste("vueltas", 1, 4, 1, "app.retocar.ajuste.vueltas", "app.retocar.ajuste.vueltas.ayuda", (v) => String(v), ocupado)
         : el("div", {},
             ajuste("denoise", 0.1, 0.8, 0.05, "app.retocar.ajuste.intensidad", "app.retocar.ajuste.intensidad.ayuda", (v) => num(v, 2), ocupado),
-            ajuste("lienzo", 384, 1024, 64, "app.retocar.ajuste.lienzo", "app.retocar.ajuste.lienzo.ayuda", (v) => `${v} px`, ocupado))),
+            ajuste("lienzo", 384, 1024, 64, "app.retocar.ajuste.lienzo", "app.retocar.ajuste.lienzo.ayuda", (v) => `${v} px`, ocupado),
+            // (1 nov, beta) un solo recorte quieto para todo el tramo, para que la cabeza no vaya a otro ritmo que el cuerpo
+            el("div", { class: "max-rt-ajuste" },
+              el("label", { class: "max-rt-fila" }, el("input", { type: "checkbox", checked: !!R.fijo, disabled: ocupado,
+                onchange: (e) => { R.fijo = e.target.checked; guardar(); } }), " " + t("app.retocar.ajuste.fijo")),
+              el("span", { class: "epl-ayuda" }, t("app.retocar.ajuste.fijo.ayuda"))))),
       el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.mascara"),
           info(R.modo === "texto" ? "app.retocar.mascara.texto.ayuda" : R.rect ? "app.retocar.mascara.rect.ayuda_hecho" : "app.retocar.mascara.rect.ayuda")),
         el("div", { class: "max-rt-fila" }, modoBoton("texto", "app.retocar.mascara.texto"), modoBoton("rectangulo", "app.retocar.mascara.rect")),
