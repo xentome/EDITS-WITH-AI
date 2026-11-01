@@ -408,10 +408,10 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
 
   /* ---- la vista de la máscara: el tramo con la zona que se rehará en rosa, calculada en ComfyUI con la misma rama,
    * limpieza y recorte que el retoque, sin H3 (retocar.py, preparar_mascara). Si el tramo o la máscara cambian, vale otra. */
-  const firmaMascara = () => JSON.stringify([R.video, R.f0, R.n, R.modo, R.modo === "texto" ? R.texto.trim() : R.rect, R.mp]);
+  const firmaMascara = () => JSON.stringify([R.video, R.f0, R.n, R.modo, R.modo === "texto" ? R.texto.trim() : R.rect, R.mp, R.forma]);
   const datosMascara = () => ({ video: R.video, f0: R.f0, n: R.n, inicio: segundos(R.f0) + 0.001, fin: segundos(R.f0 + R.n) + 0.001, megapixeles: R.mp,
                                 mascara: R.modo === "texto" ? { modo: "texto", texto: R.texto.trim() } : { modo: "rectangulo", ...R.rect },
-                                proyecto: A.proyecto });
+                                modo: R.forma, proyecto: A.proyecto });   // el modo: el borde suave depende de él (1 nov)
   function verNormal() {
     if (R.vista !== "mascara") return;
     const t0 = tiempoClip();

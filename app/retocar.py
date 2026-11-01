@@ -452,7 +452,7 @@ def preparar(datos: dict) -> tuple[dict, dict]:
         extra = _con_lanpaint(g, datos.get("vueltas"))
     else:
         extra = _con_fuerza(g, datos)
-    if mascara_cruda(g):
+    if mascara_cruda(g, modo):
         extra["mascara_cruda"] = True
     return g, {"video": datos["video"], "info": vi, "tramo": vi_tramo, "tramo_archivo": tramo, "mascara": mascara,
                "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "modo": modo, **extra,
@@ -463,7 +463,30 @@ def preparar(datos: dict) -> tuple[dict, dict]:
 # arreglo de la máscara que heredamos del workflow de inpainting (limpieza, agrandar, rellenar, estirar en el tiempo y
 # bordes suaves al pegar), para elegir cada mejora probándola. Lo único que queda es la rejilla de H3 en el latente
 # (NKDMaskOps con el VAE y el modelo): H3 rehace bloques enteros de 2×2 latentes y no se puede quitar.
-def mascara_cruda(g: dict) -> bool:
+# (1 nov, Jonathan) el borde suave de la máscara cruda: se pega con un degradado (menos opacidad hacia el borde), con el
+# NKDMaskOps sin VAE (sin rejilla) sobre la máscara fina. En Detallar el degradado va hacia dentro (encoge 4 px y
+# difumina 6): la cara refinada se funde con la original sin salirse de lo que marcó SAM. En Cambiar y Quitar se difumina
+# 6 px centrado en el borde: si encogiera, asomaría el borde de lo que se cambia o se borra. ±1 fotograma de media
+# (centrada, sin retraso) para que el borde no tiemble en algo que se mueve. Los px son del recorte.
+N_SUAVE = "440"
+SUAVE = {"detallar": {"expand": -4, "feather": 6}, "cambiar": {"expand": 0, "feather": 6}, "quitar": {"expand": 0, "feather": 6}}
+SUAVE_TIEMPO = 1
+
+
+def _borde_suave(g: dict, modo: str) -> None:
+    v = SUAVE.get(modo, SUAVE["cambiar"])
+    g[N_SUAVE] = {"class_type": "NKDMaskOps", "_meta": {"title": "borde suave del pegado"}, "inputs": {
+        "mask": [N_RECORTE, 1], "invert": False, "black_point": 0.5, "white_point": 0.5, "despeckle": 0, "fill_holes": False,
+        "close_gaps": 0, "temporal_expand": 0, "temporal_smooth": SUAVE_TIEMPO, "expand": v["expand"], "blockify": 0,
+        "blockify_threshold": 0.05, "feather": v["feather"], "edge_low": 0, "edge_high": 1}}
+    if N_OPS_FINAL in g:
+        g[N_OPS_FINAL]["inputs"]["mask"] = [N_SUAVE, 0]
+    for nodo in g.values():
+        if nodo.get("class_type") == "LanPaint_MaskBlend":       # Quitar pega con su mezcla: la máscara suave en vez de la dura
+            nodo["inputs"]["mask"] = [N_SUAVE, 0]
+
+
+def mascara_cruda(g: dict, modo: str = "cambiar") -> bool:
     if not generar.config().get("mascara_cruda"):
         return False
     limpieza = g.pop(N_LIMPIEZA, None)
@@ -486,6 +509,7 @@ def mascara_cruda(g: dict) -> bool:
             nodo["inputs"]["feather"] = 0
         elif nodo.get("class_type") == "LanPaint_MaskBlend":
             nodo["inputs"]["blend_overlap"] = 1                  # su mínimo
+    _borde_suave(g, modo)
     return True
 
 
@@ -645,7 +669,7 @@ def preparar_mascara(datos: dict) -> tuple[dict, dict]:
         "pix_fmt": "yuv420p", "crf": 19, "save_metadata": False, "trim_to_audio": False, "pingpong": False, "save_output": True,
         "images": [N_PEGAR, 0]}}
     tramo = {"f0": b["s0"], "n": b["sn"], "g0": f0, "gn": n, "inicio": round(b["s0"] / fps, 3), "fin": round((b["s0"] + b["sn"]) / fps, 3)}
-    mascara_cruda(g)
+    mascara_cruda(g, MODOS.get(datos.get("modo") or "cambiar") or "cambiar")
     return g, {"video": datos.get("video"), "info": vi, "tramo": tramo, "mascara": b["mascara"], "sello": sello,
                "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
 
