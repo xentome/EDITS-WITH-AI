@@ -226,6 +226,7 @@ Everything is saved automatically in `app/proyectos/<name>.json`. Videos go to `
 If your PC can't make the whole edit at once (e.g. a 12 GB GPU manages about 5 s at 1 MP), press **✂ In parts** next to **Generate**:
 - Write the longest part your PC can make (in seconds, remembered in your browser). The app splits the timeline **at the cuts between shots** and shows each part in its colour; the scissor buttons split or join at any cut.
 - **Generate N parts** queues one normal Generate per part (its own shots, timed from 0:00, and its piece of the song) and a **Join parts** job that puts them into one video with the whole song on top. If a part fails, the rest of its group stops; **Retry** puts the whole group back.
+- Each part has a tick box: untick the ones you don't want. Without all of them ticked nothing is joined; each part comes out on its own in «Videos» («part 2 of 2»).
 - H3 only makes 17·k+5 frames, so each part is snapped and the joined video can be a few frames longer or shorter. Each part is made on its own: light or style may shift a little at the cut. A shot longer than the limit can't be split this way.
 
 Code: `app/partes.py`, `app/web/partes.js`; route `POST /app/partes`; queue type `unir` in `app/cola.py`.

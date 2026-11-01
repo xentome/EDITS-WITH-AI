@@ -13,6 +13,7 @@ Lectura: 2 min · 1 nov 2026 · Pedido de Jonathan: «mi PC no genera más de 5 
 - `POST /app/partes` (servidor.py): monta el prompt de cada parte con el mismo «montar» que la página. Sin `lanzar` solo calcula.
 - `cola.py`: `anadir_grupo`, campo `grupo` {id, i, n}; si una parte falla se cancela el resto del grupo; «Reintentar» vuelve a poner todo el grupo que no está hecho.
 - Videos: las partes salen como «parte i de n»; el unido como «unido de n partes» con los valores del edit entero (Retomar prompt) y su canción (Extender la sigue).
+- (1 nov, Jonathan: «tengo que poder elegir la parte») cada parte tiene su casilla; `solo` en `POST /app/partes`. Con todas marcadas va el «unir»; con algunas, salen sueltas y un fallo no cancela a las demás.
 - El límite por parte se guarda en el navegador (`max-editor-partes-limite`, 5,17 s por defecto).
 
 ## Probado (1 nov, sin GPU)

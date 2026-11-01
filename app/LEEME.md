@@ -64,6 +64,7 @@ Todo se guarda solo en `app/proyectos/<nombre>.json`. Los videos quedan en `app/
 Si tu PC no llega a todo el edit de una vez (un RTX de 12 GB aguanta unos 5 s a 1 MP), pulsa **✂ Por partes**, junto a **Generar**:
 - Escribe lo más largo que tu PC genera (en segundos; se recuerda en el navegador). La app parte la línea de tiempo **en los cortes entre tomas** y enseña cada parte en su color; las tijeras parten o juntan en cualquier corte.
 - **Generar N partes** encola un Generar normal por parte (sus tomas, con tiempos desde 0:00, y su trozo de canción) y un **Unir partes** que las pega en un video con la canción entera encima. Si una parte falla, se para el resto del grupo; **Reintentar** lo vuelve a poner entero.
+- Cada parte tiene su casilla: desmarca las que no quieras. Sin todas marcadas no se unen; cada una sale suelta en «Videos» («parte 2 de 2»).
 - H3 solo hace 17·k+5 fotogramas: cada parte se ajusta y el video unido puede durar unos fotogramas más o menos. Cada parte se hace por separado: en el corte puede cambiar un poco la luz o el estilo. Una toma más larga que el límite no se puede partir así.
 - Por dentro: `app/partes.py`, `app/web/partes.js`; ruta `POST /app/partes`; tipo de trabajo `unir` en `app/cola.py`.
 

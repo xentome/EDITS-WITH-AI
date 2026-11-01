@@ -700,7 +700,8 @@ async def _montar_proyecto(p) -> dict:
 
 
 async def lanzar_partes(peticion):
-    """POST /app/partes {valores, proyecto, semilla, limite (s por parte), partir? [tomas tras las que se parte], lanzar?}.
+    """POST /app/partes {valores, proyecto, semilla, limite (s por parte), partir? [tomas tras las que se parte], solo? [partes
+    que se generan (1…n); sin él, todas], lanzar?}. Con todas, detrás va el «unir»; con solo algunas salen sueltas.
     Sin «lanzar»: cómo quedarían las partes (para enseñarlas antes). Con «lanzar»: encola un «generar» por parte (cada uno con
     su prompt montado aquí) y detrás un «unir» → {ids, partes}."""
     d = await peticion.json()
@@ -721,13 +722,22 @@ async def lanzar_partes(peticion):
             return web.json_response(resumen)
         proyecto = d.get("proyecto") or ""
         prefijo = "max_editor/" + re.sub(r"[^\w-]+", "_", proyecto or "edit")
+        try:
+            solo = sorted({int(i) for i in d.get("solo") or [x["i"] for x in lista]})
+        except (TypeError, ValueError):
+            raise partes.ErrorGenerar("las partes elegidas no son válidas")
+        if not solo or any(not 1 <= i <= len(lista) for i in solo):
+            raise partes.ErrorGenerar(f"elige al menos una parte, de 1 a {len(lista)}")
         fotos = []
         for x in lista:
+            if x["i"] not in solo:
+                continue
             q = partes.proyecto_de_parte(p, x)
             await _montar_proyecto(q)
             if not (q.estado().get("prompt") or "").strip():
                 raise partes.ErrorGenerar(f"la parte {x['i']} salió sin prompt")
             fotos.append({"valores": q.datos["valores"], "semilla": d.get("semilla"), "proyecto": proyecto, "prefijo": prefijo,
+                          "i": x["i"], "n_total": len(lista),
                           "origen": "agente" if d.get("origen") == "agente" else ""})
         e = p.estado()
         a = p.audio()
@@ -735,7 +745,8 @@ async def lanzar_partes(peticion):
                 "origen": "agente" if d.get("origen") == "agente" else "",
                 "audio": {"original": a["original"], "inicio_s": a["inicio_s"]} if a else None,
                 "audio_salida": e.get("audio_salida") or "cancion"}
-        return web.json_response({**resumen, "ids": cola.anadir_grupo(fotos, unir)})
+        todas = len(solo) == len(lista)
+        return web.json_response({**resumen, "solo": solo, "unir": todas, "ids": cola.anadir_grupo(fotos, unir if todas else None)})
     except (partes.ErrorGenerar, agente.ErrorAgente, RuntimeError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
 

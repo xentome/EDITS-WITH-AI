@@ -4,7 +4,7 @@
  * Generar por parte y un «Unir» que las pega. El servidor es POST /app/partes (partes.py); sin «lanzar» solo calcula. */
 export function crear({ el, icono, t, num, pedir, avisar, leerLocal, ponerLocal, valores, semilla, proyecto, antes, alEncolar }) {
   const GUARDA = "max-editor-partes-limite";
-  const P = { abierto: false, limite: +leerLocal(GUARDA) || 5.167, partir: null, datos: null, error: "", ocupado: false, pide: 0 };
+  const P = { solo: new Set(), abierto: false, limite: +leerLocal(GUARDA) || 5.167, partir: null, datos: null, error: "", ocupado: false, pide: 0 };
   const caja = el("div", { class: "max-videos-caja max-partes-caja", role: "dialog", "aria-modal": "true" });
   const panel = el("div", { class: "max-videos max-partes", onclick: (e) => { if (e.target === panel) cerrar(); } }, caja);
   document.body.append(panel);
@@ -16,7 +16,7 @@ export function crear({ el, icono, t, num, pedir, avisar, leerLocal, ponerLocal,
     P.error = "";
     try {
       const d = await pedir("/app/partes", { valores: valores(), proyecto: proyecto(), limite: P.limite, partir: P.partir });
-      if (yo === P.pide) P.datos = d;
+      if (yo === P.pide) { P.datos = d; P.solo = new Set(d.partes.map((x) => x.i)); }   // al cambiar las partes, todas marcadas
     } catch (e) { if (yo === P.pide) { P.datos = null; P.error = e.message; } }
     if (yo === P.pide) pintar();
   }
@@ -35,8 +35,9 @@ export function crear({ el, icono, t, num, pedir, avisar, leerLocal, ponerLocal,
     pintar();
     try {
       const partir = P.datos.partes.slice(0, -1).map((x) => x.tomas[x.tomas.length - 1]);
-      const r = await pedir("/app/partes", { valores: valores(), proyecto: proyecto(), semilla: semilla(), limite: P.limite, partir, lanzar: true });
-      avisar(t("app.partes.encolado", { n: r.partes.length }), "bien");
+      const solo = [...P.solo].sort((a, b) => a - b);
+      const r = await pedir("/app/partes", { valores: valores(), proyecto: proyecto(), semilla: semilla(), limite: P.limite, partir, solo, lanzar: true });
+      avisar(t(r.unir ? "app.partes.encolado" : "app.partes.encolado_sueltas", { n: solo.length }), "bien");
       P.abierto = false;
       alEncolar();
     } catch (e) { P.error = e.message; }
@@ -56,8 +57,12 @@ export function crear({ el, icono, t, num, pedir, avisar, leerLocal, ponerLocal,
     const total = d.final_f / 24, trozos = [];
     d.partes.forEach((x, pi) => {
       const ancho = (x.segundos / total) * 100;
-      trozos.push(el("div", { class: "max-partes-trozo c" + (pi % 4) + (x.sobre_limite ? " pasa" : ""), style: { flex: `${ancho} 1 0` } },
-        el("b", {}, t("app.partes.parte", { i: x.i })),
+      trozos.push(el("div", { class: "max-partes-trozo c" + (pi % 4) + (x.sobre_limite ? " pasa" : "") + (P.solo.has(x.i) ? "" : " fuera"), style: { flex: `${ancho} 1 0` } },
+        el("label", { class: "max-partes-elegir", title: t("app.partes.elegir.tooltip") },
+          el("input", { type: "checkbox", checked: P.solo.has(x.i), onchange: (e) => {
+            if (e.target.checked) P.solo.add(x.i); else P.solo.delete(x.i);
+            pintar();
+          } }), el("b", {}, t("app.partes.parte", { i: x.i }))),
         el("span", {}, t(x.tomas.length > 1 ? "app.partes.tomas" : "app.partes.toma", { a: x.tomas[0], b: x.tomas[x.tomas.length - 1] })),
         el("small", {}, seg(x.segundos) + " · " + t("app.partes.fotogramas", { f: x.fotogramas })),
         el("div", { class: "max-partes-tomas" }, ...x.tomas.map((k, j) => {
@@ -101,6 +106,7 @@ export function crear({ el, icono, t, num, pedir, avisar, leerLocal, ponerLocal,
         !d && !P.error ? el("div", { class: "max-vacio" }, t("app.partes.calculando")) : null,
         ...(d ? linea(d) : []),
         d && pasa ? el("div", { class: "max-partes-error" }, t("app.partes.pasa")) : null,
+        d && P.solo.size < d.partes.length ? el("div", { class: "max-partes-aviso" }, t("app.partes.sueltas")) : null,
         d ? el("ul", { class: "max-partes-notas" },
           el("li", {}, t("app.partes.nota.total", { a: seg(d.total_s), b: seg(d.final_f / 24) })),
           el("li", {}, t("app.partes.nota.corte")),
@@ -108,8 +114,9 @@ export function crear({ el, icono, t, num, pedir, avisar, leerLocal, ponerLocal,
           el("li", {}, t("app.partes.nota.unir"))) : null),
       el("div", { class: "max-fila max-partes-pie" },
         el("button", { class: "max-boton", onclick: cerrar }, t("app.proyecto.cancelar")),
-        el("button", { class: "max-generar max-partes-lanzar max-derecha", disabled: !d || P.ocupado, onclick: lanzar },
-          t("app.partes.lanzar", { n: d ? d.partes.length : "…" }))));
+        el("button", { class: "max-generar max-partes-lanzar max-derecha", disabled: !d || P.ocupado || !P.solo.size, onclick: lanzar },
+          !d ? t("app.partes.lanzar", { n: "…" }) : P.solo.size === d.partes.length ? t("app.partes.lanzar", { n: d.partes.length })
+            : P.solo.size === 1 ? t("app.partes.lanzar_una", { i: [...P.solo][0] }) : t("app.partes.lanzar_sueltas", { n: P.solo.size }))));
   }
   return { abrir };
 }

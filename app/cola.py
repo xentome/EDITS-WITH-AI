@@ -118,15 +118,19 @@ def anadir(tipo: str, foto: dict, semillas: list | None = None) -> list[str]:
     return ids
 
 
-def anadir_grupo(fotos: list[dict], foto_unir: dict) -> list[str]:
-    """Generar por partes: una foto de «generar» por parte y la del «unir» que las pega, seguidas y con el mismo grupo."""
+def anadir_grupo(fotos: list[dict], foto_unir: dict | None) -> list[str]:
+    """Generar por partes: una foto de «generar» por parte y la del «unir» que las pega, seguidas y con el mismo grupo.
+    Cada foto lleva su número de parte (`i`); sin «unir» (el creativo eligió solo algunas partes) salen sueltas."""
     gid = uuid.uuid4().hex[:8]
     n = len(fotos)
     with _cerrojo:                          # todo de una vez: el hilo no puede empezar una parte antes de que esté el grupo
         ids = []
-        for i, f in enumerate(fotos, 1):
-            ids += anadir("generar", {**f, "grupo": {"id": gid, "i": i, "n": n}})
-        ids += anadir("unir", {**foto_unir, "n": n, "grupo": {"id": gid, "i": n + 1, "n": n}})
+        for k, f in enumerate(fotos, 1):
+            f = dict(f)
+            i, total = f.pop("i", k), f.pop("n_total", n)
+            ids += anadir("generar", {**f, "grupo": {"id": gid, "i": i, "n": total}})
+        if foto_unir is not None:
+            ids += anadir("unir", {**foto_unir, "n": n, "grupo": {"id": gid, "i": n + 1, "n": n}})
     return ids
 
 
@@ -324,8 +328,8 @@ def _correr(t: dict) -> None:
 
 def _parar_grupo(t: dict) -> None:
     """Una parte que falla o se cancela: lo que queda de su grupo en la cola no sirve sin ella (con el cerrojo puesto)."""
-    if not t.get("grupo"):
-        return
+    if not t.get("grupo") or not any(x["tipo"] == "unir" for x in _del_grupo(t)):
+        return                              # partes sueltas (sin «unir»): cada una va por su cuenta
     for x in _del_grupo(t):
         if x["estado"] == "en_cola":
             x.update(estado="cancelado", terminado=_ahora(),
