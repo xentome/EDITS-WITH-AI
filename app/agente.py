@@ -871,8 +871,8 @@ def describir(p: Proyecto, con_prompt: bool = False) -> str:
     avisos = getattr(p, "avisos", None)
     if avisos:
         lin.append("")
-        lin.append("## Gaps the page reports (huecos del prompt)")
-        lin += [f"- {x}" for x in avisos]
+        lin.append("## Empty optional fields the page reports (huecos del prompt; «no gesture» = the gesture field)")
+        lin += [f"- {x.replace(': no action', ': no gesture')}" for x in avisos]
     if e["a_mano"]:
         lin.append("")
         lin.append("⚠ The final prompt was edited BY HAND in the page (a_mano): shot changes do not reach H3 until the creative "

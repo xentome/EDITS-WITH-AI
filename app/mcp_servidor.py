@@ -290,7 +290,9 @@ async def crear_proyecto(nombre: str, copiar_de: str = "") -> str:
     APPC.actual = nombre
     p, _ = await APPC.cambiar(nombre, lambda p: None)
     return f"Created{' as a copy of «' + copiar_de + '»' if copiar_de else ''}: {resumen(p)} It is now the current project. " \
-           "Ask the creative to open it in the page (header › «Proyecto»)."
+           "Ask the creative to open it in the page (header › «Proyecto»)." + ("" if copiar_de else
+           "\nCheck: the size above is only the template's default; the format (vertical, horizontal, square) and the size "
+           "are the creative's choice: ask before set_resolution.")
 
 
 @herramienta
@@ -992,7 +994,7 @@ async def _medir(fuente: str, tipo: str) -> dict:
     if tipo == "video":
         i = await APPC.pedir("GET", "/app/video_info?video=" + urllib.parse.quote(fuente), ok=(200, 404))
         if "error" in i:
-            raise ErrorAgente(f"there is no video «{fuente}» (see listar_medios): {i['error']}")
+            raise ErrorAgente(f"there is no video «{fuente}»: use a source exactly as list_media prints it")
         return {"dur": float(i.get("duracion") or 0), "ancho": i.get("ancho"), "alto": i.get("alto")}
     url = URL_APP + "/app/video?video=" + urllib.parse.quote(fuente)
     r = await asyncio.to_thread(subprocess.run, ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", url],
@@ -1008,6 +1010,11 @@ async def _clip(c: dict, tipo_pista: str, medidas: dict) -> dict:
     fuente = str(c.get("fuente") or "").strip()
     if not fuente:
         raise ErrorAgente("each clip needs its «fuente» (from listar_medios)")
+    # 31 oct: un video traído de fuera o un audio se aceptan también sin « [input]» (el agente lo quitaba y fallaba)
+    if not fuente.endswith(" [input]") and fuente not in medidas:
+        r = await APPC.pedir("GET", "/app/video_info?video=" + urllib.parse.quote(fuente), ok=(200, 404))
+        if "error" in r and _tipo_fuente(fuente) == "audio" or "error" in r and "/" in fuente:
+            fuente += " [input]"
     tipo = _tipo_fuente(fuente)
     if tipo != tipo_pista:
         raise ErrorAgente(f"«{fuente}» is {tipo}: it goes in an {tipo} track (V… for video, A… for audio)")
@@ -1303,7 +1310,16 @@ async def view_reference(refmod: str) -> list:
             urls.append(f"{base}/view?" + urllib.parse.urlencode({"filename": nombre, "subfolder": carpeta, "type": "input"}))
     else:
         urls = [URL_APP + "/app/foto_referencia?" + urllib.parse.urlencode({"refmod": refmod})]
-    imgs = [await asyncio.to_thread(_jpeg, u) for u in urls]
+    try:
+        imgs = [await asyncio.to_thread(_jpeg, u) for u in urls]
+    except ErrorAgente:      # 31 oct: sin su foto original en input, la vista previa que guarda la RefMod (512 px)
+        previa = (await _comfy_url()) + "/minimax_h3/refmods/preview?" + urllib.parse.urlencode({"name": refmod})
+        try:
+            imgs = [await asyncio.to_thread(_jpeg, previa)]
+        except ErrorAgente:
+            raise ErrorAgente(f"«{refmod}» has no photo to show: check the name with list_refmods") from None
+        return [f"«{refmod}»: its stored preview (the original photo is no longer in ComfyUI/input)."] + \
+            [Image(data=b, format="jpeg") for b in imgs]
     return [f"«{refmod}»: {len(imgs)} photo(s){' (pack)' if caj.get(refmod) else ''}."] + [Image(data=b, format="jpeg") for b in imgs]
 
 
@@ -1377,8 +1393,8 @@ async def reorder_references(ref: str, position: int, project: str = "") -> str:
 
 
 @mcp.tool(name="song_beats", structured_output=False, description=(
-    "Returns the beat times (seconds from the segment start) of a song file (list_songs), for `seconds` from `start_s`, and "
-    "the strongest hits. Use it to tell the creative where the hits are; the segment start stays their choice. Read-only."))
+    "Returns the beat times (seconds from the segment start) of a song file (list_songs), for `seconds` from `start_s`. "
+    "Use it to tell the creative where the hits are; the segment start stays their choice. Read-only."))
 async def song_beats(file: str, start_s: float = 0.0, seconds: float = 10.0) -> str:
     r = await APPC.pedir("POST", "/edit_prompt_llm/beats", {"audio": file, "audio_inicio": float(start_s),
                                                              "entradas": {"duracion": float(seconds)}}, espera=120)

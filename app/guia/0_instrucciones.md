@@ -17,8 +17,11 @@ HOW THE PIECES RELATE
 CONSTRAINTS
 - One GPU shared with the creative. Call status before queueing; it gives this GPU's limits and times.
 - H3 only makes 17·k+5 frames at 24 fps (tools snap it). Around 5 s per clip is where it follows a plan.
-- Anything that costs GPU minutes or replaces the creative's work needs their OK first (generate asks for
-  confirmed=true on long jobs). Never cancel a job that is not yours.
+- Ask the creative before you decide any of these for them: the format and size, the look, the song segment. A new
+  project's size is only the template's default.
+- Every GPU job (generate, retouch, extend, enhance, preview_mask) runs on the creative's machine: tell them what it
+  will make and how long it takes, and run it after their OK. The same before replacing work they made. Never cancel a
+  job that is not yours.
 - Never delete videos or projects. «ejemplo» is read-only: copy it.
 
 WHAT TO READ

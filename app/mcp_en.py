@@ -202,13 +202,15 @@ DESCRIPCIONES = {
                  "(the song, untouched; default) or «model» (H3's audio; the only option when there is no song). Empty "
                  "description = no guidance. " + P,
     "set_resolution": "Sets the video size in multiples of 32: give width + height, or megapixels (0.1–2) + orientation "
-                      "(vertical | horizontal). Any aspect ratio: it is the creative's choice. Returns the size and "
+                      "(vertical | horizontal). Any aspect ratio. The format and the size are the creative's choice: ask "
+                      "them (their reference images hint at it, they do not decide it). Returns the size and "
                       "megapixels. Size and length decide memory and time: status gives this GPU's limits. " + P,
     "set_seed": "Sets the video seed; without a number, a new random one. Returns the seed. " + P,
     "generate": "Queues the edit with a frozen copy of the project (later edits do not reach it). count = 1 uses the "
                 "project's seed (or `seed`); count > 1 uses random seeds. Max 4 per call and 6 of yours waiting. Returns "
-                "the job ids, the jobs ahead and an estimated time. Refuses if check_project has errors (fix them), and "
-                "refuses long or heavy jobs unless confirmed=true, which needs the creative's OK. " + P,
+                "the job ids, the jobs ahead and an estimated time. Every job costs GPU minutes on the creative's machine: "
+                "tell them the size, length and estimated time first and run it after their OK. Refuses if check_project "
+                "has errors (fix them), and refuses long or heavy jobs unless confirmed=true. " + P,
     "view_queue": "Returns the app's queue: each job's type, project, state, progress, seed, who queued it and, when done, "
                   "its video. With id, only that job. Read-only.",
     "wait_for_job": "Blocks until the job ends (hecho / error / cancelado / interrumpido) or max_seconds pass (max 240), "
@@ -233,7 +235,8 @@ DESCRIPCIONES = {
                "- Mask: mask_text (SAM) or rectangle, as in preview_mask.\n"
                "- prompt: short English sentence of how the zone looks after; cite `references` as <Picture 1…> in the "
                "order given.\n- references: up to 4 RefMod names or input images. megapixels: 0.12 · 0.18 · 0.35 · 0.6 "
-               "(up to 1.0).\n- No denoise or strength setting. Returns the job ids. " + P,
+               "(up to 1.0).\n- No denoise or strength setting. Returns the job ids.\n- It costs GPU minutes: show the "
+               "creative the mask (preview_mask) and get their OK first. " + P,
     "plan_extension": "Plans an extension without running it (no GPU): returns where the end comes from (saved latent or "
                       "mp4), which audio will sound, the size H3 renders, the final length and the estimated time. Same "
                       "arguments as extend. " + P,
@@ -245,12 +248,14 @@ DESCRIPCIONES = {
               "latent).\n- audio: input (default: the song carries on; without a known song the original keeps its "
               "sound) · model (H3's sound).\n- prompt: optional English, only what happens next; empty = same action and "
               "camera.\n- references: up to 4, cited <Picture N>. The app always adds the video's last frame as one more "
-              "reference after yours.\n- Fails if the video is shorter than `overlap`. Returns the job ids and the plan. "
-              + P,
+              "reference after yours.\n- Fails if the video is shorter than `overlap`. Returns the job ids and the plan.\n"
+              "- It costs GPU minutes: tell the creative plan_extension's plan (length, audio, source, time) and run it after "
+              "their OK. " + P,
     "enhance": "Queues an enhancement of a whole video with NVIDIA RTX nodes (no H3, usually under a minute): Super "
                "Resolution (scale 1.5 · 2 · 3 · 4, 0 = off; quality LOW · MEDIUM · HIGH · ULTRA) and/or HDR (hdr_nits "
                "400–2000, 0 = off; SDR → HLG 10-bit). At least one. The result is a new video; the original stays. A size "
-               "that does not fit ends in error with the reason. Returns the job ids. " + P,
+               "that does not fit ends in error with the reason. Returns the job ids. Tell the creative the output size "
+               "and run it after their OK. " + P,
     "list_media": "Lists everything the Editing timeline can use: every project's videos, videos brought from outside "
                   "(Editing only) and audio files. The first column is the `source` that place_clip and replace_timeline "
                   "take. Read-only.",
@@ -262,7 +267,7 @@ DESCRIPCIONES = {
                         "end}]}]. Times snap to frames (24 fps); clips of one track must not overlap; video tracks also "
                         "sound unless hear=false. canvas {width, height} = output size (default: the first video's). It "
                         "overwrites what the creative built: read view_timeline first. Returns the new timeline. " + P,
-    "place_clip": "Puts one clip at second `timeline_at` of `track` (default V1 for video, A1 for audio), using "
+    "place_clip": "Read view_timeline first (the creative may have built part of it). Puts one clip at second `timeline_at` of `track` (default V1 for video, A1 for audio), using "
                   "source_start–source_end seconds of its original (default: all). Whatever was under it in that track is "
                   "trimmed or split. Returns the clip's place and the timeline. " + P,
     "remove_clip": "Removes one clip by its label from view_timeline. close_gap=true moves the later clips of that track "
@@ -271,7 +276,8 @@ DESCRIPCIONES = {
                     "or «video» (usable only in Editing). Never overwrites (a repeated name gets _2). Only files the "
                     "creative pointed to. Returns its `source`. Photos for references: upload_photo.",
     "export_timeline": "Joins the saved Editing timeline into a new mp4 with ffmpeg (no GPU, not through the queue; seconds "
-                       "to a minute). Returns the file name, clips, length and size; it appears in list_videos. " + P,
+                       "to a minute). Returns the file name, clips, length and size; it appears in list_videos. Look at "
+                       "each join with view_video(from_s, to_s) before reporting. " + P,
 }
 
 
