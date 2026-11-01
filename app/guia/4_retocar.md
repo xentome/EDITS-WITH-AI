@@ -9,7 +9,9 @@
 - Up to 4 references, cited <Picture 1…> in the order passed. A face crop of the character helps identity.
 - The segment is rounded up to 17·k+5 frames internally; only your range is replaced. A mask that ends early lets the
   original reappear in the last frame (seen 30 Oct).
-- No denoise / strength setting. Megapixels 0.12–0.6 in the page, up to 1.0 by the backend.
+- Three modes: change (strength 0.40–1.0: lower keeps shape and motion) · refine (video to video at higher detail,
+  denoise 0.10–0.80, canvas 384–1024; the face preset is mask «face» + the face photo + 0.30 / 768) · remove (LanPaint,
+  no references, 1–4 passes; slow: ~10 min per 5 s on 12 GB). Megapixels 0.12–0.6 for change (up to 1.0).
 - Retouching a retouch accumulates damage: retouch the original again instead.
 
 ## Extend (same shot, longer, no cut)

@@ -42,7 +42,7 @@ PARAMETROS = {
     "nuevos": "new_frames", "solape": "overlap", "calidad": "quality", "escala": "scale", "donde": "where",
     "nombre_copia": "copy_name", "pistas": "tracks", "lienzo": "canvas", "fuente": "source", "en": "timeline_at",
     "pista": "track", "ini": "source_start", "cerrar_hueco": "close_gap", "ruta": "path", "tipo": "kind", "carpeta": "folder",
-    "tema": "topic",
+    "tema": "topic", "modo": "mode", "fuerza": "strength", "denoise": "denoise", "vueltas": "passes",
 }
 POR_HERRAMIENTA = {"poner_clip": {"fin": "source_end"}}     # el mismo nombre viejo con otro sentido
 
@@ -52,6 +52,7 @@ VALORES = {     # parámetro en inglés → {valor en inglés: valor de la app}
     "environment": {"none": "ninguno"},
     "audio_output": {"song": "cancion", "model": "modelo"},
     "where": {"copy": "copia", "here": "aqui"},
+    "mode": {"change": "cambiar", "refine": "detallar", "remove": "quitar"},
 }
 VALORES_EXTENDER = {"quality": {"fast": "rapida", "medium": "media"}, "audio": {"input": "entrada", "model": "modelo"}}
 TEXTO = {"text": "texto", "start": "t", "end": "fin", "position": "sitio", "font_ref": "letra", "look": "frase"}
@@ -229,13 +230,19 @@ DESCRIPCIONES = {
                     "pixels. Segment: start–end seconds or whole_video=true. Uses the GPU for about a minute or more; if it "
                     "takes too long it returns a job id to follow. " + P,
     "retouch": "Queues a retouch: H3 redoes only the masked zone inside a segment and the app pastes it back into a new "
-               "video; the original stays.\n"
+               "video; the original stays (page: «Añadir o detallar»).\n"
+               "- mode: change (default: put or change something; strength 0.40–1.0, 1 = paint from scratch, lower keeps "
+               "shape and motion) · refine (redo a zone at higher detail, video to video; denoise 0.10–0.80, default 0.30; "
+               "canvas 384–1024 px, default 768; ignores megapixels; for a face: mask_text «face», the character's face "
+               "photo as reference, denoise 0.30, canvas 768) · remove (erase with LanPaint: no references, the prompt "
+               "describes the background that stays without naming what is erased; passes 1–4, default 2; about 10 min per "
+               "5 s on a 12 GB GPU).\n"
                "- Segment: start–end seconds, or whole_video=true. Rounded up to 17·k+5 frames internally (22 or 39 frames "
                "at least); only your range is replaced.\n"
                "- Mask: mask_text (SAM) or rectangle, as in preview_mask.\n"
                "- prompt: short English sentence of how the zone looks after; cite `references` as <Picture 1…> in the "
                "order given.\n- references: up to 4 RefMod names or input images. megapixels: 0.12 · 0.18 · 0.35 · 0.6 "
-               "(up to 1.0).\n- No denoise or strength setting. Returns the job ids.\n- It costs GPU minutes: show the "
+               "(up to 1.0).\n- Returns the job ids.\n- It costs GPU minutes: show the "
                "creative the mask (preview_mask) and get their OK first. " + P,
     "plan_extension": "Plans an extension without running it (no GPU): returns where the end comes from (saved latent or "
                       "mp4), which audio will sound, the size H3 renders, the final length and the estimated time. Same "

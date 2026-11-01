@@ -790,7 +790,8 @@ async def ver_mascara(video: str, mascara_texto: str = "", rectangulo: dict | No
 @herramienta
 async def retocar(video: str, prompt: str, mascara_texto: str = "", rectangulo: dict | None = None, inicio: float | None = None,
                   fin: float | None = None, todo: bool = False, referencias: list[str] | None = None, semilla: int | None = None,
-                  megapixeles: float = 0.18, n: int = 1, proyecto: str = "") -> str:
+                  megapixeles: float = 0.18, n: int = 1, proyecto: str = "", modo: str = "cambiar", fuerza: float | None = None,
+                  denoise: float | None = None, lienzo: int | None = None, vueltas: int | None = None) -> str:
     """Retouch (step «Retocar»): H3 redoes ONLY the masked zone inside a segment of a video and the app pastes it back; the
     rest stays the same. video: a file from listar_videos. Segment: inicio–fin seconds or todo=true (internally rounded up to
     17·k+5 frames). Mask: mascara_texto (SAM 3.1 finds every object matching, e.g. «logo») or rectangulo {x, y, w, h} in
@@ -804,6 +805,28 @@ async def retocar(video: str, prompt: str, mascara_texto: str = "", rectangulo: 
     if not prompt.strip():
         raise ErrorAgente("the retouch needs its prompt")
     d = _datos_retoque(video, inicio, fin, todo, mascara_texto, rectangulo, prompt, referencias, semilla, megapixeles, nombre)
+    # los tres modos de Retocar (31 oct, commit 88eaed4): cambiar (fuerza), detallar (denoise, lienzo), quitar (LanPaint)
+    modo = {"zona": "cambiar", "cara": "detallar"}.get(modo, modo)
+    if modo not in ("cambiar", "detallar", "quitar"):
+        raise ErrorAgente("mode must be change, refine or remove")
+    d["modo"] = modo
+    if modo == "cambiar" and fuerza is not None:
+        if not 0.4 <= float(fuerza) <= 1:
+            raise ErrorAgente("strength must be between 0.40 and 1.0 (1 = paint from scratch)")
+        d["fuerza"] = float(fuerza)
+    if modo == "detallar":
+        if denoise is not None and not 0.1 <= float(denoise) <= 0.8:
+            raise ErrorAgente("denoise must be between 0.10 and 0.80 (0.30 = the face preset)")
+        if lienzo is not None and not (384 <= int(lienzo) <= 1024 and int(lienzo) % 32 == 0):
+            raise ErrorAgente("canvas must be 384–1024 px, a multiple of 32 (768 = the face preset)")
+        d.update({k: v for k, v in (("denoise", denoise), ("lienzo", lienzo)) if v is not None})
+    if modo == "quitar":
+        if d["referencias"]:
+            raise ErrorAgente("remove takes no references: describe in the prompt the background that stays, without naming what is erased")
+        if vueltas is not None and not 1 <= int(vueltas) <= 4:
+            raise ErrorAgente("passes must be 1–4 (2 = default)")
+        if vueltas is not None:
+            d["vueltas"] = int(vueltas)
     for m in __import__("re").finditer(r"<Picture (\d+)>", prompt):
         if int(m.group(1)) > len(d["referencias"]):
             raise ErrorAgente(f"the prompt cites <Picture {m.group(1)}> but only {len(d['referencias'])} reference(s) were given")
@@ -811,8 +834,9 @@ async def retocar(video: str, prompt: str, mascara_texto: str = "", rectangulo: 
         import random
         d["semilla"] = random.randrange(2 ** 32)
     r = await APPC.pedir("POST", "/app/cola", {"tipo": "retocar", "datos": d, "n": int(n), "origen": "agente"})
-    return (f"Retouch queued: {', '.join(r['ids'])} (seed {d['semilla'] if int(n) == 1 else 'random'}). About 3–4 min per 39 "
-            "frames at normal resolution. Visible in «Cola» (✎ agente); wait with esperar(id), then ver_video(video=<new file>).")
+    return (f"Retouch ({modo}) queued: {', '.join(r['ids'])} (seed {d['semilla'] if int(n) == 1 else 'random'}). "
+            + ("About 10 min per 5 s on a 12 GB GPU. " if modo == "quitar" else "About 3–4 min per 39 frames at normal resolution. ") +
+            " Visible in «Cola» (✎ agente); wait with esperar(id), then ver_video(video=<new file>).")
 
 
 # ------------------------------------------------------------------ extender (planos/fases/12)
