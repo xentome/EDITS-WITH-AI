@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import json
 import os
 import subprocess
@@ -38,8 +39,10 @@ MAX_POR_LLAMADA, MAX_PENDIENTES = 4, 6        # trabajos que el agente puede enc
 ACTIVOS = ("en_cola", "corriendo", "recuperando")
 
 # los documentos de la guía: guia://<tema> → app/guia/<n>_<tema>.md (el orden es el de lectura)
-TEMAS = {"mapa": "1_mapa.md", "h3": "2_h3.md", "organizar": "3_organizar.md", "prompts": "4_prompts.md", "revisar": "5_revisar.md",
-         "creativo": "6_creativo.md", "recetas": "7_recetas.md", "errores": "8_errores.md", "extender": "9_extender.md"}
+# (31 oct: guía corta con las guías oficiales; los temas viejos siguen valiendo y llevan al capítulo nuevo que los recoge)
+TEMAS = {"h3": "1_h3.md", "proyecto": "2_proyecto.md", "trampas": "3_trampas.md", "retocar": "4_retocar.md"}
+TEMAS_VIEJOS = {"mapa": "proyecto", "organizar": "proyecto", "prompts": "h3", "revisar": "h3", "creativo": "proyecto",
+                "recetas": "proyecto", "errores": "trampas", "extender": "retocar"}
 
 
 def leer_doc(nombre: str) -> str:
@@ -69,11 +72,26 @@ def herramienta(fn):
         except ErrorAgente:
             raise
         except Exception as exc:
-            raise ErrorAgente(f"unexpected error ({exc.__class__.__name__}: {exc}). Tell the creative; see guia://errores") from exc
+            raise ErrorAgente(f"unexpected error ({exc.__class__.__name__}: {exc}). Tell the creative the exact message; logs: app/servidor.log, app/salidas/mcp.log") from exc
     return mcp.tool(structured_output=False)(envuelta)
 
 
 # ------------------------------------------------------------------ hablar con la app
+# lo que el agente puede hacer ante los errores de la app que más salen (31 oct: nunca la clave interna ni texto en español)
+QUE_HACER = {"errores.cola.": "ComfyUI is busy: wait until its queue is empty (status), then try again.",
+             "errores.refmod_existe": "That RefMod name is taken: choose another name.",
+             "errores.sin_foto": "The photo of that reference is not in ComfyUI/input: upload it with upload_photo."}
+
+
+def error_de_app(d) -> str:
+    """El error de una ruta de la app, en inglés y con qué hacer."""
+    if not isinstance(d, dict):
+        return f"the app refused the request: {d}"
+    clave, texto = d.get("clave") or "", (d.get("error") or "").strip()
+    que = next((v for k, v in QUE_HACER.items() if clave.startswith(k)), "")
+    return " ".join(x for x in (texto or "the app refused the request.", que) if x)
+
+
 class App:
     def __init__(self):
         self.plantilla = None
@@ -81,8 +99,8 @@ class App:
 
     async def pedir(self, metodo: str, ruta: str, cuerpo=None, espera: float = 60, ok=(200,)):
         try:
-            async with httpx.AsyncClient(timeout=espera) as c:
-                r = await c.request(metodo, URL_APP + ruta, json=cuerpo)
+            async with httpx.AsyncClient(timeout=espera) as c:     # idioma=en: los errores de la app llegan en inglés
+                r = await c.request(metodo, URL_APP + ruta, json=cuerpo, params={"idioma": "en"})
         except httpx.HTTPError as exc:
             raise ErrorAgente(f"MAX EDITOR does not answer at {URL_APP} ({exc.__class__.__name__}). Start it with app/arrancar.sh") from exc
         try:
@@ -90,7 +108,7 @@ class App:
         except ValueError:
             d = {"error": r.text[:300]}
         if r.status_code not in ok:
-            raise ErrorAgente(f"the app answered {r.status_code}: {d.get('error') if isinstance(d, dict) else d}")
+            raise ErrorAgente(error_de_app(d))
         return d
 
     async def plantilla_(self) -> dict:
@@ -139,9 +157,23 @@ class App:
 APPC = App()
 
 
+def resumen(p: Proyecto) -> str:
+    """Una línea del proyecto (31 oct: crear y abrir ya no devuelven el proyecto entero; para eso está ver_proyecto)."""
+    tam = p.tamano()
+    tags = ", ".join(p.etiquetas()) or "none"
+    return (f"«{p.nombre}» · {f'{tam[0]}×{tam[1]}' if tam else 'no size'} · {p.duracion:.3f} s · {p.n_tomas} shots · "
+            f"references: {tags} · seed {p.semilla()}.")
+
+
 def visto(p: Proyecto) -> str:
-    return (f"Saved in project «{p.nombre}» (rev {p.datos.get('rev')}). The page reloads it by itself and marks what you changed "
-            "with «✎ agente».")
+    """El final de cada cambio (31 oct, reglas de respuesta): dónde quedó guardado y, en líneas «Check:», lo que es válido
+    pero seguramente está mal (citas a referencias quitadas, tomas con el lugar en manos del LLM y sin texto)."""
+    checks = list(getattr(p, "checks", None) or [])
+    for k, t in enumerate(p.plan.get("tomas") or [], 1):
+        if t.get("entorno") == "auto" and not (t.get("lugar") or "").strip() and (t.get("momento") or "").strip():
+            checks.append(f"Check: shot {k} has environment auto and an empty place: only the local LLM fills it (write "
+                          "place, or environment none)")
+    return "\n".join([f"Saved in «{p.nombre}» (rev {p.datos.get('rev')})."] + checks)
 
 
 # ------------------------------------------------------------------ estado y guía
@@ -165,6 +197,7 @@ async def estado() -> str:
         for d in st.get("devices") or []:
             libre, total = d.get("vram_free", 0) / 2 ** 30, d.get("vram_total", 0) / 2 ** 30
             lin.append(f"GPU {d.get('name', '?')}: {libre:.1f} of {total:.1f} GB free")
+            lin.append("Limits and times for this GPU: " + _clase(total)[2])
     except Exception:
         lin.append("ComfyUI queue: could not read it")
     activos = [x for x in cola["trabajos"] if x["estado"] in ACTIVOS]
@@ -190,10 +223,12 @@ async def leer_guia(tema: str = "indice") -> str:
     · recetas (step-by-step flows with tool calls) · errores (problems and ways out) · extender (make a video longer, same
     shot). Same text as the guia:// resources."""
     tema = (tema or "indice").strip().lower()
+    tema = TEMAS_VIEJOS.get(tema, tema)
     if tema in TEMAS:
         return leer_doc(TEMAS[tema])
-    return ("MAX EDITOR agent guide. Read «mapa» and «h3» before your first edit; «organizar» and «prompts» before writing shots;"
-            " «revisar» after each video. Chapters:\n" + "\n".join(f"- {k} (guia://{k})" for k in TEMAS))
+    return ("MAX EDITOR agent guide. Chapters:\n- h3 (guia://h3): what we measured about the model; read it before writing "
+            "shots\n- proyecto (guia://proyecto): how fields become the prompt, what each reference role does\n- trampas "
+            "(guia://trampas): known traps and the way out\n- retocar (guia://retocar): retouch, extend, enhance, join")
 
 
 def _recurso(tema: str, archivo: str):
@@ -206,6 +241,8 @@ def _recurso(tema: str, archivo: str):
 
 for _tema, _archivo in TEMAS.items():
     _recurso(_tema, _archivo)
+for _tema, _nuevo in TEMAS_VIEJOS.items():       # los recursos viejos (guia://mapa…) dan el capítulo nuevo
+    _recurso(_tema, TEMAS[_nuevo])
 
 
 # ------------------------------------------------------------------ proyectos
@@ -232,8 +269,8 @@ async def abrir_proyecto(nombre: str) -> str:
     p = await APPC.proyecto(nombre)
     APPC.actual = p.nombre or nombre
     await APPC.montar(p)
-    return agente.describir(p) + f"\n\nCurrent project for this session: «{APPC.actual}». Ask the creative to open it in the page " \
-                                 "(header › «Proyecto») to watch your changes live."
+    return f"Current project: {resumen(p)} Ask the creative to open it in the page (header › «Proyecto»). view_project shows " \
+           "everything."
 
 
 @herramienta
@@ -251,8 +288,8 @@ async def crear_proyecto(nombre: str, copiar_de: str = "") -> str:
         raise ErrorAgente(f"could not create «{nombre}»: {r['error']} (it is never overwritten: choose another name)")
     APPC.actual = nombre
     p, _ = await APPC.cambiar(nombre, lambda p: None)
-    return f"Created «{nombre}»{' as a copy of «' + copiar_de + '»' if copiar_de else ''}. Ask the creative to open it in the " \
-           "page (header › «Proyecto»).\n\n" + agente.describir(p)
+    return f"Created{' as a copy of «' + copiar_de + '»' if copiar_de else ''}: {resumen(p)} It is now the current project. " \
+           "Ask the creative to open it in the page (header › «Proyecto»)."
 
 
 @herramienta
@@ -311,7 +348,7 @@ async def poner_referencia(refmod: str, papel: str = "", nombre: str | None = No
     p, tag = await APPC.cambiar(proyecto, cambio)
     r = next(x for x in p.referencias() if x["clave"] == refmod)
     return (f"{refmod} is {tag} · role {r['papel']} · {'Principal (every shot)' if r['en_todas'] else 'Secundaria (cite it in shots)'}."
-            f" Visible in step 1 «Referencias». Current tags: {', '.join(t for t in p.etiquetas())}.\n" + visto(p))
+            f" Page: step 1, Principal / Secundario. Current tags: {', '.join(t for t in p.etiquetas())}.\n" + visto(p))
 
 
 @herramienta
@@ -356,7 +393,7 @@ async def poner_cancion(archivo: str, inicio_s: float = 0.0, proyecto: str = "")
         return ini
     p, ini = await APPC.cambiar(proyecto, cambio)
     aviso = "" if abs(ini - float(inicio_s)) < 0.05 else f" (moved to {ini} s so the segment fits in the song)"
-    return f"Song «{archivo}» ({total:.1f} s) from {ini} s for {p.duracion} s{aviso}. Visible in step 2 under the shots.\n" + visto(p)
+    return f"Song «{archivo}» ({total:.1f} s) from {ini} s for {p.duracion} s{aviso}. Page: step 1, under the shots.\n" + visto(p)
 
 
 async def _recortar_de_nuevo(p: Proyecto) -> None:
@@ -428,7 +465,7 @@ async def escribir_toma(k: int, momento: str | None = None, gesto: str | None = 
               "luz": luz, "estilo": estilo, "efecto_frase": efecto_frase, "fondo_ref": fondo_ref}
     p, hechos = await APPC.cambiar(proyecto, lambda p: p.escribir_toma(k, campos, conectar, desconectar))
     linea = next((ln for ln in (p.estado().get("prompt") or "").splitlines() if ln.startswith(f"[Shot {int(k)}]")), "")
-    return (f"Shot {k}: {', '.join(hechos) or 'nothing changed'}. Visible in step 2: click shot {k} to see its panel.\n"
+    return (f"Shot {k}: {', '.join(hechos) or 'nothing changed'}. Page: step 1, shot {k}.\n"
             f"Its line in the final prompt:\n{linea}\n" + visto(p))
 
 
@@ -439,7 +476,7 @@ async def poner_texto(textos: list[dict], proyecto: str = "") -> str:
     reference with role letra (optional), frase: how it looks/moves, in English (e.g. «slams in letter by letter as huge
     glowing letters»)}. [] empties it. Few, big words work; the typography is a protagonist."""
     p, _ = await APPC.cambiar(proyecto, lambda p: p.poner_textos(textos))
-    return f"Text track: {len(textos)} item(s). Visible in step 2, the row above the shots.\n" + visto(p)
+    return f"Text track: {len(textos)} item(s). Page: step 1, the text row.\n" + visto(p)
 
 
 @herramienta
@@ -457,7 +494,7 @@ async def poner_resolucion(ancho: int = 0, alto: int = 0, megapixeles: float = 0
             raise ErrorAgente("give ancho and alto, or megapixeles")
         return p.poner_tamano(a, b)
     p, (a, b) = await APPC.cambiar(proyecto, cambio)
-    return f"Resolution {a}×{b} ({agente.megapixeles(a, b)} MP). Visible in the header.\n" + visto(p)
+    return f"Resolution {a}×{b} ({agente.megapixeles(a, b)} MP). Page: header.\n" + visto(p)
 
 
 @herramienta
@@ -467,7 +504,7 @@ async def poner_semilla(semilla: int | None = None, proyecto: str = "") -> str:
     import random
     s = int(semilla) if semilla is not None else random.randrange(2 ** 32)
     p, _ = await APPC.cambiar(proyecto, lambda p: p.poner_semilla(s))
-    return f"Seed {s}. Visible in the header next to «Generar».\n" + visto(p)
+    return f"Seed {s}. Page: header.\n" + visto(p)
 
 
 @herramienta
@@ -506,10 +543,33 @@ async def revisar_proyecto(proyecto: str = "") -> str:
     return "\n".join(lin)
 
 
-def _minutos(p: Proyecto) -> float:
-    """Una idea del tiempo en una RTX 3060 (medido: 22 f a 0,52 MP ≈ 2,3 min; 124 f a 1 MP ≈ 16 min)."""
+# lo medido por tamaño de GPU (31 oct: los tiempos ya no van escritos para la 3060; los da la GPU de verdad)
+GPUS = [(20, 0.55, "24 GB class (measured on RTX 3090 / A5000): 5 s at 1 MP ≈ 9 min · 6.6 s at 1.5 MP fits (≈ 13 min) · "
+                   "12 s at 1 MP fits · 12 s at 1.2 MP does not"),
+        (10, 1.0, "12 GB class (measured on RTX 3060): 22 f at 0.52 MP ≈ 3 min · 5 s at 0.52 MP ≈ 9 min · 5 s at 1 MP ≈ "
+                  "13–18 min · 8 s at 1 MP does not fit"),
+        (0, 1.4, "under 10 GB: untested — keep to short tests at 0.5 MP")]
+
+
+async def _gpu() -> tuple[str, float]:
+    """(nombre, GB) de la GPU de ComfyUI; ('', 12) si no se puede leer."""
+    try:
+        s = await APPC.pedir("GET", "/app/salud")
+        async with httpx.AsyncClient(timeout=5) as c:
+            d = ((await c.get(s["comfyui_url"] + "/system_stats")).json().get("devices") or [{}])[0]
+        return d.get("name", ""), d.get("vram_total", 0) / 2 ** 30
+    except Exception:
+        return "", 12.0
+
+
+def _clase(gb: float):
+    return next(x for x in GPUS if gb >= x[0])
+
+
+def _minutos(p: Proyecto, gb: float = 12.0) -> float:
+    """Una idea del tiempo (medido en la 3060: 22 f a 0,52 MP ≈ 2,3 min; 124 f a 1 MP ≈ 16 min), escalada por la GPU."""
     tam = p.tamano() or (544, 960)
-    return round(1.5 + 14.5 * agente.megapixeles(*tam) * p.fotogramas() / 128, 1)
+    return round((1.5 + 14.5 * agente.megapixeles(*tam) * p.fotogramas() / 128) * _clase(gb)[1], 1)
 
 
 @herramienta
@@ -533,17 +593,18 @@ async def generar(n: int = 1, semilla: int | None = None, confirmado: bool = Fal
     errores, avisos = agente.revisar(p)
     if errores:
         raise ErrorAgente("cannot generate yet:\n- " + "\n- ".join(errores))
-    minutos = _minutos(p) * int(n)
+    gpu, gb = await _gpu()
+    minutos = round(_minutos(p, gb) * int(n), 1)
     if minutos > 12 and not confirmado:
-        raise ErrorAgente(f"this is about {minutos} min of GPU on a 12 GB card ({p.fotogramas()} frames at "
+        raise ErrorAgente(f"this is about {minutos} min of GPU on this {gpu or 'GPU'} ({p.fotogramas()} frames at "
                           f"{agente.megapixeles(*(p.tamano() or (544, 960)))} MP × {n}). Ask the creative, then call again with "
                           "confirmado=true. For a quick test: poner_duracion(0.917) (22 frames) and a low resolution.")
     r = await APPC.pedir("POST", "/app/cola", {"tipo": "generar", "valores": p.datos["valores"], "semilla": p.semilla(),
                                                "proyecto": nombre, "n": int(n), "origen": "agente"})
     delante = len([x for x in cola["trabajos"] if x["estado"] in ACTIVOS])
     return (f"Queued {len(r['ids'])} job(s): {', '.join(r['ids'])} (seed {p.semilla() if int(n) == 1 else 'random'}). "
-            f"{delante} job(s) ahead. Rough time: ~{_minutos(p)} min each on an RTX 3060. Visible in the header › «Cola» "
-            "(marked «✎ agente»). Wait for it with esperar(id), then ver_video." + (f"\nWarnings: {'; '.join(avisos[:4])}" if avisos else ""))
+            f"{delante} job(s) ahead. Rough time: ~{_minutos(p, gb)} min each on this GPU. Page: «Cola». Wait for it with "
+            "esperar(id), then ver_video." + (f"\n{len(avisos)} warning(s): see revisar_proyecto." if avisos else ""))
 
 
 @herramienta
@@ -1158,43 +1219,307 @@ async def exportar_edicion(proyecto: str = "") -> str:
 
 
 # ------------------------------------------------------------------ prompts de flujo
-@mcp.prompt(name="crear_edit", title="Create an edit", description="From the creative's idea to a reviewed video, step by step")
-def crear_edit(idea: str = "", proyecto: str = "") -> str:
-    return (f"The creative wants an edit{': ' + idea if idea else ''}.{' Project: ' + proyecto + '.' if proyecto else ''}\n"
-            "Follow guia://recetas («Edit with a character») and these rules:\n"
-            "1. Call estado, then read guia://mapa, guia://h3 and guia://organizar (leer_guia) if you have not yet.\n"
-            "2. Ask the creative what is still missing: the character/product (which RefMod), the song AND where its segment starts, "
-            "the duration, the look. Offer options from the data; do not invent the story or the aesthetic.\n"
-            "3. Work in a project of your own or the one they name (crear_proyecto(copiar_de=…) never overwrites).\n"
-            "4. References → song → shots (poner_tomas) → each shot panel (escribir_toma, momento first) → text → revisar_proyecto.\n"
-            "5. Tell them what you changed and where they see it. Before generating something long, say the time and ask.\n"
-            "6. First a quick test (22 frames, low resolution) if they agree; then generar, ver_cola, ver_video; judge with guia://revisar.")
+# ------------------------------------------------------------------ herramientas nuevas (31 oct; ya nacen en inglés)
+NUEVAS = ["upload_photo", "create_refmod", "view_reference", "frame_to_photo", "crop_reference", "set_reference_mode",
+          "hide_in_reference", "set_reference_strength", "reorder_references", "song_beats", "set_loras", "pause_queue",
+          "insert_shot", "duplicate_shot", "move_shot"]
+P_ = " `project`: the project name; empty = this session's current project."
 
 
-@mcp.prompt(name="retocar_video", title="Retouch a video", description="Erase or replace something in a part of a video")
-def retocar_video(que: str = "", video: str = "") -> str:
-    return (f"The creative wants to retouch{' «' + video + '»' if video else ' a video'}{': ' + que if que else ''}.\n"
-            "Read guia://prompts (section Retouch) and guia://recetas («Retouch a logo with SAM»). Steps: listar_videos → ver_video "
-            "to find the segment and the zone → ver_mascara (check the pink covers only that) → retocar with a SHORT prompt and "
-            "the references as <Picture N> → ver_cola → ver_video of the new file. Retouch the original, not a retouch.")
+async def _comfy_url() -> str:
+    return (await APPC.pedir("GET", "/app/salud"))["comfyui_url"].rstrip("/")
 
 
-@mcp.prompt(name="extender_video", title="Extend a video", description="Make a video longer, continuing the same shot")
-def extender_video(video: str = "", segundos: float = 0) -> str:
-    return (f"The creative wants to extend {('«' + video + '»') if video else 'a video'}"
-            f"{f' by about {segundos} s' if segundos else ''}.\n"
-            "Read guia://extender. Steps: listar_videos → ver_video (look at the LAST second: is it frozen? what is moving?) → "
-            "ver_extension (latent or mp4, audio, time) → tell the creative and ask before a long one → extender (prompt empty "
-            "unless they say what happens next; the project's references help) → esperar → ver_video around the join and at "
-            "the end. If colour or face drift: references first, then another seed.")
+async def _subir_a_input(contenido: bytes, nombre: str, carpeta: str) -> str:
+    """Sube una imagen a ComfyUI/input/<carpeta>/ (sin sobrescribir: ComfyUI le cambia el nombre) → su ruta en input/."""
+    try:
+        async with httpx.AsyncClient(timeout=120) as c:
+            r = await c.post(await _comfy_url() + "/upload/image", data={"type": "input", "subfolder": carpeta,
+                                                                          "overwrite": "false"},
+                             files={"image": (nombre, contenido)})
+        d = r.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise ErrorAgente(f"ComfyUI did not take the photo ({exc.__class__.__name__}): check status") from exc
+    return "/".join(x for x in (d.get("subfolder"), d.get("name")) if x)
 
 
-@mcp.prompt(name="revisar_resultado", title="Review a result", description="Look at the newest video and say what to change first")
-def revisar_resultado(video: str = "") -> str:
-    return (f"Look at {('«' + video + '»') if video else 'the newest video'} with ver_video and judge it with guia://revisar: "
-            "compare each frame with ver_proyecto (did each shot happen at its time? same character? text? effect?). Report "
-            "facts first, then ONE change to try, in this order: another seed → the prompt of the shot that failed → the "
-            "references → the durations. The creative decides.")
+def _jpeg(url: str, alto: int = 512) -> bytes:
+    r = subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-i", url, "-frames:v", "1", "-vf", f"scale=-2:'min({alto},ih)'",
+                        "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", "4", "-"], capture_output=True, timeout=60)
+    if r.returncode or not r.stdout:
+        raise ErrorAgente(f"could not read the image: {r.stderr.decode(errors='replace')[:200]}")
+    return r.stdout
+
+
+@mcp.tool(name="upload_photo", structured_output=False, description=(
+    "Copies a photo from this computer into ComfyUI/input/max_editor/fotos so it can become a reference (create_refmod) or "
+    "be cited in retouch / extend. Never overwrites (a repeated name gets another). Only files the creative pointed to. "
+    "Returns its path inside ComfyUI/input, the value create_refmod takes."))
+async def upload_photo(path: str) -> str:
+    ruta = os.path.expanduser(path)
+    if not os.path.isfile(ruta):
+        raise ErrorAgente(f"there is no file {ruta} on this computer: check the path with the creative")
+    if not ruta.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+        raise ErrorAgente("upload_photo takes png, jpg or webp photos; videos and audio go through upload_media")
+    with open(ruta, "rb") as fh:
+        rel = await _subir_a_input(fh.read(), os.path.basename(ruta), "max_editor/fotos")
+    return f"Uploaded: «{rel}». Use it in create_refmod(photos=[\"{rel}\"])."
+
+
+@mcp.tool(name="create_refmod", structured_output=False, description=(
+    "Creates a RefMod in the library from photos already in ComfyUI/input (upload_photo returns their paths). One photo = one "
+    "RefMod; several with pack=true = ONE RefMod holding them all (page: «grupo»), e.g. a character's full body + a face "
+    "crop: it arrives in H3 as <Video N> and keeps identity better. role (character · object · place · clothes · pose · "
+    "background · style · effect · font) sets what kind of concept it stores. mode: complete (default, full detail, 512) · "
+    "compressed (general look, far fewer tokens: for whole reels used as style). Fails while ComfyUI has anything queued "
+    "(it uses the GPU for a few seconds): wait and call again. Never overwrites: a taken name gets _2. Returns the RefMod "
+    "names; add them to the project with set_reference."))
+async def create_refmod(name: str, photos: list[str], role: str = "character", pack: bool = False, mode: str = "complete",
+                        folder: str = "subidas") -> str:
+    import mcp_en
+    papel = mcp_en.VALORES["role"].get(role, role)
+    modo = {"complete": "completo", "compressed": "comprimido"}.get(mode, mode)
+    if pack and len(photos) < 2:
+        raise ErrorAgente("a pack needs at least 2 photos")
+    r = await APPC.pedir("POST", "/edit_prompt_llm/subir_refmods", {"nombre": name, "papel": papel, "fotos": photos,
+                                                                     "juntar": bool(pack), "modo": modo, "carpeta": folder},
+                         espera=900)
+    return (f"Created {', '.join(r['creados'])} ({r.get('concepto')}, {r.get('modo')}, {r.get('segundos')} s). Next: "
+            "set_reference(refmod=…, role=…, name=…, card=…).")
+
+
+@mcp.tool(name="view_reference", structured_output=False, description=(
+    "Shows what a RefMod looks like: its photo, or every photo of a pack (up to 6), as images. Read-only. Fails if the "
+    "original photo is no longer in ComfyUI/input."))
+async def view_reference(refmod: str) -> list:
+    caj = (await APPC.pedir("GET", "/edit_prompt_llm/cajitas")).get("cajitas", {})
+    if caj.get(refmod):
+        base = await _comfy_url()
+        urls = []
+        for x in caj[refmod][:6]:
+            rel = x["file"].removesuffix(" [input]")
+            carpeta, _, nombre = rel.rpartition("/")
+            urls.append(f"{base}/view?" + urllib.parse.urlencode({"filename": nombre, "subfolder": carpeta, "type": "input"}))
+    else:
+        urls = [URL_APP + "/app/foto_referencia?" + urllib.parse.urlencode({"refmod": refmod})]
+    imgs = [await asyncio.to_thread(_jpeg, u) for u in urls]
+    return [f"«{refmod}»: {len(imgs)} photo(s){' (pack)' if caj.get(refmod) else ''}."] + [Image(data=b, format="jpeg") for b in imgs]
+
+
+@mcp.tool(name="frame_to_photo", structured_output=False, description=(
+    "Takes the frame at `at_s` seconds of a video (list_videos) and saves it as a photo in ComfyUI/input/max_editor/fotos, "
+    "full size, so it can become a reference (create_refmod) or be cited in retouch. Returns its path and the frame." + P_))
+async def frame_to_photo(video: str, at_s: float, project: str = "") -> list:
+    url = URL_APP + "/app/salidas/" + urllib.parse.quote(video)
+    r = await asyncio.to_thread(subprocess.run, ["ffmpeg", "-v", "error", "-nostdin", "-ss", str(float(at_s)), "-i", url,
+                                                 "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"],
+                                capture_output=True, timeout=60)
+    if r.returncode or not r.stdout:
+        raise ErrorAgente(f"no frame at {at_s} s of «{video}»: check the name with list_videos and the length with view_video")
+    rel = await _subir_a_input(r.stdout, f"{os.path.splitext(video)[0]}_{float(at_s):.2f}s.png", "max_editor/fotos")
+    return [f"Saved the frame at {float(at_s):.2f} s as «{rel}». Use it in create_refmod(photos=[\"{rel}\"])."]
+
+
+@mcp.tool(name="crop_reference", structured_output=False, description=(
+    "Re-crops an uploaded RefMod from its original photo and rebuilds it with the same name, mode and segment. rectangle: "
+    "{x, y, w, h} from 0 to 1 of the original photo, or null for the whole picture. Uses the GPU a few seconds (fails while "
+    "ComfyUI is busy: wait). Projects that use it pick up the new version. Fails for RefMods without a recorded source."))
+async def crop_reference(refmod: str, rectangle: dict | None = None) -> str:
+    r = await APPC.pedir("POST", "/edit_prompt_llm/recortar", {"nombre": refmod, "recorte": rectangle}, espera=600)
+    return f"Re-cropped «{refmod}». {r if isinstance(r, str) else ''}".strip()
+
+
+@mcp.tool(name="set_reference_mode", structured_output=False, description=(
+    "Makes a copy of a RefMod in the other mode: complete (full detail) or compressed (general look, far fewer tokens). The "
+    "original stays. Returns the new RefMod name: swap it in the project with set_reference + remove_reference."))
+async def set_reference_mode(refmod: str, mode: str) -> str:
+    modo = {"complete": "completo", "compressed": "comprimido"}.get(mode, mode)
+    r = await APPC.pedir("POST", "/edit_prompt_llm/cambiar_modo", {"nombre": refmod, "modo": modo}, espera=600)
+    nuevo = r.get("nombre") if isinstance(r, dict) else r
+    return f"«{refmod}» in {mode} mode: «{nuevo}»."
+
+
+@mcp.tool(name="hide_in_reference", structured_output=False, description=(
+    "Hides a face, hair, text or any named thing inside a reference's photo(s) (page: «Ocultar») so H3 does not copy it — "
+    "e.g. borrow clothes or a pose from someone else's photo without their face, or drop a watermark. SAM 3.1 finds them. "
+    "hide: any of face · hair · text; also: free English words («hat, logo»). look: blur (default) · pixelate · color. "
+    "preview=true only reports what SAM found (percent of each thing); preview=false creates the hidden RefMod (or reuses "
+    "it) and returns its name: swap it in with set_reference + remove_reference. Uses the GPU (fails while ComfyUI is busy)."))
+async def hide_in_reference(refmod: str, hide: list[str] | None = None, also: str = "", look: str = "blur",
+                            preview: bool = True) -> str:
+    cosas = [{"face": "cara", "hair": "pelo", "text": "texto"}.get(x, x) for x in hide or []]
+    forma = {"blur": "difuminar", "pixelate": "pixelar", "color": "color"}.get(look, look)
+    d = {"refmod": refmod, "cosas": cosas, "libre": also, "forma": forma}
+    if preview:
+        r = await APPC.pedir("POST", "/edit_prompt_llm/tapar_previa", d, espera=900)
+        hallado = ", ".join(f"{k} {v} %" for k, v in (r.get("encontrado") or {}).items()) or "nothing"
+        return (f"Preview for «{refmod}»: found {hallado}{' (already exists: ' + r['nombre'] + ')' if r.get('existe') else ''}. "
+                "Call again with preview=false to create it.")
+    r = await APPC.pedir("POST", "/edit_prompt_llm/tapar", d, espera=900)
+    return f"Hidden copy: «{r['name']}»{' (reused)' if r.get('reutilizado') else ''}; the original «{refmod}» stays."
+
+
+@mcp.tool(name="set_reference_strength", structured_output=False, description=(
+    "Sets how strongly H3 follows one reference of the project (0.05–2, 1 = normal). Measured: lowering it blurs the "
+    "reference rather than weakening it; crop the photo to control what it shows instead. Returns the saved rev." + P_))
+async def set_reference_strength(ref: str, strength: float, project: str = "") -> str:
+    p, clave = await APPC.cambiar(project, lambda p: p.poner_fuerza(ref, strength))
+    return f"«{clave}» strength {strength}.\n" + visto(p)
+
+
+@mcp.tool(name="reorder_references", structured_output=False, description=(
+    "Moves one reference to another position of the project's list (1 = first). Tags follow the order, so they are "
+    "renumbered, everywhere they are cited. Returns the new tags." + P_))
+async def reorder_references(ref: str, position: int, project: str = "") -> str:
+    p, clave = await APPC.cambiar(project, lambda p: p.mover_referencia(ref, position))
+    return f"«{clave}» is now number {position}. Tags: {', '.join(p.etiquetas())}.\n" + visto(p)
+
+
+@mcp.tool(name="song_beats", structured_output=False, description=(
+    "Returns the beat times (seconds from the segment start) of a song file (list_songs), for `seconds` from `start_s`, and "
+    "the strongest hits. Use it to tell the creative where the hits are; the segment start stays their choice. Read-only."))
+async def song_beats(file: str, start_s: float = 0.0, seconds: float = 10.0) -> str:
+    r = await APPC.pedir("POST", "/edit_prompt_llm/beats", {"audio": file, "audio_inicio": float(start_s),
+                                                             "entradas": {"duracion": float(seconds)}}, espera=120)
+    tiempos = r if isinstance(r, list) else (r or {}).get("beats") or r
+    return f"«{file}» from {start_s} s for {seconds} s: {tiempos}"
+
+
+@mcp.tool(name="set_loras", structured_output=False, description=(
+    "Replaces the project's LoRAs (used by generate, retouch and extend): loras = [{name, strength}] with names from "
+    "ComfyUI/models/loras (strength −1…2, 1 = normal); [] removes them. LoRAs change H3's style: only on the creative's "
+    "request. Fails on a name ComfyUI does not have." + P_))
+async def set_loras(loras: list[dict], project: str = "") -> str:
+    hay = {x["nombre"] for x in (await APPC.pedir("GET", "/app/loras")).get("loras") or []}
+    falta = [x.get("name") for x in loras if x.get("name") not in hay]
+    if falta:
+        raise ErrorAgente(f"ComfyUI has no LoRA {', '.join(map(str, falta))}: available: {', '.join(sorted(hay)) or 'none'}")
+    lista = [{"nombre": x["name"], "fuerza": float(x.get("strength", 1))} for x in loras]
+    p, _ = await APPC.cambiar(project, lambda p: p.poner_loras(lista))
+    return f"LoRAs: {', '.join(f'{x['nombre']} × {x['fuerza']}' for x in lista) or 'none'}.\n" + visto(p)
+
+
+@mcp.tool(name="pause_queue", structured_output=False, description=(
+    "Pauses (paused=true) or resumes the app's job queue: a paused queue starts nothing new; the running job finishes. "
+    "The queue is shared with the creative: only on their request."))
+async def pause_queue(paused: bool) -> str:
+    r = await APPC.pedir("POST", "/app/cola/pausar", {"pausada": bool(paused)})
+    return "Queue " + ("paused." if (r or {}).get("pausada", paused) else "running.")
+
+
+@mcp.tool(name="insert_shot", structured_output=False, description=(
+    "Splits shot `shot` in two halves and makes the second one a new EMPTY shot right after it (the others keep their "
+    "times). Each half must stay ≥ 0.4 s. Returns the shots with their times." + P_))
+async def insert_shot(shot: int, project: str = "") -> str:
+    p, _ = await APPC.cambiar(project, lambda p: p.partir_toma(shot, False))
+    return f"New empty shot {shot + 1}: {_tiempos(p)}\n" + visto(p)
+
+
+@mcp.tool(name="duplicate_shot", structured_output=False, description=(
+    "Splits shot `shot` in two halves with the SAME fields (a copy right after it), to vary one of them. Each half must stay "
+    "≥ 0.4 s. Returns the shots with their times." + P_))
+async def duplicate_shot(shot: int, project: str = "") -> str:
+    p, _ = await APPC.cambiar(project, lambda p: p.partir_toma(shot, True))
+    return f"Shot {shot} duplicated as shot {shot + 1}: {_tiempos(p)}\n" + visto(p)
+
+
+@mcp.tool(name="move_shot", structured_output=False, description=(
+    "Moves shot `shot` to position `to` (1…n). With hand-placed cuts, its length travels with it. Returns the shots with "
+    "their times." + P_))
+async def move_shot(shot: int, to: int, project: str = "") -> str:
+    p, _ = await APPC.cambiar(project, lambda p: p.mover_toma(shot, to))
+    return f"Shot {shot} is now shot {to}: {_tiempos(p)}\n" + visto(p)
+
+
+def _tiempos(p: Proyecto) -> str:
+    return " · ".join(f"{k} {a:.3f}–{b:.3f} s" for k, (a, b) in enumerate(p.duraciones(), 1))
+
+
+# ------------------------------------------------------------------ prompts (los elige el creativo; 31 oct: cortos, con la
+# herramienta de cada trabajo, sin pasos; «Good practices» las pondrá el creativo con su experiencia)
+PROMPTS = {
+    "create_edit": ("Create an edit", "From the creative's idea to a reviewed video", ("idea", "project"),
+        "The creative wants an edit{idea}. Build it in {project} so they can watch it in the page. Ask for what only they "
+        "decide: references, format and size, look, song and where its segment starts, length. Read guia://h3 and "
+        "guia://proyecto first. After each video, report what came out against what was asked.\n"
+        "Tools by job:\n- project: create_project · open_project · view_project · restore_from_video\n"
+        "- references: upload_photo · create_refmod (pack for body + face) · view_reference · list_refmods · set_reference · "
+        "remove_reference · reorder_references · add_text_effect\n- time and shots: set_length · set_shots · insert_shot · "
+        "duplicate_shot · move_shot · remove_shot · write_shot\n- words, song, sound: set_text_track · list_songs · "
+        "song_beats · set_song · set_sound\n- size and draw: set_resolution · set_seed\n- run and look: check_project · "
+        "status · generate · wait_for_job · view_queue · view_video"),
+    "retouch_video": ("Retouch a video", "Add, remove or refine something in part of a video", ("what", "video"),
+        "The creative wants to change part of {video}{what}. Redo only that zone and keep the rest. Read guia://retocar "
+        "first. Show them the mask before retouching.\nTools by job:\n- find it: list_videos · view_video (from_s / to_s)\n"
+        "- mark the zone: preview_mask (mask_text for things SAM can name, rectangle for the rest)\n- remove something: "
+        "retouch with a prompt of what is there instead\n- put something in: retouch with references (upload_photo, "
+        "frame_to_photo) cited as <Picture N>\n- refine a face or detail: retouch with a crop of the character's face as "
+        "reference\n- follow and check: wait_for_job · view_video of the new file"),
+    "extend_video": ("Extend a video", "Make a video longer, continuing the same shot", ("video", "seconds"),
+        "The creative wants {video} longer{seconds}, continuing the same shot. Read guia://retocar (Extend) first. Tell them "
+        "where the end comes from, the audio and the time before running it.\nTools by job:\n- check the end: view_video "
+        "(the last second)\n- plan: plan_extension\n- run and check: extend · wait_for_job · view_video around the join and "
+        "at the end"),
+    "review_result": ("Review a result", "Look at a video and say what to change first", ("video",),
+        "Look at {video} and compare it, shot by shot, with what the project asked for. Report facts with times, then one "
+        "change to try. Read guia://h3 if a failure is unclear. The creative decides.\nTools by job:\n- look: view_video "
+        "(frames, from_s / to_s per shot)\n- compare: view_project (with_prompt=true for what H3 actually read)\n- change: "
+        "set_seed · write_shot · set_reference · set_shots — or retouch for a local defect"),
+    "prepare_references": ("Prepare references", "Turn photos into references H3 reads well", ("subject", "photos"),
+        "The creative wants references for {subject}{photos}. Prepare RefMods that show it clearly and give each a role, a "
+        "name and a card of what is seen. Read guia://h3 (References) first. Show the creative each result.\n"
+        "Tools by job:\n- bring photos in: upload_photo · frame_to_photo\n- create: create_refmod (pack=true joins several "
+        "photos, e.g. full body + face crop)\n- look at it: view_reference\n- crop or change mode: crop_reference · "
+        "set_reference_mode\n- hide a face, hair or text inside it: hide_in_reference\n- use it: list_refmods · "
+        "set_reference · set_reference_strength"),
+    "enhance_video": ("Enhance a video", "Sharper or HDR, on the final video", ("video",),
+        "The creative wants {video} sharper or in HDR. It is the last step, on the approved video; the original stays. Read "
+        "guia://retocar (Enhance) first. Tell them the output size before running it.\nTools by job:\n- pick it: "
+        "list_videos · view_video\n- run and check: enhance (scale / quality / hdr_nits) · wait_for_job · view_video"),
+    "assemble_timeline": ("Join videos", "Join pieces of videos on the Editing timeline", ("idea",),
+        "The creative wants to join pieces of videos{idea} on the Editing timeline. The timeline is theirs too: read it "
+        "before changing it and ask before replacing a non-empty one. They choose the pieces and the order. Read "
+        "guia://retocar (Editing) first.\nTools by job:\n- what exists: list_media · list_videos(all_projects=true) · "
+        "upload_media (only files they point to)\n- the timeline: view_timeline · place_clip · remove_clip · "
+        "replace_timeline (replaces everything)\n- result: export_timeline · view_video at each join"),
+}
+PROMPTS_VIEJOS = {"crear_edit": "create_edit", "retocar_video": "retouch_video", "extender_video": "extend_video",
+                  "revisar_resultado": "review_result"}
+
+
+VIEJOS_ARGS = {"proyecto": "project", "que": "what", "segundos": "seconds"}
+
+
+def _prompt(nombre: str, args: tuple):
+    titulo, desc, _, texto = PROMPTS[nombre]
+
+    def hacer(**kw) -> str:
+        kw = {VIEJOS_ARGS.get(k, k): w for k, w in kw.items()}
+        v = {VIEJOS_ARGS.get(a, a): (kw.get(VIEJOS_ARGS.get(a, a)) or "").strip() for a in args}
+        return texto.format(
+            idea=f": «{v['idea']}»" if v.get("idea") else "", project=v.get("project") or "a new project",
+            what=f": «{v['what']}»" if v.get("what") else "", video=f"«{v['video']}»" if v.get("video") else "a video",
+            seconds=f" by about {v['seconds']} s" if v.get("seconds") else "",
+            subject=f"«{v['subject']}»" if v.get("subject") else "a character or thing",
+            photos=f" from {v['photos']}" if v.get("photos") else "")
+    hacer.__signature__ = inspect.Signature([inspect.Parameter(a, inspect.Parameter.KEYWORD_ONLY, default="", annotation=str)
+                                             for a in args])
+    hacer.__annotations__ = {a: str for a in args} | {"return": str}
+    return hacer, titulo, desc
+
+
+for _n, (_t, _d, _a, _) in PROMPTS.items():
+    _f, _t, _d = _prompt(_n, _a)
+    mcp.prompt(name=_n, title=_t, description=_d)(_f)
+ARGS_VIEJOS = {"crear_edit": ("idea", "proyecto"), "retocar_video": ("que", "video"), "extender_video": ("video", "segundos"),
+               "revisar_resultado": ("video",)}
+for _viejo, _n in PROMPTS_VIEJOS.items():         # los nombres viejos siguen valiendo (escondidos en la lista)
+    _f, _t, _d = _prompt(_n, ARGS_VIEJOS[_viejo])
+    mcp.prompt(name=_viejo, title=_t, description=_d)(_f)
+
+import mcp_en  # noqa: E402  (la cara en inglés: nombres, parámetros y descripciones nuevas; los viejos como alias)
+mcp_en.registrar(mcp, globals(), NUEVAS, ocultos_prompts=set(PROMPTS_VIEJOS),
+                 ocultos_recursos={f"guia://{t}" for t in TEMAS_VIEJOS})
 
 
 def main():

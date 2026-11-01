@@ -281,10 +281,29 @@ class Proyecto:
         x = self.estado()["refs"].get(clave)
         return bool(x) and bool(x.get("en_todas", x.get("papel") == "personaje"))
 
-    def remapear(self, antes: dict) -> None:
-        """Las tomas guardan etiquetas: si los números cambiaron, se traducen por clave (lo que ya no está queda vacío)."""
+    def remapear(self, antes: dict) -> list[str]:
+        """Las tomas guardan etiquetas: si los números cambiaron, se traducen por clave (lo que ya no está queda vacío). Desde
+        el 31 oct también dentro del texto libre (acción, gesto, lugar…: antes se quedaban con el número viejo); una cita a
+        una referencia que ya no está se deja y se devuelve como aviso («Check:»)."""
         ahora_ = {r["clave"]: r["tag"] for r in self.referencias() if r["tag"]}
-        for t in self.plan["tomas"]:
+        avisos = []
+
+        def en_texto(texto: str, donde: str) -> str:
+            def uno(m):
+                viejo = m.group(0)
+                if viejo not in antes:
+                    return viejo
+                nuevo = ahora_.get(antes[viejo])
+                if not nuevo:
+                    avisos.append(f"Check: {donde} still cites {viejo}, a reference that is no longer in the project")
+                    return viejo
+                return nuevo
+            return ETIQUETA.sub(uno, texto or "")
+
+        for k, t in enumerate(self.plan["tomas"], 1):
+            for c in CAMPOS_TEXTO:
+                if t.get(c):
+                    t[c] = en_texto(t[c], f"shot {k} {c}")
             for c in CAMPOS_REF:
                 if (t.get(c) or "").startswith("<"):
                     t[c] = ahora_.get(antes.get(t[c]), "")
@@ -294,6 +313,9 @@ class Proyecto:
         for x in self.plan.get("textos") or []:
             if (x.get("letra") or "").startswith("<"):
                 x["letra"] = ahora_.get(antes.get(x["letra"]), "")
+            if x.get("frase"):
+                x["frase"] = en_texto(x["frase"], f"text «{x.get('texto', '')}»")
+        return avisos
 
     def existe_etiqueta(self, tag: str) -> bool:
         return tag in self.etiquetas() or tag in self.estado()["efectos"]
@@ -433,6 +455,100 @@ class Proyecto:
                 m["toma"] -= 1
         self.estado()["toma_elegida"] = max(1, min(k, n - 1))
 
+    # ---- insertar, duplicar y mover tomas (31 oct, herramientas nuevas del MCP; la página aún no tiene estos botones)
+    def _largos(self) -> list[float] | None:
+        """Lo que dura cada toma si los cortes van a mano; None si van solos (beats o parejos)."""
+        c, n = self.plan.get("cortes"), self.n_tomas
+        if not (c and len(c) == n):
+            return None
+        return [(c[i + 1] if i + 1 < n else self.duracion) - c[i] for i in range(n)]
+
+    def _poner_largos(self, largos: list[float]) -> None:
+        ini, acc = [], 0.0
+        for x in largos:
+            ini.append(al_fotograma(acc))
+            acc += x
+        if not cortes_validos(ini, len(largos), self.duracion):
+            raise ErrorAgente(f"after snapping to whole frames some shot is shorter than {MIN_TOMA} s")
+        self.plan["cortes"] = ini
+
+    def _mover_marcas(self, desde: int, suma: int) -> None:
+        for m in (self.datos.get("agente") or {}).get("marcas") or []:
+            if (m.get("toma") or 0) >= desde:
+                m["toma"] += suma
+
+    def partir_toma(self, k: int, copiar: bool) -> None:
+        """Parte la toma k en dos mitades: la nueva va detrás, vacía (insertar) o con los mismos campos (duplicar)."""
+        t, n = self._toma(k), self.n_tomas
+        if n + 1 > MAX_TOMAS:
+            raise ErrorAgente(f"an edit has at most {MAX_TOMAS} shots")
+        largos = self._largos()
+        if largos is None and (n + 1) * MIN_TOMA > self.duracion + 1e-6:
+            raise ErrorAgente(f"{n + 1} shots do not fit in {self.duracion} s")
+        if largos is not None and largos[k - 1] / 2 < MIN_TOMA - 1e-6:
+            raise ErrorAgente(f"shot {k} lasts {largos[k - 1]:.3f} s: two halves would be under {MIN_TOMA} s")
+        nueva = json.loads(json.dumps(t)) if copiar else toma_vacia()
+        self._mover_marcas(k + 1, 1)
+        self.plan["tomas"].insert(k, nueva)
+        self.poner(self.edit, "tomas", n + 1)
+        if largos is not None:
+            largos[k - 1:k] = [largos[k - 1] / 2, largos[k - 1] / 2]
+            self._poner_largos(largos)
+        self.estado()["toma_elegida"] = k + 1
+
+    def mover_toma(self, k: int, a: int) -> None:
+        """Lleva la toma k al puesto a; con cortes a mano, su duración va con ella."""
+        self._toma(k)
+        n = self.n_tomas
+        if not 1 <= int(a) <= n:
+            raise ErrorAgente(f"the new position must be between 1 and {n}")
+        a, largos = int(a), self._largos()
+        tomas = self.plan["tomas"]
+        tomas.insert(a - 1, tomas.pop(k - 1))
+        if largos is not None:
+            largos.insert(a - 1, largos.pop(k - 1))
+            self._poner_largos(largos)
+        orden = list(range(1, n + 1))
+        orden.insert(a - 1, orden.pop(k - 1))           # orden[i] = qué toma vieja ocupa el puesto i+1
+        nuevo = {viejo: i + 1 for i, viejo in enumerate(orden)}
+        for m in (self.datos.get("agente") or {}).get("marcas") or []:
+            if m.get("toma"):
+                m["toma"] = nuevo.get(m["toma"], m["toma"])
+        self.estado()["toma_elegida"] = a
+
+    # ---- referencias: orden, fuerza y LoRAs (31 oct)
+    def mover_referencia(self, ref: str, puesto: int) -> list[str]:
+        """Lleva una referencia al puesto `puesto` del Stack (1 = la primera): cambian las etiquetas, y se traducen en todo."""
+        clave = self.clave_de(ref)
+        picks = self.picks()
+        llenos = [p for p in picks if p]
+        if not 1 <= int(puesto) <= len(llenos):
+            raise ErrorAgente(f"the position must be between 1 and {len(llenos)}")
+        antes = {r["tag"]: r["clave"] for r in self.referencias() if r["tag"]}
+        p = next(x for x in llenos if x.get("name") == clave)
+        llenos.remove(p)
+        llenos.insert(int(puesto) - 1, p)
+        self.poner_picks(llenos)
+        self.checks = self.remapear(antes)
+        self.marcar("referencia", ref=clave)
+        return clave
+
+    def poner_fuerza(self, ref: str, fuerza: float) -> str:
+        clave = self.clave_de(ref)
+        if not 0.05 <= float(fuerza) <= 2:
+            raise ErrorAgente("strength must be between 0.05 and 2 (1 = normal)")
+        picks = self.picks()
+        for p in picks:
+            if p and p.get("name") == clave:
+                p.setdefault("visual", {})["w"] = round(float(fuerza), 3)
+        self.poner_picks(picks)
+        self.marcar("referencia", ref=clave)
+        return clave
+
+    def poner_loras(self, loras: list[dict]) -> None:
+        self.estado()["loras"] = [{"nombre": x["nombre"], "fuerza": float(x.get("fuerza", 1))} for x in loras]
+        self.guardar_estado()
+
     def _toma(self, k: int) -> dict:
         try:
             k = int(k)
@@ -565,7 +681,7 @@ class Proyecto:
             r["atuendo"] = str(atuendo).strip()
         if principal is not None or r.get("en_todas") is None:
             self.poner_grupo(clave, bool(principal) if principal is not None else r.get("papel") == "personaje")
-        self.remapear(antes)
+        self.checks = self.remapear(antes)
         self.marcar("referencia", ref=clave)
         return next((x["tag"] for x in self.referencias() if x["clave"] == clave), None) or "(off)"
 
@@ -594,7 +710,7 @@ class Proyecto:
         clave = self.clave_de(ref)
         antes = {r["tag"]: r["clave"] for r in self.referencias() if r["tag"]}
         self.poner_picks([p for p in self.picks() if not (p and p.get("name") == clave)])
-        self.remapear(antes)
+        self.checks = self.remapear(antes)
         marcas = (self.datos.get("agente") or {}).get("marcas") or []
         marcas[:] = [m for m in marcas if m.get("ref") != clave]
         self.marcar("referencia", ref="(quitada)")
@@ -826,6 +942,11 @@ def revisar(p: Proyecto) -> tuple[list[str], list[str]]:
         errores.append("more than 3 videos: H3 takes 3 at most")
     if e["a_mano"]:
         avisos.append("the final prompt was edited by hand in the page: your shot changes do not reach H3")
+    # los huecos que marca la página, en una sola línea y por toma (31 oct: eran diez avisos y «no action» era el gesto)
+    huecos = {}
     for x in getattr(p, "avisos", None) or []:
-        avisos.append(f"page gap (informative): {x}")
+        toma, _, que = x.partition(": ")
+        huecos.setdefault(toma, []).append("no gesture" if que == "no action" else que or toma)
+    if huecos:
+        avisos.append("empty optional fields (informative): " + "; ".join(f"{k}: {', '.join(v)}" for k, v in huecos.items()))
     return errores, avisos

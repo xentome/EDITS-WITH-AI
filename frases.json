@@ -38,6 +38,7 @@
  "toma.atuendo": "wearing {posesivo} {atuendo} from {tag}",
  "toma.ropa": "wearing the {nombre|clothes} from {tag}",
  "toma.pose": "in the pose of {tag}",
+ "toma.con_personaje": "with {sujeto}",
  "toma.citas.y": " and ",
  "texto.encima": "At {t} the huge word \"{texto}\" slams over the {encuadre|shot}, with <Subject 1>'s face still visible behind the letters[[, {estilo}]].",
  "texto.encima_varias": "At {t} the huge words \"{texto}\" slam over the {encuadre|shot}, with <Subject 1>'s face still visible behind the letters[[, {estilo}]].",

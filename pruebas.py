@@ -818,6 +818,28 @@ comprobar("la resolución va a múltiplos de 32; sin canción solo avisa (se gen
           and any("shot 2" in x and "main field" in x for x in av18),
           (p18.tamano(), err18, av18))
 
+# 31 oct: el texto libre también se renumera; insertar, duplicar y mover tomas; un segundo personaje no es un efecto
+p18b = AG.Proyecto({"nombre": "prueba", "valores": {}}, plantilla18)
+p18b.poner_referencia(fon18, "fondo")
+p18b.poner_referencia(lib18, "personaje", "Ren", None, "he")
+mia18 = {"name": "personajes/mia", "label": "mia", "concept": "identity", "visual": {"file": "personajes/mia", "kind": "image"}}
+p18b.poner_referencia(mia18, "personaje", "Mia", "a girl in a striped sweater", "she", False)
+p18b.poner_duracion(5)
+p18b.poner_tomas(2, [2.5, 2.667])
+p18b.escribir_toma(1, {"momento": "Ren walks past <Picture 3> toward <Picture 1>"}, conectar=["<Picture 3>"])
+p18b.quitar_referencia("<Picture 1>")
+comprobar("quitar una referencia renumera también el texto libre; la cita a la quitada se queda y sale como «Check:»",
+          p18b.plan["tomas"][0]["momento"] == "Ren walks past <Picture 2> toward <Picture 1>"
+          and any("<Picture 1>" in x for x in p18b.checks), (p18b.plan["tomas"][0]["momento"], p18b.checks))
+p18b.partir_toma(1, True)
+p18b.mover_toma(3, 1)
+comprobar("duplicar parte la toma en dos mitades iguales; mover lleva su duración con ella",
+          p18b.n_tomas == 3 and p18b.plan["tomas"][1]["momento"] == p18b.plan["tomas"][2]["momento"]
+          and abs((p18b.plan["cortes"][1] - p18b.plan["cortes"][0]) - 2.667) < 0.05, p18b.plan["cortes"])
+lin18 = [x for x in N.montar_plan(p18b.entradas(), p18b.plan, None, "en")[0].splitlines() if x.startswith("[Shot 2]")]
+comprobar("un segundo personaje conectado sale como «with <Subject 2>», nunca como «like the effect in»",
+          lin18 and "with <Subject 2>" in lin18[0] and "effect" not in lin18[0], lin18)
+
 print("19 · Extender: longitudes, de dónde sale la cola, la canción y la unión (app/extender.py, sin GPU)")
 import extender as EX  # noqa: E402
 import generar as GEN  # noqa: E402

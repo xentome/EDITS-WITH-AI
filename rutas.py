@@ -719,6 +719,7 @@ def tapar(d):
 # acción → (función, usa el LLM). Una acción nueva se añade aquí: no hace falta reiniciar ComfyUI.
 ACCIONES = {
     "montar": (montar, False),
+    "beats": (beats, False),           # 31 oct: song_beats del MCP (los golpes de un tramo, sin montar nada)
     "historia": (historia, True),
     "tomas": (tomas, True),
     "describir": (describir, True),

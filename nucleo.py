@@ -1125,10 +1125,17 @@ def montar(perfil, menu, plan, ini, textos, idioma="es", frases=None):
         # las referencias conectadas: sin «efecto de la referencia», la ficha de cada una va justo después del encuadre,
         # como en el edit de Ren que funcionó; con él, esa frase (con sus <Picture N> dentro) va al final de la toma, para
         # que no pase en el primer fotograma (26 oct: el título animado salía desde el segundo 0)
+        # un personaje conectado no es un efecto (31 oct: entraba como «like the effect in»): sale como «with <Subject N>»;
+        # si es el mismo que el protagonista (otra foto del mismo nombre), ya está en <Subject 1> y no se cita
+        sujeto_de = {tag: g["sujeto"] for g in perfil["personajes"] for tag in g["tags"]}
+        for x in con_efectos(t)["efectos"]:
+            if x in menu["personaje"] and sujeto_de.get(x, "<Subject 1>") != "<Subject 1>":
+                citas.append(C.pegar("toma.con_personaje", sujeto=sujeto_de[x]))
         propia = (t.get("efecto_frase") or "").strip()
         efecto = [] if propia else unir(C, [C.pegar("toma.efecto", frase=de_usuario(ficha_conectada(menu, x)),
                                                     tag=x if x.startswith("<") else "")
-                                           for x in con_efectos(t)["efectos"] if ficha_conectada(menu, x)], "toma.citas.y")
+                                           for x in con_efectos(t)["efectos"]
+                                           if x not in menu["personaje"] and ficha_conectada(menu, x)], "toma.citas.y")
         s = trozo(f"[Shot {k}] At {mmss(ini[k - 1])}") + C.pegar(
             "toma.linea", encuadre=falta(campo("encuadre"), "final.hueco.sin_encuadre", k=k),
             estilo=C.pegar("toma.estilo", estilo=de_usuario((t.get("estilo") or "").strip().rstrip("."))) if (t.get("estilo") or "").strip() else [],
