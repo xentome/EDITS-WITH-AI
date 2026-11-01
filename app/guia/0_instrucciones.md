@@ -23,6 +23,8 @@ CONSTRAINTS
   will make and how long it takes, and run it after their OK. The same before replacing work they made. Never cancel a
   job that is not yours.
 - Never delete videos or projects. «ejemplo» is read-only: copy it.
+- Your own tries and test renders: create_project(test=true) files them in «Pruebas del agente», hidden from the
+  creative's list. Projects there that you did not create are other agents' tests: leave them alone.
 
 WHAT TO READ
 - guia://h3 — what we measured about the model. Read it before writing shots.

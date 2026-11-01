@@ -42,7 +42,7 @@ PARAMETROS = {
     "nuevos": "new_frames", "solape": "overlap", "calidad": "quality", "escala": "scale", "donde": "where",
     "nombre_copia": "copy_name", "pistas": "tracks", "lienzo": "canvas", "fuente": "source", "en": "timeline_at",
     "pista": "track", "ini": "source_start", "cerrar_hueco": "close_gap", "ruta": "path", "tipo": "kind", "carpeta": "folder",
-    "tema": "topic", "sin_personaje": "without_character", "modo": "mode", "fuerza": "strength", "denoise": "denoise", "vueltas": "passes",
+    "tema": "topic", "prueba": "test", "sin_personaje": "without_character", "modo": "mode", "fuerza": "strength", "denoise": "denoise", "vueltas": "passes",
 }
 POR_HERRAMIENTA = {"poner_clip": {"fin": "source_end"}}     # el mismo nombre viejo con otro sentido
 
@@ -134,13 +134,15 @@ DESCRIPCIONES = {
               "session's current project. Read-only. A service marked ✗ blocks generating; the local LLM is optional.",
     "read_guide": "Returns a chapter of the agent guide as markdown. topic: «index» lists the chapters (h3, proyecto, "
                   "trampas, retocar). The same text is available as guia://<topic> resources.",
-    "list_projects": "Lists the projects, newest first. Read-only. «ejemplo» is read-only: copy it with "
+    "list_projects": "Lists the projects as the creative ordered them (pinned first), with their group. Projects in «Pruebas "
+                     "del agente» are agents' tests: use only the ones you created, unless the creative asks. Read-only. «ejemplo» is read-only: copy it with "
                      "create_project(copy_from=\"ejemplo\").",
     "open_project": "Makes a project this session's current one and returns a short summary of it (view_project gives the "
                     "whole thing). It does not change what the creative has open in the page. Fails if the name does not "
                     "exist (see list_projects).",
     "create_project": "Creates a new empty project, or a copy of `copy_from`, and makes it the current one. Returns a short "
-                      "summary. Never overwrites: fails if `name` already exists.",
+                      "summary. Never overwrites: fails if `name` already exists. test=true for your own tries and test "
+                      "renders: the project goes to the group «Pruebas del agente», hidden from the creative's list.",
     "view_project": "Returns the whole project: resolution, seed, references with their current tags and roles, timeline "
                     "(shots with start, end and fields), text track, song, sound, and the gaps the page flags. "
                     "with_prompt=true appends the final prompt H3 will receive. Read-only. " + P,

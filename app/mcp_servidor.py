@@ -100,6 +100,18 @@ class App:
     def __init__(self):
         self.plantilla = None
         self._actual = {}                   # sesión MCP → su proyecto actual (el último que abrió o creó)
+        self._mias = {}                     # sesión MCP → los proyectos de prueba que creó (31 oct, «Pruebas del agente»)
+
+    def mias(self) -> set:
+        return self._mias.setdefault(SESION.get(), set())
+
+    async def grupo(self, nombre: str) -> str | None:
+        """El grupo de un proyecto en la ventana Proyectos ('' sin grupo, '_pruebas'…); None si la app aún no lo sabe."""
+        try:
+            ps = await self.pedir("GET", "/app/proyectos")
+        except ErrorAgente:
+            return None
+        return next((p.get("grupo") for p in ps if p.get("nombre") == nombre), None)
 
     # 31 oct: un proyecto actual POR SESIÓN (antes era uno para todos los agentes conectados: uno podía cambiar el de otro)
     @property
@@ -164,6 +176,10 @@ class App:
             if "error" not in r:
                 p.datos.update(rev=r["rev"], guardado=r["guardado"], autor="agente")
                 self.actual = nombre
+                if nombre not in self.mias() and await self.grupo(nombre) == "_pruebas":
+                    p.checks = list(getattr(p, "checks", None) or []) + [
+                        f"Check: «{nombre}» is in «Pruebas del agente» and was not created in this session: it is another "
+                        "agent's test. Leave it unless the creative asked you to work on it."]
                 return p, res
         raise ErrorAgente("the project keeps changing in the page (the creative is editing it): try again in a moment")
 
@@ -271,7 +287,17 @@ async def listar_proyectos() -> str:
         refs = ", ".join(x.get("nombre") or x.get("refmod") or "?" for x in r.get("refs") or [])
         return (f" · {r.get('tomas') or 0} shots · {r.get('n_refs') or 0} refs{' (' + refs + ')' if refs else ''}"
                 f" · {'song' if r.get('cancion') else 'no song'}" + (f" · idea: {r['idea']}" if r.get("idea") else ""))
-    return "\n".join(f"- {p['nombre']} · saved {p.get('guardado') or '?'} · rev {p.get('rev', 0)}"
+    grupos = {}
+    try:
+        grupos = {g["id"]: g["nombre"] for g in (await APPC.pedir("GET", "/app/organizar")).get("grupos") or []}
+    except ErrorAgente:
+        pass
+
+    def donde(p: dict) -> str:       # 31 oct: grupo y fijado (ventana Proyectos)
+        g = p.get("grupo") or ""
+        return ((" · group: Pruebas del agente (tests: leave other agents' ones alone)" if g == "_pruebas" else
+                 f" · group: {grupos.get(g, g)}" if g else "") + (" · pinned" if p.get("importante") else ""))
+    return "\n".join(f"- {p['nombre']}{donde(p)} · saved {p.get('guardado') or '?'} · rev {p.get('rev', 0)}"
                      f"{' · last change by the agent' if p.get('autor') == 'agente' else ''}{resumen(p.get('resumen') or {})}"
                      for p in ps) or "(no projects)"
 
@@ -288,7 +314,7 @@ async def abrir_proyecto(nombre: str) -> str:
 
 
 @herramienta
-async def crear_proyecto(nombre: str, copiar_de: str = "") -> str:
+async def crear_proyecto(nombre: str, copiar_de: str = "", prueba: bool = False) -> str:
     """Create a NEW project (empty, or a copy of another one with copiar_de). It never overwrites: if the name exists, it fails.
     The creative sees it in the header › «Proyecto» list. It becomes the current project of this session."""
     nombre = nombre.strip()
@@ -301,9 +327,17 @@ async def crear_proyecto(nombre: str, copiar_de: str = "") -> str:
     if "error" in r:
         raise ErrorAgente(f"could not create «{nombre}»: {r['error']} (it is never overwritten: choose another name)")
     APPC.actual = nombre
+    nota = ""
+    if prueba:               # 31 oct: las pruebas del agente van al grupo «Pruebas del agente» (oculto para el creativo)
+        APPC.mias().add(nombre)
+        try:
+            await APPC.pedir("POST", "/app/organizar", {"accion": "mover", "proyecto": nombre, "grupo": "_pruebas"})
+            nota = " Filed in «Pruebas del agente» (hidden in the creative's project list)."
+        except ErrorAgente:
+            nota = " Could not file it in «Pruebas del agente» yet (the app needs a restart to know groups)."
     p, _ = await APPC.cambiar(nombre, lambda p: None)
-    return f"Created{' as a copy of «' + copiar_de + '»' if copiar_de else ''}: {resumen(p)} It is now the current project. " \
-           "Ask the creative to open it in the page (header › «Proyecto»)." + ("" if copiar_de else
+    return f"Created{' as a copy of «' + copiar_de + '»' if copiar_de else ''}: {resumen(p)}{nota} It is now the current " \
+           "project. Ask the creative to open it in the page (header › «Proyecto»)." + ("" if copiar_de else
            "\nCheck: the size above is only the template's default; the format (vertical, horizontal, square) and the size "
            "are the creative's choice: ask before set_resolution.")
 
@@ -1267,7 +1301,7 @@ async def exportar_edicion(proyecto: str = "") -> str:
 # ------------------------------------------------------------------ herramientas nuevas (31 oct; ya nacen en inglés)
 NUEVAS = ["upload_photo", "create_refmod", "view_reference", "frame_to_photo", "crop_reference", "set_reference_mode",
           "hide_in_reference", "set_reference_strength", "reorder_references", "song_beats", "set_loras", "pause_queue",
-          "insert_shot", "duplicate_shot", "move_shot"]
+          "insert_shot", "duplicate_shot", "move_shot", "organize_project"]
 P_ = " `project`: the project name; empty = this session's current project."
 
 
@@ -1459,6 +1493,29 @@ async def set_loras(loras: list[dict], project: str = "") -> str:
 async def pause_queue(paused: bool) -> str:
     r = await APPC.pedir("POST", "/app/cola/pausar", {"pausada": bool(paused)})
     return "Queue " + ("paused." if (r or {}).get("pausada", paused) else "running.")
+
+
+@mcp.tool(name="organize_project", structured_output=False, description=(
+    "Files a project in the creative's Projects window: group = a group name (created if new), «» (no group) or «Pruebas "
+    "del agente»; pinned = true keeps it at the top. This is the creative's own organisation: only when they ask. Returns "
+    "where it is now."))
+async def organize_project(project: str, group: str | None = None, pinned: bool | None = None) -> str:
+    org = await APPC.pedir("GET", "/app/organizar")
+    if group is not None:
+        if group.strip().lower() in ("pruebas del agente", "_pruebas"):
+            gid = "_pruebas"
+        elif not group.strip():
+            gid = ""
+        else:
+            gid = next((g["id"] for g in org.get("grupos") or [] if g["nombre"].lower() == group.strip().lower()), None)
+            if gid is None:
+                gid = (await APPC.pedir("POST", "/app/organizar", {"accion": "grupo_nuevo", "nombre": group.strip()})).get("id")
+        await APPC.pedir("POST", "/app/organizar", {"accion": "mover", "proyecto": project, "grupo": gid})
+    if pinned is not None:
+        await APPC.pedir("POST", "/app/organizar", {"accion": "importante", "proyecto": project, "si": bool(pinned)})
+    g = await APPC.grupo(project)
+    return f"«{project}»: group {'Pruebas del agente' if g == '_pruebas' else (g or 'none')}" + \
+        ("" if pinned is None else f" · {'pinned' if pinned else 'not pinned'}") + "."
 
 
 @mcp.tool(name="insert_shot", structured_output=False, description=(
