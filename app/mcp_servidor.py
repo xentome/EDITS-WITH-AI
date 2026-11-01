@@ -100,7 +100,8 @@ class App:
     async def pedir(self, metodo: str, ruta: str, cuerpo=None, espera: float = 60, ok=(200,)):
         try:
             async with httpx.AsyncClient(timeout=espera) as c:     # idioma=en: los errores de la app llegan en inglés
-                r = await c.request(metodo, URL_APP + ruta, json=cuerpo, params={"idioma": "en"})
+                # se añade a la ruta (con params=, httpx tiraba la consulta que ya traía: ?video=, ?proyecto=…)
+                r = await c.request(metodo, URL_APP + ruta + ("&" if "?" in ruta else "?") + "idioma=en", json=cuerpo)
         except httpx.HTTPError as exc:
             raise ErrorAgente(f"MAX EDITOR does not answer at {URL_APP} ({exc.__class__.__name__}). Start it with app/arrancar.sh") from exc
         try:
