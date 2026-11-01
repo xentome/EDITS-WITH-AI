@@ -188,7 +188,8 @@ textarea.epl-final{min-height:40vh}
 .epl-girar{font-size:16px;padding:2px 7px}
 /* subir video: recorte y tramo */
 .epl-sv{display:flex;flex-direction:column;gap:6px;min-width:0}
-.epl-sv-marco{position:relative;align-self:center;max-width:100%;user-select:none;touch-action:none}
+.epl-sv-marco{position:relative;align-self:center;max-width:100%;width:fit-content;line-height:0;user-select:none;touch-action:none}
+.epl-sv-marco>img{display:block;max-width:none}
 .epl-sv-video{display:block;max-width:100%;max-height:52vh}
 .epl-sv-rect{position:absolute;border:2px solid #f0ff41;cursor:move;box-sizing:border-box}
 .epl-sv-h{position:absolute;width:12px;height:12px;background:#f0ff41;border:1px solid #111}

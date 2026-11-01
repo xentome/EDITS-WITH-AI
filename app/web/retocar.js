@@ -775,7 +775,15 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
   function recortarYSubir(fuente, nombre, alListo) {
     const v = A.ctx.capa("");
     const propia = fuente instanceof Blob, url = propia ? URL.createObjectURL(fuente) : fuente;
-    const img = el("img", { src: url, alt: "", class: "max-rt-img-recorte" });
+    /* (1 nov, Jonathan: «el espacio sale estirado a la derecha y corta otra parte») la imagen se dibuja a un tamaño que cabe
+     * en la ventana, con su proporción (también las pequeñas, que antes se quedaban a 260 px), y el marco mide lo mismo que
+     * ella: el recuadro va en fracciones del marco y el corte en fracciones de la imagen, así que tienen que coincidir */
+    const img = el("img", { src: url, alt: "", class: "max-rt-img-recorte", draggable: false, onload: () => {
+      const W = img.naturalWidth, H = img.naturalHeight;
+      if (!W || !H) return;
+      const k = Math.min(Math.min(window.innerWidth * 0.8, 1400) / W, window.innerHeight * 0.58 / H);
+      Object.assign(img.style, { width: Math.round(W * k) + "px", height: Math.round(H * k) + "px" });
+    } });
     const x = { recorte: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 } };
     const ed = A.ctx.editorRecorte(img, x);
     const cerrar = () => { if (propia) URL.revokeObjectURL(url); v.cerrar(); };
