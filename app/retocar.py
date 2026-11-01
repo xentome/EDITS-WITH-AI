@@ -447,9 +447,38 @@ def preparar(datos: dict) -> tuple[dict, dict]:
         extra = _con_lanpaint(g, datos.get("vueltas"))
     else:
         extra = _con_fuerza(g, datos)
+    if mascara_cruda(g):
+        extra["mascara_cruda"] = True
     return g, {"video": datos["video"], "info": vi, "tramo": vi_tramo, "tramo_archivo": tramo, "mascara": mascara,
                "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "modo": modo, **extra,
                **({} if modo == "detallar" else {"megapixeles": megapixeles(datos)})}
+
+
+# (1 nov, beta, Jonathan) «Empezar desde 0»: con "mascara_cruda": true en config.local.json (no va a git) se apaga todo el
+# arreglo de la máscara que heredamos del workflow de inpainting (limpieza, agrandar, rellenar, estirar en el tiempo y
+# bordes suaves al pegar), para elegir cada mejora probándola. Lo único que queda es la rejilla de H3 en el latente
+# (NKDMaskOps con el VAE y el modelo): H3 rehace bloques enteros de 2×2 latentes y no se puede quitar.
+def mascara_cruda(g: dict) -> bool:
+    if not generar.config().get("mascara_cruda"):
+        return False
+    limpieza = g.pop(N_LIMPIEZA, None)
+    if limpieza:
+        origen = limpieza["inputs"]["masks"]
+        for nodo in g.values():
+            for k, v in (nodo.get("inputs") or {}).items():
+                if generar.es_enlace(v) and v[0] == N_LIMPIEZA:
+                    nodo["inputs"][k] = list(origen)
+    if N_OPS in g:
+        g[N_OPS]["inputs"].update(despeckle=0, fill_holes=False, close_gaps=0, temporal_expand=0, temporal_smooth=0,
+                                  expand=0, feather=0)
+    if N_OPS_FINAL in g:
+        g[N_OPS_FINAL]["inputs"].update(fill_holes=False, expand=0, feather=0)
+    for nodo in g.values():
+        if nodo.get("class_type") == "MVEx_SubjectUncrop":
+            nodo["inputs"]["feather"] = 0
+        elif nodo.get("class_type") == "LanPaint_MaskBlend":
+            nodo["inputs"]["blend_overlap"] = 1                  # su mínimo
+    return True
 
 
 # ---------------------------------------------------------------- los tres modos de Retocar (31 oct, Jonathan)
@@ -608,6 +637,7 @@ def preparar_mascara(datos: dict) -> tuple[dict, dict]:
         "pix_fmt": "yuv420p", "crf": 19, "save_metadata": False, "trim_to_audio": False, "pingpong": False, "save_output": True,
         "images": [N_PEGAR, 0]}}
     tramo = {"f0": b["s0"], "n": b["sn"], "g0": f0, "gn": n, "inicio": round(b["s0"] / fps, 3), "fin": round((b["s0"] + b["sn"]) / fps, 3)}
+    mascara_cruda(g)
     return g, {"video": datos.get("video"), "info": vi, "tramo": tramo, "mascara": b["mascara"], "sello": sello,
                "proyecto": datos.get("proyecto"), "megapixeles": megapixeles(datos)}
 

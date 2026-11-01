@@ -64,7 +64,8 @@ def config() -> dict:
     comfyui = os.environ.get("MAX_EDITOR_COMFYUI_URL") or c.get("comfyui_url")
     return {"proxy_url": (proxy or "http://127.0.0.1:8199").rstrip("/"),
             "comfyui_url": (comfyui or "http://127.0.0.1:8188").rstrip("/"),
-            "motor_rapido": os.environ.get("MAX_EDITOR_MOTOR_RAPIDO") or c.get("motor_rapido") or "vdn"}
+            "motor_rapido": os.environ.get("MAX_EDITOR_MOTOR_RAPIDO") or c.get("motor_rapido") or "vdn",
+            "mascara_cruda": bool(c.get("mascara_cruda"))}
 
 
 def _responde(url: str, espera: float = 2.0) -> bool:
