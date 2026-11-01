@@ -92,8 +92,9 @@ export function instalar(ctx) {
   let refrescoRefs = null;
   const pintarRefsSuave = () => { clearTimeout(refrescoRefs); refrescoRefs = setTimeout(() => { ctx.pintarRefs(); ctx.pintarLinea(); }, 600); };
 
-  // lo que falta en una toma: los mismos huecos que avisa el montaje (nucleo, final.hueco.*); sin entorno no hay lugar ni luz
-  const faltanDe = (toma) => ["encuadre", "camara", "gesto", ...(toma.entorno === "ninguno" ? [] : ["lugar", "luz"])]
+  // lo que falta en una toma: los mismos huecos que avisa el montaje (nucleo, final.hueco.*); sin entorno no hay lugar ni
+  // luz, y sin personaje no hay gesto
+  const faltanDe = (toma) => ["encuadre", "camara", ...(toma.sin_personaje ? [] : ["gesto"]), ...(toma.entorno === "ninguno" ? [] : ["lugar", "luz"])]
     .filter((c) => !String(toma[c] || "").trim());
   const ETIQUETAS = { encuadre: "toma.encuadre", camara: "toma.camara", gesto: "toma.gesto", lugar: "toma.lugar", luz: "toma.luz" };
   // el icono de cada campo (util.icono): todos llevan el suyo
@@ -439,8 +440,16 @@ export function instalar(ctx) {
       el("div", { class: "epl-p2-arriba" },
         el("section", { class: "epl-p2-grupo" }, el("h3", {}, t("toma.grupo.que_pasa")),
           campoTexto(toma, "momento", t("toma.momento"), toma.fijos, { clase: "epl-g-accion", ayuda: t("toma.momento.ayuda") })),
-        el("section", { class: "epl-p2-grupo" }, el("h3", {}, t("toma.grupo.personaje")),
-          campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { ayuda: t("toma.gesto.ayuda") }))),
+        /* (31 oct) «Sin personaje»: la toma no nombra a <Subject 1> (un paisaje, un objeto solo…); su gesto no hace falta
+         * y se esconde (lo escrito se guarda por si vuelves a ponerlo) */
+        el("section", { class: "epl-p2-grupo" + (toma.sin_personaje ? " sin-personaje" : "") },
+          el("h3", {}, t("toma.grupo.personaje"),
+            el("label", { class: "epl-sin-personaje", title: t("toma.sin_personaje.tooltip") },
+              el("input", { type: "checkbox", checked: !!toma.sin_personaje,
+                            onchange: (e) => { toma.sin_personaje = e.target.checked; ctx.pintarToma(); ctx.pedirMontaje(); } }),
+              " " + t("toma.sin_personaje"))),
+          toma.sin_personaje ? el("p", { class: "epl-ayuda epl-p2-nota" }, t("toma.sin_personaje.ayuda"))
+            : campoTexto(toma, "gesto", t("toma.gesto"), toma.fijos, { ayuda: t("toma.gesto.ayuda") }))),
       el("div", { class: "epl-p2-tabs", role: "tablist", "aria-label": t("toma.pestanas") }, ...PESTANAS.map((p) =>
         el("button", { class: "epl-p2-tab" + (pestana === p.k ? " si" : ""), role: "tab", "aria-selected": String(pestana === p.k), "data-tab": p.k,
                        onclick: () => ponerPestana(p.k) },

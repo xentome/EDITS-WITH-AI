@@ -1141,7 +1141,8 @@ def montar(perfil, menu, plan, ini, textos, idioma="es", frases=None):
             "toma.linea_sin_personaje" if t.get("sin_personaje") else "toma.linea", encuadre=falta(campo("encuadre"), "final.hueco.sin_encuadre", k=k),
             estilo=C.pegar("toma.estilo", estilo=de_usuario((t.get("estilo") or "").strip().rstrip("."))) if (t.get("estilo") or "").strip() else [],
             efecto=efecto, entorno=entorno,
-            citas=unir(C, citas, "toma.citas.y"), gesto=falta(campo("gesto"), "final.hueco.sin_gesto", k=k),
+            citas=unir(C, citas, "toma.citas.y"),
+            gesto=campo("gesto") if t.get("sin_personaje") else falta(campo("gesto"), "final.hueco.sin_gesto", k=k),
             camara=falta(campo("camara"), "final.hueco.sin_camara", k=k))
         if "momento" in t.get("fijos", []) and (t.get("momento") or "").strip():   # la acción, si la escribiste tú
             s += trozo(" ") + C.pegar("toma.accion", accion=campo("momento"))

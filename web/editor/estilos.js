@@ -518,6 +518,9 @@ textarea.epl-final{min-height:40vh}
 .epl-p2-arriba{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px;margin-bottom:14px}
 .epl-p2-grupo h3{margin:0 0 10px;display:flex;align-items:center;gap:10px;font-size:18px;text-transform:uppercase;letter-spacing:.07em}
 .epl-p2-grupo h3::after{content:"";flex:1;height:1px;background:#2e3440}
+.epl-sin-personaje{order:2;display:inline-flex;align-items:center;gap:6px;font:600 13px/1 system-ui,sans-serif;text-transform:none;letter-spacing:0;color:#9aa3b2;cursor:pointer;white-space:nowrap}
+.epl-sin-personaje input{margin:0;width:16px;height:16px;accent-color:#FF7A1A;cursor:pointer}
+.epl-p2-grupo.sin-personaje .epl-sin-personaje{color:#FF7A1A}
 .epl-c2{display:flex;flex-direction:column;gap:6px;min-width:0}
 .epl-s-toma .epl-c2>.epl-c2-et{display:flex;align-items:center;gap:8px;padding:0 !important;font-size:14px !important;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .epl-falta,.epl-p2-cuenta{font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:#f7c83a;color:#17121c;text-transform:uppercase}
