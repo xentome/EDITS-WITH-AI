@@ -1577,7 +1577,9 @@ _llamar = mcp.call_tool
 async def _llamar_en_su_sesion(name, arguments, context=None):
     """Cada llamada lleva su sesión MCP (para el proyecto actual de cada agente)."""
     rc = getattr(context, "_request_context", None)
-    marca = SESION.set(str(getattr(rc, "session_id", "") or ""))
+    cab = getattr(getattr(rc, "request", None), "headers", None) or {}
+    sid = getattr(rc, "session_id", None) or cab.get("mcp-session-id") or ""
+    marca = SESION.set(str(sid or ""))
     try:
         return await _llamar(name, arguments, context)
     finally:
