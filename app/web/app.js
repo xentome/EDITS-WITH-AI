@@ -20,6 +20,7 @@ const extenderJS = await import("./extender.js" + v);
 const bibliotecaJS = await import("./biblioteca.js" + v);
 const edicionJS = await import("./edicion.js" + v);
 const modelosJS = await import("./modelos.js" + v);
+const partesJS = await import("./partes.js" + v);
 const { el } = util;
 
 // ---- idioma: el mismo ajuste que en ComfyUI («Prompt del edit › Idioma»), guardado en este navegador
@@ -209,6 +210,9 @@ function pintarCabecera() {
       util.icono("video"), " " + t("app.videos.boton", { n: A.videos.length })),
     el("span", { class: "max-grupo max-encolar", title: t("app.cola.encolar.tooltip") }, nCola, botonEncolar),
     el("button", { class: "max-generar max-generar-cab", disabled: !A.node, title: t("app.generar.tooltip"), onclick: () => generar(1) }, t("app.generar")),
+    // (1 nov, Jonathan) «Por partes»: la línea de tiempo en trozos que tu PC aguanta, y la app los une (partes.js)
+    el("button", { class: "max-boton max-boton-partes", disabled: !A.node, title: t("app.partes.boton.tooltip"), onclick: () => porPartes.abrir(), "aria-label": t("app.partes.boton") },
+      util.icono("tijeras"), el("span", { class: "max-partes-txt" }, t("app.partes.boton"))),
     el("button", { class: "max-boton" + (activos ? " max-cola-activa" : ""), title: t("app.cola.tooltip"), onclick: () => { A.verCola = !A.verCola; pintarCola(); } },
       util.icono("menu"), " " + t("app.cola.boton", { n: activos })),
     el("span", { class: "max-grupo max-idioma", title: t("comun.idioma.tooltip") }, idioma("es", "ES"), idioma("en", "EN")));
@@ -622,7 +626,7 @@ function pintarCola() {
     el("div", { class: "max-lista max-cola-lista" }, A.cola.trabajos.length ? ordenCola().map(fila)
       : el("div", { class: "max-vacio" }, t("app.cola.vacia"))));
 }
-const ICONO_TIPO = { retocar: "retoque", extender: "tomas" };      // el icono de un trabajo sin video todavía
+const ICONO_TIPO = { retocar: "retoque", extender: "tomas", unir: "tijeras" };      // el icono de un trabajo sin video todavía
 // cuánto duró un trabajo: de «empezado» a «terminado» (las dos horas son del servidor) o, si falta alguna, lo que midió
 const duracionCola = (x) => {
   const a = Date.parse(x.empezado || ""), z = Date.parse(x.terminado || "");
@@ -668,13 +672,15 @@ function ponerVideo(archivo) {
  * sus acciones en botones grandes (Retomar prompt · Retocar · Extender); a la derecha la lista. «Retomar prompt» carga los
  * valores con que se generó ese video (o, en un retoque, extensión o mejora, los de su Generar de origen: prompt_de) en este
  * proyecto (reemplaza lo de ahora, tras confirmarlo) o en una copia nueva, y pone su semilla */
-const ICONO_VIDEO = { retoque: "retoque", extension: "tomas", mejora: "grande", montaje: "capas", retomar: "texto" };   // tipo o acción → util.icono
+const ICONO_VIDEO = { retoque: "retoque", extension: "tomas", mejora: "grande", montaje: "capas", retomar: "texto", partes: "tijeras" };   // tipo o acción → util.icono
 function describirVideo(x) {
   return x.tipo === "retoque" ? t("app.videos.retoque", { a: tr.num(x.tramo?.inicio ?? 0, 2), b: tr.num(x.tramo?.fin ?? 0, 2) })
     : x.tipo === "extension" ? t("app.videos.extension", { s: tr.num((x.extension?.nuevos || 0) / 24, 2), semilla: x.semilla ?? "?" })
     : x.tipo === "mejora" ? t("app.videos.mejora", { que: [x.superres ? "×" + tr.num(x.superres.escala, x.superres.escala % 1 ? 1 : 0) : "",
                                                            x.hdr ? t("app.retocar.mejorar.hdr") : ""].filter(Boolean).join(" · ") })
     : x.tipo === "montaje" ? t("app.videos.montaje", { n: x.montaje?.clips ?? "?", s: tr.num(x.montaje?.duracion || 0, 1) })
+    : x.tipo === "partes" ? t("app.videos.partes", { n: x.partes?.n ?? "?", s: tr.num(x.partes?.duracion || 0, 2), semilla: x.semilla ?? "?" })
+    : x.parte ? t("app.videos.parte", { i: x.parte.i, n: x.parte.n, semilla: x.semilla ?? "?" })
     : t("app.videos.semilla", { semilla: x.semilla ?? "?" });
 }
 async function retomarPrompt(x, donde) {
@@ -710,6 +716,10 @@ function usarVideo(x, accion, donde = "aqui") {
   if (accion === "retocar") { extension.verInpaint(); retoque.cargar(x.archivo).then(retoque.ver); }
   else extension.cargar(x.archivo).then(extension.ver);
 }
+// ---- «Generar por partes» (partes.js): como Generar, pero en trozos que el PC aguanta y unidos al final
+const porPartes = partesJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, avisar: (x, tipo) => avisar(x, tipo),
+  leerLocal, ponerLocal, valores: () => valoresDe(A.graph), semilla: () => { const w = semillaW(); return w ? +w.value : null; },
+  proyecto: () => A.proyecto, antes: async () => { await A.ctx.guardarYa(); }, alEncolar: () => mirarCola() });
 // ---- el apartado 3 «Edición» (edicion.js): juntar clips de la biblioteca en varias pistas y exportarlo con ffmpeg
 const edicion = edicionJS.crear({ el, icono: util.icono, t, num: (x, d) => tr.num(x, d), pedir, A, avisar: (x, tipo) => avisar(x, tipo),
                                   alTerminar: () => cargarVideos(), verEdiciones: () => biblioteca.abrir("ediciones") });

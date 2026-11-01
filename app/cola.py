@@ -10,6 +10,9 @@ hace de uno en uno (una sola GPU), aunque nadie tenga la página abierta.
 - Extender (28 oct, planos/fases/12) va igual que Retocar: su foto fija son sus datos (video, solape, nuevos, calidad,
   audio, prompt, referencias, semilla).
 - Mejorar (29 oct, mejorar.py) también: su foto fija es el video y los efectos RTX (Super Resolution, HDR).
+- Generar por partes (1 nov, partes.py): cada parte es un «generar» con `grupo` {id, i, n} y detrás va un «unir» del mismo
+  grupo que las pega (ffmpeg, sin GPU). Si una parte falla, lo que queda del grupo se cancela; «Reintentar» en cualquiera
+  del grupo vuelve a poner en la cola todo lo del grupo que no está hecho, en su orden.
 - Un hilo procesa la cola: empieza el siguiente solo si no hay otro corriendo, la cola no está en pausa, el LLM local no
   está trabajando (llm_ocupado) y la cola de ComfyUI está vacía (así nunca van dos a la vez contra el mismo ComfyUI).
   Si un trabajo falla, sigue con el siguiente.
@@ -32,7 +35,7 @@ from datetime import datetime
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RUTA = os.environ.get("MAX_EDITOR_COLA") or os.path.join(AQUI, "salidas", "cola.json")   # otra ruta, para probar
-TIPOS = ("generar", "retocar", "extender", "mejorar")
+TIPOS = ("generar", "retocar", "extender", "mejorar", "unir")
 TERMINADOS = ("hecho", "error", "cancelado", "interrumpido")
 # (29 oct) los valores con que se hizo cada video de Generar, para «Retomar este prompt» en Videos: uno por video, en
 # app/salidas/valores/<video>.json, aparte de la cola (que se puede limpiar)
@@ -106,13 +109,31 @@ def anadir(tipo: str, foto: dict, semillas: list | None = None) -> list[str]:
             mejora = {k: f.get(k) for k in ("video", "superres", "hdr")} if tipo == "mejorar" else None
             _estado["trabajos"].append({"id": tid, "tipo": tipo, "proyecto": f.get("proyecto") or "", "semilla": s, "tramo": tramo,
                                         "extension": extension, "mejora": mejora,
-                                        "origen": f.get("origen") or "",
+                                        "origen": f.get("origen") or "", "grupo": f.get("grupo"),
                                         "estado": "en_cola", "avance": 0.0, "mensaje": "", "video": None, "creado": _ahora(),
                                         "empezado": None, "terminado": None, "segundos": 0.0, "job": None, "foto": f})
             ids.append(tid)
         _guardar()
     _despertar.set()
     return ids
+
+
+def anadir_grupo(fotos: list[dict], foto_unir: dict) -> list[str]:
+    """Generar por partes: una foto de «generar» por parte y la del «unir» que las pega, seguidas y con el mismo grupo."""
+    gid = uuid.uuid4().hex[:8]
+    n = len(fotos)
+    with _cerrojo:                          # todo de una vez: el hilo no puede empezar una parte antes de que esté el grupo
+        ids = []
+        for i, f in enumerate(fotos, 1):
+            ids += anadir("generar", {**f, "grupo": {"id": gid, "i": i, "n": n}})
+        ids += anadir("unir", {**foto_unir, "n": n, "grupo": {"id": gid, "i": n + 1, "n": n}})
+    return ids
+
+
+def _del_grupo(t: dict) -> list[dict]:
+    g = (t.get("grupo") or {}).get("id")
+    return sorted((x for x in _estado["trabajos"] if g and (x.get("grupo") or {}).get("id") == g),
+                  key=lambda x: (x.get("grupo") or {}).get("i", 0)) if g else [t]
 
 
 def lista() -> dict:
@@ -156,10 +177,12 @@ def accion(tid: str, que: str) -> dict:
                 a, b = ts.index(t), ts.index(pendientes[j])
                 ts[a], ts[b] = ts[b], ts[a]
         elif que == "reintentar" and t["estado"] in TERMINADOS and t["estado"] != "hecho":
-            t.update(estado="en_cola", avance=0.0, mensaje="", video=None, empezado=None, terminado=None, segundos=0.0, job=None)
-            t.pop("_cancelar", None)
-            ts.remove(t)
-            ts.append(t)                       # vuelve al final de la cola
+            # una parte de «Generar por partes»: vuelve todo lo del grupo que no está hecho, en su orden (y el «unir» al final)
+            for x in [x for x in _del_grupo(t) if x["estado"] in TERMINADOS and x["estado"] != "hecho"]:
+                x.update(estado="en_cola", avance=0.0, mensaje="", video=None, empezado=None, terminado=None, segundos=0.0, job=None)
+                x.pop("_cancelar", None)
+                ts.remove(x)
+                ts.append(x)                   # vuelve al final de la cola
         elif que == "quitar" and t["estado"] in TERMINADOS:
             ts.remove(t)
         _guardar()
@@ -258,8 +281,12 @@ def _correr(t: dict) -> None:
         t.update(estado="corriendo", empezado=_ahora(), mensaje="empezando", avance=0.0)
         foto = copy.deepcopy(t["foto"])
         _guardar()
+    if t["tipo"] == "unir":
+        return _unir(t, foto)
     if t["tipo"] == "generar":
         opciones = {k: foto.get(k) for k in ("semilla", "proyecto", "prefijo")}
+        if foto.get("grupo"):
+            opciones["parte"] = foto["grupo"]
         tid = g.iniciar(foto["valores"], opciones)
     elif t["tipo"] in ("extender", "mejorar"):
         tid = _api[t["tipo"]]().iniciar(foto)
@@ -286,11 +313,46 @@ def _correr(t: dict) -> None:
                     _guardar_valores(t)
                 else:
                     t.update(estado="cancelado" if (e.get("cancelado") or t.get("_cancelar")) else "error")
+                    _parar_grupo(t)
                 t["terminado"] = _ahora()
                 t.pop("_cancelar", None)
                 _guardar()
                 break
         time.sleep(1.0)
+    _despertar.set()
+
+
+def _parar_grupo(t: dict) -> None:
+    """Una parte que falla o se cancela: lo que queda de su grupo en la cola no sirve sin ella (con el cerrojo puesto)."""
+    if not t.get("grupo"):
+        return
+    for x in _del_grupo(t):
+        if x["estado"] == "en_cola":
+            x.update(estado="cancelado", terminado=_ahora(),
+                     mensaje=f"la parte {t['grupo'].get('i')} no se hizo: «Reintentar» vuelve a poner todo el grupo")
+
+
+def _unir(t: dict, foto: dict) -> None:
+    """El «unir» de Generar por partes: pega los videos de las partes de su grupo (partes.py), sin GPU."""
+    import partes
+    t0 = time.time()
+    with _cerrojo:
+        trozos = [copy.deepcopy(x) for x in _del_grupo(t) if x["tipo"] == "generar"]
+        t["mensaje"] = "uniendo las partes"
+    try:
+        archivo, fila = partes.unir(foto, trozos)
+    except Exception as exc:
+        with _cerrojo:
+            t.update(estado="error", mensaje=str(exc), terminado=_ahora(), segundos=round(time.time() - t0, 1))
+            _guardar()
+        _despertar.set()
+        return
+    segundos = round(time.time() - t0, 1)
+    _api["generar"]()._anotar({"id": t["id"], "fecha": _ahora(), "segundos": segundos, "archivo": archivo, **fila})
+    with _cerrojo:
+        t.update(estado="hecho", video=archivo, avance=1.0, mensaje="", terminado=_ahora(), segundos=segundos)
+        _guardar_valores(t)
+        _guardar()
     _despertar.set()
 
 
@@ -375,7 +437,7 @@ def _ruta_valores(video: str) -> str | None:
 
 def _guardar_valores(t: dict) -> None:
     """Los valores de un Generar hecho, junto a su video (si no estaban ya). Nunca rompe la cola."""
-    if t.get("tipo") != "generar" or t.get("estado") != "hecho" or not (t.get("foto") or {}).get("valores"):
+    if t.get("tipo") not in ("generar", "unir") or t.get("estado") != "hecho" or not (t.get("foto") or {}).get("valores"):
         return
     ruta = _ruta_valores(t.get("video"))
     if not ruta or os.path.isfile(ruta):

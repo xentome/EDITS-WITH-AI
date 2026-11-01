@@ -436,6 +436,30 @@ body .epl-sec.epl-s-final{padding:6px 16px !important}
 .max-encolar{gap:4px}
 .max-cola-activa{border-color:#fff !important}
 .max-cola-caja{width:min(1180px,95vw)}
+/* (1 nov) «Generar por partes» (partes.js): la línea de tiempo con cada parte en su color y las tijeras entre tomas */
+.max-partes-caja{width:min(1080px,95vw)}
+.max-boton-partes{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:1800px){.max-partes-txt{display:none}}
+.max-partes-cuerpo{padding:16px 18px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.max-partes-ayuda{margin:0;font-size:16px;line-height:1.45;max-width:72ch}
+.max-partes-campo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:16px;font-weight:700}
+.max-partes-limite{width:88px;font-size:18px;padding:6px 8px}
+.max-partes-nota{opacity:.75}
+.max-partes-linea{display:flex;gap:6px;min-height:118px}
+.max-partes-trozo{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px 10px 8px;border-radius:6px;border:2px solid transparent;color:#111}
+.max-partes-trozo b{font-size:18px}
+.max-partes-trozo span,.max-partes-trozo small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.max-partes-trozo.c0{background:#7FD8FF}.max-partes-trozo.c1{background:#FFC46B}.max-partes-trozo.c2{background:#B9F28A}.max-partes-trozo.c3{background:#F2A6E0}
+.max-partes-trozo.pasa{border-color:#d93636;outline:3px solid #d93636}
+.max-partes-tomas{display:flex;gap:3px;margin-top:auto}
+.max-partes-tomas span{min-width:0;text-align:center;font-weight:800;font-size:13px;padding:3px 0;border-radius:3px;background:rgba(0,0,0,.18)}
+.max-partes-tijeras{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.max-partes-tijera{min-height:40px;font-size:15px}
+.max-partes-tijera.fijo{background:#d93636;border-color:#d93636;color:#fff}
+.max-partes-error{padding:10px 12px;border-radius:6px;background:rgba(217,54,54,.16);border:1px solid #d93636;font-weight:700}
+.max-partes-notas{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;line-height:1.4}
+.max-partes-pie{gap:10px;padding:12px 18px}
+.max-partes-lanzar{min-height:48px;padding:10px 26px;font-size:20px}
 .max-cola-lista{max-height:70vh;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
 /* (1 nov) cada trabajo, una tarjeta alta: miniatura, qué es, sus datos y cuánto tardó, su estado y botones grandes */
 .max-cola-fila{display:grid;grid-template-columns:160px minmax(0,1fr) auto auto;gap:18px;align-items:center;min-height:118px;padding:14px 16px;

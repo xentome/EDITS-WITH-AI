@@ -479,6 +479,8 @@ def _despues_edit(tid: str, grafo: dict, job, opciones: dict):
         fila["sin_cancion"] = True             # de verdad sin canción (Extender no busca la del proyecto)
     if opciones.get("_loras"):
         fila["loras"] = opciones["_loras"]
+    if opciones.get("parte"):                  # Generar por partes (partes.py): «parte 1 de 2» en la lista de Videos
+        fila["parte"] = {k: opciones["parte"].get(k) for k in ("id", "i", "n")}
     latente = latente_de(grafo)
     if latente:
         try:

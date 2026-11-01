@@ -720,3 +720,16 @@ body.tema-casete .max-rt-guia-paso b{font:800 18px/1.2 var(--k-titulo);letter-sp
 body.tema-casete .max-rt-guia-n{font-family:var(--k-titulo)}
 body.tema-casete .max-rt-guia-ejemplo,body.tema-casete .max-rt-guia-sino div{font-family:var(--k-mono)}
 
+/* (1 nov) «Generar por partes»: botón junto a Generar y su ventana */
+body.tema-casete .max-boton-partes{border-color:var(--k-ok) !important;color:var(--k-ok) !important;font-weight:800 !important;min-height:46px}
+body.tema-casete .max-partes-caja>.max-fila:first-child b{font:800 20px/1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
+body.tema-casete .max-partes-ayuda,body.tema-casete .max-partes-notas{font-family:var(--k-texto-f);color:var(--k-texto)}
+body.tema-casete .max-partes-campo{font-family:var(--k-rotulo)}
+body.tema-casete .max-partes-trozo{color:var(--k-tinta)}
+body.tema-casete .max-partes-trozo b{font:800 20px/1 var(--k-titulo);text-transform:uppercase;letter-spacing:.02em}
+body.tema-casete .max-partes-trozo.c0{background:var(--k-cian)}
+body.tema-casete .max-partes-trozo.c1{background:var(--k-naranja2)}
+body.tema-casete .max-partes-trozo.c2{background:var(--k-ok)}
+body.tema-casete .max-partes-trozo.c3{background:var(--k-crema)}
+body.tema-casete .max-partes-tijera.fijo{background:var(--k-naranja) !important;border-color:var(--k-naranja) !important;color:var(--k-tinta) !important}
+body.tema-casete .max-partes-error{background:rgba(255,107,107,.14);border-color:var(--k-error);color:var(--k-texto)}

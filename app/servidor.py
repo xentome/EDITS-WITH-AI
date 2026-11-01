@@ -689,6 +689,57 @@ async def extender_plan(peticion):
         return web.json_response({"error": str(exc)}, status=400)
 
 
+# ------------------------------------------------------------------ generar por partes (partes.py, planos/fases/18)
+async def _montar_proyecto(p) -> dict:
+    """El montaje de un proyecto del lado del servidor (lo mismo que pide la página o el MCP): prompt, avisos y cortes."""
+    r = await TRABAJADOR.pedir("montar", {**p.cuerpo_montar(), "idioma": "en"}, "en")
+    if "ok" not in r:
+        raise RuntimeError(r.get("error") or "no se pudo montar el prompt")
+    p.aplicar_montaje(r["ok"])
+    return r["ok"]
+
+
+async def lanzar_partes(peticion):
+    """POST /app/partes {valores, proyecto, semilla, limite (s por parte), partir? [tomas tras las que se parte], lanzar?}.
+    Sin «lanzar»: cómo quedarían las partes (para enseñarlas antes). Con «lanzar»: encola un «generar» por parte (cada uno con
+    su prompt montado aquí) y detrás un «unir» → {ids, partes}."""
+    d = await peticion.json()
+    if not isinstance(d, dict) or not isinstance(d.get("valores"), dict):
+        return error("app.error.sin_valores", peticion)
+    import agente
+    partes = importlib.import_module("partes")
+    try:
+        p = agente.Proyecto({"nombre": d.get("proyecto") or "", "valores": d["valores"]}, plantilla())
+        if p.estado()["a_mano"]:
+            raise partes.ErrorGenerar("el prompt final está escrito a mano: vuelve a «montar» el prompt para poder partirlo")
+        montaje = await _montar_proyecto(p)
+        limite_f = partes.limite_fotogramas(d.get("limite"))
+        lista = partes.repartir(montaje.get("cortes") or p.cortes_ahora(), p.duracion, p.fotogramas(), limite_f, d.get("partir"))
+        resumen = {"partes": lista, "limite_f": limite_f, "limite_s": round(limite_f / 24, 3), "total_f": p.fotogramas(),
+                   "total_s": round(p.duracion, 3), "final_f": sum(x["fotogramas"] for x in lista)}
+        if not d.get("lanzar"):
+            return web.json_response(resumen)
+        proyecto = d.get("proyecto") or ""
+        prefijo = "max_editor/" + re.sub(r"[^\w-]+", "_", proyecto or "edit")
+        fotos = []
+        for x in lista:
+            q = partes.proyecto_de_parte(p, x)
+            await _montar_proyecto(q)
+            if not (q.estado().get("prompt") or "").strip():
+                raise partes.ErrorGenerar(f"la parte {x['i']} salió sin prompt")
+            fotos.append({"valores": q.datos["valores"], "semilla": d.get("semilla"), "proyecto": proyecto, "prefijo": prefijo,
+                          "origen": "agente" if d.get("origen") == "agente" else ""})
+        e = p.estado()
+        a = p.audio()
+        unir = {"valores": d["valores"], "semilla": d.get("semilla"), "proyecto": proyecto,
+                "origen": "agente" if d.get("origen") == "agente" else "",
+                "audio": {"original": a["original"], "inicio_s": a["inicio_s"]} if a else None,
+                "audio_salida": e.get("audio_salida") or "cancion"}
+        return web.json_response({**resumen, "ids": cola.anadir_grupo(fotos, unir)})
+    except (partes.ErrorGenerar, agente.ErrorAgente, RuntimeError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+
 # ------------------------------------------------------------------ mejorar (mejorar.py: Super Resolution y HDR de NVIDIA RTX)
 # ------------------------------------------------------------------ edición (edicion.py, el apartado 3: juntar clips con ffmpeg)
 def edicion_mod():
@@ -1184,6 +1235,7 @@ def crear_app():
     app.router.add_post("/app/retocar_mascara", lanzar_mascara)
     app.router.add_post("/app/retocar_prompt", retocar_prompt)
     app.router.add_post("/app/extender_plan", extender_plan)
+    app.router.add_post("/app/partes", lanzar_partes)
     app.router.add_get("/app/cola", cola_lista)
     app.router.add_post("/app/cola", cola_anadir)
     app.router.add_post("/app/cola/limpiar", cola_limpiar)
