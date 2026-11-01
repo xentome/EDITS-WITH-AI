@@ -26,7 +26,7 @@ You need an NVIDIA GPU with 12 GB, [ComfyUI](https://docs.comfy.org/installation
 | | |
 |---|---|
 | <img src="docs/gifs/galeria.gif" width="400" alt="Edits made with MAX EDITOR"><br>**Made with H3:** every frame of these edits | <img src="docs/gifs/control.gif" width="400" alt="Shot-by-shot control"><br>**Shot by shot:** action, framing, camera and references per shot |
-| <img src="docs/gifs/preview.gif" width="400" alt="Live preview while generating"><br>**Live preview** while H3 generates | <img src="docs/gifs/retocar.gif" width="400" alt="Touch up before and after"><br>**Touch up:** cover a zone and H3 redraws only that part |
+| <img src="docs/gifs/preview.gif" width="400" alt="Live preview while generating"><br>**Live preview** while H3 generates | |
 | <img src="docs/gifs/extender_app.gif" width="400" alt="Extend video in the app"><br>**Extend video:** the same shot goes on, no cut | <img src="docs/gifs/extender.gif" width="400" alt="An extended shot"><br>…and the result |
 | <img src="docs/gifs/edicion.gif" width="400" alt="Multitrack Editing"><br>**Editing:** cut your clips together on several tracks and export | <img src="docs/gifs/agente.gif" width="400" alt="An AI agent working inside the app"><br>**Your agent** works in the app; you see every change |
 
