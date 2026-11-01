@@ -442,6 +442,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       for (;;) {
         a = await pedir("/app/trabajo/" + id);
         if (a.estado === "listo" || a.estado === "error") break;
+        if (R.calculando) { R.calculando.a = a; pintarVer(); }
         await new Promise((ok) => setTimeout(ok, 1000));
       }
       if (a.estado === "error") throw new Error(a.mensaje || "?");
@@ -451,6 +452,25 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     } catch (e) { R.error = t("app.retocar.ver.error", { error: e.message }); }
     finally { clearInterval(reloj); R.calculando = null; pintar(); }
   }
+  // (1 nov) el avance de «Ver tramo con máscara», sin mirar el log de ComfyUI: la fase por el nodo que corre y, en SAM
+  // (que avisa fotograma a fotograma), su paso. Cargar 0–10 %, SAM 10–85 %, preparar y guardar el video 85–100 %.
+  const FASES_MASCARA = { cola: "app.retocar.ver.fase.cola", cargar: "app.retocar.ver.fase.cargar", sam: "app.retocar.ver.fase.sam",
+                          mascara: "app.retocar.ver.fase.mascara", guardar: "app.retocar.ver.fase.guardar" };
+  function avanceMascara(a) {
+    const nodo = a?.nodo || "", p = a?.pasos > 1 ? Math.min(1, (a.paso || 0) / a.pasos) : 0;
+    if (nodo.startsWith("SAM3")) return { fase: "sam", f: 0.10 + 0.75 * p, paso: a.pasos > 1 ? `${a.paso || 0}/${a.pasos}` : "" };
+    if (/MaskOps|SubjectCrop|MaskCleanup|SolidMask|MaskComposite|ImageToMask|RepeatImage/.test(nodo)) return { fase: "mascara", f: 0.85 };
+    if (/Uncrop|ImageBlend|EmptyImage|VideoCombine/.test(nodo)) return { fase: "guardar", f: 0.93 };
+    return { fase: "cargar", f: a?.estado === "en_cola" ? 0 : 0.05 };
+  }
+  function filaCalculando() {
+    const c = R.calculando, { fase, f, paso } = avanceMascara(c.a);
+    const pc = Math.round(f * 100);
+    return el("span", { class: "max-rt-calculando max-rt-ver-avance", role: "status" },
+      el("span", { class: "max-barra", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(pc) },
+        el("b", { style: `width:${pc}%` })),
+      " " + t("app.retocar.ver.calculando", { fase: t(FASES_MASCARA[c.a?.estado === "en_cola" ? "cola" : fase], { paso }), p: pc, s: c.s }));
+  }
   function pintarVer() {
     if (!R.info) return verFila.replaceChildren();
     if (R.vista === "mascara" && R.mascara?.firma !== firmaMascara()) { verNormal(); return; }   // el tramo o la máscara cambiaron
@@ -459,7 +479,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     verFila.replaceChildren(
       boton("normal", "app.retocar.ver.normal", verNormal, "video"),
       boton("mascara", "app.retocar.ver.mascara", verMascara, "ojo"),
-      R.calculando ? el("span", { class: "max-rt-calculando", role: "status" }, t("app.retocar.ver.calculando", { s: R.calculando.s }))
+      R.calculando ? filaCalculando()
         : enMascara() ? el("span", { class: "epl-ayuda" }, t("app.retocar.ver.listo", { s: num(R.mascara.segundos || 0, 0) }))
         : el("span", { class: "epl-ayuda" }, t("app.retocar.ver.ayuda")));
   }
