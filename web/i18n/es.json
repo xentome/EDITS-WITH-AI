@@ -502,13 +502,11 @@
  "app.retocar.llm.hecho": "Escrito mirando el fotograma {f} ({s} s): revísalo y cámbialo si quieres",
  "app.retocar.llm.tooltip": "El LLM local mira el fotograma donde está el cabezal (muévelo para elegir otro) y escribe la frase con las reglas de la guía: lo que hay, la luz de ese fotograma, sin cámara ni pose",
  "app.retocar.mascara": "Qué zona cambiar",
- "app.retocar.mascara.cabeza": "Escribe «head»: así cambia toda la cabeza. En giros o movimientos bruscos la cabeza entera se sigue mejor que la cara sola.",
- "app.retocar.mascara.cabeza.titulo": "¿La cara se mueve mucho?",
  "app.retocar.mascara.rect": "Rectángulo",
  "app.retocar.mascara.rect.ayuda": "Dibuja con el ratón, sobre el video, la zona que quieres cambiar. Se marca en todo el tramo.",
  "app.retocar.mascara.rect.ayuda_hecho": "Arrastra dentro para moverlo y las esquinas para ajustarlo; arrastra fuera para dibujar otro.",
  "app.retocar.mascara.texto": "Por texto",
- "app.retocar.mascara.texto.ayuda": "En inglés, una o dos palabras (face, hand, hair…). La app lo busca y lo sigue en todo el tramo. Si no encuentra algo (letras estilizadas, un efecto), usa el rectángulo.",
+ "app.retocar.mascara.texto.ayuda": "En inglés, todo lo que quieres marcar (face, hand, hair and hat…). La app lo busca y lo sigue en todo el tramo. Si no encuentra algo (letras estilizadas, un efecto), usa el rectángulo.",
  "app.retocar.mascara.texto.placeholder": "face",
  "app.retocar.mejorar.activado": "Activado",
  "app.retocar.mejorar.apagado": "Desactivado",
@@ -1342,5 +1340,7 @@
  "traducir.sin_resultados": "Ninguno de la lista: escríbelo abajo.",
  "traducir.traduciendo": "Traduciendo del {idioma} al inglés… {s} s",
  "traducir.vacio": "No hay texto que traducir.",
- "traducir.ya": "Ya se está traduciendo otro campo: espera a que termine."
+ "traducir.ya": "Ya se está traduciendo otro campo: espera a que termine.",
+ "app.retocar.mascara.consejo": "SAM marca solo lo que escribes. Si la cabeza lleva gafas y escribes «head», las gafas pueden quedarse fuera: escribe «head and glasses». Sé concreto: «red cap» mejor que «cap».",
+ "app.retocar.mascara.consejo.titulo": "Nombra todo lo que quieres marcar."
 }

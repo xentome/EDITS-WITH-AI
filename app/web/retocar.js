@@ -872,8 +872,9 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
           ? el("input", { class: "max-rt-texto", value: R.texto, placeholder: t("app.retocar.mascara.texto.placeholder"), disabled: ocupado,
                           oninput: (e) => { R.texto = e.target.value; guardar(); } })
           : null,
-        // (1 nov, Jonathan) con giros o movimientos bruscos, «head» se sigue mejor que «face»
-        R.modo === "texto" ? el("div", { class: "max-rt-cabeza" }, el("b", {}, t("app.retocar.mascara.cabeza.titulo")), " " + t("app.retocar.mascara.cabeza")) : null),
+        // (1 nov, Jonathan) SAM marca solo lo que se nombra: el texto debe decir todo lo que se quiere marcar (antes: «head»
+        // en vez de «face»; con la máscara cruda ya no hace falta)
+        R.modo === "texto" ? el("div", { class: "max-rt-cabeza" }, el("b", {}, t("app.retocar.mascara.consejo.titulo")), " " + t("app.retocar.mascara.consejo")) : null),
       R.forma === "quitar" ? "" : el("div", { class: "max-rt-bloque" }, el("div", { class: "max-rt-etiqueta" }, t("app.retocar.refs", { n: R.refs.length, max: MAX_REFS }), info("app.retocar.refs.ayuda")),
         el("div", { class: "max-rt-refs" }, tarjetas),
         el("div", { class: "max-rt-fila" },

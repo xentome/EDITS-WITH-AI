@@ -502,13 +502,11 @@
  "app.retocar.llm.hecho": "Written looking at frame {f} ({s} s): check it and change it if you like",
  "app.retocar.llm.tooltip": "The local LLM looks at the frame under the playhead (move it to pick another) and writes the sentence with the guide's rules: what is there, that frame's light, no camera or pose",
  "app.retocar.mascara": "Area to change",
- "app.retocar.mascara.cabeza": "Type «head»: the whole head is changed. With turns or sudden moves the whole head is easier to follow than the face alone.",
- "app.retocar.mascara.cabeza.titulo": "Does the face move a lot?",
  "app.retocar.mascara.rect": "Rectangle",
  "app.retocar.mascara.rect.ayuda": "Draw the area you want to change on the video with the mouse. It is marked for the whole segment.",
  "app.retocar.mascara.rect.ayuda_hecho": "Drag inside to move it and the corners to adjust it; drag outside to draw a new one.",
  "app.retocar.mascara.texto": "By text",
- "app.retocar.mascara.texto.ayuda": "One or two English words (face, hand, hair…). The app finds it and tracks it through the segment. If it can't find something (stylised letters, an effect), use the rectangle.",
+ "app.retocar.mascara.texto.ayuda": "In English, everything you want to mark (face, hand, hair and hat…). The app finds it and follows it through the whole segment. If it can't find something (stylized letters, an effect), use the rectangle.",
  "app.retocar.mascara.texto.placeholder": "face",
  "app.retocar.mejorar.activado": "On",
  "app.retocar.mejorar.apagado": "Off",
@@ -1342,5 +1340,7 @@
  "traducir.sin_resultados": "None in the list: type it below.",
  "traducir.traduciendo": "Translating from {idioma} into English… {s} s",
  "traducir.vacio": "There is no text to translate.",
- "traducir.ya": "Another field is already being translated: wait for it to finish."
+ "traducir.ya": "Another field is already being translated: wait for it to finish.",
+ "app.retocar.mascara.consejo": "SAM only marks what you type. If the head wears glasses and you type «head», the glasses may be left out: type «head and glasses». Be specific: «red cap» works better than «cap».",
+ "app.retocar.mascara.consejo.titulo": "Name everything you want to mark."
 }
