@@ -472,7 +472,10 @@ def mascara_cruda(g: dict) -> bool:
         g[N_OPS]["inputs"].update(despeckle=0, fill_holes=False, close_gaps=0, temporal_expand=0, temporal_smooth=0,
                                   expand=0, feather=0)
     if N_OPS_FINAL in g:
-        g[N_OPS_FINAL]["inputs"].update(fill_holes=False, expand=0, feather=0)
+        # la máscara del pegado sale fina, la del recorte (SAM o el rectángulo): la del NKDMaskOps viene en cuadros de la
+        # rejilla (32 px; 16 en la vista, sin el modelo), que solo hacen falta en el latente. En Detallar no hay máscara
+        # en el latente, así que ya no queda ningún cuadro; en Cambiar H3 rehace sus cuadros y se pega solo lo fino.
+        g[N_OPS_FINAL]["inputs"].update(mask=[N_RECORTE, 1], fill_holes=False, expand=0, feather=0)
     for nodo in g.values():
         if nodo.get("class_type") == "MVEx_SubjectUncrop":
             nodo["inputs"]["feather"] = 0
