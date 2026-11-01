@@ -174,21 +174,26 @@ def cortes_cerca(ruta: str, a: int, b: int) -> list[int]:
     """Los fotogramas c de (a, b] donde empieza otra toma (c es muy distinto de c−1). Lee solo esos fotogramas, pequeños."""
     if b <= a:
         return []
+    a0, b0 = a, b
+    a, b = max(0, a - 6), b + 6                 # unos fotogramas más a cada lado: con 2 o 3 diferencias, el propio corte subía la vara
+    # sin numpy (el Python de la app no lo trae; 1 nov: con numpy fallaba en silencio y no veía ningún corte): son pocos
+    # fotogramas de 64 × 36, así que basta con Python a secas
+    lado = 64 * 36
     try:
-        import numpy as np
         r = subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-i", ruta, "-vf",
                             f"select='between(n\\,{a}\\,{b})',scale=64:36,format=gray", "-fps_mode", "passthrough", "-f", "rawvideo", "-"],
                            capture_output=True, timeout=60)
-        f = np.frombuffer(r.stdout, np.uint8)
-        k = len(f) // (64 * 36)
+        datos = r.stdout
+        k = len(datos) // lado
         if k < 2:
             return []
-        f = f[:k * 64 * 36].reshape(k, 36, 64).astype(np.int16)
-        d = np.abs(np.diff(f, axis=0)).mean(axis=(1, 2))
-        umbral = max(UMBRAL_CORTE, 4 * float(np.median(d)))
-        return [a + i + 1 for i, x in enumerate(d) if x > umbral]
+        fotos = [datos[i * lado:(i + 1) * lado] for i in range(k)]
+        d = [sum(abs(x - y) for x, y in zip(fotos[i], fotos[i + 1])) / lado for i in range(k - 1)]
+        mediana = sorted(d)[(len(d) - 1) // 2]
+        umbral = max(UMBRAL_CORTE, 4 * mediana)
+        return [a + i + 1 for i, x in enumerate(d) if x > umbral and a0 < a + i + 1 <= b0]
     except Exception:
-        return []                          # sin numpy o sin poder leer: como antes, sin buscar cortes
+        return []                          # sin poder leer el video: como antes, sin buscar cortes
 
 
 def ventana(ruta: str, s0: int, sn: int, total: int) -> tuple[int, int, int, int]:

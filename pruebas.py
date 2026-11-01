@@ -740,6 +740,19 @@ comprobar("el tramo generado es el 17n+5 más pequeño que contiene la selecció
           and RT.ventana("", 10, 30, 60) == (6, 39, 0, 60) and RT.ventana("", 0, 60, 60) == (0, 73, 0, 60)
           and RT.seleccion({"f0": 50, "n": 99}, 24, 60) == (50, 10) and RT.seleccion({"inicio": 0.5, "fin": 1.0}, 24, 60) == (12, 12))
 if shutil.which("ffmpeg"):
+    # (1 nov) los cortes de toma junto a la selección: 30 f rojos y 30 azules → corte en 30; el relleno no lo cruza
+    with tempfile.TemporaryDirectory() as _d:
+        _v = os.path.join(_d, "dos_tomas.mp4")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=red:s=128x72:r=24:d=1.25", "-f", "lavfi", "-i",
+                        "color=blue:s=128x72:r=24:d=1.25", "-filter_complex", "[0:v][1:v]concat=n=2:v=1[v]", "-map", "[v]",
+                        "-pix_fmt", "yuv420p", _v], check=True)
+        comprobar("Retocar busca los cortes de toma sin numpy y el relleno hasta 17n+5 no los cruza (se repite el borde)",
+                  RT.cortes_cerca(_v, 20, 40) == [30] and RT.cortes_cerca(_v, 29, 31) == [30] and RT.cortes_cerca(_v, 10, 20) == []
+                  and RT.ventana(_v, 10, 20, 60) == (8, 22, 0, 30) and RT.ventana(_v, 30, 20, 60) == (30, 22, 30, 60)
+                  and RT.ventana(_v, 12, 18, 60) == (8, 22, 0, 30) and RT.ventana(_v, 25, 10, 60) == (19, 22, 0, 60),
+                  [RT.cortes_cerca(_v, 20, 40), RT.cortes_cerca(_v, 29, 31), RT.ventana(_v, 10, 20, 60), RT.ventana(_v, 30, 20, 60),
+                   RT.ventana(_v, 12, 18, 60), RT.ventana(_v, 25, 10, 60)])
+if shutil.which("ffmpeg"):
     with tempfile.TemporaryDirectory() as d17:
         def _ff(*a):
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *a], check=True)
