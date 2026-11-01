@@ -275,8 +275,20 @@ def motor_rapido() -> str:
     return "pika" if str(config().get("motor_rapido") or "").lower() == "pika" else "vdn"
 
 
-def poner_pika(grafo: dict) -> bool:
-    """Cambia VDN por Pika en el grafo de Generar. Devuelve si lo cambió."""
+def sigmas_pika(denoise: float = 1.0) -> str:
+    """Las sigmas de Pika para un denoise parcial (Detallar de Retocar). Empieza en la misma sigma que el
+    BasicScheduler de VDN (simple, 8 pasos, shift 12) con ese denoise, para que el 0,30 elegido con VDN se sienta igual,
+    y sigue por los nudos de Pika que quedan por debajo. Con denoise 1, las de la plantilla oficial."""
+    if denoise >= 1:
+        return PIKA_SIGMAS
+    t = 8 / int(8 / max(denoise, 0.01))
+    s0 = 12 * t / (1 + 11 * t)
+    nudos = [float(x) for x in PIKA_SIGMAS.split(",")]
+    return ", ".join(f"{x:.6g}" for x in [s0] + [x for x in nudos if x < s0 - 1e-3])
+
+
+def poner_pika(grafo: dict, denoise: float = 1.0) -> bool:
+    """Cambia VDN por Pika en el grafo de Generar (o de Retocar › Detallar, con su denoise). Devuelve si lo cambió."""
     vdn = _por_tipo(grafo, "ApplyVDNH3")
     if not vdn:
         return False
@@ -284,7 +296,7 @@ def poner_pika(grafo: dict) -> bool:
         grafo[nid] = {"class_type": "LoraLoaderModelOnly", "_meta": {"title": "Pika H3 Flex (beta)"},
                       "inputs": {"model": grafo[nid]["inputs"]["model"], "lora_name": PIKA_LORA, "strength_model": 1.0}}
     for nid in _por_tipo(grafo, "BasicScheduler"):
-        grafo[nid] = {"class_type": "ManualSigmas", "inputs": {"sigmas": PIKA_SIGMAS}}
+        grafo[nid] = {"class_type": "ManualSigmas", "inputs": {"sigmas": sigmas_pika(denoise)}}
     for nid in _por_tipo(grafo, "KSamplerSelect"):
         grafo[nid]["inputs"]["sampler_name"] = "lcm"
     for nid in _por_tipo(grafo, "MiniMaxH3SigmaShift"):

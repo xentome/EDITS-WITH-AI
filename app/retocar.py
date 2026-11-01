@@ -497,7 +497,9 @@ def _modo_cara(g: dict, datos: dict) -> dict:
                              "multithread": True}}
     g[N_PEGADO]["inputs"].update(cropped_images=[N_COLOR, 0], feather=CARA_FEATHER)
     g[N_OPS_FINAL]["inputs"].update(expand=8, feather=CARA_FEATHER)      # solo la cara, con borde suave
-    return {"denoise": d, "lienzo": lado, "megapixeles": mp}
+    # (1 nov, beta) con "motor_rapido": "pika" en config.local.json, Detallar va con Pika en lugar de VDN
+    motor = "pika" if generar.motor_rapido() == "pika" and generar.poner_pika(g, d) else "vdn"
+    return {"denoise": d, "lienzo": lado, "megapixeles": mp, "motor": motor}
 
 
 def recuperar(datos: dict, rutas: list[str], sello: str) -> tuple[str, dict]:
