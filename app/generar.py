@@ -63,7 +63,8 @@ def config() -> dict:
     proxy = os.environ.get("MAX_EDITOR_PROXY_URL") or c.get("proxy_url") or os.environ.get("COMFY_BASE_URL")
     comfyui = os.environ.get("MAX_EDITOR_COMFYUI_URL") or c.get("comfyui_url")
     return {"proxy_url": (proxy or "http://127.0.0.1:8199").rstrip("/"),
-            "comfyui_url": (comfyui or "http://127.0.0.1:8188").rstrip("/")}
+            "comfyui_url": (comfyui or "http://127.0.0.1:8188").rstrip("/"),
+            "motor_rapido": os.environ.get("MAX_EDITOR_MOTOR_RAPIDO") or c.get("motor_rapido") or "vdn"}
 
 
 def _responde(url: str, espera: float = 2.0) -> bool:
@@ -262,12 +263,47 @@ def poner_loras(grafo: dict, loras) -> list:
     return puestos
 
 
+# (1 nov, beta) Pika H3 Flex en lugar de VDN, solo en Generar. Se enciende con "motor_rapido": "pika" en
+# config.local.json (no va a git); sin eso, VDN como siempre. Pika es un LoRA ya destilado a 6 pasos: va en el sitio
+# del ApplyVDNH3, con el sampler LCM y las sigmas de su plantilla oficial (video_pika_h3_flex_ref2va), que ya vienen
+# desplazadas, así que el MiniMaxH3SigmaShift sobra. Prueba del paracaídas: 12 min frente a 20 con VDN.
+PIKA_LORA = "pika_h3_flex_ref2va_comfy_bf16.safetensors"
+PIKA_SIGMAS = "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
+
+
+def motor_rapido() -> str:
+    return "pika" if str(config().get("motor_rapido") or "").lower() == "pika" else "vdn"
+
+
+def poner_pika(grafo: dict) -> bool:
+    """Cambia VDN por Pika en el grafo de Generar. Devuelve si lo cambió."""
+    vdn = _por_tipo(grafo, "ApplyVDNH3")
+    if not vdn:
+        return False
+    for nid in vdn:
+        grafo[nid] = {"class_type": "LoraLoaderModelOnly", "_meta": {"title": "Pika H3 Flex (beta)"},
+                      "inputs": {"model": grafo[nid]["inputs"]["model"], "lora_name": PIKA_LORA, "strength_model": 1.0}}
+    for nid in _por_tipo(grafo, "BasicScheduler"):
+        grafo[nid] = {"class_type": "ManualSigmas", "inputs": {"sigmas": PIKA_SIGMAS}}
+    for nid in _por_tipo(grafo, "KSamplerSelect"):
+        grafo[nid]["inputs"]["sampler_name"] = "lcm"
+    for nid in _por_tipo(grafo, "MiniMaxH3SigmaShift"):
+        origen = grafo.pop(nid)["inputs"]["model"]
+        for nodo in grafo.values():
+            for k, v in (nodo.get("inputs") or {}).items():
+                if es_enlace(v) and v[0] == nid:
+                    nodo["inputs"][k] = list(origen)
+    return True
+
+
 def preparar(valores: dict, opciones: dict | None = None) -> dict:
     """El grafo que se manda a ComfyUI. Lanza ErrorGenerar con un texto claro si falta algo."""
     opciones = opciones or {}
     grafo = plantilla()
     _copiar_valores(grafo, valores)
     _reponer_tramo(grafo)
+    if motor_rapido() == "pika":
+        opciones["_motor"] = "pika" if poner_pika(grafo) else "vdn"
     opciones["_loras"] = poner_loras(grafo, _estado(grafo).get("loras"))
     prompt = _leer_prompt(grafo)
     sin_cancion = _sin_cancion(grafo)
