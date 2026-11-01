@@ -163,17 +163,69 @@ def tramo_generado(f0: int, n: int, total: int) -> tuple[int, int]:
     return min(max(0, g0), total - m), m
 
 
-def cortar(ruta: str, f0: int, n: int, fps: float, con_audio: bool, total: int | None = None) -> str:
+# (1 nov, Jonathan: «seleccioné solo hasta el final de la toma 2») para llegar a 17n+5, el tramo se alargaba con fotogramas
+# vecinos, y si la selección acababa justo en un corte entraba la toma siguiente (un primer plano extremo que rompió el recorte
+# de «Detallar cara»). Ahora se buscan los cortes junto a la selección y el relleno nunca los cruza: si no hay sitio a ningún
+# lado, se repite el primer o el último fotograma de la toma.
+UMBRAL_CORTE = 28.0           # diferencia media (0–255) entre dos fotogramas seguidos, en gris a 64 × 36, para contar un corte
+
+
+def cortes_cerca(ruta: str, a: int, b: int) -> list[int]:
+    """Los fotogramas c de (a, b] donde empieza otra toma (c es muy distinto de c−1). Lee solo esos fotogramas, pequeños."""
+    if b <= a:
+        return []
+    try:
+        import numpy as np
+        r = subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-i", ruta, "-vf",
+                            f"select='between(n\\,{a}\\,{b})',scale=64:36,format=gray", "-fps_mode", "passthrough", "-f", "rawvideo", "-"],
+                           capture_output=True, timeout=60)
+        f = np.frombuffer(r.stdout, np.uint8)
+        k = len(f) // (64 * 36)
+        if k < 2:
+            return []
+        f = f[:k * 64 * 36].reshape(k, 36, 64).astype(np.int16)
+        d = np.abs(np.diff(f, axis=0)).mean(axis=(1, 2))
+        umbral = max(UMBRAL_CORTE, 4 * float(np.median(d)))
+        return [a + i + 1 for i, x in enumerate(d) if x > umbral]
+    except Exception:
+        return []                          # sin numpy o sin poder leer: como antes, sin buscar cortes
+
+
+def ventana(ruta: str, s0: int, sn: int, total: int) -> tuple[int, int, int, int]:
+    """(g0, m, lo, hi): lo que genera H3 para la selección [s0, s0+sn) (m = 17n+5 fotogramas desde g0, que puede ser < 0) y
+    los fotogramas reales que puede usar, [lo, hi): los de la misma toma que la selección. Lo de fuera se rellena repitiendo
+    el primero o el último. Sin cortes cerca es lo mismo que tramo_generado."""
+    m = valido_que_contiene(sn)
+    falta = m - sn
+    lo, hi = 0, total
+    if falta and ruta:
+        cortes = cortes_cerca(ruta, max(0, s0 - falta - 1), s0) + cortes_cerca(ruta, s0 + sn - 1, min(total - 1, s0 + sn - 1 + falta))
+        lo = max([c for c in cortes if c <= s0], default=0)
+        hi = min([c for c in cortes if c >= s0 + sn], default=total)
+    centro = s0 - falta // 2
+    if hi - lo >= m:
+        g0 = min(max(centro, lo), hi - m)
+    else:                                   # no cabe con fotogramas reales: todos los de la toma y el resto repetido
+        g0 = lo - (m - (hi - lo)) // 2
+    return g0, m, lo, hi
+
+
+def cortar(ruta: str, f0: int, n: int, fps: float, con_audio: bool, total: int | None = None,
+           lo: int | None = None, hi: int | None = None) -> str:
     """Corta n fotogramas exactos desde f0 a ComfyUI/input/max_editor/retocar/ y devuelve el nombre para el LoadVideo.
     Sin audio, pone silencio: el NKDAVLatent del grafo espera una pista de audio («keep»). Si el video acaba antes de
     f0+n (`total`), el final se rellena repitiendo el último fotograma (y el audio, con silencio)."""
     base = re.sub(r"[^\w-]+", "_", os.path.splitext(os.path.basename(ruta))[0])[:60]
-    nombre = f"{CARPETA_TRAMOS}/{base}_f{f0}_{n}.mp4"
+    lo = max(0, lo if lo is not None else 0)
+    hi = min(hi if hi is not None else (total or f0 + n), total or 10 ** 9)
+    a, b = max(f0, lo), min(f0 + n, hi)               # los fotogramas reales; antes y después, repetidos
+    antes, falta = a - f0, f0 + n - b
+    nombre = f"{CARPETA_TRAMOS}/{base}_f{f0}_{n}" + (f"_r{a}-{b}" if antes or falta else "") + ".mp4"
     destino = os.path.join(comfyui_dir(), "input", nombre)
     os.makedirs(os.path.dirname(destino), exist_ok=True)
-    t0, dur = f0 / fps, n / fps
-    falta = max(0, f0 + n - total) if total else 0
-    video = f"select='between(n\\,{f0}\\,{f0 + n - 1})',setpts=PTS-STARTPTS" + (f",tpad=stop_mode=clone:stop={falta}" if falta else "")
+    t0, dur = max(0, f0) / fps, n / fps
+    relleno = ":".join(x for x in (f"start_mode=clone:start={antes}" if antes else "", f"stop_mode=clone:stop={falta}" if falta else "") if x)
+    video = f"select='between(n\\,{a}\\,{b - 1})',setpts=PTS-STARTPTS" + (f",tpad={relleno},setpts=N/({fps}*TB)" if relleno else "")
     if con_audio:
         _ffmpeg("-i", ruta, "-vf", video, "-af", f"atrim=start={t0:.6f}:duration={dur:.6f},asetpts=PTS-STARTPTS,apad=whole_dur={dur:.6f}",
                 "-frames:v", str(n), "-c:v", "libx264", "-crf", "12", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", destino)
@@ -306,7 +358,7 @@ def _base(datos: dict) -> tuple[dict, dict, dict]:
     vi = info(datos.get("video"))
     w, h, fps = vi["ancho"], vi["alto"], vi["fps"]
     s0, sn = seleccion(datos, fps, vi["fotogramas"])           # lo que eligió el usuario
-    f0, n = tramo_generado(s0, sn, vi["fotogramas"])          # lo que genera H3 (17n+5) y lo contiene
+    f0, n, lo, hi = ventana(ruta_video(datos["video"]), s0, sn, vi["fotogramas"])   # lo que genera H3 (17n+5), sin cruzar cortes
 
     g, meta = _plantilla()
     # la máscara: se queda una rama y la otra se quita
@@ -340,7 +392,7 @@ def _base(datos: dict) -> tuple[dict, dict, dict]:
     g[N_RECORTE]["inputs"]["upscale_megapixels"] = -megapixeles(datos)    # negativo: el recorte sube o baja a ese tamaño
 
     # el tramo cortado y la línea de tiempo a su tamaño y sus fotogramas
-    tramo = cortar(ruta_video(datos["video"]), f0, n, fps, vi["audio"], vi["fotogramas"])
+    tramo = cortar(ruta_video(datos["video"]), f0, n, fps, vi["audio"], vi["fotogramas"], lo, hi)
     g[N_VIDEO]["inputs"]["file"] = tramo
     linea = g[N_LINEA]["inputs"]
     tl = json.loads(linea["timeline"])
@@ -511,7 +563,7 @@ def recuperar(datos: dict, rutas: list[str], sello: str) -> tuple[str, dict]:
     dejó en su salida. Arma el video completo igual que _despues (solo cambian los fotogramas elegidos)."""
     vi = info(datos.get("video"))
     s0, sn = seleccion(datos, vi["fps"], vi["fotogramas"])
-    g0, _ = tramo_generado(s0, sn, vi["fotogramas"])
+    g0, _, _, _ = ventana(ruta_video(datos["video"]), s0, sn, vi["fotogramas"])
     con_audio = [r for r in rutas if "-audio" in os.path.basename(r)]
     semilla = datos.get("semilla")
     archivo_tramo, archivo = f"retoque_{sello}_{semilla}_tramo.mp4", f"retoque_{sello}_{semilla}.mp4"

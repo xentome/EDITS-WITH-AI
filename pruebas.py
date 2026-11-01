@@ -737,6 +737,7 @@ comprobar("el tramo generado es el 17n+5 más pequeño que contiene la selecció
           [RT.valido_que_contiene(x) for x in (1, 22, 23, 30, 39, 40, 125)] == [22, 22, 39, 39, 39, 56, 141]
           and RT.tramo_generado(10, 30, 60) == (6, 39) and RT.tramo_generado(0, 30, 60) == (0, 39)
           and RT.tramo_generado(55, 5, 60) == (38, 22) and RT.tramo_generado(0, 60, 60) == (0, 73)
+          and RT.ventana("", 10, 30, 60) == (6, 39, 0, 60) and RT.ventana("", 0, 60, 60) == (0, 73, 0, 60)
           and RT.seleccion({"f0": 50, "n": 99}, 24, 60) == (50, 10) and RT.seleccion({"inicio": 0.5, "fin": 1.0}, 24, 60) == (12, 12))
 if shutil.which("ffmpeg"):
     with tempfile.TemporaryDirectory() as d17:
