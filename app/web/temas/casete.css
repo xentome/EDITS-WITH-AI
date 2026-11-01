@@ -224,7 +224,7 @@ body.tema-casete .epl-poster-pie .epl-papel{background:none !important;color:var
   text-transform:uppercase;padding:0 !important;flex:none}
 body.tema-casete .epl-papel{background:var(--k-tinta3) !important;color:var(--k-crema) !important;border-radius:3px !important;font-family:var(--k-rotulo)}
 /* la pegatina de cada referencia: redonda, de su color, un poco fuera de la esquina */
-body.tema-casete .epl-poster .epl-sello{top:-8px !important;left:-8px !important;width:30px;height:30px;min-width:30px;font-size:10px}
+body.tema-casete .epl-poster .epl-sello{top:-10px !important;left:-10px !important;width:42px;height:42px;min-width:42px;font-size:14px !important}
 body.tema-casete .epl-fondo .epl-poster .epl-poster-botones .epl-mini{background:rgba(23,18,28,.85) !important;border:1px solid var(--k-linea2) !important;
   color:var(--k-texto) !important;width:32px;height:32px;padding:0}
 body.tema-casete .epl-fondo .epl-poster .epl-poster-botones .epl-mini:hover{border-color:var(--k-crema) !important}
@@ -232,9 +232,10 @@ body.tema-casete .epl-poster .sinfoto{background:var(--k-tinta3)}
 body.tema-casete .epl-vacia{border:1px dashed var(--k-estante-linea) !important;background:transparent !important;color:var(--k-texto) !important}
 body.tema-casete .epl-vacia:hover{border-color:var(--k-crema) !important}
 body.tema-casete .epl-vacia b{color:var(--k-crema) !important}
-body.tema-casete .epl-punto{border-radius:50% !important;min-width:22px;height:22px;padding:0;font-size:9.5px !important;
-  box-shadow:0 0 0 2px var(--k-tinta),0 1px 0 3px rgba(0,0,0,.35)}
-body.tema-casete .epl-punto.epl-en-todas{box-shadow:0 0 0 2px var(--k-tinta),0 0 0 3.5px var(--k-crema)}
+/* (1 nov, Jonathan: «casi ni se notan») más grandes, con un aro oscuro grueso y otro blanco por fuera; las Principal, crema */
+body.tema-casete .epl-punto{border-radius:50% !important;min-width:30px;height:30px;padding:0 2px;font-size:12px !important;font-weight:800 !important;
+  border:3px solid var(--k-tinta) !important;box-shadow:0 0 0 2.5px #fff,0 2px 6px rgba(0,0,0,.45)}
+body.tema-casete .epl-punto.epl-en-todas{box-shadow:0 0 0 3px var(--k-crema),0 2px 6px rgba(0,0,0,.45)}
 body.tema-casete .epl-efecto{background:var(--k-tinta) !important;border:1px solid var(--k-estante-linea) !important;border-radius:5px !important}
 body.tema-casete .epl-efecto.usada{outline:0;border-color:var(--k-crema) !important}
 body.tema-casete .epl-efecto b{color:var(--k-crema)}

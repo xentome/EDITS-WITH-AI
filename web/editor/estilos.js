@@ -337,11 +337,12 @@ textarea.epl-final{min-height:40vh}
 .epl-poster.apagada{opacity:.45;filter:grayscale(.8)}
 .epl-arrastrado{opacity:.45}
 .epl-punto{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:18px;height:18px;padding:0 3px;
-  border-radius:999px;font:700 10px/1 system-ui,sans-serif;color:#111 !important;opacity:1 !important;box-shadow:0 0 0 2px rgba(0,0,0,.65);flex:none}
-.epl-punto.epl-en-todas{box-shadow:0 0 0 2px #000,0 0 0 3px rgba(255,255,255,.8)}
+  border-radius:999px;font:800 12px/1 system-ui,sans-serif;color:#111 !important;opacity:1 !important;border:3px solid #111;box-shadow:0 0 0 2.5px #fff;flex:none}
+.epl-punto{min-width:28px;height:28px}
+.epl-punto.epl-en-todas{box-shadow:0 0 0 3px #F6EAD2}
 .epl-punto.apagado{background:#555;color:#ddd !important}
-.epl-sello{min-width:24px;height:20px;font-size:11px}
-.epl-sello-ficha{min-width:26px;height:22px;font-size:12px}
+.epl-sello{min-width:36px;height:36px;font-size:13px}
+.epl-sello-ficha{min-width:34px;height:34px;font-size:13px}
 .epl-tomab-cab{display:flex;align-items:center;gap:6px;min-width:0}
 .epl-puntos{display:inline-flex;gap:4px;flex-wrap:wrap;overflow:visible !important;opacity:1 !important}
 .epl-efecto .epl-punto{margin-right:4px}
