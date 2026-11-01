@@ -42,7 +42,7 @@ PARAMETROS = {
     "nuevos": "new_frames", "solape": "overlap", "calidad": "quality", "escala": "scale", "donde": "where",
     "nombre_copia": "copy_name", "pistas": "tracks", "lienzo": "canvas", "fuente": "source", "en": "timeline_at",
     "pista": "track", "ini": "source_start", "cerrar_hueco": "close_gap", "ruta": "path", "tipo": "kind", "carpeta": "folder",
-    "tema": "topic", "modo": "mode", "fuerza": "strength", "denoise": "denoise", "vueltas": "passes",
+    "tema": "topic", "sin_personaje": "without_character", "modo": "mode", "fuerza": "strength", "denoise": "denoise", "vueltas": "passes",
 }
 POR_HERRAMIENTA = {"poner_clip": {"fin": "source_end"}}     # el mismo nombre viejo con otro sentido
 
@@ -99,7 +99,7 @@ _CAPITULOS = {"guia://mapa": "guia://proyecto", "guia://organizar": "guia://proy
               "guia://errores": "guia://trampas", "guia://extender": "guia://retocar"}
 
 
-_CAMPOS = ("efecto_frase", "fondo_ref", "momento", "gesto", "lugar", "entorno", "encuadre", "camara", "luz", "estilo")
+_CAMPOS = ("sin_personaje", "efecto_frase", "fondo_ref", "momento", "gesto", "lugar", "entorno", "encuadre", "camara", "luz", "estilo")
 
 
 def limpiar(texto: str) -> str:
@@ -189,6 +189,9 @@ DESCRIPCIONES = {
                   "replaces the effect's card in this shot.\n"
                   "- connect / disconnect: tags to add to or remove from this shot. background, place, clothes, pose, "
                   "object and a second character each go to their own slot; effects go to the shot's effects.\n"
+                  "- without_character: true takes the main character out of this shot ON PURPOSE (a plane alone, a "
+                  "landscape, a product): its line no longer names <Subject 1> nor a gesture. Only when the creative wants "
+                  "that shot without the character; false puts them back.\n"
                   "- Cite references by their current tag; the main character is <Subject 1>.\n" + P,
     "set_text_track": "Replaces the whole text track. Each item: {text, start (s), end (s, or null = end of its shot), "
                       "position: «over» (over the image) | «beside» (beside the character), font_ref (optional tag of a "

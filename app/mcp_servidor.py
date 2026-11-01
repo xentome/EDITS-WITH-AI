@@ -10,6 +10,7 @@ MAX_EDITOR_*), más `mcp_puerto` (8301) y MAX_EDITOR_URL (dónde está la app, p
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import functools
 import inspect
 import json
@@ -92,10 +93,22 @@ def error_de_app(d) -> str:
     return " ".join(x for x in (texto or "the app refused the request.", que) if x)
 
 
+SESION = contextvars.ContextVar("sesion_mcp", default="")    # la conexión MCP que hace esta llamada (call_tool la pone)
+
+
 class App:
     def __init__(self):
         self.plantilla = None
-        self.actual = ""                    # el proyecto de esta sesión (el último abierto o creado)
+        self._actual = {}                   # sesión MCP → su proyecto actual (el último que abrió o creó)
+
+    # 31 oct: un proyecto actual POR SESIÓN (antes era uno para todos los agentes conectados: uno podía cambiar el de otro)
+    @property
+    def actual(self) -> str:
+        return self._actual.get(SESION.get(), "")
+
+    @actual.setter
+    def actual(self, nombre: str) -> None:
+        self._actual[SESION.get()] = nombre
 
     async def pedir(self, metodo: str, ruta: str, cuerpo=None, espera: float = 60, ok=(200,)):
         try:
@@ -452,7 +465,7 @@ async def escribir_toma(k: int, momento: str | None = None, gesto: str | None = 
                         entorno: str | None = None, encuadre: str | None = None, camara: str | None = None,
                         luz: str | None = None, estilo: str | None = None, efecto_frase: str | None = None,
                         fondo_ref: str | None = None, conectar: list[str] | None = None, desconectar: list[str] | None = None,
-                        proyecto: str = "") -> str:
+                        proyecto: str = "", sin_personaje: bool | None = None) -> str:
     """Write the fields of shot k's panel (panel de la toma), in ENGLISH (they go to H3 as is). Only the fields you pass
     change; "" empties one. Every field you write is locked (candado) so the local LLM will not rewrite it.
     momento = «Action / movement» (Acción / movimiento), THE MAIN FIELD: what happens, one clear action.
@@ -465,7 +478,7 @@ async def escribir_toma(k: int, momento: str | None = None, gesto: str | None = 
     E1) to add to / remove from this shot — a fondo/lugar/ropa/pose/objeto goes to its own field, the rest to the shot's
     references. Cite references inside text as <Picture N>; the character is <Subject 1>."""
     campos = {"momento": momento, "gesto": gesto, "lugar": lugar, "entorno": entorno, "encuadre": encuadre, "camara": camara,
-              "luz": luz, "estilo": estilo, "efecto_frase": efecto_frase, "fondo_ref": fondo_ref}
+              "luz": luz, "estilo": estilo, "efecto_frase": efecto_frase, "fondo_ref": fondo_ref, "sin_personaje": sin_personaje}
     p, hechos = await APPC.cambiar(proyecto, lambda p: p.escribir_toma(k, campos, conectar, desconectar))
     linea = next((ln for ln in (p.estado().get("prompt") or "").splitlines() if ln.startswith(f"[Shot {int(k)}]")), "")
     return (f"Shot {k}: {', '.join(hechos) or 'nothing changed'}. Page: step 1, shot {k}.\n"
@@ -1557,6 +1570,20 @@ ARGS_VIEJOS = {"crear_edit": ("idea", "proyecto"), "retocar_video": ("que", "vid
 for _viejo, _n in PROMPTS_VIEJOS.items():         # los nombres viejos siguen valiendo (escondidos en la lista)
     _f, _t, _d = _prompt(_n, ARGS_VIEJOS[_viejo])
     mcp.prompt(name=_viejo, title=_t, description=_d)(_f)
+
+_llamar = mcp.call_tool
+
+
+async def _llamar_en_su_sesion(name, arguments, context=None):
+    """Cada llamada lleva su sesión MCP (para el proyecto actual de cada agente)."""
+    rc = getattr(context, "_request_context", None)
+    marca = SESION.set(str(getattr(rc, "session_id", "") or ""))
+    try:
+        return await _llamar(name, arguments, context)
+    finally:
+        SESION.reset(marca)
+
+mcp.call_tool = _llamar_en_su_sesion
 
 import mcp_en  # noqa: E402  (la cara en inglés: nombres, parámetros y descripciones nuevas; los viejos como alias)
 mcp_en.registrar(mcp, globals(), NUEVAS, ocultos_prompts=set(PROMPTS_VIEJOS),

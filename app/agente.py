@@ -585,6 +585,8 @@ class Proyecto:
                     toma["fijos"].append(c)
                 elif not v:
                     toma["fijos"] = [f for f in toma["fijos"] if f != c]
+            elif c == "sin_personaje":     # 31 oct: sacar al personaje de una toma, a propósito (por defecto sale en todas)
+                toma["sin_personaje"] = bool(v)
             elif c in ("fondo_ref", "lugar_ref", "ropa", "pose", "objeto", "personaje"):
                 v = str(v).strip()
                 if v and not self.existe_etiqueta(v):

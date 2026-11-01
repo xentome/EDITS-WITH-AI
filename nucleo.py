@@ -1136,8 +1136,9 @@ def montar(perfil, menu, plan, ini, textos, idioma="es", frases=None):
                                                     tag=x if x.startswith("<") else "")
                                            for x in con_efectos(t)["efectos"]
                                            if x not in menu["personaje"] and ficha_conectada(menu, x)], "toma.citas.y")
+        # 31 oct: una toma sin el personaje, si se pidió a propósito: su línea no nombra <Subject 1> ni su gesto
         s = trozo(f"[Shot {k}] At {mmss(ini[k - 1])}") + C.pegar(
-            "toma.linea", encuadre=falta(campo("encuadre"), "final.hueco.sin_encuadre", k=k),
+            "toma.linea_sin_personaje" if t.get("sin_personaje") else "toma.linea", encuadre=falta(campo("encuadre"), "final.hueco.sin_encuadre", k=k),
             estilo=C.pegar("toma.estilo", estilo=de_usuario((t.get("estilo") or "").strip().rstrip("."))) if (t.get("estilo") or "").strip() else [],
             efecto=efecto, entorno=entorno,
             citas=unir(C, citas, "toma.citas.y"), gesto=falta(campo("gesto"), "final.hueco.sin_gesto", k=k),

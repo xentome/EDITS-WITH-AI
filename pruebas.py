@@ -839,6 +839,10 @@ comprobar("duplicar parte la toma en dos mitades iguales; mover lleva su duraci�
 lin18 = [x for x in N.montar_plan(p18b.entradas(), p18b.plan, None, "en")[0].splitlines() if x.startswith("[Shot 2]")]
 comprobar("un segundo personaje conectado sale como «with <Subject 2>», nunca como «like the effect in»",
           lin18 and "with <Subject 2>" in lin18[0] and "effect" not in lin18[0], lin18)
+p18b.escribir_toma(3, {"sin_personaje": True, "lugar": "a quiet beach", "encuadre": "wide shot"})
+lin18c = [x for x in N.montar_plan(p18b.entradas(), p18b.plan, None, "en")[0].splitlines() if x.startswith("[Shot 3]")]
+comprobar("una toma sin personaje (a propósito) no nombra <Subject 1>; las demás sí",
+          lin18c and "<Subject 1>" not in lin18c[0] and "a quiet beach" in lin18c[0] and "<Subject 1>" in lin18[0], lin18c)
 
 print("19 · Extender: longitudes, de dónde sale la cola, la canción y la unión (app/extender.py, sin GPU)")
 import extender as EX  # noqa: E402
