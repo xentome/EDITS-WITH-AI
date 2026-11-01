@@ -489,7 +489,11 @@ def _modo_cara(g: dict, datos: dict) -> dict:
     """Cambia el grafo del retoque al modo «Detallar cara». Devuelve lo que se guarda en el historial."""
     d, lado = denoise_cara(datos), lienzo_cara(datos)
     mp = round(lado * lado / (1024 * 1024), 6)               # el MVEx_SubjectCrop cuenta 1 MP = 1024 × 1024
-    g[N_RECORTE]["inputs"].update({"mode.crop_scale": CARA_ESCALA, "mode.aspect_ratio": 1.0, "upscale_megapixels": -mp})
+    # (1 nov) margen «flexible»: con «firm» el recorte cuadrado debía guardar el 70 % del margen ×2,5 en cada fotograma, y una
+    # cara de más de ~360 px (un primer plano en un video de 736 de alto) ya no cabía: «crop planner … infeasible». Ahora el
+    # margen se da entero cuando cabe y cede cuando no; solo una cara más grande que el lado corto del video sigue sin caber
+    g[N_RECORTE]["inputs"].update({"mode.crop_scale": CARA_ESCALA, "mode.aspect_ratio": 1.0, "mode.padding": "flexible",
+                                   "upscale_megapixels": -mp})
     g[N_LATENTE]["inputs"].pop("latent_mask", None)          # video a video: se rehace todo el recorte, desde el video
     g[N_SCHEDULER]["inputs"]["denoise"] = d
     g[N_COLOR] = {"class_type": "ColorMatch", "_meta": {"title": "color igualado al recorte original"},

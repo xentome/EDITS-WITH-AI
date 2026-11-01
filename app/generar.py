@@ -439,6 +439,13 @@ def _texto_fallo(error) -> str:
     texto = f"{nodo}{error.message}"
     if "No such file" in texto or "not found" in texto.lower():
         texto += "\n(¿falta un modelo o un archivo? mira app/plantillas/LEEME.md)"
+    # (1 nov) el recorte de Retocar (MVEx_SubjectCrop) no encuentra un recuadro que contenga la zona en todos los fotogramas:
+    # en «Detallar cara» el recuadro es cuadrado, así que una cara más grande que el lado corto del video no cabe (un primer
+    # plano extremo; a menudo de la toma siguiente, porque el tramo cruza un corte o H3 lo alarga unos fotogramas)
+    if "crop planner" in texto and "infeasible" in texto.lower():
+        texto = ("la zona no cabe en el recorte en algún fotograma del tramo (en «Detallar cara» el recorte es cuadrado: una cara "
+                 "más grande que el lado corto del video no cabe, como en un primer plano extremo). Suele pasar cuando el tramo "
+                 "cruza un corte a otra toma: acórtalo unos fotogramas antes del corte, o usa «Detallar» general.\n(" + texto + ")")
     return texto
 
 
