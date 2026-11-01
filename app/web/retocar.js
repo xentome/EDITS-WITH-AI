@@ -442,7 +442,8 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
       for (;;) {
         a = await pedir("/app/trabajo/" + id);
         if (a.estado === "listo" || a.estado === "error") break;
-        if (R.calculando) { R.calculando.a = a; pintarVer(); }
+        // la barra nunca corta la espera: si pintarla falla, la máscara se enseña igual al terminar
+        if (R.calculando) { R.calculando.a = a; try { pintarVer(); } catch (e) { console.warn("[Retocar] barra de la máscara", e); } }
         await new Promise((ok) => setTimeout(ok, 1000));
       }
       if (a.estado === "error") throw new Error(a.mensaje || "?");
@@ -468,7 +469,7 @@ export function crear({ el, icono, mirarCola, t, num, pedir, A, avisar, alTermin
     const pc = Math.round(f * 100);
     return el("span", { class: "max-rt-calculando max-rt-ver-avance", role: "status" },
       el("span", { class: "max-barra", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(pc) },
-        el("b", { style: `width:${pc}%` })),
+        el("b", { style: { width: pc + "%" } })),
       " " + t("app.retocar.ver.calculando", { fase: t(FASES_MASCARA[c.a?.estado === "en_cola" ? "cola" : fase], { paso }), p: pc, s: c.s }));
   }
   function pintarVer() {
