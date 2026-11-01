@@ -464,12 +464,12 @@ def preparar(datos: dict) -> tuple[dict, dict]:
 # bordes suaves al pegar), para elegir cada mejora probándola. Lo único que queda es la rejilla de H3 en el latente
 # (NKDMaskOps con el VAE y el modelo): H3 rehace bloques enteros de 2×2 latentes y no se puede quitar.
 # (1 nov, Jonathan) el borde suave de la máscara cruda: se pega con un degradado (menos opacidad hacia el borde), con el
-# NKDMaskOps sin VAE (sin rejilla) sobre la máscara fina. En Detallar el degradado va hacia dentro (encoge 4 px y
-# difumina 6): la cara refinada se funde con la original sin salirse de lo que marcó SAM. En Cambiar y Quitar se difumina
-# 6 px centrado en el borde: si encogiera, asomaría el borde de lo que se cambia o se borra. ±1 fotograma de media
-# (centrada, sin retraso) para que el borde no tiemble en algo que se mueve. Los px son del recorte.
+# NKDMaskOps sin VAE (sin rejilla) sobre la máscara fina. El difuminado (una caja de ±6 px) baja la opacidad a ambos lados
+# del borde; por eso antes se agranda 6 px (Jonathan: «que el desenfoque no deje zonas sin tapar»): lo que marcó SAM queda
+# cubierto al 100 % y el degradado cae por fuera, en 12 px. ±1 fotograma de media (centrada, sin retraso) para que el borde
+# no tiemble en algo que se mueve. Los px son del recorte (en Detallar, del lienzo).
 N_SUAVE = "440"
-SUAVE = {"detallar": {"expand": -4, "feather": 6}, "cambiar": {"expand": 0, "feather": 6}, "quitar": {"expand": 0, "feather": 6}}
+SUAVE = {"detallar": {"expand": 6, "feather": 6}, "cambiar": {"expand": 6, "feather": 6}, "quitar": {"expand": 6, "feather": 6}}
 SUAVE_TIEMPO = 1
 
 
