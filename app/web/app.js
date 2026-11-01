@@ -866,21 +866,23 @@ const alEditar = (e) => {
 document.addEventListener("change", alEditar, true);
 document.addEventListener("input", (e) => { if (e.target?.closest?.(".max-ag")) alEditar(e); }, true);
 
-// el aspecto (con los colores del tema casete si está; si no, los suyos): la marca es un borde discontinuo rosa con su rótulo
+// el aspecto (con los colores del tema casete si está; si no, los suyos): la marca es un borde discontinuo cian con su
+// rótulo (1 nov: antes rosa; Jonathan: «me parece un color feo», eligió cian)
 document.head.append(el("style", { id: "max-agente-css" }, `
-.max-ag{outline:2px dashed var(--k-rosa,#ff3e8a)!important;outline-offset:2px;position:relative}
+:root{--max-ag-color:var(--k-cian,#22E4FF);--max-ag-letra:var(--k-tinta,#0f1216)}
+.max-ag{outline:2px dashed var(--max-ag-color)!important;outline-offset:2px;position:relative}
 .max-ag:not(input):not(textarea):not(select)::after{content:attr(data-ag);position:absolute;top:-.85em;right:.3em;z-index:5;
-  padding:.1em .55em;border-radius:.7em;background:var(--k-rosa,#ff3e8a);color:#fff;font:600 12px/1.5 var(--k-mano,inherit);
+  padding:.1em .55em;border-radius:.7em;background:var(--max-ag-color);color:var(--max-ag-letra);font:600 12px/1.5 var(--k-mano,inherit);
   pointer-events:none;white-space:nowrap}
 /* (1 nov, Jonathan: «la etiqueta se ve recortada») la toma recorta lo que sale de ella y el estante de referencias lo que
  * asoma por arriba: ahí la etiqueta va dentro, en un hueco libre (la toma abajo a la derecha; el póster bajo sus botones) */
 .epl-tomab.max-ag::after{top:auto!important;bottom:.4em;right:.45em}
 .epl-poster.max-ag::after{top:2.9em!important;right:.35em}
-.max-ag-sello{display:inline-block;margin:0 .4em;padding:0 .5em;border-radius:.7em;background:var(--k-rosa,#ff3e8a);color:#fff;
+.max-ag-sello{display:inline-block;margin:0 .4em;padding:0 .5em;border-radius:.7em;background:var(--max-ag-color);color:var(--max-ag-letra);
   font:600 12px/1.6 var(--k-mano,inherit);white-space:nowrap}
 .max-ag-aviso{display:none;align-items:center;gap:.6em;padding:.25em .8em;font-size:13px}
 .max-ag-aviso.ver{display:flex}
-.max-ag-aviso.choque{background:color-mix(in srgb,var(--k-rosa,#ff3e8a) 22%,transparent)}`));
+.max-ag-aviso.choque{background:color-mix(in srgb,var(--max-ag-color) 22%,transparent)}`));
 
 // ---- arrancar: plantilla, proyectos y el último proyecto abierto (o el ejemplo)
 pintarCabecera();
