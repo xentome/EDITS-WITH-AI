@@ -9,7 +9,9 @@ Mismo contrato que generar.py, y comparte con él el trabajo (lanzar por el SDK,
   validar(grafo) -> list[str]         los problemas del grafo según /object_info de ComfyUI (vacío = bien)
 
 `datos` = {video, inicio, fin, mascara: {modo: "texto", texto} | {modo: "rectangulo", x, y, w, h},
-           referencias: [{refmod: nombre} | {imagen: "ruta [input]"}] (0 a 4), prompt, semilla, proyecto, megapixeles}
+           referencias: [{refmod: nombre} | {imagen: "ruta [input]"}] (0 a 4), prompt, semilla, proyecto, megapixeles,
+           modo: "cambiar" (por defecto; `fuerza` 0,40–1) | "detallar" (`denoise` 0,10–0,80, `lienzo` 384–1024) |
+                 "quitar" (LanPaint; `vueltas` 1–4)}
 `megapixeles` (27 oct): la resolución a la que H3 rehace el tramo. La decide el recorte alrededor de la máscara
 (MVEx_SubjectCrop, nodo 19): su upscale_megapixels lleva el recorte a ese tamaño (en negativo: sube o baja), en la rejilla de
 32 (divisible_by); el NKDAVLatent saca el latente de esos fotogramas. El NKDTimeline y el CR Aspect Ratio no lo cambian.
@@ -382,11 +384,75 @@ def preparar(datos: dict) -> tuple[dict, dict]:
     # tramo: lo elegido (lo que se sustituye; inicio y fin, para la lista de Videos) y lo generado (g0, gn)
     vi_tramo = {"f0": s0, "n": sn, "g0": f0, "gn": n, "inicio": round(s0 / fps, 3), "fin": round((s0 + sn) / fps, 3)}
     generar.poner_loras(g, datos.get("loras"))      # los LoRAs del proyecto (30 oct), detrás del UNETLoader de H3
-    modo = "cara" if datos.get("modo") == "cara" else "zona"
-    extra = _modo_cara(g, datos) if modo == "cara" else {}
+    modo = MODOS.get(datos.get("modo") or "cambiar")
+    if modo is None:
+        raise ErrorGenerar("el modo de retoque no es válido: cambiar, detallar o quitar")
+    if modo == "detallar":
+        extra = _modo_cara(g, datos)
+    elif modo == "quitar":
+        extra = _con_lanpaint(g, datos.get("vueltas"))
+    else:
+        extra = _con_fuerza(g, datos)
     return g, {"video": datos["video"], "info": vi, "tramo": vi_tramo, "tramo_archivo": tramo, "mascara": mascara,
                "referencias": refs, "sello": sello, "proyecto": datos.get("proyecto"), "modo": modo, **extra,
-               **({} if modo == "cara" else {"megapixeles": megapixeles(datos)})}
+               **({} if modo == "detallar" else {"megapixeles": megapixeles(datos)})}
+
+
+# ---------------------------------------------------------------- los tres modos de Retocar (31 oct, Jonathan)
+# «cambiar»: la zona se pinta de nuevo (reemplaza o añade; con menos fuerza conserva más la forma de lo que había).
+# «detallar»: video a video con denoise parcial (la cara con su preset, o cualquier zona con sus ajustes).
+# «quitar»: LanPaint, que rellena mirando la escena de alrededor (borrar logos sin inventar nada).
+# Los nombres viejos («zona», «cara») siguen valiendo.
+MODOS = {"cambiar": "cambiar", "zona": "cambiar", "detallar": "detallar", "cara": "detallar", "quitar": "quitar"}
+FUERZA_MIN, FUERZA_MAX = 0.40, 1.0
+
+
+def _con_fuerza(g: dict, datos: dict) -> dict:
+    """«Fuerza» del modo cambiar: el denoise del muestreo (1 = la zona se pinta de cero; menos = se parte de lo que había)."""
+    v = datos.get("fuerza")
+    try:
+        f = float(v) if v not in (None, "") else 1.0
+    except (TypeError, ValueError):
+        raise ErrorGenerar("la fuerza no es válida")
+    f = round(min(FUERZA_MAX, max(FUERZA_MIN, f)), 3)
+    g[N_SCHEDULER]["inputs"]["denoise"] = f
+    return {"fuerza": f} if f < 1 else {}
+
+
+# ---------------------------------------------------------------- modo «quitar»: LanPaint (31 oct)
+# scraed/LanPaint: el sampler «piensa» varias vueltas antes de cada paso para que lo que rellena encaje con lo que no se
+# toca. Solo cambia el sampler (nodo 32); los ajustes son los de su autor y los del workflow de T8 para H3.
+N_SAMPLER = "32"
+
+
+def _con_lanpaint(g: dict, vueltas=None) -> dict:
+    """`vueltas`: las de «pensar» por paso (su autor usa 5; cada una es una pasada más del modelo, lenta en 12 GB). Con 1 quedó
+    una raya en el borde; con 2, limpio (124 fotogramas en 10 min en la RTX 3060). Por defecto 2, como mucho 4."""
+    try:
+        v = min(VUELTAS_MAX, max(1, int(vueltas))) if vueltas not in (None, "") else VUELTAS
+    except (TypeError, ValueError):
+        raise ErrorGenerar("las vueltas de LanPaint no son válidas")
+    s = g[N_SAMPLER]
+    s["class_type"] = "LanPaint_SamplerCustomAdvanced"
+    s["inputs"].update(LanPaint_NumSteps=v, LanPaint_Lambda=5.0, LanPaint_StepSize=0.2, LanPaint_PromptMode="Image First",
+                       LanPaint_Info="MAX EDITOR Retocar")
+    # 1.ª prueba (1 vuelta): los logos se fueron, pero quedó un marco de rombos en el borde. 2.ª (la máscara del latente de
+    # NKD, dura): igual. 3.ª: como el ejemplo del autor (LanPaint_AVEncode), el sampler recibe la máscara EN PÍXELES del
+    # recorte (dura, solo 0 y 1) y LanPaint la lleva él mismo a la rejilla del latente; el borde suave queda para el pegado.
+    g[N_MASCARA_DURA] = {"class_type": "ThresholdMask", "inputs": {"mask": [N_RECORTE, 1], "value": 0.5}}
+    g[N_LATENTE]["inputs"]["latent_mask"] = [N_MASCARA_DURA, 0]
+    # 3.ª prueba: el marco casi se fue; quedó una línea fina en el borde. 4.ª: el pegado de LanPaint (la mezcla de su
+    # LanPaint_AVDecode, que es LanPaint_MaskBlend: agranda la máscara, la suaviza y mezcla original y repintado) en el
+    # recorte; luego se pega el recorte entero (fuera de la máscara ya son los píxeles del original).
+    g[N_MEZCLA_LP] = {"class_type": "LanPaint_MaskBlend", "inputs": {"image1": [N_RECORTE, 0], "image2": [N_DECODE, 0],
+                                                                    "mask": [N_MASCARA_DURA, 0], "blend_overlap": 11}}
+    g[N_PEGADO]["inputs"]["cropped_images"] = [N_MEZCLA_LP, 0]
+    g[N_PEGADO]["inputs"].pop("cropped_masks", None)
+    return {"lanpaint": v}
+
+
+N_MASCARA_DURA, N_MEZCLA_LP = "430", "431"
+VUELTAS, VUELTAS_MAX = 2, 4
 
 
 # ---------------------------------------------------------------- modo «Detallar cara» (31 oct)
@@ -589,7 +655,7 @@ def _despues(tid: str, grafo: dict, job, opciones: dict):
     return archivo, {"tipo": "retoque", "semilla": semilla, "proyecto": meta.get("proyecto"), "de": meta["video"],
                      "tramo": tr, "tramo_video": archivo_tramo, "mascara": meta["mascara"],
                      "referencias": meta["referencias"], "prompt": grafo[N_PROMPT]["inputs"]["prompt"],
-                     "modo": meta.get("modo", "zona"), **{k: meta[k] for k in ("denoise", "lienzo") if meta.get(k) is not None}}
+                     "modo": meta.get("modo", "zona"), **{k: meta[k] for k in ("denoise", "lienzo", "fuerza", "lanpaint") if meta.get(k) is not None}}
 
 
 if __name__ == "__main__":
