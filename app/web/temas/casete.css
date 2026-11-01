@@ -419,8 +419,17 @@ body.tema-casete .epl-resolucion .epl-girar{background:transparent !important;bo
 body.tema-casete .epl-resolucion .epl-girar:hover{background:rgba(23,18,28,.35) !important}
 body.tema-casete .epl-cabecera .epl-estado{max-width:none}
 /* la cola: la ventana como la de los videos; el estado de cada trabajo, en mono con su color de dato */
-body.tema-casete .max-cola-fila{border-color:var(--k-linea)}
-body.tema-casete .max-cola-que b{font:600 15px/1.2 var(--k-rotulo);letter-spacing:.02em}
+body.tema-casete .max-cola-fila{border-color:var(--k-linea);background:var(--k-tinta2)}
+body.tema-casete .max-cola-fila.e-corriendo,body.tema-casete .max-cola-fila.e-recuperando{border-left-color:var(--k-crema)}
+body.tema-casete .max-cola-fila.e-hecho{border-left-color:var(--k-ok)}
+body.tema-casete .max-cola-fila.e-error,body.tema-casete .max-cola-fila.e-interrumpido{border-left-color:var(--k-error)}
+body.tema-casete .max-cola-mini{background:var(--k-tinta3)}
+body.tema-casete .max-cola-que b{font:800 22px/1.1 var(--k-titulo);letter-spacing:.03em;text-transform:uppercase}
+body.tema-casete .max-cola-tiempo{font-family:var(--k-mono);color:var(--k-crema)}
+body.tema-casete .max-cola-estado{background:var(--k-tinta3)}
+body.tema-casete .max-cola-b{font:700 16px/1 var(--k-rotulo) !important;letter-spacing:.03em}
+body.tema-casete .max-cancelar{background:#D93636 !important;border-color:#D93636 !important;color:#fff !important}
+body.tema-casete .max-cancelar:hover{background:#EF4444 !important;border-color:#EF4444 !important}
 body.tema-casete .max-cola-que small{color:var(--k-suave);font-family:var(--k-mono)}
 body.tema-casete .max-cola-estado{font-family:var(--k-mono);color:var(--k-suave)}
 body.tema-casete .e-corriendo .max-cola-estado,body.tema-casete .e-recuperando .max-cola-estado{color:var(--k-crema)}

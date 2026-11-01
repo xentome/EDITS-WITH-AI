@@ -435,12 +435,30 @@ body .epl-sec.epl-s-final{padding:6px 16px !important}
 .max-cola-n{width:56px}
 .max-encolar{gap:4px}
 .max-cola-activa{border-color:#fff !important}
-.max-cola-lista{max-height:62vh}
-.max-cola-fila{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--max-borde)}
-.max-cola-que{display:flex;flex-direction:column;min-width:0}.max-cola-que b,.max-cola-que small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.max-cola-estado{font:12px ui-monospace,monospace;white-space:nowrap}
-.max-cola-acciones{display:flex;gap:4px;align-items:center}
-.max-cola-b{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.max-cola-caja{width:min(1180px,95vw)}
+.max-cola-lista{max-height:70vh;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+/* (1 nov) cada trabajo, una tarjeta alta: miniatura, qué es, sus datos y cuánto tardó, su estado y botones grandes */
+.max-cola-fila{display:grid;grid-template-columns:160px minmax(0,1fr) auto auto;gap:18px;align-items:center;min-height:118px;padding:14px 16px;
+  border:1px solid var(--max-borde);border-left:5px solid #3a4150;border-radius:8px;background:#0f1216}
+.max-cola-fila.e-corriendo,.max-cola-fila.e-recuperando{border-left-color:#22E4FF}
+.max-cola-fila.e-hecho{border-left-color:#3FC46E}
+.max-cola-fila.e-error,.max-cola-fila.e-interrumpido{border-left-color:#ff5d5d}
+.max-cola-fila.e-cancelado{opacity:.65}
+.max-cola-mini{width:160px;height:90px;border-radius:6px;overflow:hidden;background:#1c212a;display:flex;align-items:center;justify-content:center;color:var(--max-suave);font-size:30px}
+.max-cola-mini img{width:100%;height:100%;object-fit:cover;display:block}
+.max-cola-que{display:flex;flex-direction:column;gap:6px;min-width:0}
+.max-cola-que b{font-size:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.max-cola-que small{font:13px ui-monospace,monospace;color:var(--max-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.max-cola-tiempo{display:inline-flex;align-items:center;gap:6px;font:600 15px ui-monospace,monospace;color:var(--max-texto)}
+.max-cola-barra{flex:0 0 8px;width:100%;max-width:420px;border-radius:4px}
+.max-cola-estado{font:600 13px ui-monospace,monospace;white-space:nowrap;padding:6px 10px;border-radius:999px;background:#1c212a;text-transform:uppercase;letter-spacing:.04em}
+.e-hecho .max-cola-estado{color:#3FC46E}.e-error .max-cola-estado,.e-interrumpido .max-cola-estado{color:#ff5d5d}
+.e-corriendo .max-cola-estado,.e-recuperando .max-cola-estado{color:#22E4FF}
+.max-cola-acciones{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.max-cola-b{min-width:46px;height:46px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:15px}
+.max-cancelar{background:#d93636 !important;border-color:#d93636 !important;color:#fff !important}
+.max-cancelar:hover{background:#ef4444 !important;border-color:#ef4444 !important}
+@media (max-width:900px){.max-cola-fila{grid-template-columns:110px minmax(0,1fr)}.max-cola-mini{width:110px;height:62px}.max-cola-estado,.max-cola-acciones{grid-column:1/-1;justify-self:start}}
 .max-cola-avisos{display:inline-flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer}
 .max-rt-cola{display:inline-flex;align-items:center;gap:4px}
 /* la cara de cada fase, la etiqueta de pista (A1, A2…) y «recién pegada»: lo mínimo en todos los temas (casete.css las viste) */

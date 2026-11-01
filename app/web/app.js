@@ -553,7 +553,7 @@ function pintarAvance() {
   const barra = el("div", { class: "max-barra" }, el("b", { style: { width: Math.round((a.avance || 0) * 100) + "%" } }));
   filaAvance.replaceChildren(el("span", { class: "max-texto", title: a.mensaje || "" }, texto), barra,
     conPreview ? preview.boton : null,
-    el("button", { class: "max-boton", onclick: () => colaAccion(a.id, "cancelar") }, t("app.avance.cancelar")),
+    el("button", { class: "max-boton max-cancelar", onclick: () => colaAccion(a.id, "cancelar") }, util.icono("x"), " " + t("app.avance.cancelar")),
     el("button", { class: "max-boton", onclick: () => { A.verCola = true; pintarCola(); } }, t("app.cola.ver")));
 }
 const colaAccion = (id, que) => pedir(`/app/cola/${id}/${que}`, {}).then(mirarCola).catch((e) => avisar(e.message, "mal"));
@@ -571,26 +571,40 @@ function pintarCola() {
   cajaCola.setAttribute("aria-label", t("app.cola.titulo"));
   const hora = (x) => (x.terminado || x.empezado || x.creado || "").slice(11, 16);
   const pendientes = A.cola.trabajos.filter((x) => x.estado === "en_cola");
+  /* (1 nov, Jonathan: «el menú de la cola es horrible») cada trabajo es una tarjeta alta: su miniatura (o su icono), qué es
+   * y de qué proyecto, sus datos, cuánto tardó (o cuánto lleva, con su barra), su estado y botones grandes con texto;
+   * «Cancelar» en rojo */
   const fila = (x) => {
     const pos = pendientes.indexOf(x);
-    const b = (que, clave, ic, extra = {}) => el("button", { class: "max-boton max-cola-b", title: t(clave), "aria-label": t(clave),
-                                                             onclick: () => colaAccion(x.id, que), ...extra }, util.icono(ic));
+    const b = (que, clave, ic, extra = {}, texto = null) => el("button", { class: "max-boton max-cola-b" + (texto ? " con-texto" : ""), title: t(clave), "aria-label": t(clave),
+                                                                         onclick: () => colaAccion(x.id, que), ...extra }, util.icono(ic), texto ? " " + t(texto) : null);
     const tramo = x.tramo ? (x.tramo.n != null ? t("app.cola.tramo_f", { a: x.tramo.f0, n: x.tramo.n }) : "") : "";
+    const corre = ["corriendo", "recuperando"].includes(x.estado), p = Math.round((x.avance || 0) * 100);
+    const tiempo = x.estado === "hecho" && duracionCola(x) != null ? t("app.cola.tardo", { t: durCola(duracionCola(x)) })
+      : corre && x.hace_s != null ? t("app.cola.lleva", { t: durCola(x.hace_s) })
+      : x.estado === "en_cola" ? t("app.cola.desde", { h: hora(x) })
+      : duracionCola(x) != null ? t("app.cola.duro", { t: durCola(duracionCola(x)) }) : "";
+    const mini = x.video ? el("img", { src: "/app/miniatura?video=" + encodeURIComponent(x.video), alt: "", loading: "lazy",
+                                       onerror: (e) => e.target.replaceWith(util.icono("video")) })
+                         : util.icono(ICONO_TIPO[x.tipo] || "video");
     return el("div", { class: "max-cola-fila e-" + x.estado, "data-id": x.id },
-      util.icono(x.tipo === "retocar" ? "retoque" : "video"),
-      el("div", { class: "max-cola-que" }, el("b", {}, t(`app.cola.tipo.${x.tipo}`) + " · " + (x.proyecto || "—"),
-        x.origen === "agente" ? el("span", { class: "max-ag-sello", title: t("app.agente.cola.tooltip") }, t("app.agente.marca")) : null),
-        el("small", {}, [t("app.cola.semilla", { semilla: x.semilla ?? "?" }), tramo, hora(x)].filter(Boolean).join(" · "))),
-      el("span", { class: "max-cola-estado", title: x.mensaje || "" },
-        t(`app.cola.estado.${x.estado}`, { p: Math.round((x.avance || 0) * 100) })),
+      el("div", { class: "max-cola-mini" }, mini),
+      el("div", { class: "max-cola-que" },
+        el("b", {}, t(`app.cola.tipo.${x.tipo}`) + " · " + (x.proyecto || "—"),
+          x.origen === "agente" ? el("span", { class: "max-ag-sello", title: t("app.agente.cola.tooltip") }, t("app.agente.marca")) : null),
+        el("small", {}, [t("app.cola.semilla", { semilla: x.semilla ?? "?" }), tramo, x.estado === "en_cola" ? "" : hora(x)].filter(Boolean).join(" · ")),
+        tiempo ? el("span", { class: "max-cola-tiempo" }, util.icono("reloj"), " " + tiempo) : null,
+        corre ? el("div", { class: "max-barra max-cola-barra" }, el("b", { style: { width: p + "%" } })) : null),
+      el("span", { class: "max-cola-estado", title: x.mensaje || "" }, t(`app.cola.estado.${x.estado}`, { p })),
       el("span", { class: "max-cola-acciones" },
         x.estado === "en_cola" ? b("subir", "app.cola.subir", "arriba", { disabled: pos <= 0 }) : null,
         x.estado === "en_cola" ? b("bajar", "app.cola.bajar", "abajo", { disabled: pos < 0 || pos >= pendientes.length - 1 }) : null,
-        ["en_cola", "corriendo"].includes(x.estado) ? b("cancelar", "app.cola.cancelar", "x") : null,
-        ["error", "cancelado", "interrumpido"].includes(x.estado) ? b("reintentar", "app.cola.reintentar", "rehacer") : null,
-        x.estado === "hecho" && x.video ? el("button", { class: "max-boton", title: t("app.cola.ver_video.tooltip"), onclick: () => verVideoDeCola(x) },
+        x.estado === "hecho" && x.video ? el("button", { class: "max-boton max-cola-b con-texto max-cola-ver", title: t("app.cola.ver_video.tooltip"), onclick: () => verVideoDeCola(x) },
           util.icono("play"), " " + t("app.cola.ver_video")) : null,
-        ["hecho", "error", "cancelado", "interrumpido"].includes(x.estado) ? b("quitar", "app.cola.quitar", "x") : null));
+        ["error", "cancelado", "interrumpido"].includes(x.estado) ? b("reintentar", "app.cola.reintentar", "rehacer", {}, "app.cola.reintentar") : null,
+        ["en_cola", "corriendo"].includes(x.estado) ? el("button", { class: "max-boton max-cola-b con-texto max-cancelar", title: t("app.cola.cancelar"),
+          onclick: () => colaAccion(x.id, "cancelar") }, util.icono("x"), " " + t("app.avance.cancelar")) : null,
+        ["hecho", "error", "cancelado", "interrumpido"].includes(x.estado) ? b("quitar", "app.cola.quitar", "papelera", {}, "app.cola.quitar_corto") : null));
   };
   const avisos = el("label", { class: "max-cola-avisos", title: t("app.cola.avisos.tooltip") },
     el("input", { type: "checkbox", checked: avisosOn(), onchange: (e) => {
@@ -608,6 +622,17 @@ function pintarCola() {
     el("div", { class: "max-lista max-cola-lista" }, A.cola.trabajos.length ? ordenCola().map(fila)
       : el("div", { class: "max-vacio" }, t("app.cola.vacia"))));
 }
+const ICONO_TIPO = { retocar: "retoque", extender: "tomas" };      // el icono de un trabajo sin video todavía
+// cuánto duró un trabajo: de «empezado» a «terminado» (las dos horas son del servidor) o, si falta alguna, lo que midió
+const duracionCola = (x) => {
+  const a = Date.parse(x.empezado || ""), z = Date.parse(x.terminado || "");
+  return Number.isFinite(a) && Number.isFinite(z) && z >= a ? (z - a) / 1000 : x.segundos ? x.segundos : null;
+};
+const durCola = (s) => {
+  s = Math.round(s);
+  return s < 60 ? t("app.cola.dur.s", { s }) : s < 3600 ? t("app.cola.dur.m", { m: Math.floor(s / 60), s: s % 60 })
+    : t("app.cola.dur.h", { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60) });
+};
 // en el orden en que se harán: lo que corre, lo que espera (el siguiente arriba) y lo terminado, lo último primero
 const ordenCola = () => {
   const ts = A.cola.trabajos, de = (...e) => ts.filter((x) => e.includes(x.estado));
