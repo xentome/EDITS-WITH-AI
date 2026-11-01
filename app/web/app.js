@@ -870,8 +870,12 @@ document.addEventListener("input", (e) => { if (e.target?.closest?.(".max-ag")) 
 document.head.append(el("style", { id: "max-agente-css" }, `
 .max-ag{outline:2px dashed var(--k-rosa,#ff3e8a)!important;outline-offset:2px;position:relative}
 .max-ag:not(input):not(textarea):not(select)::after{content:attr(data-ag);position:absolute;top:-.85em;right:.3em;z-index:5;
-  padding:0 .45em;border-radius:.6em;background:var(--k-rosa,#ff3e8a);color:#fff;font:600 11px/1.5 var(--k-mano,inherit);
+  padding:.1em .55em;border-radius:.7em;background:var(--k-rosa,#ff3e8a);color:#fff;font:600 12px/1.5 var(--k-mano,inherit);
   pointer-events:none;white-space:nowrap}
+/* (1 nov, Jonathan: «la etiqueta se ve recortada») la toma recorta lo que sale de ella y el estante de referencias lo que
+ * asoma por arriba: ahí la etiqueta va dentro, en un hueco libre (la toma abajo a la derecha; el póster bajo sus botones) */
+.epl-tomab.max-ag::after{top:auto!important;bottom:.4em;right:.45em}
+.epl-poster.max-ag::after{top:2.9em!important;right:.35em}
 .max-ag-sello{display:inline-block;margin:0 .4em;padding:0 .5em;border-radius:.7em;background:var(--k-rosa,#ff3e8a);color:#fff;
   font:600 12px/1.6 var(--k-mano,inherit);white-space:nowrap}
 .max-ag-aviso{display:none;align-items:center;gap:.6em;padding:.25em .8em;font-size:13px}
