@@ -100,6 +100,35 @@ body .epl-fondo .epl-cerrar,body .epl-fondo .epl-x{display:none}
 .max-bib-carpeta small{margin-left:auto;padding-left:8px}
 .max-bib-carpeta small{font:600 12px ui-monospace,monospace;color:var(--max-suave)}
 .max-bib-carpeta:hover{background:#1c212a}.max-bib-carpeta.activa{background:rgba(34,228,255,.12);color:#22E4FF}
+/* (31 oct) organizar Proyectos: grupos en el lado, «Pruebas del agente» aparte y apagada abajo, fijar arriba (pin) y arrastrar */
+.max-bib-lado-rotulo{margin:14px 0 2px 6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--max-suave)}
+.max-bib-lado-hueco{flex:1 1 12px}
+.max-bib-grupo-mas{color:var(--max-suave)}
+.max-bib-carpeta.max-bib-pruebas{color:var(--max-suave);opacity:.75;border-top:1px dashed var(--max-borde);border-radius:0 0 5px 5px}
+.max-bib-carpeta.max-bib-pruebas.activa{opacity:1;color:#22E4FF}
+.max-bib-grupo-form{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 6px 20px}
+.max-bib-grupo-form .max-bib-buscar{flex:1 1 100%;min-width:0}
+.max-bib-grupo-cab{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px 14px;margin:0 0 12px}
+.max-bib-grupo-cab .max-bib-rotulo{margin:0}
+.max-bib-grupo-cab.confirmar{align-items:center;padding:10px 12px;border:1px solid #ff5d5d;border-radius:6px}
+.max-bib-parte{margin:0 0 18px;padding:4px;border:2px dashed transparent;border-radius:8px}
+.max-bib-parte-rotulo{display:flex;align-items:center;gap:6px;margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--max-suave)}
+.max-bib-parte-vacia{padding:14px;border:1px dashed var(--max-borde);border-radius:6px;font-size:13px;color:var(--max-suave)}
+.max-bib-fijar{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px;border-radius:5px;color:var(--max-suave);opacity:.55}
+.max-bib-proy:hover .max-bib-fijar,.max-bib-fijar:focus-visible{opacity:1}
+.max-bib-fijar:hover{background:#222833;color:#fff}
+.max-bib-fijar.si{opacity:1;color:#FFC83A}
+.max-bib-proy.fijado{border-top-color:#FFC83A}
+.max-bib-proy.actual.fijado{border-top-color:#3FC46E}
+.max-bib-proy.arrastrando{opacity:.4}
+.max-bib-proy.soltar-aqui{position:relative}
+.max-bib-proy.soltar-aqui::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:4px;border-radius:2px;background:#22E4FF}
+.max-bib-parte.soltar-aqui{border-color:rgba(34,228,255,.5)}
+.max-bib-carpeta.soltar-aqui{background:rgba(34,228,255,.2);color:#22E4FF;outline:2px solid #22E4FF}
+.max-bib-organizar{display:inline-flex;align-items:center;gap:10px;margin-left:14px}
+.max-bib-organizar select{max-width:200px;background:#0f1216;color:var(--max-texto);border:1px solid var(--max-borde);border-radius:5px;padding:6px 8px}
+.max-bib-abierto{white-space:nowrap}
+.max-bib-organizar .activo{color:#FFC83A}
 .max-bib-centro{overflow:auto;padding:18px 20px;min-width:0}
 .max-bib-rotulo{margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--max-suave)}
 .max-bib-rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;align-content:start}

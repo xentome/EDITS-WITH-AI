@@ -862,7 +862,7 @@ try {
   /* (29 oct) sin proyecto recordado (otro navegador, otra pestaña privada…) se abre el más reciente: antes se abría el
    * ejemplo, que crea una copia nueva cada vez, y así se llenaba la lista de «mi ejemplo N» sin tocar */
   const nombre = A.proyectos.some((p) => p.nombre === ultimo) ? ultimo
-    : A.proyectos.find((p) => p.nombre !== EJEMPLO)?.nombre ?? (A.proyectos.some((p) => p.nombre === EJEMPLO) ? EJEMPLO : null);
+    : A.proyectos.find((p) => p.nombre !== EJEMPLO && p.grupo !== "_pruebas")?.nombre ??(A.proyectos.some((p) => p.nombre === EJEMPLO) ? EJEMPLO : null);
   if (nombre) await abrirProyecto(nombre);
   else await crearProyecto(t("app.proyecto.primero"));
   biblioteca.abrir();                                    // (29 oct) al abrir la app, la ventana «Proyectos» (el último ya está abierto detrás)

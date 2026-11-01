@@ -269,11 +269,11 @@ def resumen_proyecto(valores: dict) -> dict:
             "duracion": (valores.get("74") or {}).get("duracion_s")}
 
 
-async def lista_proyectos(peticion):
+def _proyectos():
     out = []
     os.makedirs(PROYECTOS, exist_ok=True)
     for a in os.listdir(PROYECTOS):
-        if a.endswith(".json"):
+        if a.endswith(".json") and not a.startswith("_"):
             try:
                 with open(os.path.join(PROYECTOS, a), encoding="utf-8") as fh:
                     p = json.load(fh) or {}
@@ -281,7 +281,127 @@ async def lista_proyectos(peticion):
                 continue
             out.append({"nombre": a[:-5], "guardado": p.get("guardado", ""), "rev": int(p.get("rev") or 0), "autor": p.get("autor") or "",
                         "resumen": resumen_proyecto(p.get("valores") or {})})
-    return web.json_response(sorted(out, key=lambda p: p["guardado"] or "", reverse=True))
+    return out
+
+
+async def lista_proyectos(peticion):
+    org, out = leer_organizar(), _proyectos()
+    for p in out:
+        o = org["proyectos"].get(p["nombre"]) or {}
+        p["grupo"], p["importante"] = o.get("grupo") or "", bool(o.get("importante"))
+    out = ordenar(out, org)
+    for i, p in enumerate(out):
+        p["orden"] = i
+    return web.json_response(out)
+
+
+# ------------------------------------------------------------------ organizar la ventana «Proyectos» (31 oct)
+# Jonathan: «los proyectos de prueba del agente son puro ruido». En app/proyectos/_organizar.json (no en cada proyecto,
+# así ordenar no choca con los guardados de la página ni sube su rev): grupos, qué proyecto va en cuál, los importantes
+# (arriba del todo) y el orden que él da arrastrando. El grupo «_pruebas» siempre existe: ahí guarda el agente MCP sus
+# pruebas y la ventana lo enseña aparte, abajo del lado. Un proyecto que no está en «orden» es nuevo y sale primero.
+ORGANIZAR = os.path.join(PROYECTOS, "_organizar.json")
+PRUEBAS = "_pruebas"
+CERROJO_ORG = asyncio.Lock()
+
+
+def leer_organizar() -> dict:
+    try:
+        with open(ORGANIZAR, encoding="utf-8") as fh:
+            org = json.load(fh) or {}
+    except FileNotFoundError:
+        # la primera vez, los proyectos de prueba que ya había («prueba…») van a Pruebas
+        org = {"proyectos": {p["nombre"]: {"grupo": PRUEBAS} for p in _proyectos() if p["nombre"].lower().startswith("prueba")}}
+        escribir_organizar(org)
+    except (OSError, ValueError):
+        org = {}
+    org.setdefault("grupos", [])
+    org["grupos"] = [g for g in org["grupos"] if isinstance(g, dict) and g.get("id") and g["id"] != PRUEBAS]
+    org.setdefault("proyectos", {})
+    org.setdefault("orden", [])
+    return org
+
+
+def escribir_organizar(org: dict):
+    os.makedirs(PROYECTOS, exist_ok=True)
+    with open(ORGANIZAR + ".tmp", "w", encoding="utf-8") as fh:
+        json.dump({k: org.get(k) for k in ("grupos", "proyectos", "orden") if k in org}, fh, ensure_ascii=False, indent=1)
+    os.replace(ORGANIZAR + ".tmp", ORGANIZAR)
+
+
+def ordenar(proyectos: list, org: dict) -> list:
+    """Los importantes primero; dentro de cada parte, los nuevos (sin sitio en «orden») del más reciente al más viejo y
+    luego los demás en el orden que dejó Jonathan."""
+    sitio = {n: i for i, n in enumerate(org.get("orden") or [])}
+    imp = lambda p: bool((org["proyectos"].get(p["nombre"]) or {}).get("importante"))
+    nuevos = sorted((p for p in proyectos if p["nombre"] not in sitio), key=lambda p: p["guardado"] or "", reverse=True)
+    viejos = sorted((p for p in proyectos if p["nombre"] in sitio), key=lambda p: sitio[p["nombre"]])
+    todos = nuevos + viejos
+    return [p for p in todos if imp(p)] + [p for p in todos if not imp(p)]
+
+
+async def ver_organizar(peticion):
+    return web.json_response({**leer_organizar(), "pruebas": PRUEBAS})
+
+
+async def organizar(peticion):
+    """Un cambio cada vez: mover (a un grupo y/o antes de otro proyecto, con «importante» para la parte de arriba),
+    importante, grupo_nuevo, grupo_renombrar y grupo_borrar (sus proyectos vuelven a «sin grupo»)."""
+    d = await peticion.json()
+    accion = d.get("accion")
+    async with CERROJO_ORG:
+        org = leer_organizar()
+        ids = {g["id"] for g in org["grupos"]} | {PRUEBAS, ""}
+        nombres = {p["nombre"] for p in _proyectos()}
+        if accion in ("mover", "importante"):
+            nombre = d.get("proyecto") or ""
+            if nombre not in nombres:
+                return error("app.error.no_existe", peticion, 404, nombre=nombre)
+            o = org["proyectos"].setdefault(nombre, {})
+            if "grupo" in d:
+                if (d["grupo"] or "") not in ids:
+                    return error("app.organizar.error.grupo", peticion, 404)
+                o["grupo"] = d["grupo"] or ""
+            if "importante" in d or "si" in d:
+                o["importante"] = bool(d.get("importante", d.get("si")))
+            if accion == "mover" and "antes_de" in d:
+                # el orden de ahora (con los nuevos ya en su sitio), sin él, y él delante de «antes_de» (o al final)
+                orden = [p["nombre"] for p in ordenar([p for p in _proyectos()], org) if p["nombre"] != nombre]
+                destino = d.get("antes_de") or ""
+                orden.insert(orden.index(destino) if destino in orden else len(orden), nombre)
+                org["orden"] = orden
+            org["proyectos"] = {k: {c: v for c, v in o.items() if v} for k, o in org["proyectos"].items() if k in nombres}
+            org["proyectos"] = {k: o for k, o in org["proyectos"].items() if o}
+        elif accion == "grupo_nuevo":
+            nombre = (d.get("nombre") or "").strip()[:60]
+            if not nombre:
+                return error("app.organizar.error.nombre", peticion)
+            gid = "g" + format(int(time.time() * 1000), "x")
+            org["grupos"].append({"id": gid, "nombre": nombre})
+        elif accion == "grupo_renombrar":
+            g = next((g for g in org["grupos"] if g["id"] == d.get("id")), None)
+            nombre = (d.get("nombre") or "").strip()[:60]
+            if not g:
+                return error("app.organizar.error.grupo", peticion, 404)
+            if not nombre:
+                return error("app.organizar.error.nombre", peticion)
+            g["nombre"] = nombre
+        elif accion == "grupo_borrar":
+            gid = d.get("id")
+            if gid not in {g["id"] for g in org["grupos"]}:
+                return error("app.organizar.error.grupo", peticion, 404)
+            org["grupos"] = [g for g in org["grupos"] if g["id"] != gid]
+            for o in org["proyectos"].values():
+                if o.get("grupo") == gid:
+                    o.pop("grupo")
+        else:
+            return error("app.organizar.error.accion", peticion)
+        org["orden"] = [n for n in org["orden"] if n in nombres]
+        escribir_organizar(org)
+    r = {**leer_organizar(), "pruebas": PRUEBAS}
+    if accion == "grupo_nuevo":
+        r["id"] = gid
+    return web.json_response(r)
 
 
 async def ver_proyecto(peticion):
@@ -1050,6 +1170,8 @@ def crear_app():
     app.router.add_get("/app/proyecto/{nombre}", ver_proyecto)
     app.router.add_post("/app/proyecto/{nombre}", guardar_proyecto)
     app.router.add_get("/app/proyecto_rev/{nombre}", rev_proyecto)
+    app.router.add_get("/app/organizar", ver_organizar)
+    app.router.add_post("/app/organizar", organizar)
     app.router.add_post("/app/generar", lanzar)
     app.router.add_get("/app/trabajo/{id}", trabajo)
     app.router.add_post("/app/cancelar/{id}", cancelar)

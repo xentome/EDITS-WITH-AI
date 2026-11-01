@@ -11,7 +11,9 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
   const SIN = "";                                  // la carpeta de los videos sin proyecto
   const CLASE = { capa: { true: "max-bib ver", false: "max-bib" }, tab: { true: "max-bib-tab activa", false: "max-bib-tab" },
                   carpeta: { true: "max-bib-carpeta activa", false: "max-bib-carpeta" } };
-  const B = { ediciones: [], edElegida: null, form: null, abierta: false, tab: "proyectos", elegido: null, carpeta: null, video: null, buscar: "", videos: [], retomar: false };
+  const B = { ediciones: [], edElegida: null, form: null, abierta: false, tab: "proyectos", elegido: null, carpeta: null, video: null, buscar: "", videos: [], retomar: false,
+              org: { grupos: [] }, grupo: null, formGrupo: null };
+  const PRUEBAS = "_pruebas";                      // el grupo de las pruebas del agente MCP (app/servidor.py, organizar)
   const capa = el("div", { class: "max-bib", onclick: (e) => { if (e.target === capa) cerrar(); } });
   const caja = el("div", { class: "max-bib-caja", role: "dialog", "aria-modal": "true" });
   capa.append(caja);
@@ -64,12 +66,17 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
       hay ? [icono("persona"), t("app.biblio.n_refs", { n: r.n_refs || 0 })] : null,
       r.cancion ? [icono("musica"), t("app.biblio.cancion")] : null,
       [icono("video"), t("app.biblio.n_videos", { n: vs.length })]].filter(Boolean);
-    return el("button", { class: "max-bib-proy" + (B.elegido === p.nombre ? " elegido" : "") + (A.proyecto === p.nombre ? " actual" : ""),
-                          title: t("app.biblio.abrir.tooltip"), "aria-pressed": String(B.elegido === p.nombre), "data-proyecto": p.nombre,
-                          onclick: () => elegir(p.nombre), ondblclick: () => abrirElegido(p.nombre) },
+    const fijar = el("span", { class: "max-bib-fijar" + (p.importante ? " si" : ""), role: "button", tabindex: "0",
+                               title: t(p.importante ? "app.biblio.desfijar" : "app.biblio.fijar"), "aria-label": t(p.importante ? "app.biblio.desfijar" : "app.biblio.fijar"),
+                               "aria-pressed": String(p.importante),
+                               onclick: (e) => { e.stopPropagation(); organizar({ accion: "importante", proyecto: p.nombre, si: !p.importante }); },
+                               onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); e.currentTarget.click(); } } }, icono("pin"));
+    return el("button", { class: "max-bib-proy" + (B.elegido === p.nombre ? " elegido" : "") + (A.proyecto === p.nombre ? " actual" : "") + (p.importante ? " fijado" : ""),
+                          title: t("app.biblio.abrir.tooltip"), "aria-pressed": String(B.elegido === p.nombre), "data-proyecto": p.nombre, draggable: "true",
+                          onclick: () => elegir(p.nombre), ondblclick: () => abrirElegido(p.nombre), ...arrastrable(p) },
       el("span", { class: "max-bib-proy-cab" }, icono("capas"),
         el("b", {}, p.nombre === EJEMPLO ? t("app.proyecto.ejemplo_opcion", { nombre: p.nombre }) : p.nombre),
-        A.proyecto === p.nombre ? el("span", { class: "max-bib-abierto" }, t("app.biblio.abierto")) : null),
+        A.proyecto === p.nombre ? el("span", { class: "max-bib-abierto" }, t("app.biblio.abierto")) : null, fijar),
       el("span", { class: "max-bib-idea" }, r.idea || t("app.biblio.sin_idea")),
       el("span", { class: "max-bib-portada" }, mini(vs[0], "app.biblio.sin_videos_proy"),
         vs[0] ? el("span", { class: "max-bib-sello" }, t("app.biblio.ultimo")) : null),
@@ -92,7 +99,105 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     if (pie) pie.textContent = t("app.biblio.elegido", { nombre });
     const abrir = caja.querySelector(".max-bib-abrir");
     if (abrir) abrir.disabled = false;
+    const org = caja.querySelector(".max-bib-organizar, .max-bib-organizar-hueco"), nuevo = organizarElegido();
+    if (org && nuevo) org.replaceWith(nuevo);
   }
+  /* ---- (31 oct, Jonathan: «las pruebas del agente son puro ruido») organizar: grupos en el lado, «Pruebas del agente» aparte
+   * abajo (no sale en «Todos»), fijar arriba con el pin y ordenar arrastrando. Soltar una tarjeta sobre otra la pone delante
+   * (y en su parte: fijados o los demás); sobre el final de una parte, al final; sobre un grupo del lado, en ese grupo
+   * («Todos» = sin grupo). Lo guarda el servidor en app/proyectos/_organizar.json (POST /app/organizar). */
+  async function organizar(cambio) {
+    try {
+      B.org = await pedir("/app/organizar", cambio);
+      await cargarProyectos();
+      B.formGrupo = null;
+    } catch (e) { B.formGrupo = { ...(B.formGrupo || { modo: "aviso" }), error: e.message }; }
+    pintar();
+  }
+  const nombreGrupo = (id) => id === PRUEBAS ? t("app.biblio.grupo.pruebas") : !id ? t("app.biblio.grupo.todos")
+    : B.org.grupos.find((g) => g.id === id)?.nombre || id;
+  let arrastrado = null;
+  const limpiarMarcas = () => caja.querySelectorAll(".soltar-aqui").forEach((x) => x.classList.remove("soltar-aqui"));
+  function zona(alSoltar) {             // lo que acepta una tarjeta arrastrada: la marca al pasar y su acción al soltar
+    return {
+      ondragover: (e) => { if (!arrastrado) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move";
+                           if (!e.currentTarget.classList.contains("soltar-aqui")) { limpiarMarcas(); e.currentTarget.classList.add("soltar-aqui"); } },
+      ondragleave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove("soltar-aqui"); },
+      ondrop: (e) => { if (!arrastrado) return; e.preventDefault(); e.stopPropagation(); const n = arrastrado; arrastrado = null; limpiarMarcas(); alSoltar(n); },
+    };
+  }
+  function arrastrable(p) {
+    return {
+      ondragstart: (e) => { arrastrado = p.nombre; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", p.nombre);
+                            e.currentTarget.classList.add("arrastrando"); },
+      ondragend: (e) => { arrastrado = null; e.currentTarget.classList.remove("arrastrando"); limpiarMarcas(); },
+      ...zona((n) => { if (n !== p.nombre) organizar({ accion: "mover", proyecto: n, antes_de: p.nombre, importante: p.importante }); }),
+    };
+  }
+  const cuenta = (id) => A.proyectos.filter((p) => id === null ? p.grupo !== PRUEBAS : (p.grupo || "") === id).length;
+  function ladoGrupos() {
+    const carpeta = (id, nombre, extra = "") => el("button", { class: CLASE.carpeta[B.grupo === id] + extra, title: t("app.biblio.grupo.soltar", { grupo: nombre }),
+                                                     onclick: () => { B.grupo = id; B.formGrupo = null; pintar(); },
+                                                     ...zona((n) => organizar({ accion: "mover", proyecto: n, grupo: id ?? "" })) },
+      icono(id === PRUEBAS ? "ajustes" : "carpeta"), el("span", {}, nombre), el("small", {}, String(cuenta(id))));
+    const f = B.formGrupo;
+    const entrada = el("input", { class: "max-bib-buscar max-bib-grupo-nombre", placeholder: t("app.biblio.grupo.nombre"), value: f?.nombre || "",
+                                  onkeydown: (e) => { if (e.key === "Enter") listo(); if (e.key === "Escape") { e.stopPropagation(); B.formGrupo = null; pintar(); } } });
+    const listo = () => organizar(f.modo === "nuevo" ? { accion: "grupo_nuevo", nombre: entrada.value.trim() }
+                                                    : { accion: "grupo_renombrar", id: B.grupo, nombre: entrada.value.trim() });
+    const formulario = f && (f.modo === "nuevo" || f.modo === "renombrar")
+      ? el("div", { class: "max-bib-grupo-form" }, entrada,
+          el("button", { class: "max-boton max-vid-accion", onclick: listo }, icono("check"), " " + t(f.modo === "nuevo" ? "app.proyecto.crear" : "app.biblio.grupo.renombrar")),
+          el("button", { class: "max-boton max-vid-accion", onclick: () => { B.formGrupo = null; pintar(); } }, t("app.proyecto.cancelar")))
+      : el("button", { class: "max-bib-carpeta max-bib-grupo-mas", onclick: () => { B.formGrupo = { modo: "nuevo", nombre: "" }; pintar(); } }, icono("mas"), el("span", {}, t("app.biblio.grupo.nuevo")));
+    if (f && f.modo !== "borrar" && f.modo !== "aviso") queueMicrotask(() => { entrada.focus(); entrada.select(); });
+    return [el("div", { class: "max-bib-lado-rotulo" }, t("app.biblio.grupos")),
+      carpeta(null, t("app.biblio.grupo.todos")), ...B.org.grupos.map((g) => carpeta(g.id, g.nombre)), formulario,
+      el("span", { class: "max-bib-lado-hueco" }),
+      carpeta(PRUEBAS, t("app.biblio.grupo.pruebas"), " max-bib-pruebas")];
+  }
+  // la cabecera del centro en la pestaña Proyectos: el grupo que se ve, cómo se ordena y (en un grupo suyo) renombrar o borrar
+  function cabeceraGrupo() {
+    const f = B.formGrupo, suyo = B.grupo && B.grupo !== PRUEBAS;
+    if (f?.modo === "borrar") return el("div", { class: "max-bib-grupo-cab confirmar" },
+      el("b", {}, t("app.biblio.grupo.borrar_pregunta", { nombre: nombreGrupo(B.grupo) })), el("span", { class: "max-derecha" }),
+      el("button", { class: "max-boton max-vid-accion", onclick: () => { B.formGrupo = null; pintar(); } }, t("app.proyecto.cancelar")),
+      el("button", { class: "max-boton max-vid-accion mal", onclick: () => { const id = B.grupo; B.grupo = null; organizar({ accion: "grupo_borrar", id }); } },
+        icono("papelera"), " " + t("app.biblio.grupo.borrar")));
+    return el("div", { class: "max-bib-grupo-cab" }, ...[
+      el("div", { class: "max-bib-rotulo" }, nombreGrupo(B.grupo)),
+      el("span", { class: "max-ayuda" }, t(B.grupo === PRUEBAS ? "app.biblio.pruebas.aviso" : "app.biblio.arrastrar.ayuda")),
+      f?.error ? el("span", { class: "max-aviso mal" }, f.error) : null,
+      el("span", { class: "max-derecha" }),
+      suyo ? el("button", { class: "max-boton max-vid-accion", onclick: () => { B.formGrupo = { modo: "renombrar", nombre: nombreGrupo(B.grupo) }; pintar(); } },
+        icono("lapiz"), " " + t("app.biblio.grupo.renombrar")) : null,
+      suyo ? el("button", { class: "max-boton max-vid-accion", onclick: () => { B.formGrupo = { modo: "borrar" }; pintar(); } },
+        icono("papelera"), " " + t("app.biblio.grupo.borrar")) : null].filter(Boolean));
+  }
+  function rejillaProyectos() {
+    const lista = A.proyectos.filter((p) => (B.grupo === null ? p.grupo !== PRUEBAS : (p.grupo || "") === B.grupo) && coincide(p.nombre));
+    const fijados = lista.filter((p) => p.importante), resto = lista.filter((p) => !p.importante);
+    // el final de una parte también recibe: la tarjeta va al final de los fijados o de los demás
+    const parte = (clave, ps, importante) => el("section", { class: "max-bib-parte", ...zona((n) => organizar({ accion: "mover", proyecto: n, antes_de: "", importante })) },
+      clave ? el("div", { class: "max-bib-parte-rotulo" }, importante ? icono("pin") : null, t(clave, { n: ps.length })) : null,
+      ps.length ? el("div", { class: "max-bib-rejilla" }, ps.map(tarjetaProyecto)) : el("div", { class: "max-bib-parte-vacia" }, t(importante ? "app.biblio.fijados.vacio" : "app.biblio.resto.vacio")));
+    if (!lista.length) return [cabeceraGrupo(), el("div", { class: "max-vacio" }, t(B.buscar ? "app.biblio.nada" : "app.biblio.grupo.vacio"))];
+    return [cabeceraGrupo(), parte("app.biblio.fijados", fijados, true), parte(fijados.length ? "app.biblio.resto" : null, resto, false)];
+  }
+  // en el pie, lo mismo que arrastrar, para el proyecto elegido (con teclado): su grupo y fijarlo arriba
+  function organizarElegido() {
+    const p = A.proyectos.find((x) => x.nombre === B.elegido);
+    if (!p) return null;
+    const grupos = [["", t("app.biblio.grupo.sin")], ...B.org.grupos.map((g) => [g.id, g.nombre]), [PRUEBAS, t("app.biblio.grupo.pruebas")]];
+    return el("span", { class: "max-bib-organizar" },
+      el("label", {}, t("app.biblio.grupo.de"), " ",
+        el("select", { onchange: (e) => organizar({ accion: "mover", proyecto: p.nombre, grupo: e.target.value }) },
+          ...grupos.map(([id, nombre]) => el("option", { value: id, selected: (p.grupo || "") === id }, nombre)))),
+      el("button", { class: "max-boton max-vid-accion" + (p.importante ? " activo" : ""), "aria-pressed": String(p.importante),
+                     onclick: () => organizar({ accion: "importante", proyecto: p.nombre, si: !p.importante }) },
+        icono("pin"), " " + t(p.importante ? "app.biblio.desfijar" : "app.biblio.fijar")));
+  }
+
   function tarjetaVideo(v) {
     return el("button", { class: "max-bib-vid" + (B.video === v.archivo ? " elegido" : ""), "aria-pressed": String(B.video === v.archivo),
                           onclick: () => { B.video = v.archivo; B.retomar = false; pintar(); } },
@@ -136,7 +241,7 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     const carpeta = (k, nombre, n) => el("button", { class: CLASE.carpeta[B.carpeta === k], onclick: () => { B.carpeta = k; pintar(); } },
       icono("carpeta"), el("span", {}, nombre), el("small", {}, String(n)));
     const lado = el("div", { class: "max-bib-lado", role: "tablist" }, ...lado0(tab).children,
-      ...(proyectos ? [] : [carpeta(null, t("app.biblio.todos"), B.videos.length), ...carpetas().map(([k, vs]) => carpeta(k, nombreCarpeta(k), vs.length))]));
+      ...(proyectos ? ladoGrupos() : [carpeta(null, t("app.biblio.todos"), B.videos.length), ...carpetas().map(([k, vs]) => carpeta(k, nombreCarpeta(k), vs.length))]));
     const buscar = el("input", { class: "max-bib-buscar", type: "search", placeholder: t("app.biblio.buscar"), value: B.buscar,
                                  oninput: (e) => { B.buscar = e.target.value; pintarCentro(); } });
     const nuevo = el("button", { class: "max-boton max-vid-accion", title: t("app.proyecto.nuevo.tooltip"), onclick: (e) => { pedirNombre(e.currentTarget, "nuevo", cerrar); } },
@@ -145,8 +250,7 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     const centro = el("div", { class: "max-bib-centro" });
     function pintarCentro() {
       if (proyectos) {
-        const lista = A.proyectos.filter((p) => coincide(p.nombre));
-        centro.replaceChildren(lista.length ? el("div", { class: "max-bib-rejilla" }, lista.map(tarjetaProyecto)) : el("div", { class: "max-vacio" }, t("app.biblio.nada")));
+        centro.replaceChildren(...rejillaProyectos());
       } else {
         const vs = (B.carpeta === null ? B.videos : de(B.carpeta)).filter((v) => coincide(`${v.archivo} ${v.proyecto || ""} ${describir(v)}`));
         centro.replaceChildren(el("div", { class: "max-bib-rotulo" }, B.carpeta === null ? t("app.biblio.todos_n", { n: vs.length })
@@ -156,7 +260,7 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     }
     pintarCentro();
     // lo mismo a la vista (pestaña y carpeta): la lista se queda donde estaba; otra carpeta empieza arriba
-    const vista = `${B.tab}|${B.carpeta}`, antes = caja.querySelector(".max-bib-centro")?.scrollTop || 0, mismaTab = caja.dataset.vista === vista;
+    const vista = `${B.tab}|${proyectos ? B.grupo : B.carpeta}`, antes = caja.querySelector(".max-bib-centro")?.scrollTop || 0, mismaTab = caja.dataset.vista === vista;
     caja.dataset.vista = vista;
     caja.replaceChildren(
       el("div", { class: "max-bib-cab" }, el("b", { class: "max-bib-titulo" }, t(proyectos ? "app.biblio.proyectos" : "app.biblio.titulo_biblioteca")), buscar,
@@ -165,6 +269,7 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
       el("div", { class: "max-bib-cuerpo" + (proyectos ? "" : " con-panel") }, lado, centro, ...(proyectos ? [] : [panelTraer()])),
       ...(proyectos ? [el("div", { class: "max-bib-pie" },
         el("span", { class: "max-bib-elegido" }, B.elegido ? t("app.biblio.elegido", { nombre: B.elegido }) : t("app.biblio.elige")),
+        organizarElegido() || el("span", { class: "max-bib-organizar-hueco" }),
         el("span", { class: "max-derecha" }),
         el("button", { class: "max-boton max-vid-accion", onclick: cerrar }, t("app.proyecto.cancelar")),
         el("button", { class: "max-generar max-bib-abrir", disabled: !B.elegido, onclick: () => abrirElegido() }, icono("adelante"), " " + t("app.biblio.abrir")))] : []));
@@ -245,7 +350,8 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
     B.carpeta = tab === "biblioteca" ? null : B.carpeta;
     pintar();
     try {
-      [B.videos, , B.ediciones] = await Promise.all([pedir("/app/videos"), cargarProyectos(), pedir("/app/ediciones")]);
+      [B.videos, , B.ediciones, B.org] = await Promise.all([pedir("/app/videos"), cargarProyectos(), pedir("/app/ediciones"), pedir("/app/organizar").catch(() => ({ grupos: [] }))]);
+      if (B.grupo && B.grupo !== PRUEBAS && !B.org.grupos.some((g) => g.id === B.grupo)) B.grupo = null;
       // cada vez que se abre, la elegida es la que está abierta (antes se quedaba la de la vez anterior y «Duplicar» o
       // «Borrar» actuaban sobre otra)
       B.edElegida = B.ediciones.some((e) => e.nombre === edicionActual?.()) ? edicionActual() : B.ediciones[0]?.nombre || null;
@@ -257,7 +363,7 @@ export function crear({ el, icono, t, num, pedir, A, EJEMPLO, abrirProyecto, abr
   document.addEventListener("keydown", (e) => {
     if (!B.abierta || e.key !== "Escape" || A.pop) return;
     e.stopPropagation();
-    if (B.retomar || B.form) { B.retomar = false; B.form = null; return pintar(); }
+    if (B.retomar || B.form || B.formGrupo) { B.retomar = false; B.form = null; B.formGrupo = null; return pintar(); }
     cerrar();
   }, true);
   document.body.append(capa);

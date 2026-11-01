@@ -659,6 +659,13 @@ body.tema-casete .max-boton.max-boton-proyecto{background:var(--k-crema) !import
 body.tema-casete .max-bib-proy{border-top-color:var(--k-violeta)}
 body.tema-casete .max-bib-proy.actual{border-top-color:var(--k-ok)}
 body.tema-casete .max-bib-proy-cab .ic,body.tema-casete .max-bib-proy-cab svg{color:var(--k-violeta)}
+/* (31 oct) fijado arriba: el borde y el pin en ámbar; el selector «Grupo» del pie como los campos del tema */
+body.tema-casete .max-bib-proy.fijado{border-top-color:var(--k-aviso)}
+body.tema-casete .max-bib-proy.actual.fijado{border-top-color:var(--k-ok)}
+body.tema-casete .max-bib-fijar svg,body.tema-casete .max-bib-fijar .ic{color:var(--k-suave)}
+body.tema-casete .max-bib-fijar.si svg,body.tema-casete .max-bib-fijar.si .ic,body.tema-casete .max-bib-organizar .activo svg{color:var(--k-aviso)}
+body.tema-casete .max-bib-organizar select{background:var(--k-tinta) !important;color:var(--k-texto) !important;border:1px solid var(--k-linea2) !important;border-radius:6px;
+  font:600 14px/1 var(--k-rotulo);padding:6px 8px}
 body.tema-casete .max-bib-idea{font-family:var(--k-texto-f);color:var(--k-suave)}
 body.tema-casete .max-bib-portada::before,body.tema-casete .max-bib-portada::after{background:var(--k-tinta3);border-color:var(--k-linea2)}
 body.tema-casete .max-bib-sello{font-family:var(--k-rotulo)}
