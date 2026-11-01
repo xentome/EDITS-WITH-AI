@@ -202,6 +202,8 @@ def ventana(ruta: str, s0: int, sn: int, total: int) -> tuple[int, int, int, int
         cortes = cortes_cerca(ruta, max(0, s0 - falta - 1), s0) + cortes_cerca(ruta, s0 + sn - 1, min(total - 1, s0 + sn - 1 + falta))
         lo = max([c for c in cortes if c <= s0], default=0)
         hi = min([c for c in cortes if c >= s0 + sn], default=total)
+    if lo == 0 and hi == total:             # sin cortes cerca: igual que siempre
+        return (*tramo_generado(s0, sn, total), 0, total)
     centro = s0 - falta // 2
     if hi - lo >= m:
         g0 = min(max(centro, lo), hi - m)
