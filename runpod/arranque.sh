@@ -21,7 +21,10 @@ drv=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1)
 [ "${drv%%.*}" -ge 580 ] 2>/dev/null ||
   { echo "ERROR GPU: driver $drv; hace falta CUDA 13 (driver >= 580). Al crear el pod, filtra «CUDA Versions» por 13.0"; exit 1; }
 # /dev/nvidia-uvm con EIO = módulo nvidia_uvm del host roto: CUDA no puede funcionar y no se arregla desde el pod
-u=$(python3 -c "import os;os.close(os.open('/dev/nvidia-uvm',os.O_RDWR));print('ok')" 2>&1 | tail -1)
+# en algunos hosts el open se cuelga para siempre (no se puede matar): se lanza aparte y se espera 30 s como mucho
+python3 -c "import os;os.close(os.open('/dev/nvidia-uvm',os.O_RDWR));print('ok')" > /tmp/uvm.txt 2>&1 &
+for i in $(seq 30); do grep -q . /tmp/uvm.txt 2>/dev/null && break; sleep 1; done
+u=$(tail -1 /tmp/uvm.txt 2>/dev/null); u=${u:-se cuelga}
 [ "$u" = ok ] || { echo "ERROR UVM: /dev/nvidia-uvm no abre ($u); este host está roto, borra el pod y crea otro"; exit 1; }
 echo "repo: $(git -C $R log -1 --format='%h %s' | cut -c1-90)"
 
