@@ -44,7 +44,7 @@ MAX_REFERENCIAS = 4
 MIN_POR_39 = (3, 4)                         # minutos por cada 39 f a la resolución de la app (como Retocar)
 
 # los nodos del grafo (los de la plantilla de Retocar se copian con su número)
-DE_RETOCAR = ("2", "3", "4", "7", "137", "104", "8", "9", "10", "28", "30", "31", "89", "112")
+DE_RETOCAR = ("2", "3", "4", "137", "104", "8", "9", "10", "28", "30", "31", "89", "112")
 N_VAE, N_VAE_AUDIO, N_CLIP, N_MODELO, N_PROMPT, N_RUIDO, N_REF_MODELO = "9", "10", "8", "104", "89", "28", "112"
 N_CARGAR_LATENTE, N_VIDEO, N_PARTES, N_CODIFICAR = "50", "51", "52", "53"
 N_NUEVO, N_EXTENDER, N_CANCION, N_GUIA = "25", "60", "61", "62"
@@ -352,7 +352,7 @@ def preparar(datos: dict, sello: str | None = None) -> tuple[dict, dict]:
             "positive": [N_NUEVO, 0], "latent": [N_EXTENDER, 0], "frame_idx": 0, "audio_vae": [N_VAE_AUDIO, 0], "audio": [N_CANCION, 0]}}
         condicion = [N_GUIA, 0]
 
-    # el sampler de ComfyUI (admite máscaras): euler, 8 pasos con el adaptador turbo del VDN, como Retocar
+    # el sampler de ComfyUI (admite máscaras): Pika H3 Flex, lcm y sus 6 sigmas, como Retocar
     g[N_GUIADOR] = {"class_type": "BasicGuider", "inputs": {"model": [N_MODELO, 0], "conditioning": condicion}}
     g[N_SAMPLER] = {"class_type": "SamplerCustomAdvanced", "inputs": {
         "noise": [N_RUIDO, 0], "guider": [N_GUIADOR, 0], "sampler": ["30", 0], "sigmas": ["31", 0], "latent_image": [N_EXTENDER, 0]}}

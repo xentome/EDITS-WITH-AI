@@ -64,7 +64,6 @@ def config() -> dict:
     comfyui = os.environ.get("MAX_EDITOR_COMFYUI_URL") or c.get("comfyui_url")
     return {"proxy_url": (proxy or "http://127.0.0.1:8199").rstrip("/"),
             "comfyui_url": (comfyui or "http://127.0.0.1:8188").rstrip("/"),
-            "motor_rapido": os.environ.get("MAX_EDITOR_MOTOR_RAPIDO") or c.get("motor_rapido") or "vdn",
             "mascara_cruda": bool(c.get("mascara_cruda"))}
 
 
@@ -264,22 +263,18 @@ def poner_loras(grafo: dict, loras) -> list:
     return puestos
 
 
-# (1 nov, beta) Pika H3 Flex en lugar de VDN, solo en Generar. Se enciende con "motor_rapido": "pika" en
-# config.local.json (no va a git); sin eso, VDN como siempre. Pika es un LoRA ya destilado a 6 pasos: va en el sitio
-# del ApplyVDNH3, con el sampler LCM y las sigmas de su plantilla oficial (video_pika_h3_flex_ref2va), que ya vienen
-# desplazadas, así que el MiniMaxH3SigmaShift sobra. Prueba del paracaídas: 12 min frente a 20 con VDN.
+# (2 nov, Jonathan) Pika H3 Flex es el único motor (VDN se quitó de todo). Es un LoRA ya destilado a 6 pasos: va detrás
+# del modelo, con el sampler LCM y las sigmas de su plantilla oficial (video_pika_h3_flex_ref2va), que ya vienen
+# desplazadas, así que no hay MiniMaxH3SigmaShift. Las dos plantillas (edit_h3 y retocar) ya lo traen puesto; poner_pika
+# queda para convertir un grafo viejo con ApplyVDNH3. Prueba del paracaídas: 12 min frente a 20 con VDN.
 PIKA_LORA = "pika_h3_flex_ref2va_comfy_bf16.safetensors"
 PIKA_SIGMAS = "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
 
 
-def motor_rapido() -> str:
-    return "pika" if str(config().get("motor_rapido") or "").lower() == "pika" else "vdn"
-
-
 def sigmas_pika(denoise: float = 1.0) -> str:
-    """Las sigmas de Pika para un denoise parcial (Detallar de Retocar). Empieza en la misma sigma que el
-    BasicScheduler de VDN (simple, 8 pasos, shift 12) con ese denoise, para que el 0,30 elegido con VDN se sienta igual,
-    y sigue por los nudos de Pika que quedan por debajo. Con denoise 1, las de la plantilla oficial."""
+    """Las sigmas de Pika para un denoise parcial (Retocar: «Fuerza» de Cambiar y «Denoise» de Detallar). Empieza en la
+    sigma que tenía el muestreo de antes (simple, 8 pasos, shift 12) con ese denoise, para que el 0,30 elegido el 31 oct
+    se sienta igual, y sigue por los nudos de Pika que quedan por debajo. Con denoise 1, las de la plantilla oficial."""
     if denoise >= 1:
         return PIKA_SIGMAS
     t = 8 / int(8 / max(denoise, 0.01))
@@ -289,12 +284,12 @@ def sigmas_pika(denoise: float = 1.0) -> str:
 
 
 def poner_pika(grafo: dict, denoise: float = 1.0) -> bool:
-    """Cambia VDN por Pika en el grafo de Generar (o de Retocar › Detallar, con su denoise). Devuelve si lo cambió."""
+    """Un grafo viejo con ApplyVDNH3 → Pika (las plantillas ya vienen así). Devuelve si cambió algo."""
     vdn = _por_tipo(grafo, "ApplyVDNH3")
     if not vdn:
         return False
     for nid in vdn:
-        grafo[nid] = {"class_type": "LoraLoaderModelOnly", "_meta": {"title": "Pika H3 Flex (beta)"},
+        grafo[nid] = {"class_type": "LoraLoaderModelOnly", "_meta": {"title": "Pika H3 Flex (6 pasos)"},
                       "inputs": {"model": grafo[nid]["inputs"]["model"], "lora_name": PIKA_LORA, "strength_model": 1.0}}
     for nid in _por_tipo(grafo, "BasicScheduler"):
         grafo[nid] = {"class_type": "ManualSigmas", "inputs": {"sigmas": sigmas_pika(denoise)}}
@@ -315,8 +310,7 @@ def preparar(valores: dict, opciones: dict | None = None) -> dict:
     grafo = plantilla()
     _copiar_valores(grafo, valores)
     _reponer_tramo(grafo)
-    if motor_rapido() == "pika":
-        opciones["_motor"] = "pika" if poner_pika(grafo) else "vdn"
+    poner_pika(grafo)               # por si la plantilla es vieja (con VDN); la nuestra ya trae Pika
     opciones["_loras"] = poner_loras(grafo, _estado(grafo).get("loras"))
     prompt = _leer_prompt(grafo)
     sin_cancion = _sin_cancion(grafo)

@@ -301,78 +301,6 @@
       }
     },
     {
-      "id": 3,
-      "type": "MiniMaxH3SigmaShift",
-      "pos": [
-        -98.93951964451621,
-        2.3177565503617386
-      ],
-      "size": [
-        277,
-        82
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "modelo",
-          "name": "model",
-          "type": "MODEL",
-          "link": 1
-        },
-        {
-          "localized_name": "desplazamiento de video",
-          "name": "shift_video",
-          "type": "FLOAT",
-          "widget": {
-            "name": "shift_video"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "desplazamiento de audio",
-          "name": "shift_audio",
-          "type": "FLOAT",
-          "widget": {
-            "name": "shift_audio"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "MODELO",
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            114
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.35.0",
-        "Node name for S&R": "MiniMaxH3SigmaShift",
-        "ue_properties": {
-          "widget_ue_connectable": {
-            "shift_video": true,
-            "shift_audio": true
-          },
-          "version": "7.6",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        12,
-        3
-      ],
-      "widgets_values_named": {
-        "shift_video": 12,
-        "shift_audio": 3
-      }
-    },
-    {
       "id": 29,
       "type": "ModelAttentionBackend",
       "pos": [
@@ -391,7 +319,7 @@
           "localized_name": "modelo",
           "name": "model",
           "type": "MODEL",
-          "link": 114
+          "link": 1
         },
         {
           "localized_name": "atención",
@@ -1429,7 +1357,7 @@
     },
     {
       "id": 37,
-      "type": "ApplyVDNH3",
+      "type": "LoraLoaderModelOnly",
       "pos": [
         1895.591437268846,
         -689.6390927635458
@@ -1449,74 +1377,20 @@
           "link": 112
         },
         {
-          "localized_name": "vdn_checkpoint",
-          "name": "vdn_checkpoint",
+          "localized_name": "lora_name",
+          "name": "lora_name",
           "type": "COMBO",
           "widget": {
-            "name": "vdn_checkpoint"
+            "name": "lora_name"
           },
           "link": null
         },
         {
-          "localized_name": "apply_turbo_adapter",
-          "name": "apply_turbo_adapter",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "apply_turbo_adapter"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "strength",
-          "name": "strength",
+          "localized_name": "strength_model",
+          "name": "strength_model",
           "type": "FLOAT",
           "widget": {
-            "name": "strength"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "lora_mode",
-          "name": "lora_mode",
-          "type": "COMBO",
-          "widget": {
-            "name": "lora_mode"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "branch_weights",
-          "name": "branch_weights",
-          "type": "COMBO",
-          "widget": {
-            "name": "branch_weights"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "retain_buffers",
-          "name": "retain_buffers",
-          "type": "COMBO",
-          "widget": {
-            "name": "retain_buffers"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "verbose",
-          "name": "verbose",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "verbose"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "attention_backend",
-          "name": "attention_backend",
-          "type": "COMBO",
-          "widget": {
-            "name": "attention_backend"
+            "name": "strength_model"
           },
           "link": null
         }
@@ -1532,41 +1406,23 @@
           ]
         }
       ],
-      "title": "VDN-H3 8 pasos — Ref2VA no-pruned",
+      "title": "Pika H3 Flex (6 pasos)",
       "properties": {
-        "cnr_id": "comfyui-vdn-h3",
-        "ver": "b78e94d0365ffc5059924a048af707e565d0380e",
-        "Node name for S&R": "ApplyVDNH3",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "LoraLoaderModelOnly"
       },
       "widgets_values": [
-        "vdn-minimax-h3-int8-convrot-comfyui",
-        true,
-        1,
-        "merge",
-        "auto",
-        "auto",
-        false,
-        "grouped"
+        "pika_h3_flex_ref2va_comfy_bf16.safetensors",
+        1
       ],
       "widgets_values_named": {
-        "vdn_checkpoint": "vdn-minimax-h3-int8-convrot-comfyui",
-        "apply_turbo_adapter": true,
-        "strength": 1,
-        "lora_mode": "merge",
-        "branch_weights": "auto",
-        "retain_buffers": "auto",
-        "verbose": false,
-        "attention_backend": "grouped"
+        "lora_name": "pika_h3_flex_ref2va_comfy_bf16.safetensors",
+        "strength_model": 1
       }
     },
     {
       "id": 32,
-      "type": "BasicScheduler",
+      "type": "ManualSigmas",
       "pos": [
         1004.3145619941939,
         282.0134707876565
@@ -1580,35 +1436,11 @@
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "modelo",
-          "name": "model",
-          "type": "MODEL",
-          "link": 103
-        },
-        {
-          "localized_name": "programador",
-          "name": "scheduler",
-          "type": "COMBO",
+          "localized_name": "sigmas",
+          "name": "sigmas",
+          "type": "STRING",
           "widget": {
-            "name": "scheduler"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "pasos",
-          "name": "steps",
-          "type": "INT",
-          "widget": {
-            "name": "steps"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "desruido",
-          "name": "denoise",
-          "type": "FLOAT",
-          "widget": {
-            "name": "denoise"
+            "name": "sigmas"
           },
           "link": null
         }
@@ -1624,26 +1456,16 @@
           ]
         }
       ],
-      "title": "4. Scheduler — simple / 8 pasos",
+      "title": "Sigmas de Pika (6 pasos)",
       "properties": {
         "cnr_id": "comfy-core",
-        "ver": "0.35.0",
-        "Node name for S&R": "BasicScheduler",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
+        "Node name for S&R": "ManualSigmas"
       },
       "widgets_values": [
-        "simple",
-        8,
-        1
+        "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
       ],
       "widgets_values_named": {
-        "scheduler": "simple",
-        "steps": 8,
-        "denoise": 1
+        "sigmas": "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
       }
     },
     {
@@ -1711,7 +1533,7 @@
           "links": null
         }
       ],
-      "title": "Muestreo VDN 8 pasos (SamplerCustomAdvanced, euler)",
+      "title": "Muestreo Pika 6 pasos (SamplerCustomAdvanced, lcm)",
       "properties": {
         "cnr_id": "comfy-core",
         "Node name for S&R": "SamplerCustomAdvanced"
@@ -2175,7 +1997,6 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            103,
             106
           ]
         }
@@ -2708,13 +2529,13 @@
           ]
         }
       ],
-      "title": "Sampler euler",
+      "title": "lcm (Pika)",
       "properties": {
         "cnr_id": "comfy-core",
         "Node name for S&R": "KSamplerSelect"
       },
       "widgets_values": [
-        "euler"
+        "lcm"
       ]
     }
   ],
@@ -2723,7 +2544,7 @@
       1,
       2,
       0,
-      3,
+      29,
       0,
       "MODEL"
     ],
@@ -2920,14 +2741,6 @@
       "MODEL"
     ],
     [
-      103,
-      65,
-      0,
-      32,
-      0,
-      "MODEL"
-    ],
-    [
       106,
       65,
       0,
@@ -2940,14 +2753,6 @@
       28,
       0,
       37,
-      0,
-      "MODEL"
-    ],
-    [
-      114,
-      3,
-      0,
-      29,
       0,
       "MODEL"
     ],

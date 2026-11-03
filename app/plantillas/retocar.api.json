@@ -36,20 +36,6 @@
    "title": "Feed-Forward Chunking (4)"
   }
  },
- "7": {
-  "inputs": {
-   "shift_video": 12,
-   "shift_audio": 3,
-   "model": [
-    "4",
-    0
-   ]
-  },
-  "class_type": "MiniMaxH3SigmaShift",
-  "_meta": {
-   "title": "H3 Sigma Shift (Video 12 / Audio 3)"
-  }
- },
  "8": {
   "inputs": {
    "clip_name": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
@@ -411,26 +397,20 @@
  },
  "30": {
   "inputs": {
-   "sampler_name": "euler"
+   "sampler_name": "lcm"
   },
   "class_type": "KSamplerSelect",
   "_meta": {
-   "title": "Sampler (RES Multistep)"
+   "title": "lcm (Pika)"
   }
  },
  "31": {
+  "class_type": "ManualSigmas",
   "inputs": {
-   "scheduler": "simple",
-   "steps": 8,
-   "denoise": 1,
-   "model": [
-    "104",
-    0
-   ]
+   "sigmas": "1.0, 0.972973, 0.923077, 0.8, 0.571429, 0.333333, 0.0"
   },
-  "class_type": "BasicScheduler",
   "_meta": {
-   "title": "Scheduler (Beta / 20 Steps)"
+   "title": "Sigmas de Pika (6 pasos)"
   }
  },
  "32": {
@@ -601,23 +581,17 @@
   }
  },
  "137": {
-  "class_type": "ApplyVDNH3",
+  "class_type": "LoraLoaderModelOnly",
+  "_meta": {
+   "title": "Pika H3 Flex (6 pasos)"
+  },
   "inputs": {
-   "apply_turbo_adapter": true,
-   "attention_backend": "grouped",
-   "branch_weights": "auto",
-   "lora_mode": "merge",
    "model": [
-    "7",
+    "4",
     0
    ],
-   "retain_buffers": "auto",
-   "strength": 1.0,
-   "vdn_checkpoint": "vdn-minimax-h3-int8-convrot-comfyui",
-   "verbose": false
-  },
-  "_meta": {
-   "title": "ApplyVDNH3"
+   "lora_name": "pika_h3_flex_ref2va_comfy_bf16.safetensors",
+   "strength_model": 1.0
   }
  },
  "201": {

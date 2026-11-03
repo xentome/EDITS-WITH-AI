@@ -85,7 +85,7 @@ Abajo del todo de la ventana, después de «Prompt final», está **«Retocar el
 - ✅ Marca qué tapar: **por texto** (SAM 3.1, por ejemplo `face`) o con un **rectángulo** dibujado sobre el video (para lo que SAM no encuentra, como letras estilizadas).
 - ✅ Pon hasta 4 **referencias** (del Stack del proyecto, de las que se usa la foto original, o subidas) de todo lo que debe salir en la zona tapada, y cítalas en el prompt (inglés) con su `<Picture N>`.
 - ✅ «Retocar» guarda en `app/salidas/` el tramo retocado (`retoque_…_tramo.mp4`) y la versión completa (`retoque_….mp4`: el original con ese tramo cambiado y el audio intacto), que queda en la línea de tiempo para encadenar otro retoque.
-- Por dentro: `app/retocar.py` + `app/plantillas/retocar.api.json` (el workflow de inpainting del usuario con VDN a 8 pasos); rutas `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`; el avance, en `GET /app/trabajo/<id>`. Línea de órdenes: `retocar.py datos.json [--seco]`.
+- Por dentro: `app/retocar.py` + `app/plantillas/retocar.api.json` (el workflow de inpainting del usuario, con Pika H3 Flex a 6 pasos); rutas `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`; el avance, en `GET /app/trabajo/<id>`. Línea de órdenes: `retocar.py datos.json [--seco]`.
 
 ## Extender video (Extend video)
 
@@ -94,7 +94,7 @@ En el paso Retocar hay dos pestañas: **«Inpainting / detalle»** (lo de arriba
 - **Calidad**: borrador rápido (~0,25 MP), media (~0,5 MP) u original. **Audio**: por defecto el de entrada (el original suena tal cual y, en lo nuevo, la canción con la que se hizo el video sigue justo desde el segundo en que acaba, también si se generó con el audio de H3; un mp4 sin canción conserva su sonido y H3 continúa el de sus últimos segundos) o el del modelo (H3 hace el sonido de lo nuevo a partir del audio del video). **Prompt** opcional («qué pasa después»; vacío = misma acción y misma cámara) con referencias `<Picture N>`.
 - Encola como Generar y Retocar; el resultado (`extension_….mp4`) queda en la línea de tiempo para alargarlo otra vez. «🎬 Videos» › «Extender» abre cualquier video ahí.
 - Generar y Extender guardan el **latente** del video (`ComfyUI/output/latents/max_editor_….latent`): con la calidad «original», la extensión sigue desde él sin pérdida; si no hay, desde el mp4 (pierde un poco de color).
-- Por dentro: `app/extender.py` (😺NKD AV Latent Extend: la cola del video fijada con una máscara de ruido, el método de drozbay/ablejones; va con Singularity + VDN a 8 pasos, como el edit y Retocar); `POST /app/extender_plan`; cola `tipo: extender`. Línea de órdenes: `extender.py datos.json [--seco]`. Plano: `planos/fases/12 Extender video.md`.
+- Por dentro: `app/extender.py` (😺NKD AV Latent Extend: la cola del video fijada con una máscara de ruido, el método de drozbay/ablejones; va con Singularity + Pika H3 Flex a 6 pasos, como el edit y Retocar); `POST /app/extender_plan`; cola `tipo: extender`. Línea de órdenes: `extender.py datos.json [--seco]`. Plano: `planos/fases/12 Extender video.md`.
 
 ## Con un agente (MCP)
 
@@ -160,7 +160,7 @@ Prueba de instalación desde cero (26 oct 2026) ✅: clon limpio, `instalar.sh` 
 
 - El código es **Apache-2.0** ([LICENSE](../LICENSE)).
 - **MiniMax H3 tiene su propia licencia: el uso comercial necesita una licencia aparte de MiniMax, y excluye algunas regiones.**
-- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-VDN-H3 (OpenVDN; fork VDN-H3-Plus de xmarre), ComfyUI-NKD-Basic-Tools (Nekodificador: AV Latent Extend), ComfyUi-MpiNodes (MadPonyInteractive: guardar el latente de H3). El método de Extender es el workflow de extensión con máscaras de drozbay (ablejones), del PR #15375 de ComfyUI.
+- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-NKD-Basic-Tools (Nekodificador: AV Latent Extend), ComfyUi-MpiNodes (MadPonyInteractive: guardar el latente de H3). El método de Extender es el workflow de extensión con máscaras de drozbay (ablejones), del PR #15375 de ComfyUI.
 - Herramientas: ComfyUI, comfy-sdk y comfy-api-proxy (Comfy Org), llama.cpp (ggml-org), librosa.
-- Modelos: MiniMax H3 (MiniMax), Qwen3-VL y Qwen3.8 (Qwen), VDN para H3 (OpenVDN, int8 de drbaph).
+- Modelos: MiniMax H3 (MiniMax), Qwen3-VL y Qwen3.8 (Qwen), Pika H3 Flex (Pika Labs: el LoRA de 6 pasos con el que va todo).
 - Lista completa con licencias: [CREDITOS.md](../CREDITOS.md) y [MODELOS.md](../MODELOS.md).

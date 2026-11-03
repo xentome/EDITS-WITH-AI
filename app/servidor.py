@@ -1158,7 +1158,7 @@ def modelos_mod():
 
 
 async def modelos_estado(peticion):
-    """GET /app/modelos → cada pieza (H3, texto, VAE, SAM, VDN, vista previa): qué hay, cuál se usa y qué falta."""
+    """GET /app/modelos → cada pieza (H3, texto, VAE, SAM, Pika, vista previa): qué hay, cuál se usa y qué falta."""
     return web.json_response(await asyncio.get_running_loop().run_in_executor(None, modelos_mod().estado, CONFIG))
 
 

@@ -147,7 +147,7 @@ Run the `winget` lines in **PowerShell** or **Terminal**, then close the window 
    - finds your ComfyUI (it looks for a `ComfyUI…` folder next to this one, in your user folder, Desktop, Downloads, Documents and at the root of C: to G:) or **asks you for its folder** (the one with `main.py`);
    - asks if you also want **Retouch and Extend video** (say yes: 7 more packs + SAM 3.1, 1.7 GB);
    - installs the app in `app\.venv` and the node packs in ComfyUI;
-   - **asks before downloading the models** (about 68 GB). You can say no and download them later in the app › **🧩 Models**.
+   - **asks before downloading the models** (about 66.5 GB). You can say no and download them later in the app › **🧩 Models**.
 3. **Start ComfyUI** as you always do (for the portable one: `run_nvidia_gpu.bat`), and wait until it says it is ready.
 4. **Open the app:** double-click **`Abrir MAX EDITOR.bat`**. Your browser opens at `http://127.0.0.1:8300`.
 
@@ -171,7 +171,7 @@ Run the `winget` lines in **PowerShell** or **Terminal**, then close the window 
 | OS | Linux (CachyOS) | Windows: scripts ready, not tested on a Windows PC · macOS: not supported |
 | GPU | NVIDIA RTX 3060 **12 GB**, driver 615 | with less VRAM we don't know if it fits: use RunPod |
 | RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; plan for **64 GB RAM + swap** or more |
-| Disk | **68 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
+| Disk | **66.5 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
 | ComfyUI | **v0.39.0**, Python 3.14, torch 2.13 + CUDA 13.0 | launched with `--enable-dynamic-vram --reserve-vram 0.5 --use-ck-attention` |
 | Install | ~1 min without models (packs + dependencies) | downloading the models: ~1.5 h at 100 Mb/s, ~20 min at 500 Mb/s |
 | One video | 22 frames at 544×960 ≈ **3 min**; 5 s at 1 MP (768×1344) ≈ **17 min** | on the RTX 3060 |
@@ -306,7 +306,7 @@ The same repo is also a ComfyUI custom node, «Prompt del edit (LLM)», with the
 
 - The code in this repository is **Apache-2.0** ([LICENSE](LICENSE)).
 - **MiniMax H3 has its own license: commercial use needs a separate license from MiniMax, and some regions are excluded.**
-- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai), ComfyUI-VDN-H3 (OpenVDN; VDN-H3-Plus fork by xmarre); the 7 packs for Touch up and Extend are listed in CREDITOS.md.
+- Custom nodes: ComfyUI-Fantastic-MiniMaxH3-PromptBuilder (Adudeguyman), ComfyUI-KJNodes (kijai); the 7 packs for Touch up and Extend are listed in CREDITOS.md.
 - Tools: ComfyUI, comfy-sdk and comfy-api-proxy (Comfy Org), llama.cpp (ggml-org), librosa.
-- Models: MiniMax H3 (MiniMax), Qwen3-VL and Qwen3.8 (Qwen), VDN for H3 (OpenVDN, int8 by drbaph).
+- Models: MiniMax H3 (MiniMax), Qwen3-VL and Qwen3.8 (Qwen), Pika H3 Flex (Pika Labs: the 6-step LoRA every job runs on).
 - Full list with licenses: [CREDITOS.md](CREDITOS.md) and [MODELOS.md](MODELOS.md).

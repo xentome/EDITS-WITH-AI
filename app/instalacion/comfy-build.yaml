@@ -1,6 +1,6 @@
 # MAX EDITOR: la lista de piezas (fuente única de verdad del instalador, app/instalacion/instalar.py).
 # Nació con «comfy build init» (27 oct 2026), completada el 28 oct:
-# repos de HF con revisión fija, VDN como git, los packs de Retocar y Extender y SAM 3.1.
+# repos de HF con revisión fija, los packs de Retocar y Extender y SAM 3.1. (2 nov) Pika H3 Flex en lugar de VDN.
 # Grupos: «edit» (lo mínimo para generar) y «retocar» (Retocar y Extender video; instalar.sh --retocar).
 # Cada modelo: dónde va dentro de ComfyUI/models (localPath), de dónde se baja (repo + revision + path de HF),
 # su tamaño y su sha256 (comprobados en la API de HF el 28 oct 2026). «alias»: otro nombre con el mismo archivo.
@@ -51,8 +51,7 @@ definition:
       sha256: f0f60fa072089997f817402098c2fd90777cb2660dd79cf5df42fc1e3e08e527
       sizeBytes: 9791388
       grupo: edit
-    # Pika H3 Flex (1 nov): el LoRA destilado a 6 pasos que usa Generar con "motor_rapido": "pika" en config.local.json.
-    # Grupo propio: el instalador no lo baja; el panel «Modelos» lo enseña (y lo baja) solo con ese motor puesto.
+    # Pika H3 Flex: el LoRA destilado a 6 pasos, el único motor de la app desde el 2 nov (VDN se quitó de todo).
     - filename: pika_h3_flex_ref2va_comfy_bf16.safetensors
       localPath: loras/pika_h3_flex_ref2va_comfy_bf16.safetensors
       repo: Pika-Labs/Pika-H3-Flex
@@ -60,71 +59,6 @@ definition:
       path: comfy/loras/pika_h3_flex_ref2va_comfy_bf16.safetensors
       sha256: e4d058fbd027377b925a0ee607b514ddd9037873fee3afa05d73b302e6f7f8e1
       sizeBytes: 1956172176
-      grupo: pika
-    # VDN: una carpeta entera (pesos + sus JSON). Los JSON no son LFS: su sha256 se midió en la copia local.
-    - filename: adapter_model.safetensors
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/default/adapter_model.safetensors
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: adapters/default/adapter_model.safetensors
-      sha256: 58558fef506f88bb41649242de9b9b3a365da806b51b2e96afbbe1625222058a
-      sizeBytes: 334026912
-      grupo: edit
-    - filename: adapter_config.json
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/default/adapter_config.json
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: adapters/default/adapter_config.json
-      sha256: 89e0ff8920b9629b826eb99ab6150cce6924a53aa445186d1b493225fd091b96
-      sizeBytes: 415
-      grupo: edit
-    - filename: adapter_model.safetensors
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/turbo/adapter_model.safetensors
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: adapters/turbo/adapter_model.safetensors
-      sha256: 24fc93c82fe84dc45d0627f4e72c637bc387d282ba18f60ed3b7f8c81089392c
-      sizeBytes: 851452696
-      grupo: edit
-    - filename: adapter_config.json
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/turbo/adapter_config.json
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: adapters/turbo/adapter_config.json
-      sha256: 627968f670747c29cd7a0d3f8c75166e501d70f9e829b5cd3242a8f14cefbc18
-      sizeBytes: 22264
-      grupo: edit
-    - filename: model_int8_convrot_comfyui.safetensors
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/linear_branch/model_int8_convrot_comfyui.safetensors
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: linear_branch/model_int8_convrot_comfyui.safetensors
-      sha256: 1fa18c3ebd94caa804ae3dc3a93df7ae069d8f5c363a00b6eb5288112c0f5abc
-      sizeBytes: 2304371056
-      grupo: edit
-    - filename: config.json
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/linear_branch/config.json
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: linear_branch/config.json
-      sha256: decb06ac7e664610f677fb445318502b3c51f9c1b8603a2cdd00b16042be5bc8
-      sizeBytes: 465
-      grupo: edit
-    - filename: metadata.json
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/metadata.json
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: metadata.json
-      sha256: 54054ceb1c91b3fdf7fa0278e4a8841c127e8cf666b5e240d69613661f9d3e9e
-      sizeBytes: 463
-      grupo: edit
-    - filename: model_spec.json
-      localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/model_spec.json
-      repo: drbaph/vdn-minimax-h3-int8-convrot-comfyui
-      revision: 3dc26acabfa4cfc808faf6be0bf20b5e070897a4
-      path: model_spec.json
-      sha256: 4171f4384e952f1f73467981a893440c03298af4956b947e2c8a857ba9f5a62b
-      sizeBytes: 25705
       grupo: edit
     - filename: sam3.1_multiplex_fp16.safetensors
       localPath: checkpoints/sam3.1_multiplex_fp16.safetensors
@@ -141,12 +75,6 @@ definition:
       source: git
       repository: https://github.com/Adudeguyman/ComfyUI-Fantastic-MiniMaxH3-PromptBuilder
       gitRef: 01b6d8d91180c6994840e34312a65febe02cc4f5
-      grupo: edit
-    - name: ComfyUI-VDN-H3                     # el fork VDN-H3-Plus de xmarre, en la carpeta con el nombre original
-      localPath: ComfyUI-VDN-H3
-      source: git
-      repository: https://github.com/xmarre/ComfyUI-VDN-H3-Plus
-      gitRef: b78e94d0365ffc5059924a048af707e565d0380e
       grupo: edit
     - name: comfyui-kjnodes
       localPath: comfyui-kjnodes
@@ -206,9 +134,9 @@ definition:
       grupo: retocar
   # nodos que deben existir al final (para --comprobar: GET /object_info de ComfyUI)
   nodosNecesarios:
-    edit: [UNETLoader, CLIPLoader, VAELoader, MiniMaxH3SigmaShift, ModelAttentionBackend, ModelPreviewOverrideKJ,
-           ApplyVDNH3, MiniMaxChunkFeedForward, MiniMaxH3RefModStack, LoadAudio, MiniMaxH3PromptBuilder,
-           MiniMaxH3FantasticRefModTextEncode, MiniMaxH3AddGuide, RandomNoise, BasicScheduler, BasicGuider,
+    edit: [UNETLoader, CLIPLoader, VAELoader, ModelAttentionBackend, ModelPreviewOverrideKJ,
+           LoraLoaderModelOnly, ManualSigmas, MiniMaxChunkFeedForward, MiniMaxH3RefModStack, LoadAudio, MiniMaxH3PromptBuilder,
+           MiniMaxH3FantasticRefModTextEncode, MiniMaxH3AddGuide, RandomNoise, BasicGuider,
            KSamplerSelect, SamplerCustomAdvanced, VAEDecode, VAEDecodeAudio, MiniMaxH3FantasticEditComposite, CreateVideo, SaveVideo]
     retocar: ["CR Aspect Ratio", CheckpointLoaderSimple, GetImageSizeAndCount, MVEx_MaskCleanup, MVEx_SubjectCrop,
               MVEx_SubjectUncrop, MiniMaxH3ReferenceToVideo, MiniMaxH3TokenCounter, MiniMaxH3XPromptLint, NKDAVLatent,

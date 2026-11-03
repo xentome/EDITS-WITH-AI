@@ -9,7 +9,6 @@ Todos son open source menos uno: ComfyUI_Comfyroll_CustomNodes no publica licenc
 | Qué | Para qué | Autor | Licencia |
 |---|---|---|---|
 | ComfyUI-Fantastic-MiniMaxH3-PromptBuilder | RefMods, Stack, Prompt Builder y Text Encode de H3 | Adudeguyman | MIT |
-| ComfyUI-VDN-H3 (fork VDN-H3-Plus) | muestreo en 8 pasos | OpenVDN · fork de xmarre | Apache-2.0 |
 | ComfyUI-KJNodes | vista previa del modelo | kijai | GPL-3.0 |
 | ComfyUI_Comfyroll_CustomNodes | Retocar: CR Aspect Ratio | Suzie1 | sin licencia publicada ❓ |
 | ComfyUI-NKD-Basic-Tools | Extender: 😺NKD AV Latent Extend y AV Latent; máscaras | Nekodificador | MIT |

@@ -4,9 +4,8 @@ las que falten con un clic. Solo se baja algo cuando el usuario lo pide: el inst
   - Lo que hay lo dice ComfyUI (/object_info/<nodo que carga la pieza>); si está apagado, se mira su carpeta models/.
   - Lo elegido va en app/modelos.local.json (no va a git). generar.lanzar() lo aplica a todo grafo con aplicar(): en el
     nodo de cada pieza cambia el archivo de la plantilla por el elegido.
-  - VDN y la vista previa (TAE) no se eligen (decisión de Jonathan): solo se bajan si faltan.
-  - (2 nov) El motor rápido sale según config ("motor_rapido"): con "pika" la fila es el LoRA Pika H3 Flex y VDN no
-    aparece; sin eso, VDN como siempre. Solo se enseña el que de verdad usa Generar.
+  - Pika H3 Flex (el único motor desde el 2 nov; VDN se quitó) y la vista previa (TAE) no se eligen (decisión de
+    Jonathan): solo se bajan si faltan.
 """
 import json
 import os
@@ -27,7 +26,6 @@ PIEZAS = {
     "vae_video": ("vae/minimax_h3_video", "VAELoader", "vae_name", True),
     "vae_audio": ("vae/minimax_h3_audio", "VAELoader", "vae_name", True),
     "sam": ("checkpoints/", "CheckpointLoaderSimple", "ckpt_name", True),
-    "vdn": ("vdn/", "ApplyVDNH3", "vdn_checkpoint", False),
     "pika": ("loras/pika_h3", "LoraLoaderModelOnly", "lora_name", False),
     "vista_previa": ("vae_approx/", "ModelPreviewOverrideKJ", "tiny_vae", False),
 }
@@ -37,15 +35,14 @@ _cerrojo = threading.Lock()
 
 
 def _archivos(clave: str) -> list:
-    """Las entradas del YAML de una pieza (VDN son 8 archivos: su carpeta)."""
+    """Las entradas del YAML de una pieza."""
     build = instalar.yaml.safe_load(open(instalar.BUILD, encoding="utf-8"))["definition"]
     return [m for m in build["models"] if m["localPath"].startswith(PIEZAS[clave][0])]
 
 
 def _defecto(clave: str, archivos: list) -> str:
-    """El nombre que pone la plantilla: el archivo dentro de su carpeta (para VDN, la carpeta)."""
-    partes = archivos[0]["localPath"].split("/")
-    return partes[1] if clave == "vdn" else "/".join(partes[1:])
+    """El nombre que pone la plantilla: el archivo dentro de su carpeta."""
+    return "/".join(archivos[0]["localPath"].split("/")[1:])
 
 
 def leer_elegidos() -> dict:
@@ -70,11 +67,9 @@ def _opciones_comfyui(url: str, nodo: str, entrada: str):
     return list(spec[1].get("options", [])) if len(spec) > 1 and isinstance(spec[1], dict) else None
 
 
-def _opciones_disco(dir_models: str, carpeta: str, carpetas: bool) -> list:
-    """Sin ComfyUI: los archivos (o, para VDN, las carpetas) de models/<carpeta>."""
+def _opciones_disco(dir_models: str, carpeta: str) -> list:
+    """Sin ComfyUI: los archivos de models/<carpeta>."""
     base = os.path.join(dir_models, carpeta)
-    if carpetas:
-        return sorted(d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))) if os.path.isdir(base) else []
     hay = []
     for raiz, _, nombres in os.walk(base, followlinks=True):
         hay += [os.path.relpath(os.path.join(raiz, n), base) for n in nombres if n.lower().endswith(EXTENSIONES)]
@@ -86,14 +81,7 @@ def estado(c: dict) -> dict:
     dir_models = os.path.join(c["comfyui_dir"], "models")
     elegidos, piezas, comfy = leer_elegidos(), [], True
     cache: dict = {}
-    try:
-        import generar                  # aquí dentro: generar ya importa este módulo
-        motor = generar.motor_rapido()  # lo mismo que usa Generar (config.local.json o MAX_EDITOR_MOTOR_RAPIDO)
-    except Exception:
-        motor = "pika" if str(c.get("motor_rapido") or "").lower() == "pika" else "vdn"
     for clave, (inicio, nodo, entrada, elegible) in PIEZAS.items():
-        if clave in ("vdn", "pika") and clave != motor:
-            continue                    # solo el motor rápido que usa Generar
         archivos = _archivos(clave)
         defecto = _defecto(clave, archivos)
         if (nodo, entrada) not in cache:
@@ -101,7 +89,7 @@ def estado(c: dict) -> dict:
         opciones = cache[(nodo, entrada)]
         if opciones is None:
             comfy = False
-            opciones = _opciones_disco(dir_models, inicio.split("/")[0], clave == "vdn")
+            opciones = _opciones_disco(dir_models, inicio.split("/")[0])
         # bien bajado = cada archivo con su tamaño (ComfyUI también lista uno a medias o de otro tamaño)
         completos = all(os.path.isfile(os.path.join(dir_models, m["localPath"]))
                         and os.path.getsize(os.path.join(dir_models, m["localPath"])) == m["sizeBytes"] for m in archivos)
@@ -112,8 +100,7 @@ def estado(c: dict) -> dict:
         elegido = elegidos.get(clave, defecto)
         with _cerrojo:
             bajando = dict(_bajando[clave]) if clave in _bajando else None
-        grupo = "edit" if clave == "pika" else archivos[0]["grupo"]      # con Pika puesto, sin él no se genera
-        piezas.append({"clave": clave, "elegible": elegible, "grupo": grupo, "defecto": defecto,
+        piezas.append({"clave": clave, "elegible": elegible, "grupo": archivos[0]["grupo"], "defecto": defecto,
                        "elegido": elegido, "opciones": opciones, "esta": elegido in opciones or (elegido == defecto and completos),
                        "defecto_completo": completos, "tam": sum(m["sizeBytes"] for m in archivos),
                        "por_bajar": sum(m["sizeBytes"] for m in faltan) - a_medias, "repo": archivos[0]["repo"], "bajando": bajando})
@@ -132,7 +119,7 @@ def elegir(clave: str, archivo, c: dict) -> None:
         _, nodo, entrada, _ = PIEZAS[clave]
         opciones = _opciones_comfyui(c["comfyui_url"], nodo, entrada)
         if opciones is None:
-            opciones = _opciones_disco(os.path.join(c["comfyui_dir"], "models"), PIEZAS[clave][0].split("/")[0], False)
+            opciones = _opciones_disco(os.path.join(c["comfyui_dir"], "models"), PIEZAS[clave][0].split("/")[0])
         if archivo not in opciones:
             raise ValueError("app.modelos.error.no_esta")
         elegidos[clave] = archivo

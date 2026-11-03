@@ -12,10 +12,9 @@
 | Nodo | Tipo | Para qué |
 |---|---|---|
 | 2 | UNETLoader | Carga H3 Singularity int8. |
-| 3 | MiniMaxH3SigmaShift | Desplaza los sigmas de video (12) y audio (3). |
 | 29 | ModelAttentionBackend | Atención «comfy kitchen». |
 | 28 | ModelPreviewOverrideKJ | Vista previa ligera con taeh3 mientras genera. |
-| 37 | ApplyVDNH3 | VDN turbo: menos pasos con buena calidad. |
+| 37 | LoraLoaderModelOnly | Pika H3 Flex: el LoRA destilado a 6 pasos (desde el 2 nov, en lugar de VDN). |
 | 64 | MiniMaxChunkFeedForward | Parte el feed-forward en trozos para que quepa en 12 GB. |
 | 4 | CLIPLoader | Codificador de texto Qwen3-VL de H3. |
 | 5, 6 | VAELoader | VAE de video y VAE de audio. |
@@ -26,7 +25,7 @@
 | 9 | MiniMaxH3FantasticRefModTextEncode | Codifica prompt y referencias. Aquí van ancho, alto y `length` (fotogramas). |
 | 73 | MiniMaxH3AddGuide | Mete la canción como guía del audio. |
 | 33 | RandomNoise | La semilla del video. |
-| 32, 35, 36, 361 | BasicScheduler, BasicGuider, SamplerCustomAdvanced, KSamplerSelect | El muestreo (8 pasos, euler), todo nodos de ComfyUI. |
+| 32, 35, 36, 361 | ManualSigmas, BasicGuider, SamplerCustomAdvanced, KSamplerSelect | El muestreo de Pika (6 sigmas ya desplazadas, lcm), todo nodos de ComfyUI. |
 | 18, 19 | VAEDecode, VAEDecodeAudio | Imagen y sonido. |
 | 26 | MiniMaxH3FantasticEditComposite | Si se edita un clip con máscara (borrado), pega lo regenerado sobre el original; si no, deja pasar los fotogramas. |
 | 20, 21 | CreateVideo, SaveVideo | Junta imagen y canción y guarda el mp4 (`max_editor/edit`). |
@@ -35,9 +34,8 @@
 
 - **ComfyUI-Fantastic-MiniMaxH3-PromptBuilder** (github.com/Adudeguyman): PromptBuilder, RefModStack, RefModTextEncode y EditComposite.
 - **ComfyUI-KJNodes** (github.com/kijai): ModelPreviewOverrideKJ y MiniMaxChunkFeedForward.
-- **ComfyUI-VDN-H3** (en esta máquina, el fork github.com/xmarre/ComfyUI-VDN-H3-Plus): ApplyVDNH3.
 - **edit_prompt_llm** (este repo): PromptDelEdit, solo para abrir la ventana dentro de ComfyUI. Para generar no hace falta.
-- El resto viene con ComfyUI: SigmaShift, AddGuide, ModelAttentionBackend, los cargadores, el muestreo, CreateVideo y SaveVideo. Hace falta una versión de ComfyUI con soporte de MiniMax H3.
+- El resto viene con ComfyUI: el LoRA, AddGuide, ModelAttentionBackend, los cargadores, el muestreo, CreateVideo y SaveVideo. Hace falta una versión de ComfyUI con soporte de MiniMax H3.
 
 ## Modelos (carpeta dentro de `ComfyUI/models/`)
 
@@ -48,6 +46,6 @@
 | `minimax_h3_video_vae_int8_convrot.safetensors` | `vae/` |
 | `minimax_h3_audio_vae_fp32.safetensors` | `vae/` |
 | `taeh3.safetensors` | `vae_approx/` |
-| `vdn-minimax-h3-int8-convrot-comfyui` (carpeta) | `vdn/` |
+| `pika_h3_flex_ref2va_comfy_bf16.safetensors` | `loras/` |
 
 Si ComfyUI dice `value_not_in_list` en un cargador, falta ese archivo o tiene otro nombre.

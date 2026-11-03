@@ -530,7 +530,7 @@ def _con_fuerza(g: dict, datos: dict) -> dict:
     except (TypeError, ValueError):
         raise ErrorGenerar("la fuerza no es válida")
     f = round(min(FUERZA_MAX, max(FUERZA_MIN, f)), 3)
-    g[N_SCHEDULER]["inputs"]["denoise"] = f
+    g[N_SCHEDULER]["inputs"]["sigmas"] = generar.sigmas_pika(f)          # Pika: el denoise son sus sigmas
     return {"fuerza": f} if f < 1 else {}
 
 
@@ -576,7 +576,7 @@ VUELTAS, VUELTAS_MAX = 2, 4
 # latente, sin máscara de latente) con denoise parcial, así la expresión y la mirada vienen del video; el color del
 # resultado se iguala al del recorte original (ColorMatch) y se pega de vuelta solo la cara con borde suave.
 FIJO_ESCALA = 1.6
-CARA_ESCALA, CARA_LIENZO, CARA_DENOISE, CARA_FEATHER = 2.5, 768, 0.30, 24     # denoise 0,30 elegido por Jonathan (31 oct, con VDN 8 pasos)
+CARA_ESCALA, CARA_LIENZO, CARA_DENOISE, CARA_FEATHER = 2.5, 768, 0.30, 24     # denoise 0,30 elegido por Jonathan (31 oct; con Pika, sigmas_pika lo traduce)
 DENOISE_MIN, DENOISE_MAX = 0.10, 0.80
 LIENZO_MIN, LIENZO_MAX = 384, 1024        # el lado del lienzo cuadrado, en la rejilla de 32
 N_SCHEDULER, N_LATENTE, N_DECODE, N_PEGADO, N_COLOR = "31", "26", "34", "35", "36"
@@ -620,15 +620,13 @@ def _modo_cara(g: dict, datos: dict) -> dict:
             del rec[k]
         rec.update({"mode": "combined", "mode.crop_scale": FIJO_ESCALA, "mode.aspect_ratio": 1.0})
     g[N_LATENTE]["inputs"].pop("latent_mask", None)          # video a video: se rehace todo el recorte, desde el video
-    g[N_SCHEDULER]["inputs"]["denoise"] = d
+    g[N_SCHEDULER]["inputs"]["sigmas"] = generar.sigmas_pika(d)          # Pika: el denoise son sus sigmas
     g[N_COLOR] = {"class_type": "ColorMatch", "_meta": {"title": "color igualado al recorte original"},
                   "inputs": {"image_ref": [N_RECORTE, 0], "image_target": [N_DECODE, 0], "method": "mkl", "strength": 1.0,
                              "multithread": True}}
     g[N_PEGADO]["inputs"].update(cropped_images=[N_COLOR, 0], feather=CARA_FEATHER)
     g[N_OPS_FINAL]["inputs"].update(expand=8, feather=CARA_FEATHER)      # solo la cara, con borde suave
-    # (1 nov, beta) con "motor_rapido": "pika" en config.local.json, Detallar va con Pika en lugar de VDN
-    motor = "pika" if generar.motor_rapido() == "pika" and generar.poner_pika(g, d) else "vdn"
-    return {"denoise": d, "lienzo": lado, "megapixeles": mp, "motor": motor, **({"recorte_fijo": True} if fijo else {})}
+    return {"denoise": d, "lienzo": lado, "megapixeles": mp, **({"recorte_fijo": True} if fijo else {})}
 
 
 def recuperar(datos: dict, rutas: list[str], sello: str) -> tuple[str, dict]:
