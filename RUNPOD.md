@@ -16,7 +16,7 @@
 | 7 | Retocar: pick that video → **Inpainting** (mask by text with SAM 3.1) or **Extender** (continues the video) | **~1.5 min** each | a new video appears |
 | 8 | Download what you want from **Mis videos**, then **Terminate** the pod (stopping it still bills the disk) | 1 min | the pod is gone from *Pods* |
 
-What the log says while it installs: `COMFY OK` (ComfyUI runs on the GPU with every node type the app uses), `MODELOS OK` (≈81 GB, every file checked by sha256), `PRUEBA OK` (video and audio VAE on the GPU), `LLM OK`, `APP OK … mcp: true`, `LISTO`.
+What the log says while it installs: `COMFY OK` (ComfyUI runs on the GPU with every node type the app uses), `MODELOS OK` (≈80 GB, every file checked by sha256), `PRUEBA OK` (video and audio VAE on the GPU), `LLM OK`, `APP OK … mcp: true`, `LISTO`.
 
 ## What runs in the pod
 
