@@ -552,7 +552,7 @@ textarea.epl-final{min-height:40vh}
 /* una marca «✎ agente» dentro de una pestaña cerrada: la pestaña también la enseña */
 .epl-s-toma:has(.epl-p2-cont[data-tab="camara"] .max-ag) .epl-p2-tab[data-tab="camara"],
 .epl-s-toma:has(.epl-p2-cont[data-tab="lugar"] .max-ag) .epl-p2-tab[data-tab="lugar"],
-.epl-s-toma:has(.epl-p2-cont[data-tab="refs"] .max-ag) .epl-p2-tab[data-tab="refs"]{outline:2px dashed var(--max-ag-color,#22E4FF);outline-offset:2px}
+.epl-s-toma:has(.epl-p2-cont[data-tab="refs"] .max-ag) .epl-p2-tab[data-tab="refs"]{outline:2px dashed var(--max-ag-color,#FF7A1A);outline-offset:2px}
 @media (max-width:1100px){.epl-p2-arriba,.epl-p2-cont{grid-template-columns:minmax(0,1fr)}}
 /* (28 oct) traducir al inglés (traducir.js): el selector de la cabecera y su ventanita, el botón de cada campo (a la
  * derecha de su nombre), el campo mientras traduce y el menú del clic derecho */

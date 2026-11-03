@@ -879,7 +879,7 @@ document.addEventListener("input", (e) => { if (e.target?.closest?.(".max-ag")) 
 // el aspecto (con los colores del tema casete si está; si no, los suyos): la marca es un borde discontinuo cian con su
 // rótulo (1 nov: antes rosa; Jonathan: «me parece un color feo», eligió cian)
 document.head.append(el("style", { id: "max-agente-css" }, `
-:root{--max-ag-color:var(--k-cian,#22E4FF);--max-ag-letra:var(--k-tinta,#0f1216)}
+:root{--max-ag-color:var(--k-naranja,#FF7A1A);--max-ag-letra:var(--k-tinta,#0f1216)}
 .max-ag{outline:2px dashed var(--max-ag-color)!important;outline-offset:2px;position:relative}
 .max-ag:not(input):not(textarea):not(select)::after{content:attr(data-ag);position:absolute;top:-.85em;right:.3em;z-index:5;
   padding:.1em .55em;border-radius:.7em;background:var(--max-ag-color);color:var(--max-ag-letra);font:600 12px/1.5 var(--k-mano,inherit);
