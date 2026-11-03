@@ -1,6 +1,6 @@
 # MAX EDITOR
 
-> 4 min de lectura · actualizado el 28 oct 2026 · English: [README.md](../README.md)
+> 4 min de lectura · actualizado el 3 nov 2026 · English: [README.md](../README.md)
 
 **Haz edits con IA con MiniMax H3, toma a toma y con control total. 100 % local y open source.** · [Video demo (2 min)](https://youtu.be/1qPUrorfY74)
 
@@ -51,13 +51,16 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 1. **Tu primer proyecto.** La primera vez la app abre el ejemplo si lo hay y, si no, crea un proyecto vacío. El ejemplo no cambia nunca: al elegirlo, la app hace una copia tuya («mi ejemplo») y abre esa.
    - Pon tus referencias con **+ Añadir** o **⬆ Subir foto o video**.
-2. **La historia:** escribe la idea y el estilo, y pulsa **Escribir historia**. Luego **Escribir tomas**.
-3. **Las tomas:** toca una toma en la línea de tiempo para ver y cambiar su prompt. Arrastra el borde entre tomas para mover el corte. El candado guarda lo tuyo: el LLM no lo cambia.
+2. **Las tomas:** añade tomas en la línea de tiempo y rellena cada una (acción, encuadre, cámara, lugar, referencias). Marca **Sin personaje** en una toma sin tu personaje (un paisaje, un objeto solo): su prompt no lo nombra. Opcional: con el LLM local, **Escribir historia** / **Escribir tomas** te proponen un borrador para que lo cambies.
+3. **Afinar:** toca una toma para ver su prompt final de H3. Arrastra el borde entre tomas para mover el corte. El candado guarda lo tuyo: el LLM no lo cambia.
 4. **La canción:** en la ventana de audio, **Cambiar canción** y arrastra la onda hasta el trozo que quieres. Tú eliges el trozo; la app no lo decide.
 5. **Generar:** pulsa **▶ Generar**. Verás el avance y, al terminar, el video en **🎬 Videos**.
 6. **Otra semilla:** pulsa **🎲 otra semilla** y **Generar** otra vez para otra versión del mismo edit.
 
 Todo se guarda solo en `app/proyectos/<nombre>.json`. Los videos quedan en `app/salidas/`.
+
+- **Proyectos:** ordénalos en **grupos**, **fija arriba** los que más usas y arrastra las tarjetas para cambiar el orden. Los proyectos de prueba de un agente van a su propio grupo, **«Pruebas del agente»**, y no se mezclan con los tuyos.
+- **Cola:** cada trabajo (Generar, Retocar, Extender, partes) es una tarjeta con miniatura, barra de avance y tiempo. Sigue aunque cierres la página, y puedes pausar la cola o cancelar un trabajo.
 
 ## Generar por partes
 
@@ -83,13 +86,18 @@ Abajo del todo de la ventana, después de «Prompt final», está **«Retocar el
 - ✅ Al acabar un ▶ Generar, el video nuevo se pone ahí solo. Para usar otro: «🎬 Videos» › «Poner en Retocar».
 - ✅ Mueve el tramo con sus dos asas: siempre mide 17n+5 fotogramas (39 = 1,6 s; unos 3–4 min por cada 39).
 - ✅ Marca qué tapar: **por texto** (SAM 3.1, por ejemplo `face`) o con un **rectángulo** dibujado sobre el video (para lo que SAM no encuentra, como letras estilizadas).
+- ✅ Elige **cómo retocar** (pestaña «Retocar zona»):
+  - **Cambiar:** H3 pinta de nuevo la zona marcada (otra ropa, otro objeto, algo nuevo). **Fuerza:** más = algo totalmente nuevo; menos = conserva la forma y el movimiento de lo que había.
+  - **Detallar:** video a video; H3 parte del video real y solo añade detalle, así que la expresión y el movimiento se quedan. **Denoise** (más = más detalle inventado, pero puede cambiar la forma o la mirada) y **Lienzo** (el lado del recorte cuadrado con el que trabaja H3). **Ajustes de cara** pone con un clic lo probado para la cara (denoise 0,30, lienzo de 768, la máscara «face» y tu personaje como referencia). **Recorte fijo (beta):** un solo recorte quieto para todo el tramo, para que la cabeza siga el ritmo del cuerpo.
+  - **Quitar:** borra logos, textos u objetos y los rellena con la escena de alrededor (LanPaint). Describe en el prompt lo que hay detrás, sin nombrar lo que borras. **Vueltas:** más = el borde encaja mejor (con 2 queda limpio). 5 s tardan unos 10 min en una RTX 3060.
+  - En los tres, solo se pega de vuelta la zona marcada, con el borde suave, y el resto del fotograma queda igual.
 - ✅ Pon hasta 4 **referencias** (del Stack del proyecto, de las que se usa la foto original, o subidas) de todo lo que debe salir en la zona tapada, y cítalas en el prompt (inglés) con su `<Picture N>`.
 - ✅ «Retocar» guarda en `app/salidas/` el tramo retocado (`retoque_…_tramo.mp4`) y la versión completa (`retoque_….mp4`: el original con ese tramo cambiado y el audio intacto), que queda en la línea de tiempo para encadenar otro retoque.
 - Por dentro: `app/retocar.py` + `app/plantillas/retocar.api.json` (el workflow de inpainting del usuario, con Pika H3 Flex a 6 pasos); rutas `POST /app/retocar`, `GET /app/video_info`, `GET /app/video`; el avance, en `GET /app/trabajo/<id>`. Línea de órdenes: `retocar.py datos.json [--seco]`.
 
 ## Extender video (Extend video)
 
-En el paso Retocar hay dos pestañas: **«Inpainting / detalle»** (lo de arriba) y **«Extender video»**: alarga un video siguiendo la MISMA toma desde su final, sin corte.
+En el paso Retocar hay dos pestañas: **«Retocar zona»** (lo de arriba) y **«Extender video»**: alarga un video siguiendo la MISMA toma desde su final, sin corte.
 - La línea de tiempo enseña el original entero, resaltado el trozo final que H3 vuelve a ver (el **solape**, 39 f por defecto) y, en rosa, lo nuevo con sus segundos. Las asas se arrastran (lo nuevo va de 17 en 17 fotogramas) o se mueven con ← →.
 - **Calidad**: borrador rápido (~0,25 MP), media (~0,5 MP) u original. **Audio**: por defecto el de entrada (el original suena tal cual y, en lo nuevo, la canción con la que se hizo el video sigue justo desde el segundo en que acaba, también si se generó con el audio de H3; un mp4 sin canción conserva su sonido y H3 continúa el de sus últimos segundos) o el del modelo (H3 hace el sonido de lo nuevo a partir del audio del video). **Prompt** opcional («qué pasa después»; vacío = misma acción y misma cámara) con referencias `<Picture N>`.
 - Encola como Generar y Retocar; el resultado (`extension_….mp4`) queda en la línea de tiempo para alargarlo otra vez. «🎬 Videos» › «Extender» abre cualquier video ahí.
@@ -98,7 +106,7 @@ En el paso Retocar hay dos pestañas: **«Inpainting / detalle»** (lo de arriba
 
 ## Con un agente (MCP)
 
-`app/arrancar.sh` también levanta un **servidor MCP** en `http://127.0.0.1:8301/mcp`: un agente (Claude Code, Claude Desktop, Cursor, Codex…) maneja la app entera y tú lo ves todo en la página, con un borde rosa **«✎ agente»** en lo que tocó (se quita al editarlo o con **Visto**).
+`app/arrancar.sh` también levanta un **servidor MCP** en `http://127.0.0.1:8301/mcp`: un agente (Claude Code, Claude Desktop, Cursor, Codex…) maneja la app entera y tú lo ves todo en la página, con un borde naranja **«✎ agente»** en lo que tocó (se quita al editarlo o con **Visto**).
 - **Claude Code:** `claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp`
 - **Cursor** (`~/.cursor/mcp.json`): `{"mcpServers": {"max-editor": {"url": "http://127.0.0.1:8301/mcp"}}}`
 - **Claude Desktop** (solo stdio, en `claude_desktop_config.json`): `{"mcpServers": {"max-editor": {"command": "/ruta/a/app/.venv/bin/python", "args": ["/ruta/a/app/mcp_servidor.py", "--stdio"]}}}` (la app tiene que estar abierta).
@@ -126,7 +134,8 @@ El agente recibe al conectarse lo esencial y lee la guía completa (`app/guia/`,
                                     tu ComfyUI (:8188) ── MiniMax H3 ──► video mp4
 ```
 
-- **El prompt:** el LLM local escribe la historia y las tomas. El código solo pega: pone el molde de H3, los tiempos en los beats y las frases de `frases.json`. No inventa texto.
+- **El prompt:** tú decides cada toma; el código monta el prompt de H3 (el molde de H3, los tiempos en los beats y las frases de `frases.json`) y no inventa texto. El LLM local es opcional: solo propone o traduce lo que luego cambias.
+- **El motor:** todos los trabajos de H3 (Generar, Retocar, Extender) usan **Pika H3 Flex**, un LoRA destilado a **6 pasos**, sobre MiniMax H3 Singularity v2. Por eso H3 se puede usar en una GPU de 12 GB.
 - **El video:** `generar.py` coge el workflow guardado, le pone el prompt, las referencias, la canción, la duración y la semilla, y lo lanza con **comfy-sdk**. Recibe el avance en vivo y baja el mp4.
 - **Por qué el SDK:** es la forma oficial de Comfy de usar un workflow desde una app. El mismo código puede ir contra tu ComfyUI, Comfy Cloud o la Comfy API. En local hace falta `comfy-api-proxy`, que traduce la API del SDK a la de tu ComfyUI.
 - **Qué partes de ComfyUI usa:** el **Comfy SDK** (`comfy-sdk` + `comfy-api-proxy`) para generar, y la API local de ComfyUI para ver y subir archivos (`/view`, `/upload/image`) y para crear RefMods y máscaras SAM.

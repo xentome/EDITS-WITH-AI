@@ -43,7 +43,7 @@ You need an NVIDIA GPU with 12 GB, [ComfyUI](https://docs.comfy.org/installation
 | Step | What you do |
 |---|---|
 | **1 · Shots and references** | references, song segment, shots on a timeline timed for H3, text track → **Generate** with live preview |
-| **2 · Touch up** | **Cover** a zone (SAM 3.1 or a rectangle) and H3 redoes it · **Extend video** (same shot, no cut, the song keeps going) · **Enhance** (optional) |
+| **2 · Touch up** | **Retouch area**: mark a zone (SAM 3.1 or a rectangle) and H3 **changes**, **details** or **removes** what is there · **Extend video** (same shot, no cut, the song keeps going) · **Enhance** (optional) |
 | **3 · Editing** | multitrack timeline like a video editor: clips from any project, your own audio, in/out range → **Export video** (MP4 H.264/H.265, WebM or ProRes) back into the library |
 
 ## What's in this repo
@@ -212,7 +212,7 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 
 1. **Your first project: the example.** The app ships with **Jane**, a ready 8 s edit (reference, song, shots and text included): pick it in **Projects › Open the example** and press **Generate** (~10 min on a 12 GB GPU). The example never changes: choosing it makes your own copy («my example»). Then try its **6 challenges** and the **prompt for your AI agent** in **[app/ejemplo/README.md](app/ejemplo/README.md)**.
    - Add your references with **+ Add** or **⬆ Upload photo or video**.
-2. **The shots:** add shots on the timeline and fill each one (action, framing, camera, place, references). Optional: with the local LLM, **Write story** / **Write shots** draft them for you to change.
+2. **The shots:** add shots on the timeline and fill each one (action, framing, camera, place, references). Tick **No character** for a shot without your character (a landscape, an object alone): its prompt won't name them. Optional: with the local LLM, **Write story** / **Write shots** draft them for you to change.
 3. **Fine-tune:** click a shot to see its final H3 prompt. Drag the border between shots to move the cut. The lock keeps your text: the optional LLM won't change it.
 4. **The song:** in the audio window, **Change song** and drag the waveform to the part you want. You choose the part; the app does not.
 5. **Generate:** press **▶ Generate**. You see live progress and, at the end, the video under **🎬 Videos**.
@@ -220,6 +220,9 @@ llama-server -m Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf --mmproj mmproj-Qwen3.8-27B
 7. **Cut it together:** open **Editing** (step 3), drag clips from the **Library** (any project) and audio onto the tracks, trim them, mark in/out with I/O and press **Export video**. The montage goes back into the library.
 
 Everything is saved automatically in `app/proyectos/<name>.json`. Videos go to `app/salidas/`.
+
+- **Projects:** sort them into **groups**, **pin** the ones you use to the top and drag cards to reorder. Test projects made by an AI agent go to their own group, **«Agent tests»**, so they don't mix with yours.
+- **Queue:** every job (Generate, Retouch, Extend, parts) is a card with its thumbnail, progress bar and time; it keeps running if you close the page, and you can pause the queue or cancel a job.
 
 ## Generate in parts
 
@@ -247,6 +250,11 @@ At the very bottom of the window, after «Final prompt», **«Retouch the video�
 - the last generated video lands there automatically; any other one via «🎬 Videos» › «Send to Retouch»;
 - drag the two handles to pick the segment (always 17n+5 frames; ~3–4 min per 39 frames);
 - cover the area **by text** (SAM 3.1, e.g. `face`) or by drawing a **rectangle** on the video;
+- pick **how to retouch** (tab «Retouch area»):
+  - **Change:** H3 paints the marked area again (other clothes, another object, something new). **Strength**: more = something completely new, less = keeps the shape and motion that were there.
+  - **Detail:** video to video; H3 starts from the real video and only adds detail, so the expression and the motion stay. **Denoise** (more = more invented detail, but the shape or the gaze may change) and **Canvas** (size of the square crop H3 works on). **Face settings** sets the tested face preset in one click (denoise 0.30, 768 canvas, the «face» mask and your character as reference). **Fixed crop (beta)**: one still crop for the whole segment, so the head keeps the body's rhythm.
+  - **Remove:** erases logos, text or objects and fills them with the surrounding scene (LanPaint). Describe in the prompt what is behind, without naming what you erase. **Passes**: more = the edge blends better (2 is clean). About 10 min for 5 s on an RTX 3060.
+  - In all three, only the marked area is pasted back, with a soft edge, so the rest of the frame stays exactly as it was;
 - add up to 4 **reference images** of everything that must appear in the covered area and cite them in the (English) prompt as `<Picture N>`;
 - «Retouch» saves the retouched segment and the full video with that segment replaced (original audio untouched) in `app/salidas/`; the full one stays on the timeline so retouches can be chained.
 
@@ -260,7 +268,7 @@ Step 3 joins pieces of your videos, from any project, and audio files on several
 
 ## Use it with an agent (MCP)
 
-`app/arrancar.sh` also starts an **MCP server** at `http://127.0.0.1:8301/mcp`: an agent (Claude Code, Claude Desktop, Cursor, Codex…) drives the whole app while you watch it in the page; everything it touched gets a pink **«✎ agent»** border (gone when you edit it or press **Seen**).
+`app/arrancar.sh` also starts an **MCP server** at `http://127.0.0.1:8301/mcp`: an agent (Claude Code, Claude Desktop, Cursor, Codex…) drives the whole app while you watch it in the page; everything it touched gets an orange **«✎ agent»** border (gone when you edit it or press **Seen**).
 - **Claude Code:** `claude mcp add max-editor --transport http http://127.0.0.1:8301/mcp`
 - **Cursor** (`~/.cursor/mcp.json`): `{"mcpServers": {"max-editor": {"url": "http://127.0.0.1:8301/mcp"}}}`
 - **Claude Desktop** (stdio only, in `claude_desktop_config.json`): `{"mcpServers": {"max-editor": {"command": "/path/to/app/.venv/bin/python", "args": ["/path/to/app/mcp_servidor.py", "--stdio"]}}}` (the app must be running).
@@ -289,6 +297,7 @@ On connecting, the agent gets the essentials and reads the full guide (`app/guia
 ```
 
 - **The prompt:** you decide each shot; the code assembles the H3 prompt (the H3 template, the timing on the beats and the phrases in `frases.json`) and never makes up text. The local LLM is optional: it only drafts or translates what you then edit.
+- **The engine:** every H3 job (Generate, Retouch, Extend) runs on **Pika H3 Flex**, a LoRA distilled to **6 steps**, on top of MiniMax H3 Singularity v2. That is what makes H3 practical on a 12 GB GPU.
 - **The video:** `generar.py` takes the saved workflow, sets the prompt, references, song, length and seed, and runs it with **comfy-sdk**. It gets live progress events and downloads the mp4.
 - **Why the SDK:** it is Comfy's official way to run a workflow from an app. The same code can target your own ComfyUI, Comfy Cloud or the Comfy API. Locally it needs `comfy-api-proxy`, which maps the SDK's API onto your ComfyUI.
 - **ComfyUI parts used:** the **Comfy SDK** (`comfy-sdk` + `comfy-api-proxy`) to generate, and the local ComfyUI API to view and upload files (`/view`, `/upload/image`) and to build RefMods and SAM masks.
