@@ -78,7 +78,7 @@ paso "descargando modelos (~70 GB + LLM 11 GB, en segundo plano)"
     python -I $R/runpod/bajar_modelos.py $R/app/instalacion/comfy-build.yaml $M edit retocar &&
   reintentar uvx -q --from 'huggingface_hub[hf_xet]' hf download ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF \
     Qwen3.8-27B-GSQ-RCO-IQ3_XXS-mtp.gguf mmproj-Qwen3.8-27B-BF16.gguf --local-dir $M/llm >/dev/null &&
-  find $M -name .cache -type d -prune -exec rm -rf {} + && echo OK ) > $LOG/modelos.log 2>&1 &
+  rm -rf $M/.bajando; find $M -name .cache -type d -prune -exec rm -rf {} + && echo OK ) > $LOG/modelos.log 2>&1 &
 DL=$!
 ( while kill -0 $DL 2>/dev/null; do sleep 60; kill -0 $DL 2>/dev/null && paso "modelos: $(du -sh $M | cut -f1) de ~81G"; done ) &
 ( mkdir -p $LL && for p in llama cudart-llama; do

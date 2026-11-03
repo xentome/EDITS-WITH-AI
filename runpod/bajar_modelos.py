@@ -18,13 +18,15 @@ def bajar(m):
     if os.path.isfile(destino) and os.path.getsize(destino) == m["sizeBytes"]:
         return
     # hf_hub_download deja el archivo en local_dir/path: local_dir es lo que el localPath añade delante
-    base = os.path.join(models, m["localPath"][: -len(m["path"])])
-    hf_hub_download(m["repo"], m["path"], revision=m["revision"], local_dir=base)
+    if m["localPath"].endswith(m["path"]):
+        base = os.path.join(models, m["localPath"][: -len(m["path"])])
+        hf_hub_download(m["repo"], m["path"], revision=m["revision"], local_dir=base)
+    else:  # otra carpeta en el repo (Pika: comfy/loras/… → loras/…): se baja aparte y se mueve a su sitio
+        tmp = os.path.join(models, ".bajando")
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        os.replace(hf_hub_download(m["repo"], m["path"], revision=m["revision"], local_dir=tmp), destino)
     print(f"bajado {m['localPath']}", flush=True)
 
 
-for m in lista:
-    if not m["localPath"].endswith(m["path"]):
-        sys.exit(f"{m['localPath']} no termina en {m['path']}: no sé dónde ponerlo")
 with ThreadPoolExecutor(6) as ex:
     list(ex.map(bajar, lista))
