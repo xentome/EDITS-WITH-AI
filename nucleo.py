@@ -215,7 +215,9 @@ def atuendos(menu):
 
 def sujetos_objeto(menu):
     """Cada objeto que no cambia es un sujeto más, después de los personajes: con un personaje, <Subject 2>, <Subject 3>…"""
-    primero = max(1, len(personajes(menu))) + 1
+    # 2 nov: sin ningún personaje, el primer objeto es <Subject 1> (el protagonista); antes quedaba un <Subject 1> vacío
+    n = len(personajes(menu))
+    primero = n + 1 if n else 1
     return {tag: f"<Subject {i}>" for i, tag in enumerate(menu["objeto"], primero)}
 
 
@@ -1061,7 +1063,7 @@ def renglones_referencias(C, perfil, menu, textos=()):
             por_tag[tag] = {"presentacion": texto_de(p), "copia": texto_de(c)}
 
     ps = perfil["personajes"]
-    if not ps:
+    if not ps and not menu["objeto"]:      # sin personaje ni objeto: <Subject 1> sigue siendo «el protagonista»
         arriba.append(C.pegar("def.sin_personaje"))
     for g in ps:
         r = next((menu["personaje"][x] for x in g["tags"] if menu["personaje"][x]["presentacion"] or menu["personaje"][x]["copia"]),
