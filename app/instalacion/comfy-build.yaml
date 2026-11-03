@@ -51,6 +51,16 @@ definition:
       sha256: f0f60fa072089997f817402098c2fd90777cb2660dd79cf5df42fc1e3e08e527
       sizeBytes: 9791388
       grupo: edit
+    # Pika H3 Flex (1 nov): el LoRA destilado a 6 pasos que usa Generar con "motor_rapido": "pika" en config.local.json.
+    # Grupo propio: el instalador no lo baja; el panel «Modelos» lo enseña (y lo baja) solo con ese motor puesto.
+    - filename: pika_h3_flex_ref2va_comfy_bf16.safetensors
+      localPath: loras/pika_h3_flex_ref2va_comfy_bf16.safetensors
+      repo: Pika-Labs/Pika-H3-Flex
+      revision: 3ff166447d5edb1406107ab8370c42000ce173e4
+      path: comfy/loras/pika_h3_flex_ref2va_comfy_bf16.safetensors
+      sha256: e4d058fbd027377b925a0ee607b514ddd9037873fee3afa05d73b302e6f7f8e1
+      sizeBytes: 1956172176
+      grupo: pika
     # VDN: una carpeta entera (pesos + sus JSON). Los JSON no son LFS: su sha256 se midió en la copia local.
     - filename: adapter_model.safetensors
       localPath: vdn/vdn-minimax-h3-int8-convrot-comfyui/adapters/default/adapter_model.safetensors

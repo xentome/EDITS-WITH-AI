@@ -1,6 +1,6 @@
 /* MAX EDITOR · «Modelos» (29 oct, Jonathan): un desplegable de la cabecera que dice qué modelos hay y cuáles faltan.
  *   - H3, el codificador de texto, los dos VAE y SAM 3 se pueden cambiar por un archivo propio que ya esté en ComfyUI
- *     (su lista es la del nodo que lo carga). VDN y la vista previa no: la app los necesita tal cual.
+ *     (su lista es la del nodo que lo carga). El motor rápido (VDN o Pika, el que use Generar) y la vista previa no.
  *   - Lo que falta se baja con un clic (el instalador ya no baja nada sin permiso): de Hugging Face, con su sha256 y
  *     reanudable. El servidor es app/modelos.py (GET /app/modelos, POST /app/modelos/{elegir|bajar|parar}). */
 export function crear({ el, icono, t, num, pedir, avisar, alCambiar }) {
@@ -13,6 +13,7 @@ export function crear({ el, icono, t, num, pedir, avisar, alCambiar }) {
     vae_audio: ["app.modelos.vae_audio", "app.modelos.vae_audio.para"],
     sam: ["app.modelos.sam", "app.modelos.sam.para"],
     vdn: ["app.modelos.vdn", "app.modelos.vdn.para"],
+    pika: ["app.modelos.pika", "app.modelos.pika.para"],
     vista_previa: ["app.modelos.vista_previa", "app.modelos.vista_previa.para"],
   };
   const ERROR = { corte: "app.modelos.error.corte", sha256: "app.modelos.error.sha256" };

@@ -5,6 +5,8 @@ las que falten con un clic. Solo se baja algo cuando el usuario lo pide: el inst
   - Lo elegido va en app/modelos.local.json (no va a git). generar.lanzar() lo aplica a todo grafo con aplicar(): en el
     nodo de cada pieza cambia el archivo de la plantilla por el elegido.
   - VDN y la vista previa (TAE) no se eligen (decisión de Jonathan): solo se bajan si faltan.
+  - (2 nov) El motor rápido sale según config ("motor_rapido"): con "pika" la fila es el LoRA Pika H3 Flex y VDN no
+    aparece; sin eso, VDN como siempre. Solo se enseña el que de verdad usa Generar.
 """
 import json
 import os
@@ -26,6 +28,7 @@ PIEZAS = {
     "vae_audio": ("vae/minimax_h3_audio", "VAELoader", "vae_name", True),
     "sam": ("checkpoints/", "CheckpointLoaderSimple", "ckpt_name", True),
     "vdn": ("vdn/", "ApplyVDNH3", "vdn_checkpoint", False),
+    "pika": ("loras/pika_h3", "LoraLoaderModelOnly", "lora_name", False),
     "vista_previa": ("vae_approx/", "ModelPreviewOverrideKJ", "tiny_vae", False),
 }
 EXTENSIONES = (".safetensors", ".sft", ".ckpt", ".pt", ".pth", ".bin", ".gguf")
@@ -83,7 +86,14 @@ def estado(c: dict) -> dict:
     dir_models = os.path.join(c["comfyui_dir"], "models")
     elegidos, piezas, comfy = leer_elegidos(), [], True
     cache: dict = {}
+    try:
+        import generar                  # aquí dentro: generar ya importa este módulo
+        motor = generar.motor_rapido()  # lo mismo que usa Generar (config.local.json o MAX_EDITOR_MOTOR_RAPIDO)
+    except Exception:
+        motor = "pika" if str(c.get("motor_rapido") or "").lower() == "pika" else "vdn"
     for clave, (inicio, nodo, entrada, elegible) in PIEZAS.items():
+        if clave in ("vdn", "pika") and clave != motor:
+            continue                    # solo el motor rápido que usa Generar
         archivos = _archivos(clave)
         defecto = _defecto(clave, archivos)
         if (nodo, entrada) not in cache:
@@ -102,7 +112,8 @@ def estado(c: dict) -> dict:
         elegido = elegidos.get(clave, defecto)
         with _cerrojo:
             bajando = dict(_bajando[clave]) if clave in _bajando else None
-        piezas.append({"clave": clave, "elegible": elegible, "grupo": archivos[0]["grupo"], "defecto": defecto,
+        grupo = "edit" if clave == "pika" else archivos[0]["grupo"]      # con Pika puesto, sin él no se genera
+        piezas.append({"clave": clave, "elegible": elegible, "grupo": grupo, "defecto": defecto,
                        "elegido": elegido, "opciones": opciones, "esta": elegido in opciones or (elegido == defecto and completos),
                        "defecto_completo": completos, "tam": sum(m["sizeBytes"] for m in archivos),
                        "por_bajar": sum(m["sizeBytes"] for m in faltan) - a_medias, "repo": archivos[0]["repo"], "bajando": bajando})

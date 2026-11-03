@@ -375,6 +375,8 @@
  "app.modelos.nuestro_falta": "{archivo} (recomendado · falta)",
  "app.modelos.parado": "Parado. Pulsa Descargar para seguir donde se quedó.",
  "app.modelos.parar": "Parar",
+ "app.modelos.pika": "Pika H3 Flex (6 pasos)",
+ "app.modelos.pika.para": "Hace que H3 termine en 6 pasos: el video sale mucho antes. Es un LoRA de Pika y ocupa el sitio de VDN.",
  "app.modelos.sam": "SAM 3.1 (máscaras)",
  "app.modelos.sam.para": "Encuentra lo que escribes (por ejemplo «face») para rehacer esa zona en Retocar.",
  "app.modelos.solo_retocar": "solo Retocar",
@@ -457,6 +459,8 @@
  "app.reiniciar.no_volvio": "MAX EDITOR no volvió a arrancar: mira app/salidas/reinicio.log o ejecuta app/arrancar.sh --reiniciar",
  "app.reiniciar.ocupado": "Hay {n} trabajos en la cola: reinicia cuando terminen",
  "app.reiniciar.tooltip": "La app se actualizó: reinicia MAX EDITOR para usar lo nuevo (unos segundos; lo tuyo ya está guardado)",
+ "app.retocar.ajuste.fijo": "Recorte fijo (beta)",
+ "app.retocar.ajuste.fijo.ayuda": "Un solo recorte quieto para todo el tramo: H3 ve el mismo movimiento que el original y la cabeza no va a otro ritmo que el cuerpo. Se pega igual, solo lo marcado.",
  "app.retocar.ajuste.fuerza": "Fuerza",
  "app.retocar.ajuste.fuerza.ayuda": "Más fuerza = algo totalmente nuevo. Menos fuerza = conserva la forma y el movimiento de lo que había.",
  "app.retocar.ajuste.intensidad": "Denoise",
@@ -1342,7 +1346,5 @@
  "traducir.sin_resultados": "Ninguno de la lista: escríbelo abajo.",
  "traducir.traduciendo": "Traduciendo del {idioma} al inglés… {s} s",
  "traducir.vacio": "No hay texto que traducir.",
- "traducir.ya": "Ya se está traduciendo otro campo: espera a que termine.",
- "app.retocar.ajuste.fijo": "Recorte fijo (beta)",
- "app.retocar.ajuste.fijo.ayuda": "Un solo recorte quieto para todo el tramo: H3 ve el mismo movimiento que el original y la cabeza no va a otro ritmo que el cuerpo. Se pega igual, solo lo marcado."
+ "traducir.ya": "Ya se está traduciendo otro campo: espera a que termine."
 }

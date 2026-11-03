@@ -375,6 +375,8 @@
  "app.modelos.nuestro_falta": "{archivo} (recommended · missing)",
  "app.modelos.parado": "Stopped. Press Download to resume where it left off.",
  "app.modelos.parar": "Stop",
+ "app.modelos.pika": "Pika H3 Flex (6 steps)",
+ "app.modelos.pika.para": "Lets H3 finish in 6 steps: the video comes out much sooner. It is a Pika LoRA and takes VDN's place.",
  "app.modelos.sam": "SAM 3.1 (masks)",
  "app.modelos.sam.para": "Finds what you type (for example “face”) so Retouch can redo that area.",
  "app.modelos.solo_retocar": "Retouch only",
@@ -457,6 +459,8 @@
  "app.reiniciar.no_volvio": "MAX EDITOR did not come back: see app/salidas/reinicio.log or run app/arrancar.sh --reiniciar",
  "app.reiniciar.ocupado": "There are {n} jobs in the queue: restart when they finish",
  "app.reiniciar.tooltip": "The app was updated: restart MAX EDITOR to use what's new (a few seconds; your work is already saved)",
+ "app.retocar.ajuste.fijo": "Fixed crop (beta)",
+ "app.retocar.ajuste.fijo.ayuda": "One still crop for the whole segment: H3 sees the same motion as the original, so the head keeps the body's rhythm. Only the marked area is pasted back.",
  "app.retocar.ajuste.fuerza": "Strength",
  "app.retocar.ajuste.fuerza.ayuda": "More strength = something completely new. Less strength = keeps the shape and motion of what was there.",
  "app.retocar.ajuste.intensidad": "Denoise",
@@ -1342,7 +1346,5 @@
  "traducir.sin_resultados": "None in the list: type it below.",
  "traducir.traduciendo": "Translating from {idioma} into English… {s} s",
  "traducir.vacio": "There is no text to translate.",
- "traducir.ya": "Another field is already being translated: wait for it to finish.",
- "app.retocar.ajuste.fijo": "Fixed crop (beta)",
- "app.retocar.ajuste.fijo.ayuda": "One still crop for the whole segment: H3 sees the same motion as the original, so the head keeps the body's rhythm. Only the marked area is pasted back."
+ "traducir.ya": "Another field is already being translated: wait for it to finish."
 }
