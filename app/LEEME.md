@@ -2,7 +2,7 @@
 
 > 4 min de lectura · actualizado el 3 nov 2026 · English: [README.md](../README.md)
 
-**Haz edits con IA con MiniMax H3, toma a toma y con control total. 100 % local y open source.** · [Video demo (2 min)](https://youtu.be/1qPUrorfY74)
+**Haz edits con IA con MiniMax H3, toma a toma y con control total. 100 % local y open source.** · [Video demo (2 min)](https://youtu.be/IjjzgtSe5DU)
 
 **En resumen**
 - **Todas las imágenes y efectos los hace MiniMax H3** (también los de texto; la canción es tuya). La app no pinta nada: le dice a H3 qué hacer.

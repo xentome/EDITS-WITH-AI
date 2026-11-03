@@ -2,7 +2,7 @@
 
 **Make AI edits with MiniMax H3, shot by shot, with full control. 100% local and open source.** · Versión en español: [app/LEEME.md](app/LEEME.md)
 
-<p align="center"><a href="https://youtu.be/1qPUrorfY74"><img src="https://img.youtube.com/vi/1qPUrorfY74/maxresdefault.jpg" width="720" alt="Watch the MAX EDITOR demo on YouTube"></a><br><b>▶ <a href="https://youtu.be/1qPUrorfY74">Watch the demo (2 min)</a></b></p>
+<p align="center"><a href="https://youtu.be/IjjzgtSe5DU"><img src="https://img.youtube.com/vi/IjjzgtSe5DU/maxresdefault.jpg" width="720" alt="Watch the MAX EDITOR demo on YouTube"></a><br><b>▶ <a href="https://youtu.be/IjjzgtSe5DU">Watch the demo (2 min)</a></b></p>
 
 **In short**
 - **Every image and effect comes from MiniMax H3** (text effects too; the song is yours). The app does not paint or fake anything: it tells H3 exactly what to make.
