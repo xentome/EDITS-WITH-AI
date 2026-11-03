@@ -184,7 +184,7 @@ These exist and are public, but **we have not tested them with MAX EDITOR**; the
 
 | Option | Saves | Link |
 |---|---|---|
-| H3 Singularity v1.3 **pruned int8** (21 GB instead of 34 GB) | ~13 GB RAM and disk | [WarmBloodAban/Minimax-h3_Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) |
+| H3 Singularity v2 **pruned int8** (21 GB instead of 34 GB) | ~13 GB RAM and disk | [WarmBloodAban/Minimax-h3_Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) |
 | H3 Singularity v1.3 **pruned w4a8** (11.8 GB) | ~22 GB RAM and disk | same repo |
 | Text encoder **nvfp4** (15.7 GB instead of 27 GB) | ~11 GB RAM and disk; NVFP4 is made for RTX 50 (Blackwell) GPUs | [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/text_encoders) |
 | More swap (zram) | lets 46 GB of RAM hold the 61 GB of models | your distro's `zram-generator` |

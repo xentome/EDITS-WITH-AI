@@ -2,7 +2,7 @@
  "2": {
   "class_type": "UNETLoader",
   "inputs": {
-   "unet_name": "Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors",
+   "unet_name": "Minimax-h3_Singularity_ref2va_v2_int8.safetensors",
    "weight_dtype": "default"
   }
  },

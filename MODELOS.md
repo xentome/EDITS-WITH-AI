@@ -4,7 +4,7 @@
 
 | Modelo | Archivo (en `ComfyUI/models/`) | Tamaño | De dónde | Licencia |
 |---|---|---|---|---|
-| MiniMax H3 Singularity v1.3 int8 | `diffusion_models/Minimax-h3_Singularity_ref2va_v1.3_int8.safetensors` | 34,0 GB | [WarmBloodAban/Minimax-h3_Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) | apache-2.0 en su ficha; es un ajuste de MiniMax H3, que tiene [su propia licencia](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE) |
+| MiniMax H3 Singularity v2 int8 | `diffusion_models/Minimax-h3_Singularity_ref2va_v2_int8.safetensors` | 34,0 GB | [WarmBloodAban/Minimax-h3_Singularity](https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity) | apache-2.0 en su ficha; es un ajuste de MiniMax H3, que tiene [su propia licencia](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE) |
 | Codificador de texto Qwen3-VL 32B para H3 (int8) | `text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors` | 27,1 GB | [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3) | [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE) |
 | VAE de video de H3 (int8) | `vae/minimax_h3_video_vae_int8_convrot.safetensors` | 2,8 GB | Comfy-Org/MiniMax-H3 | ídem |
 | VAE de audio de H3 | `vae/minimax_h3_audio_vae_fp32.safetensors` | 0,6 GB | Comfy-Org/MiniMax-H3 | ídem |
