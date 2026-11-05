@@ -37,7 +37,7 @@ Luego arranca (o reinicia) ComfyUI y ejecuta `app/arrancar.sh`. Opciones: `--mod
 
 **Requisitos y tiempos (probado):** RTX 3060 de 12 GB, 46 GB de RAM + 92 GB de swap zram, ComfyUI v0.39.0. Instalar sin modelos: ~1 min. Bajar los modelos: ~1,5 h a 100 Mb/s. Un video de 22 fotogramas a 544×960: ~3 min; 5 s a 1 MP: ~17 min. Para jueces, paso a paso: [REPRODUCE.md](../REPRODUCE.md). Alternativas más ligeras (sin probar con la app): README › «Not enough RAM, VRAM or disk».
 
-**Sin GPU o sin ComfyUI: RunPod.** Una plantilla con ComfyUI, los nodos, los modelos y MAX EDITOR ya instalados (usa este mismo instalador con `--sin-preguntas`). Eliges una GPU de 24 GB o más (**con una RTX 3090 o A5000 basta**, unos $0.16–0.30/h; no hace falta pagar una más cara), esperas unos 11 min y abres la app en el navegador. Pasos, tiempos y coste: **[RUNPOD.md](../RUNPOD.md)** (en inglés).
+**Sin GPU o sin ComfyUI: RunPod.** Una plantilla con ComfyUI, los nodos, los modelos y MAX EDITOR ya instalados (usa este mismo instalador con `--sin-preguntas`). Eliges una GPU de 24 GB o más (te sugerimos una **RTX 3090 o A5000**, unos $0.16–0.30/h: la app va bien en ellas), esperas unos 11 min y abres la app en el navegador. Pasos, tiempos y coste: **[RUNPOD.md](../RUNPOD.md)** (en inglés).
 
 **Opcional, el LLM local:** la app abre y genera sin él (tú escribes las tomas). Con él funcionan «Escribir tomas», «Describir» y «Traducir». Nosotros usamos **llama.cpp** con **Qwen3.8 27B** y su `mmproj` en `http://127.0.0.1:8080`:
 ```

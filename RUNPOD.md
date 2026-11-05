@@ -3,14 +3,14 @@
 > For judges and anyone without a 12 GB NVIDIA GPU. One click creates a cloud GPU with ComfyUI, the node packs, the models, the local LLM and MAX EDITOR, all set up by this repo's own installer. You only open the app in your browser.
 > You pay RunPod for the GPU with your own account, by the second, while the pod exists.
 
-> 💸 **Don't pay for an expensive GPU.** The app runs well on an **RTX 3090 or RTX A5000** (24 GB, about $0.16–0.30/h). An RTX 4090, A6000, H100 and the like cost 2–10× more per hour and are not needed to use the app; pick one only if you know you need the extra speed and can afford it. If no 3090/A5000 is free, wait a few minutes or try Community Cloud instead of jumping to a pricier card.
+> 💡 **Tip on cost:** the app runs well on an **RTX 3090 or RTX A5000** (24 GB, about $0.16–0.30/h). Faster cards like the RTX 4090, A6000 or H100 cost 2–10× more per hour; they are a good choice if you want the extra speed and the budget allows it. If no 3090/A5000 is free, waiting a few minutes or trying Community Cloud often finds one.
 
 ## Steps
 
 | # | Step | Time | How to check it |
 |---|---|---|---|
 | 1 | Open the template: **[MAX EDITOR on RunPod](https://console.runpod.io/deploy?template=srac7gh4wi)** → **Deploy** | 1 min | RunPod shows the GPU list |
-| 2 | **Recommended: RTX A5000 on Secure Cloud** (~$0.27/h; fast hosts with good internet, so the install stays near 11 min). An **RTX 3090** (Community, ~$0.16–0.22/h) is just as good for the app. Any GPU with **≥ 24 GB VRAM** works, but bigger cards (RTX 4090, A6000, H100…) only cost more; Community Cloud hosts vary and some download slowly. In the filters, set **CUDA Versions = 13.0** | 1 min | the price shows ~$0.25–0.50/h |
+| 2 | **Recommended: RTX A5000 on Secure Cloud** (~$0.27/h; fast hosts with good internet, so the install stays near 11 min). An **RTX 3090** (Community, ~$0.16–0.22/h) is just as good for the app. Any GPU with **≥ 24 GB VRAM** works; bigger cards (RTX 4090, A6000, H100…) are faster but cost more; Community Cloud hosts vary and some download slowly. In the filters, set **CUDA Versions = 13.0** | 1 min | the price shows ~$0.25–0.50/h |
 | 3 | **Deploy On-Demand**. Keep the template's 100 GB container disk | — | the pod appears in *Pods* |
 | 4 | Wait while it installs. Click the pod → **Logs**: every line starts with `[h3]` | **3–11 min** (30 Oct: 3 min on an RTX A5000 Secure; 11 min on an RTX 4090; up to ~25 min on a slow Community host) | the last line is `[h3] [...s] LISTO` |
 | 5 | **Connect → HTTP Service 8300 (MAX EDITOR)** | — | the MAX EDITOR page opens |
