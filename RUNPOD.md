@@ -30,3 +30,21 @@ What the log says while it installs: `COMFY OK` (ComfyUI runs on the GPU with ev
 - **Privacy:** the app has no password. Its address (`https://<pod-id>-8300.proxy.runpod.net`) is only known to you; anyone with it can use your pod while it exists.
 - **If the log says** `ERROR GPU` (driver older than CUDA 13) or `ERROR UVM` (a broken host): terminate the pod and deploy another one. Nothing is lost but a few minutes.
 - **RAM:** the two big models are 61 GB; hosts with ≥ 60 GB of RAM work best (RunPod shows the RAM next to each GPU).
+
+## Make your own template
+
+The link above uses the author's public template. To build the same one in your own RunPod account (*Templates → New Template*):
+
+| Field | Value |
+|---|---|
+| Type | Pod |
+| Container image | `runpod/base:1.4.0-cuda1300-ubuntu2404` |
+| Container disk | **100 GB** (no volume needed) |
+| HTTP ports | `8300` (MAX EDITOR), `8301` (MCP), `8188` (ComfyUI) |
+| TCP ports | `22` (SSH, optional) |
+| Container start command | `bash -c 'printenv H3_BOOT \| base64 -d > /post_start.sh && exec /start.sh'` |
+| Environment variable `H3_BOOT` | the output of `base64 -w0 runpod/bootstrap.sh` (run it in this repo) |
+| Environment variable `NVIDIA_DISABLE_REQUIRE` | `1` (the script checks the GPU and CUDA itself and prints `ERROR GPU` if they don't fit) |
+| Optional: `MAX_EDITOR_REPO`, `MAX_EDITOR_REF` | clone your fork or another branch instead of `xentome/EDITS-WITH-AI` › `master` |
+
+How it works: the base image's `/start.sh` runs `/post_start.sh`, which is `runpod/bootstrap.sh`. That script only clones this repo and runs `runpod/arranque.sh`, so the template never needs to change when the repo changes. No secrets go in the template: every model comes from public Hugging Face repos.
