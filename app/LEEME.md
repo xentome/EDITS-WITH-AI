@@ -14,7 +14,7 @@
 
 ## Instalar
 
-> **Necesitas:** Linux (o Windows, aún sin probar), una GPU NVIDIA de 12 GB, un [ComfyUI](https://docs.comfy.org/installation) v0.39.0 o más nuevo que ya funcione, unos 70 GB de disco y 64 GB de RAM + swap.
+> **Necesitas:** Linux (o Windows, aún sin probar), una GPU NVIDIA de 12 GB, un [ComfyUI](https://docs.comfy.org/installation) v0.39.0 o más nuevo que ya funcione, unos 70 GB de disco y **32 GB de RAM como mínimo** (más swap).
 > **¿No lo tienes, o no conoces ComfyUI?** Usa la **plantilla de RunPod** (abajo): lo deja todo listo y tú solo usas la app.
 
 Los tres caminos usan el mismo instalador, `app/instalar.sh`, que lee una sola lista de piezas ([instalacion/comfy-build.yaml](instalacion/comfy-build.yaml)):

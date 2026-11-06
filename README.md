@@ -19,7 +19,7 @@
 | 🤖 **With your AI agent** | paste [this prompt](#3-with-an-ai-agent) into Claude Code, Codex or any agent with a terminal |
 | ☁️ **No GPU: RunPod** | **[Deploy the template](https://console.runpod.io/deploy?template=srac7gh4wi)**: everything installed, open the app in your browser · [RUNPOD.md](RUNPOD.md) |
 
-You need an NVIDIA GPU with 12 GB, [ComfyUI](https://docs.comfy.org/installation), ~70 GB of disk and 64 GB of RAM + swap. All details: [Install](#install).
+You need an NVIDIA GPU with 12 GB, [ComfyUI](https://docs.comfy.org/installation), ~70 GB of disk and **32 GB of RAM minimum** (plus swap). All details: [Install](#install).
 
 ## See it
 
@@ -64,7 +64,7 @@ You need an NVIDIA GPU with 12 GB, [ComfyUI](https://docs.comfy.org/installation
 
 **Jump to:** [🐧 Linux](#linux) · [🪟 Windows](#windows) · [☁️ RunPod (no GPU)](#no-gpu-or-no-comfyui-use-runpod)
 
-> **You need:** Linux or Windows (Windows not tested yet), an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and 64 GB of RAM + swap.
+> **You need:** Linux or Windows (Windows not tested yet), an NVIDIA GPU with 12 GB, a working [ComfyUI](https://docs.comfy.org/installation) v0.39.0 or newer, about 70 GB of disk and **32 GB of RAM minimum** (plus swap).
 > **Don't have that, or don't know ComfyUI?** Use the **[RunPod template](RUNPOD.md)**: it sets up everything and you only use the app.
 
 Every way runs the same installer (`app/instalar.sh` on Linux, `Instalar MAX EDITOR.bat` on Windows), which reads one parts list ([app/instalacion/comfy-build.yaml](app/instalacion/comfy-build.yaml)):
@@ -170,7 +170,7 @@ Run the `winget` lines in **PowerShell** or **Terminal**, then close the window 
 |---|---|---|
 | OS | Linux (CachyOS) | Windows: scripts ready, not tested on a Windows PC · macOS: not supported |
 | GPU | NVIDIA RTX 3060 **12 GB**, driver 615 | with less VRAM we don't know if it fits: use RunPod |
-| RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; plan for **64 GB RAM + swap** or more |
+| RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; minimum **32 GB of RAM**, with swap so RAM + swap reaches about 64 GB |
 | Disk | **66.5 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
 | ComfyUI | **v0.39.0**, Python 3.14, torch 2.13 + CUDA 13.0 | launched with `--enable-dynamic-vram --reserve-vram 0.5 --use-ck-attention` |
 | Install | ~1 min without models (packs + dependencies) | downloading the models: ~1.5 h at 100 Mb/s, ~20 min at 500 Mb/s |
