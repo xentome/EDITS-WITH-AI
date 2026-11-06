@@ -169,8 +169,8 @@ Run the `winget` lines in **PowerShell** or **Terminal**, then close the window 
 | | Tested | Notes |
 |---|---|---|
 | OS | Linux (CachyOS) | Windows: scripts ready, not tested on a Windows PC · macOS: not supported |
-| GPU | NVIDIA RTX 3060 **12 GB**, driver 615 | with less VRAM we don't know if it fits: use RunPod |
-| RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; minimum **32 GB of RAM**, with swap so RAM + swap reaches about 64 GB |
+| GPU | NVIDIA RTX 3060 **12 GB**, driver 615 | less than 12 GB of VRAM: try the [pruned model](#not-enough-ram-vram-or-disk), or use RunPod |
+| RAM | **46 GB + 92 GB zram swap** | the two big models weigh 61 GB; minimum **32 GB of RAM**, with swap so RAM + swap reaches about 64 GB; with 32 GB or less, try the [pruned model](#not-enough-ram-vram-or-disk) |
 | Disk | **66.5 GB** (+1.7 GB Retouch) | the optional local LLM adds 11 GB |
 | ComfyUI | **v0.39.0**, Python 3.14, torch 2.13 + CUDA 13.0 | launched with `--enable-dynamic-vram --reserve-vram 0.5 --use-ck-attention` |
 | Install | ~1 min without models (packs + dependencies) | downloading the models: ~1.5 h at 100 Mb/s, ~20 min at 500 Mb/s |
@@ -180,7 +180,17 @@ Step by step for judges, with how to check each step: **[REPRODUCE.md](REPRODUCE
 
 ### Not enough RAM, VRAM or disk
 
-These exist and are public, but **we have not tested them with MAX EDITOR**; the templates use the files above. To try one, load it in ComfyUI and change the file name in the loader node of `app/plantillas/edit_h3.api.json`.
+> 💡 **Recommended if you have 32 GB of RAM or less, and above all if your GPU has less than 12 GB of VRAM:** use **H3 Singularity v2 pruned int8** (21 GB instead of 34 GB), the same model family the app uses, only lighter. We have not tested it with MAX EDITOR yet, so tell us how it goes in an [issue](https://github.com/xentome/EDITS-WITH-AI/issues).
+>
+> ```bash
+> # 1. download it next to the normal model (from the ComfyUI folder)
+> wget -P models/diffusion_models https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity/resolve/main/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors
+> # 2. tell the app's templates to use it (from the repo folder), then restart the app
+> sed -i 's/Minimax-h3_Singularity_ref2va_v2_int8.safetensors/Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors/' app/plantillas/*.api.json
+> ```
+> To go back: `git checkout app/plantillas/`.
+
+Other public options, also **not tested with MAX EDITOR**. To try one, put it in ComfyUI and change the file name in the loader node of `app/plantillas/*.api.json`, as in the commands above.
 
 | Option | Saves | Link |
 |---|---|---|
